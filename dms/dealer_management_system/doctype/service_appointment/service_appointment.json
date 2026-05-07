@@ -1,0 +1,521 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-07 23:33:48.479340",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_damn"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_appointment_header",
+   "fieldtype": "Section Break",
+   "label": "Appointment Information",
+   "collapsible": 0
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Appointment Series",
+   "options": "APP-.YYYY.-",
+   "default": "APP-.YYYY.-",
+   "hidden": 1
+  },
+  {
+   "fieldname": "booking_source",
+   "fieldtype": "Select",
+   "label": "Booking Source",
+   "options": "Walk-in\nPhone Call\nWhatsApp\nWebsite\nSocial Media\nSales Referral\nFleet Contract\nEmail\nReferral Customer\nOther",
+   "reqd": 1,
+   "default": "Phone Call",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "booking_reference",
+   "fieldtype": "Data",
+   "label": "Booking Reference",
+   "description": "External reference number from booking source (e.g., WhatsApp message ID, website booking ID)",
+   "hidden": 0
+  },
+  {
+   "fieldname": "appointment_date_time",
+   "fieldtype": "Datetime",
+   "label": "Appointment Date & Time",
+   "reqd": 1,
+   "default": "Now",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_appointment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "promised_delivery_date_time",
+   "fieldtype": "Datetime",
+   "label": "Promised Delivery Date & Time",
+   "description": "When customer expects vehicle back",
+   "reqd": 1
+  },
+  {
+   "fieldname": "estimated_duration_hours",
+   "fieldtype": "Float",
+   "label": "Estimated Duration (Hours)",
+   "description": "Based on service type and workload",
+   "default": "2.0",
+   "precision": "1"
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority Level",
+   "options": "Normal\nVIP\nComeback/Repeat Repair\nSafety Critical\nImmobilized\nFleet Priority\nEmergency",
+   "reqd": 1,
+   "default": "Normal",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "section_customer_vehicle",
+   "fieldtype": "Section Break",
+   "label": "Customer & Vehicle Information"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Read Only",
+   "label": "Customer Name",
+   "fetch_from": "customer.customer_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "primary_phone",
+   "fieldtype": "Read Only",
+   "label": "Primary Phone",
+   "fetch_from": "customer.mobile_no",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_email",
+   "fieldtype": "Read Only",
+   "label": "Email",
+   "fetch_from": "customer.email_id",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_customer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Vehicle",
+   "reqd": 1,
+   "fetch_from": "vehicle.customer",
+   "fetch_if_empty": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vin_chassis",
+   "fieldtype": "Read Only",
+   "label": "VIN / Chassis",
+   "fetch_from": "vehicle.vin_chassis",
+   "read_only": 1
+  },
+  {
+   "fieldname": "license_plate",
+   "fieldtype": "Read Only",
+   "label": "License Plate",
+   "fetch_from": "vehicle.plate_number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_odometer",
+   "fieldtype": "Int",
+   "label": "Current Odometer (km)",
+   "fetch_from": "vehicle.current_odometer",
+   "read_only": 1,
+   "description": "Last recorded odometer from vehicle master"
+  },
+  {
+   "fieldname": "warranty_status",
+   "fieldtype": "Read Only",
+   "label": "Warranty Status",
+   "fetch_from": "vehicle.warranty_status",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_service_details",
+   "fieldtype": "Section Break",
+   "label": "Service Request Details"
+  },
+  {
+   "fieldname": "service_type_requested",
+   "fieldtype": "Table MultiSelect",
+   "label": "Service Type Requested",
+   "options": "Service Type Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "service_package",
+   "fieldtype": "Link",
+   "label": "Service Package (if applicable)",
+   "options": "Service Package",
+   "description": "Predefined service package like '10,000 km service'"
+  },
+  {
+   "fieldname": "customer_complaint_summary",
+   "fieldtype": "Text Editor",
+   "label": "Customer Complaint Summary",
+   "reqd": 1,
+   "description": "Record customer's exact words. This will be imported to Job Card."
+  },
+  {
+   "fieldname": "column_break_service",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "preferred_advisor",
+   "fieldtype": "Link",
+   "label": "Preferred Service Advisor",
+   "options": "User",
+   "description": "Customer's requested advisor (if any)"
+  },
+  {
+   "fieldname": "preferred_technician",
+   "fieldtype": "Link",
+   "label": "Preferred Technician",
+   "options": "User",
+   "description": "Customer's requested technician (if any)"
+  },
+  {
+   "fieldname": "vehicle_arrival_status",
+   "fieldtype": "Select",
+   "label": "Vehicle Arrival Status",
+   "options": "Customer Waiting\nDrop-off\nPick-up Later\nTow-in\nFleet Driver Drop-off",
+   "reqd": 1,
+   "default": "Customer Waiting"
+  },
+  {
+   "fieldname": "special_instructions",
+   "fieldtype": "Small Text",
+   "label": "Special Instructions",
+   "description": "e.g., Do not wash, Customer has dog, etc."
+  },
+  {
+   "fieldname": "section_warranty_campaign",
+   "fieldtype": "Section Break",
+   "label": "Warranty & Campaign Check",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "check_warranty_eligibility",
+   "fieldtype": "Button",
+   "label": "Check Warranty Eligibility",
+   "description": "Click to validate warranty status against vehicle and mileage"
+  },
+  {
+   "fieldname": "warranty_eligibility_checked",
+   "fieldtype": "Check",
+   "label": "Warranty Eligibility Verified",
+   "read_only": 1
+  },
+  {
+   "fieldname": "warranty_eligibility_note",
+   "fieldtype": "Small Text",
+   "label": "Warranty Eligibility Note",
+   "read_only": 1,
+   "description": "Auto-populated from warranty check"
+  },
+  {
+   "fieldname": "column_break_warranty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "check_recall_campaign",
+   "fieldtype": "Button",
+   "label": "Check Open Recalls/Campaigns"
+  },
+  {
+   "fieldname": "open_campaigns",
+   "fieldtype": "Table",
+   "label": "Open Campaigns/Recalls",
+   "options": "Vehicle Campaign Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "campaign_check_completed",
+   "fieldtype": "Check",
+   "label": "Campaign Check Completed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_repeat_repair",
+   "fieldtype": "Section Break",
+   "label": "Repeat Repair Detection",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.repeat_repair_alert"
+  },
+  {
+   "fieldname": "check_repeat_repair",
+   "fieldtype": "Button",
+   "label": "Check Repeat Repair History"
+  },
+  {
+   "fieldname": "repeat_repair_alert",
+   "fieldtype": "Check",
+   "label": "Repeat Repair Alert",
+   "read_only": 1,
+   "description": "Same complaint found within last 90 days / 10,000 km"
+  },
+  {
+   "fieldname": "repeat_repair_details",
+   "fieldtype": "Text Editor",
+   "label": "Repeat Repair Details",
+   "read_only": 1
+  },
+  {
+   "fieldname": "previous_job_cards",
+   "fieldtype": "Table",
+   "label": "Previous Related Job Cards",
+   "options": "Previous Job Card Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_communication",
+   "fieldtype": "Section Break",
+   "label": "Communication Log",
+   "collapsible": 0
+  },
+  {
+   "fieldname": "reminder_sent",
+   "fieldtype": "Check",
+   "label": "Reminder Sent to Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reminder_sent_datetime",
+   "fieldtype": "Datetime",
+   "label": "Reminder Sent On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reminder_method",
+   "fieldtype": "Select",
+   "label": "Reminder Method",
+   "options": "SMS\nWhatsApp\nPhone Call\nEmail\nNot Sent",
+   "default": "Not Sent"
+  },
+  {
+   "fieldname": "column_break_comm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "confirmation_sent",
+   "fieldtype": "Check",
+   "label": "Appointment Confirmation Sent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "confirmation_sent_datetime",
+   "fieldtype": "Datetime",
+   "label": "Confirmation Sent On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_confirmed",
+   "fieldtype": "Select",
+   "label": "Customer Confirmation Status",
+   "options": "Pending\nConfirmed\nRescheduled\nCancelled\nNo Response",
+   "default": "Pending"
+  },
+  {
+   "fieldname": "section_status_flow",
+   "fieldtype": "Section Break",
+   "label": "Appointment Status"
+  },
+  {
+   "fieldname": "appointment_status",
+   "fieldtype": "Select",
+   "label": "Appointment Status",
+   "options": "Booked\nReminder Sent\nArrived\nIn Inspection\nIn Workshop\nReady for Pickup\nCompleted\nNo-Show\nCancelled\nRescheduled",
+   "reqd": 1,
+   "default": "Booked",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only_depends_on": "eval:doc.arrived_date_time"
+  },
+  {
+   "fieldname": "arrived_date_time",
+   "fieldtype": "Datetime",
+   "label": "Arrived Date & Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status_history",
+   "fieldtype": "Text",
+   "label": "Status History",
+   "read_only": 1,
+   "description": "Auto-recorded status changes"
+  },
+  {
+   "fieldname": "no_show_reason",
+   "fieldtype": "Select",
+   "label": "No-Show / Cancellation Reason",
+   "options": "\nCustomer Not Reachable\nCustomer Cancelled\nVehicle Sold\nWrong Contact Info\nDuplicate Booking\nOther",
+   "depends_on": "eval:doc.appointment_status == 'No-Show' || doc.appointment_status == 'Cancelled'"
+  },
+  {
+   "fieldname": "no_show_notes",
+   "fieldtype": "Small Text",
+   "label": "No-Show / Cancellation Notes",
+   "depends_on": "eval:doc.appointment_status == 'No-Show' || doc.appointment_status == 'Cancelled'"
+  },
+  {
+   "fieldname": "section_assignment",
+   "fieldtype": "Section Break",
+   "label": "Staff Assignment",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "assigned_service_advisor",
+   "fieldtype": "Link",
+   "label": "Assigned Service Advisor",
+   "options": "User",
+   "description": "Actual advisor handling this appointment"
+  },
+  {
+   "fieldname": "assigned_technician",
+   "fieldtype": "Link",
+   "label": "Assigned Lead Technician",
+   "options": "User"
+  },
+  {
+   "fieldname": "assistant_technicians",
+   "fieldtype": "Table",
+   "label": "Assistant Technicians",
+   "options": "Assigned Technician Helper"
+  },
+  {
+   "fieldname": "column_break_assignment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "assigned_bay",
+   "fieldtype": "Link",
+   "label": "Assigned Service Bay",
+   "options": "Service Bay"
+  },
+  {
+   "fieldname": "alternate_bay",
+   "fieldtype": "Link",
+   "label": "Alternate Bay",
+   "options": "Service Bay"
+  },
+  {
+   "fieldname": "section_estimated_costs",
+   "fieldtype": "Section Break",
+   "label": "Estimated Costs (Optional)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "estimated_labor_cost",
+   "fieldtype": "Currency",
+   "label": "Estimated Labor Cost"
+  },
+  {
+   "fieldname": "estimated_parts_cost",
+   "fieldtype": "Currency",
+   "label": "Estimated Parts Cost"
+  },
+  {
+   "fieldname": "column_break_cost",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "estimated_total_cost",
+   "fieldtype": "Currency",
+   "label": "Estimated Total Cost",
+   "read_only": 1,
+   "description": "Auto-calculated: Labor + Parts"
+  },
+  {
+   "fieldname": "cost_estimate_provided_to_customer",
+   "fieldtype": "Check",
+   "label": "Cost Estimate Provided to Customer"
+  },
+  {
+   "fieldname": "section_links",
+   "fieldtype": "Section Break",
+   "label": "Linked Documents",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "inspection",
+   "fieldtype": "Link",
+   "label": "Vehicle Inspection",
+   "options": "Vehicle Inspection",
+   "read_only": 1,
+   "description": "Auto-linked when inspection is created"
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Job Card",
+   "options": "Job Card",
+   "read_only": 1,
+   "description": "Auto-linked when job card is created"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Service Appointment",
+   "read_only": 1,
+   "hidden": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-07 23:33:48.479340",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Service Appointment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,68 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-07 23:29:32.760853",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_w0qg"
+ ],
+  "fields": [
+  {
+   "fieldname": "component",
+   "fieldtype": "Select",
+   "label": "Component",
+   "options": "Engine Oil Level\nEngine Oil Condition\nCoolant Level\nCoolant Condition\nBrake Fluid Level\nBrake Fluid Condition\nPower Steering Fluid Level\nWasher Fluid Level\nTransmission Fluid Level (Dipstick)\nBattery Terminals\nBattery case condition\nDrive Belts (Condition/Tension)\nRadiator/Fan\nRadiator Hose condition\nAir Filter Housing\nAir Filter Condition\nEngine Mounts (Visible)\nVisible Oil Leaks\nVisible Coolant Leaks\nVisible Fuel Leaks\nExhaust Manifold condition\nTurbocharger (if applicable)\nIntercooler (if applicable)\nHigh Voltage Cables (EV/PHEV)\nOrange High Voltage Warning Labels\nElectric Motor visible condition\nInverter/Converter visible condition",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "label": "Condition",
+   "options": "OK\nLow\nEmpty\nLeaking\nDirty\nDamaged\nBroken\nLoose\nCorroded\nCracked\nWorn\nBurned\nMissing\nNot Checked",
+   "reqd": 1,
+   "default": "OK",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "reading_value",
+   "fieldtype": "Data",
+   "label": "Reading / Value",
+   "placeholder": "e.g., Oil: 4.2L, Voltage: 12.4V",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "photo",
+   "fieldtype": "Attach Image",
+   "label": "Photo",
+   "mandatory_depends_on": "eval:doc.condition != 'OK' && doc.condition != 'Not Checked'"
+  },
+  {
+   "fieldname": "comments",
+   "fieldtype": "Small Text",
+   "label": "Comments",
+   "in_list_view": 1,
+   "columns": 3
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-07 23:29:32.760853",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Engine Bay Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

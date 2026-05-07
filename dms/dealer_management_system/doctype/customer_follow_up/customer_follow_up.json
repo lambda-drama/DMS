@@ -1,0 +1,342 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 03:40:42.988897",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_1flb"
+ ],
+"fields": [
+  {
+   "fieldname": "section_header",
+   "fieldtype": "Section Break",
+   "label": "Follow-up Information",
+   "collapsible": 0,
+   "bold": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "FU-.YYYY.-",
+   "default": "FU-.YYYY.-",
+   "hidden": 1
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Job Card",
+   "options": "Job Card",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Job card that was completed"
+  },
+  {
+   "fieldname": "delivery",
+   "fieldtype": "Link",
+   "label": "Vehicle Delivery",
+   "options": "Vehicle Delivery",
+   "reqd": 1,
+   "description": "Delivery record for this job"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "job_card.customer",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "label": "Vehicle (VIN)",
+   "options": "VIN No",
+   "fetch_from": "job_card.vehicle_vin",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "follow_up_due_date",
+   "fieldtype": "Date",
+   "label": "Follow-up Due Date",
+   "reqd": 1,
+   "default": "Now",
+   "description": "When to contact customer (typically 24-72 hours after delivery)"
+  },
+  {
+   "fieldname": "follow_up_completed_date",
+   "fieldtype": "Datetime",
+   "label": "Follow-up Completed Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Assigned To",
+   "options": "User",
+   "reqd": 1,
+   "default": "__user",
+   "description": "Person responsible for follow-up"
+  },
+  {
+   "fieldname": "section_contact",
+   "fieldtype": "Section Break",
+   "label": "Contact Attempt"
+  },
+  {
+   "fieldname": "contact_method",
+   "fieldtype": "Select",
+   "label": "Contact Method",
+   "options": "Phone Call\nWhatsApp\nSMS\nEmail\nIn Person\nMultiple Attempts",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contact_status",
+   "fieldtype": "Select",
+   "label": "Contact Status",
+   "options": "Reached\nNot Reached\nWrong Number\nCallback Requested\nCustomer Not Interested\nNumber Disconnected",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "contact_notes",
+   "fieldtype": "Text Editor",
+   "label": "Contact Notes",
+   "description": "Summary of conversation"
+  },
+  {
+   "fieldname": "follow_up_attempts",
+   "fieldtype": "Int",
+   "label": "Number of Attempts",
+   "default": "1"
+  },
+  {
+   "fieldname": "next_attempt_date",
+   "fieldtype": "Datetime",
+   "label": "Next Attempt Date",
+   "depends_on": "eval:doc.contact_status == 'Not Reached' || doc.contact_status == 'Callback Requested'"
+  },
+  {
+   "fieldname": "column_break_contact",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contact_person_name",
+   "fieldtype": "Data",
+   "label": "Contact Person Name",
+   "description": "Who was spoken to (if not the main customer)"
+  },
+  {
+   "fieldname": "contact_phone_used",
+   "fieldtype": "Phone",
+   "label": "Phone Number Used"
+  },
+  {
+   "fieldname": "call_duration_minutes",
+   "fieldtype": "Int",
+   "label": "Call Duration (Minutes)",
+   "depends_on": "eval:doc.contact_method == 'Phone Call'"
+  },
+  {
+   "fieldname": "section_satisfaction",
+   "fieldtype": "Section Break",
+   "label": "Customer Satisfaction",
+   "bold": 1
+  },
+  {
+   "fieldname": "customer_rating",
+   "fieldtype": "Select",
+   "label": "Customer Rating (1-5)",
+   "options": "\n1 - Very Unsatisfied\n2 - Unsatisfied\n3 - Neutral\n4 - Satisfied\n5 - Very Satisfied",
+   "reqd": 1
+  },
+  {
+   "fieldname": "nps_score",
+   "fieldtype": "Select",
+   "label": "NPS Score (0-10)",
+   "options": "\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
+   "description": "How likely to recommend us? (0=Not likely, 10=Very likely)"
+  },
+  {
+   "fieldname": "issue_resolved",
+   "fieldtype": "Select",
+   "label": "Issue Resolved?",
+   "options": "Yes\nNo\nPartly\nNot Sure\nN/A",
+   "reqd": 1
+  },
+  {
+   "fieldname": "not_resolved_reason",
+   "fieldtype": "Small Text",
+   "label": "If Not Resolved, Reason",
+   "depends_on": "eval:doc.issue_resolved == 'No' || doc.issue_resolved == 'Partly'"
+  },
+  {
+   "fieldname": "column_break_satisfaction",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "service_quality_rating",
+   "fieldtype": "Select",
+   "label": "Service Quality Rating",
+   "options": "\nExcellent\nGood\nAverage\nPoor",
+   "reqd": 1
+  },
+  {
+   "fieldname": "technician_courtesy_rating",
+   "fieldtype": "Select",
+   "label": "Technician Courtesy Rating",
+   "options": "\nExcellent\nGood\nAverage\nPoor\nN/A"
+  },
+  {
+   "fieldname": "advisor_courtesy_rating",
+   "fieldtype": "Select",
+   "label": "Service Advisor Courtesy Rating",
+   "options": "\nExcellent\nGood\nAverage\nPoor\nN/A"
+  },
+  {
+   "fieldname": "timeliness_rating",
+   "fieldtype": "Select",
+   "label": "Timeliness Rating",
+   "options": "\nOn Time\nSlightly Delayed\nSignificantly Delayed"
+  },
+  {
+   "fieldname": "section_feedback",
+   "fieldtype": "Section Break",
+   "label": "Customer Feedback"
+  },
+  {
+   "fieldname": "customer_praise",
+   "fieldtype": "Text Editor",
+   "label": "Customer Praise / Positive Feedback"
+  },
+  {
+   "fieldname": "customer_complaint",
+   "fieldtype": "Text Editor",
+   "label": "Customer Complaint / Negative Feedback"
+  },
+  {
+   "fieldname": "suggestions",
+   "fieldtype": "Text Editor",
+   "label": "Customer Suggestions"
+  },
+  {
+   "fieldname": "column_break_feedback",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "improvement_actions",
+   "fieldtype": "Text Editor",
+   "label": "Improvement Actions Taken (if complaint)"
+  },
+  {
+   "fieldname": "escalated_to_manager",
+   "fieldtype": "Check",
+   "label": "Escalated to Service Manager",
+   "depends_on": "eval:doc.customer_rating == '1 - Very Unsatisfied' || doc.customer_rating == '2 - Unsatisfied'"
+  },
+  {
+   "fieldname": "manager_feedback",
+   "fieldtype": "Text Editor",
+   "label": "Manager Feedback / Resolution"
+  },
+  {
+   "fieldname": "section_repeat_repair",
+   "fieldtype": "Section Break",
+   "label": "Repeat Repair Detection",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "repeat_repair_risk",
+   "fieldtype": "Check",
+   "label": "Repeat Repair Risk Detected",
+   "read_only": 1,
+   "description": "Auto-flagged if same issue reported"
+  },
+  {
+   "fieldname": "repeat_repair_details",
+   "fieldtype": "Text Editor",
+   "label": "Repeat Repair Details",
+   "depends_on": "eval:doc.repeat_repair_risk == 1"
+  },
+  {
+   "fieldname": "new_issue_reported",
+   "fieldtype": "Check",
+   "label": "New Issue Reported by Customer"
+  },
+  {
+   "fieldname": "new_issue_details",
+   "fieldtype": "Text Editor",
+   "label": "New Issue Details",
+   "depends_on": "eval:doc.new_issue_reported == 1"
+  },
+  {
+   "fieldname": "new_job_card_created",
+   "fieldtype": "Link",
+   "label": "New Job Card Created",
+   "options": "Job Card",
+   "depends_on": "eval:doc.new_issue_reported == 1"
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "case_status",
+   "fieldtype": "Select",
+   "label": "Case Status",
+   "options": "Pending\nOpen\nIn Progress\nResolved\nClosed\nEscalated",
+   "default": "Pending",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "resolution_date",
+   "fieldtype": "Date",
+   "label": "Resolution Date",
+   "depends_on": "eval:doc.case_status == 'Resolved' || doc.case_status == 'Closed'"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Customer Follow-up",
+   "read_only": 1,
+   "hidden": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-08 03:40:42.988897",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Customer Follow Up",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

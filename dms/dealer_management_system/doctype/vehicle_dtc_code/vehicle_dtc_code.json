@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 02:29:25.379747",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "dtc_code",
+  "dtc_description",
+  "module",
+  "dtc_status",
+  "freeze_frame_available",
+  "column_break_rvtb",
+  "freeze_frame_data",
+  "mileage_when_set",
+  "date_when_set",
+  "section_break_gpjz",
+  "times_occurred",
+  "dtc_cleared",
+  "dtc_returned_after_clear",
+  "column_break_rpzw",
+  "notes"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "description": "e.g., P0300, C1234, B1000, U0100",
+   "fieldname": "dtc_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "DTC Code",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "description": "Manufacturer fault code description",
+   "fieldname": "dtc_description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "DTC Description",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "ECM (Engine Control)",
+   "fieldname": "module",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Module/System",
+   "options": "ECM (Engine Control)\nTCM (Transmission Control)\nABS (Anti-lock Brakes)\nSRS (Airbag)\nBCM (Body Control)\nHVAC\nIPC (Instrument Panel)\nInfotainment\nADAS\nTPMS\nBMS (Battery Management - EV)\nMCU (Motor Control - EV)\nOBC (On-Board Charger)\nOther",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "Current",
+   "fieldname": "dtc_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "DTC Status",
+   "options": "Current\nHistory/Stored\nPending\nIntermittent\nPermanent"
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "freeze_frame_available",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Freeze Frame Data Available"
+  },
+  {
+   "depends_on": "eval:doc.freeze_frame_available == 1",
+   "description": "Paste freeze frame data as JSON",
+   "fieldname": "freeze_frame_data",
+   "fieldtype": "Code",
+   "label": "Freeze Frame Data",
+   "options": "JSON"
+  },
+  {
+   "description": "Odometer reading when fault first occurred",
+   "fieldname": "mileage_when_set",
+   "fieldtype": "Int",
+   "label": "Mileage When DTC Set"
+  },
+  {
+   "fieldname": "date_when_set",
+   "fieldtype": "Datetime",
+   "label": "Date/Time When DTC Set"
+  },
+  {
+   "default": "1",
+   "fieldname": "times_occurred",
+   "fieldtype": "Int",
+   "label": "Times Occurred"
+  },
+  {
+   "default": "0",
+   "fieldname": "dtc_cleared",
+   "fieldtype": "Check",
+   "label": "DTC Cleared"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.dtc_cleared == 1",
+   "fieldname": "dtc_returned_after_clear",
+   "fieldtype": "Check",
+   "label": "DTC Returned After Clear"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Additional Notes"
+  },
+  {
+   "fieldname": "column_break_rvtb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_gpjz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_rpzw",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-08 02:32:09.718173",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle DTC Code",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

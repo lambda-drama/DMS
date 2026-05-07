@@ -1,0 +1,71 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-07 23:27:08.394749",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_f6qb"
+ ],
+ "fields": [
+  {
+   "fieldname": "component",
+   "fieldtype": "Select",
+   "label": "Component",
+   "options": "Front Bumper\nRear Bumper\nBonnet/Hood\nRoof\nFront Windshield\nRear Windshield\nLeft Front Door\nLeft Rear Door\nRight Front Door\nRight Rear Door\nLeft Front Fender\nRight Front Fender\nLeft Rear Quarter Panel\nRight Rear Quarter Panel\nBoot/Tailgate\nLeft Side Mirror\nRight Side Mirror\nHeadlamps (Left)\nHeadlamps (Right)\nTail Lamps (Left)\nTail Lamps (Right)\nFog Lamps\nGrille\nFront Number Plate\nRear Number Plate\nWipers (Front)\nWipers (Rear)\nSunroof/Panoramic Roof\nLeft Door Handles\nRight Door Handles\nParking Sensors\nCamera Lenses\nCharging Port Cover (EV/PHEV)\nFuel Filler Cap",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "label": "Condition",
+   "options": "OK\nScratch\nDent\nBroken\nMissing\nPrevious Repair/Mismatched Paint\nRust/Corrosion\nCrack\nNot Checked",
+   "reqd": 1,
+   "default": "OK",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "severity",
+   "fieldtype": "Select",
+   "label": "Severity",
+   "options": "Minor\nModerate\nSevere\nCritical",
+   "depends_on": "eval:doc.condition != 'OK' && doc.condition != 'Not Checked'",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "photo",
+   "fieldtype": "Attach Image",
+   "label": "Photo",
+   "mandatory_depends_on": "eval:doc.condition != 'OK' && doc.condition != 'Not Checked'",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "comments",
+   "fieldtype": "Small Text",
+   "label": "Comments",
+   "in_list_view": 1,
+   "columns": 2
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-07 23:27:08.394749",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Exterior Inspection Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,110 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 01:28:44.756825",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "checklist_item",
+  "check_item_text",
+  "category",
+  "column_break_bjxp",
+  "is_mandatory",
+  "result",
+  "measurement_value",
+  "photo",
+  "section_break_xtex",
+  "notes"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "description": "Reference to master checklist item",
+   "fieldname": "checklist_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Checklist Item",
+   "options": "QC Checklist Item",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fetch_from": "checklist_item.check_item",
+   "fieldname": "check_item_text",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Check Item"
+  },
+  {
+   "columns": 1,
+   "fetch_from": "checklist_item.category",
+   "fieldname": "category",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Category"
+  },
+  {
+   "columns": 1,
+   "fetch_from": "checklist_item.is_mandatory",
+   "fieldname": "is_mandatory",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Mandatory"
+  },
+  {
+   "columns": 1,
+   "fieldname": "result",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Result",
+   "options": "\nPass\nFail\nN/A",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "depends_on": "eval:doc.checklist_item && doc.checklist_item.requires_measurement",
+   "fieldname": "measurement_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Measurement Value"
+  },
+  {
+   "fieldname": "photo",
+   "fieldtype": "Attach Image",
+   "label": "Photo Evidence",
+   "mandatory_depends_on": "eval:doc.checklist_item && doc.checklist_item.requires_photo && doc.result == 'Fail'"
+  },
+  {
+   "columns": 2,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Notes / Action Required",
+   "mandatory_depends_on": "eval:doc.result == 'Fail'"
+  },
+  {
+   "fieldname": "column_break_bjxp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_xtex",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-08 02:06:30.858186",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Job Card QC Result",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

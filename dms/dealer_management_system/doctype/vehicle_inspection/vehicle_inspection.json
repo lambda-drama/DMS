@@ -1,0 +1,432 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-07 23:22:54.458412",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_nswa"
+ ],
+"fields": [
+  {
+   "fieldname": "section_header",
+   "fieldtype": "Section Break",
+   "label": "Inspection Information",
+   "collapsible": 0
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Inspection Series",
+   "options": "INS-.YYYY.-",
+   "default": "INS-.YYYY.-",
+   "hidden": 1
+  },
+  {
+   "fieldname": "appointment",
+   "fieldtype": "Link",
+   "label": "Service Appointment",
+   "options": "Service Appointment",
+   "read_only": 0
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Job Card",
+   "options": "Job Card",
+   "read_only": 1,
+   "depends_on": "eval:doc.docstatus == 1"
+  },
+  {
+   "fieldname": "inspection_date",
+   "fieldtype": "Datetime",
+   "label": "Inspection Date & Time",
+   "default": "Now",
+   "reqd": 1
+  },
+  {
+   "fieldname": "inspection_completed_date",
+   "fieldtype": "Datetime",
+   "label": "Completed Date & Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "service_advisor",
+   "fieldtype": "Link",
+   "label": "Service Advisor",
+   "options": "User",
+   "reqd": 1,
+   "default": "frappe.session.user"
+  },
+  {
+   "fieldname": "customer_present",
+   "fieldtype": "Check",
+   "label": "Customer Present During Inspection",
+   "default": "1"
+  },
+  {
+   "fieldname": "received_from",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Received From",
+   "depends_on": "eval:doc.customer_present == 0",
+   "collapsible": 0
+  },
+  {
+   "fieldname": "received_from_name",
+   "fieldtype": "Data",
+   "label": "Received From Name",
+   "mandatory_depends_on": "eval:doc.customer_present == 0"
+  },
+  {
+   "fieldname": "received_from_phone",
+   "fieldtype": "Phone",
+   "label": "Received From Phone",
+   "mandatory_depends_on": "eval:doc.customer_present == 0"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "received_from_relationship",
+   "fieldtype": "Select",
+   "label": "Relationship to Customer",
+   "options": "Driver\nFamily Member\nFleet Manager\nTowing Company\nInsurance Adjuster\nOther",
+   "mandatory_depends_on": "eval:doc.customer_present == 0"
+  },
+  {
+   "fieldname": "section_vehicle_status",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Status at Intake"
+  },
+  {
+   "fieldname": "customer_vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Vehicle",
+   "reqd": 1,
+   "fetch_from": "vehicle.customer",
+   "fetch_if_empty": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "customer_vehicle.customer",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "license_plate",
+   "fieldtype": "Data",
+   "label": "License Plate",
+   "fetch_from": "customer_vehicle.plate_number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_v1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vin_chassis",
+   "fieldtype": "Data",
+   "label": "VIN / Chassis Number",
+   "fetch_from": "customer_vehicle.vin_chassis",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "model_year",
+   "fieldtype": "Int",
+   "label": "Model Year",
+   "fetch_from": "customer_vehicle.model_year",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_odometer",
+   "fieldtype": "Section Break",
+   "label": "Odometer & Fuel"
+  },
+  {
+   "fieldname": "odometer",
+   "fieldtype": "Int",
+   "label": "Odometer Reading",
+   "reqd": 1,
+   "description": "Current mileage of the vehicle"
+  },
+  {
+   "fieldname": "odometer_unit",
+   "fieldtype": "Select",
+   "label": "Unit",
+   "options": "km\nmiles",
+   "default": "km",
+   "reqd": 1
+  },
+  {
+   "fieldname": "odometer_photo",
+   "fieldtype": "Attach Image",
+   "label": "Odometer Photo",
+   "reqd": 1,
+   "description": "Photo showing current odometer reading"
+  },
+  {
+   "fieldname": "column_break_fuel",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fuel_level",
+   "fieldtype": "Select",
+   "label": "Fuel Level",
+   "options": "Empty\n1/8\n1/4\n3/8\n1/2\n5/8\n3/4\n7/8\nFull",
+   "reqd": 1,
+   "default": "1/2"
+  },
+  {
+   "fieldname": "fuel_photo",
+   "fieldtype": "Attach Image",
+   "label": "Fuel Gauge Photo",
+   "description": "Optional photo of fuel gauge reading"
+  },
+  {
+   "fieldname": "battery_voltage",
+   "fieldtype": "Float",
+   "label": "Battery Voltage (V)",
+   "description": "e.g., 12.6V",
+   "precision": "1"
+  },
+  {
+   "fieldname": "section_arrival",
+   "fieldtype": "Section Break",
+   "label": "Arrival Information"
+  },
+  {
+   "fieldname": "arrival_method",
+   "fieldtype": "Select",
+   "label": "Vehicle Arrival Method",
+   "options": "Driven In\nTowed In\nCarried\nPDI/Internal Transfer",
+   "reqd": 1,
+   "default": "Driven In"
+  },
+  {
+   "fieldname": "keys_received",
+   "fieldtype": "Int",
+   "label": "Number of Keys Received",
+   "default": "1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "remote_condition",
+   "fieldtype": "Select",
+   "label": "Remote Key Condition",
+   "options": "Working\nWeak Battery\nDamaged\nNot Available",
+   "default": "Working"
+  },
+  {
+   "fieldname": "column_break_arrival",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "personal_items",
+   "fieldtype": "Text",
+   "label": "Personal Items in Vehicle",
+   "description": "List any valuables or personal items found in the vehicle"
+  },
+  {
+   "fieldname": "warning_lights_section",
+   "fieldtype": "Section Break",
+   "label": "Warning Lights"
+  },
+  {
+   "fieldname": "warning_lights",
+   "fieldtype": "Table MultiSelect",
+   "label": "Illuminated Warning Lights",
+   "options": "Vehicle Warning Light",
+   "reqd": 1
+  },
+  {
+   "fieldname": "dashboard_photo",
+   "fieldtype": "Attach Image",
+   "label": "Dashboard Photo",
+   "mandatory_depends_on": "eval:doc.warning_lights && doc.warning_lights.length > 0",
+   "description": "Photo showing illuminated warning lights"
+  },
+  {
+   "fieldname": "scan_performed",
+   "fieldtype": "Check",
+   "label": "Diagnostic Scan Performed"
+  },
+  {
+   "fieldname": "diagnostic_section",
+   "fieldtype": "Section Break",
+   "label": "Diagnostic Scan Results",
+   "depends_on": "eval:doc.scan_performed == 1",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "dtc_codes",
+   "fieldtype": "Table",
+   "label": "DTC Codes Found",
+   "options": "Vehicle DTC Code"
+  },
+  {
+   "fieldname": "scan_tool_used",
+   "fieldtype": "Data",
+   "label": "Scan Tool Used",
+   "description": "Device and software version"
+  },
+  {
+   "fieldname": "exterior_section",
+   "fieldtype": "Section Break",
+   "label": "Exterior Condition Checklist"
+  },
+  {
+   "fieldname": "exterior_checklist",
+   "fieldtype": "Table",
+   "label": "Exterior Inspection",
+   "options": "Vehicle Exterior Inspection Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "exterior_photos",
+   "fieldtype": "Attach Image",
+   "label": "Exterior Photos",
+   "description": "Front, rear, left, right views"
+  },
+  {
+   "fieldname": "interior_section",
+   "fieldtype": "Section Break",
+   "label": "Interior Condition Checklist"
+  },
+  {
+   "fieldname": "interior_checklist",
+   "fieldtype": "Table",
+   "label": "Interior Inspection",
+   "options": "Vehicle Interior Inspection Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tires_section",
+   "fieldtype": "Section Break",
+   "label": "Tires, Wheels & Brakes"
+  },
+  {
+   "fieldname": "tires_checklist",
+   "fieldtype": "Table",
+   "label": "Tire Inspection",
+   "options": "Vehicle Tire Inspection Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "engine_section",
+   "fieldtype": "Section Break",
+   "label": "Engine Bay & Underbody"
+  },
+  {
+   "fieldname": "engine_checklist",
+   "fieldtype": "Table",
+   "label": "Engine Bay Inspection",
+   "options": "Vehicle Engine Bay Item"
+  },
+  {
+   "fieldname": "underbody_checklist",
+   "fieldtype": "Table",
+   "label": "Underbody Inspection",
+   "options": "Vehicle Underbody Item"
+  },
+  {
+   "fieldname": "customer_concern_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Concerns / Complaints"
+  },
+  {
+   "fieldname": "customer_complaints",
+   "fieldtype": "Table",
+   "label": "Customer Complaints",
+   "options": "Vehicle Customer Complaint",
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Notes"
+  },
+  {
+   "fieldname": "service_advisor_notes",
+   "fieldtype": "Text Editor",
+   "label": "Service Advisor Notes"
+  },
+  {
+   "fieldname": "internal_notes",
+   "fieldtype": "Text Editor",
+   "label": "Internal Notes (Not for Customer)",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "signature_section",
+   "fieldtype": "Section Break",
+   "label": "Signatures"
+  },
+  {
+   "fieldname": "customer_signature",
+   "fieldtype": "Attach Image",
+   "label": "Customer Signature",
+   "reqd": 1,
+   "description": "Customer acknowledges vehicle condition"
+  },
+  {
+   "fieldname": "advisor_signature",
+   "fieldtype": "Attach Image",
+   "label": "Service Advisor Signature",
+   "reqd": 1,
+   "description": "Advisor confirms inspection completed accurately"
+  },
+  {
+   "fieldname": "manager_override_signature",
+   "fieldtype": "Attach Image",
+   "label": "Manager Override Signature",
+   "depends_on": "eval:doc.manager_override_reason",
+   "description": "Required when exceptions are made"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Vehicle Inspection",
+   "read_only": 1,
+   "hidden": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-07 23:22:54.458412",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Inspection",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

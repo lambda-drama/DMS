@@ -1,0 +1,144 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 01:27:25.369963",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_sequence",
+  "check_item",
+  "category",
+  "is_mandatory",
+  "requires_photo",
+  "requires_measurement",
+  "column_break_cbdn",
+  "measurement_unit",
+  "min_value",
+  "max_value",
+  "standard_value",
+  "section_break_lqgf",
+  "help_text",
+  "fail_action"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "item_sequence",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sequence"
+  },
+  {
+   "columns": 5,
+   "description": "Description of what to check",
+   "fieldname": "check_item",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Check Item",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "Technical",
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "Safety\nPerformance\nAppearance\nDocumentation\nCustomer Service\nTechnical\nElectrical\nMechanical\nBody\nFluids\nTires\nBrakes\nLights\nHVAC\nOther"
+  },
+  {
+   "columns": 1,
+   "default": "1",
+   "description": "If failed, job cannot be delivered",
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Mandatory"
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "requires_photo",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Requires Photo Evidence"
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "requires_measurement",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Requires Measurement"
+  },
+  {
+   "columns": 1,
+   "depends_on": "eval:doc.requires_measurement == 1",
+   "fieldname": "measurement_unit",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Measurement Unit",
+   "placeholder": "e.g., mm, psi, volts, microns"
+  },
+  {
+   "depends_on": "eval:doc.requires_measurement == 1",
+   "description": "Minimum acceptable measurement",
+   "fieldname": "min_value",
+   "fieldtype": "Float",
+   "label": "Minimum Value"
+  },
+  {
+   "depends_on": "eval:doc.requires_measurement == 1",
+   "description": "Maximum acceptable measurement",
+   "fieldname": "max_value",
+   "fieldtype": "Float",
+   "label": "Maximum Value"
+  },
+  {
+   "depends_on": "eval:doc.requires_measurement == 1",
+   "description": "Ideal measurement value",
+   "fieldname": "standard_value",
+   "fieldtype": "Float",
+   "label": "Standard/Nominal Value"
+  },
+  {
+   "description": "Instructions for QC inspector on how to perform this check",
+   "fieldname": "help_text",
+   "fieldtype": "Small Text",
+   "label": "Help Text / Instructions"
+  },
+  {
+   "default": "Return to Technician",
+   "description": "What happens when this check fails",
+   "fieldname": "fail_action",
+   "fieldtype": "Select",
+   "label": "Action on Fail",
+   "options": "\nNotify Service Advisor\nCreate Rework Job\nEscalate to Manager\nBlock Delivery\nReturn to Technician"
+  },
+  {
+   "fieldname": "column_break_cbdn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_lqgf",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-08 02:07:26.707470",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "QC Checklist Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
