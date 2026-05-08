@@ -11,15 +11,14 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "dms",
-# 		"logo": "/assets/dms/logo.png",
-# 		"title": "Dealer Management System",
-# 		"route": "/dms",
-# 		"has_permission": "dms.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "dms",
+		"logo": "/assets/dms/image/logo_t.jpg",
+		"title": "Dealer Management System",
+		"route": "/app/dealer-management",
+	}
+]
 
 # Includes in <head>
 # ------------------
