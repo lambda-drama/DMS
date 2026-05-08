@@ -20,6 +20,10 @@ add_to_apps_screen = [
 	}
 ]
 
+fixtures = [
+	{"doctype": "Role", "filters": [["name", "=", "Dealer Manager"]]},
+]
+
 # Includes in <head>
 # ------------------
 
