@@ -368,3 +368,46 @@ class VINNo(Document):
             serial_no = frappe.get_doc("Serial No", self.linked_serial)
             serial_no.customer = new_customer_name
             serial_no.save(ignore_permissions=True)
+            
+    def get_service_interval_km(self):
+        """Get the appropriate service interval based on vehicle conditions"""
+        if not self.vehicle_model:
+            return 10000
+        
+        model = frappe.get_doc("Vehicle Model", self.vehicle_model)
+        
+        # Find matching service interval rule
+        for rule in model.service_intervals:
+            if rule.is_default:
+                default_km = rule.interval_km
+                default_months = rule.interval_months
+            
+            # Check if conditions match
+            if rule.condition == "Fleet Vehicle" and self.is_fleet_vehicle:
+                return rule.interval_km
+        
+        return default_km or 10000
+
+    def calculate_warranty_dates(self):
+        """Calculate warranty end dates based on vehicle model rules"""
+        if not self.vehicle_model:
+            return
+        
+        model = frappe.get_doc("Vehicle Model", self.vehicle_model)
+        
+        for rule in model.warranty_rules:
+            if rule.is_default:
+                if rule.component_category == "Full Vehicle":
+                    # Set main warranty
+                    self.warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
+                    self.warranty_km_limit = rule.warranty_km
+                
+                elif rule.component_category == "Battery (EV/Hybrid)" and self.fuel_type in ["EV", "Hybrid", "PHEV"]:
+                    # Set battery warranty
+                    self.battery_warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
+                    self.battery_warranty_km_limit = rule.warranty_km
+                
+                elif rule.component_category == "Engine/Powertrain":
+                    # Set engine warranty
+                    self.engine_warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
+                    self.engine_warranty_km_limit = rule.warranty_km

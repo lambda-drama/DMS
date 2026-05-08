@@ -176,13 +176,15 @@
    "fieldtype": "Link",
    "label": "Brand",
    "options": "Brand",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "description": "e.g., Premium, Luxury, Base, GLX",
    "fieldname": "model_variant",
    "fieldtype": "Data",
-   "label": "Variant / Trim"
+   "label": "Variant / Trim",
+   "reqd": 1
   },
   {
    "description": "4-digit year (e.g., 2024)",
@@ -313,7 +315,8 @@
    "description": "Usually delivery date",
    "fieldname": "warranty_start_date",
    "fieldtype": "Date",
-   "label": "Warranty Start Date"
+   "label": "Warranty Start Date",
+   "reqd": 1
   },
   {
    "description": "Based on warranty period from delivery",
@@ -637,7 +640,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 02:16:22.132517",
+ "modified": "2026-05-08 04:09:38.793349",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "VIN No",
