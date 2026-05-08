@@ -1,94 +1,143 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "naming_series:",
  "creation": "2026-05-08 03:37:08.666790",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_break_b6fh"
+  "section_header",
+  "naming_series",
+  "job_card",
+  "customer",
+  "vehicle_vin",
+  "vehicle_model",
+  "license_plate",
+  "column_break_header",
+  "delivered_by",
+  "delivery_date_time",
+  "delivery_status",
+  "section_odometer_fuel",
+  "final_odometer_km",
+  "final_fuel_level",
+  "fuel_photo",
+  "column_break_odo",
+  "vehicle_condition",
+  "new_damage_notes",
+  "new_damage_photo",
+  "section_delivery_checklist",
+  "delivery_checklist",
+  "section_parts_return",
+  "replaced_parts",
+  "column_break_parts",
+  "old_parts_disposal_consent",
+  "old_parts_disposal_consent_signature",
+  "section_service_reminder",
+  "next_service_due_km",
+  "next_service_due_date",
+  "service_reminder_sticker_given",
+  "column_break_reminder",
+  "service_booklet_updated",
+  "digital_service_history_shared",
+  "section_billing",
+  "invoice_explained",
+  "invoice_copy_given",
+  "payment_cleared",
+  "payment_method",
+  "column_break_billing",
+  "final_amount",
+  "payment_receipt_no",
+  "section_signatures",
+  "customer_signature",
+  "customer_satisfaction_initial",
+  "customer_comments",
+  "column_break_signatures",
+  "delivered_by_signature",
+  "customer_acknowledgment_photo",
+  "section_notes",
+  "delivery_notes"
  ],
-  "fields": [
+ "fields": [
   {
+   "bold": 1,
    "fieldname": "section_header",
    "fieldtype": "Section Break",
-   "label": "Delivery Information",
-   "collapsible": 0,
-   "bold": 1
+   "label": "Delivery Information"
   },
   {
+   "default": "DEL-.YYYY.-",
    "fieldname": "naming_series",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Series",
-   "options": "DEL-.YYYY.-",
-   "default": "DEL-.YYYY.-",
-   "hidden": 1
+   "options": "DEL-.YYYY.-"
   },
   {
+   "description": "Link to the completed job card",
    "fieldname": "job_card",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Job Card",
    "options": "Job Card",
-   "reqd": 1,
-   "in_list_view": 1,
-   "description": "Link to the completed job card"
+   "reqd": 1
   },
   {
+   "fetch_from": "job_card.customer",
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Customer",
    "options": "Customer",
-   "fetch_from": "job_card.customer",
-   "read_only": 1,
-   "in_list_view": 1
+   "read_only": 1
   },
   {
+   "fetch_from": "job_card.vehicle_vin",
    "fieldname": "vehicle_vin",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Vehicle (VIN)",
    "options": "VIN No",
-   "fetch_from": "job_card.vehicle_vin",
-   "read_only": 1,
-   "in_list_view": 1
+   "read_only": 1
   },
   {
+   "fetch_from": "vehicle_vin.model_name",
    "fieldname": "vehicle_model",
    "fieldtype": "Read Only",
-   "label": "Model",
-   "fetch_from": "vehicle_vin.model_name"
+   "label": "Model"
   },
   {
+   "fetch_from": "vehicle_vin.plate_number",
    "fieldname": "license_plate",
    "fieldtype": "Read Only",
-   "label": "License Plate",
-   "fetch_from": "vehicle_vin.plate_number"
+   "label": "License Plate"
   },
   {
    "fieldname": "column_break_header",
    "fieldtype": "Column Break"
   },
   {
+   "default": "__user",
+   "description": "Service Advisor or Cashier handling delivery",
    "fieldname": "delivered_by",
    "fieldtype": "Link",
    "label": "Delivered By",
    "options": "User",
-   "reqd": 1,
-   "default": "__user",
-   "description": "Service Advisor or Cashier handling delivery"
-  },
-  {
-   "fieldname": "delivery_date_time",
-   "fieldtype": "Datetime",
-   "label": "Delivery Date & Time",
-   "default": "Now",
    "reqd": 1
   },
   {
+   "default": "Now",
+   "fieldname": "delivery_date_time",
+   "fieldtype": "Datetime",
+   "label": "Delivery Date & Time",
+   "reqd": 1
+  },
+  {
+   "default": "Completed",
    "fieldname": "delivery_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Delivery Status",
-   "options": "Completed\nPartial\nCustomer Not Available\nRescheduled\nFailed",
-   "default": "Completed",
-   "in_list_view": 1
+   "options": "Completed\nPartial\nCustomer Not Available\nRescheduled\nFailed"
   },
   {
    "fieldname": "section_odometer_fuel",
@@ -96,19 +145,19 @@
    "label": "Final Vehicle Condition"
   },
   {
+   "description": "Must be >= intake odometer",
    "fieldname": "final_odometer_km",
    "fieldtype": "Int",
    "label": "Final Odometer (km)",
-   "reqd": 1,
-   "description": "Must be >= intake odometer"
+   "reqd": 1
   },
   {
+   "default": "1/2",
    "fieldname": "final_fuel_level",
    "fieldtype": "Select",
    "label": "Final Fuel Level",
    "options": "Empty\n1/8\n1/4\n3/8\n1/2\n5/8\n3/4\n7/8\nFull",
-   "reqd": 1,
-   "default": "1/2"
+   "reqd": 1
   },
   {
    "fieldname": "fuel_photo",
@@ -120,65 +169,66 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "Good",
    "fieldname": "vehicle_condition",
    "fieldtype": "Select",
    "label": "Vehicle Condition at Delivery",
-   "options": "Excellent\nGood\nFair\nCustomer Reported New Damage",
-   "default": "Good"
+   "options": "Excellent\nGood\nFair\nCustomer Reported New Damage"
   },
   {
+   "depends_on": "eval:doc.vehicle_condition == 'Customer Reported New Damage'",
    "fieldname": "new_damage_notes",
    "fieldtype": "Small Text",
-   "label": "New Damage Notes",
-   "depends_on": "eval:doc.vehicle_condition == 'Customer Reported New Damage'"
+   "label": "New Damage Notes"
   },
   {
+   "depends_on": "eval:doc.vehicle_condition == 'Customer Reported New Damage'",
    "fieldname": "new_damage_photo",
    "fieldtype": "Attach Image",
-   "label": "New Damage Photo",
-   "depends_on": "eval:doc.vehicle_condition == 'Customer Reported New Damage'"
+   "label": "New Damage Photo"
   },
   {
+   "bold": 1,
    "fieldname": "section_delivery_checklist",
    "fieldtype": "Section Break",
-   "label": "Delivery Checklist",
-   "bold": 1
+   "label": "Delivery Checklist"
   },
   {
+   "description": "Confirm each item before delivery",
    "fieldname": "delivery_checklist",
    "fieldtype": "Table",
    "label": "Delivery Checklist",
-   "options": "Delivery Checklist Item",
-   "description": "Confirm each item before delivery"
+   "options": "Vehicle Delivery Checklist Item"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_parts_return",
    "fieldtype": "Section Break",
-   "label": "Old / Replaced Parts",
-   "collapsible": 1
+   "label": "Old / Replaced Parts"
   },
   {
+   "description": "Track which old parts were returned to customer",
    "fieldname": "replaced_parts",
    "fieldtype": "Table",
    "label": "Replaced Parts Return Status",
-   "options": "Replaced Part Return",
-   "description": "Track which old parts were returned to customer"
+   "options": "Replaced Part Return"
   },
   {
    "fieldname": "column_break_parts",
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
+   "description": "If checked, dealer can dispose of old parts",
    "fieldname": "old_parts_disposal_consent",
    "fieldtype": "Check",
-   "label": "Customer Consents to Old Parts Disposal",
-   "description": "If checked, dealer can dispose of old parts"
+   "label": "Customer Consents to Old Parts Disposal"
   },
   {
+   "depends_on": "eval:doc.old_parts_disposal_consent == 1",
    "fieldname": "old_parts_disposal_consent_signature",
    "fieldtype": "Attach Image",
-   "label": "Disposal Consent Signature",
-   "depends_on": "eval:doc.old_parts_disposal_consent == 1"
+   "label": "Disposal Consent Signature"
   },
   {
    "fieldname": "section_service_reminder",
@@ -186,38 +236,39 @@
    "label": "Next Service Reminder"
   },
   {
+   "description": "Based on odometer + service interval",
    "fieldname": "next_service_due_km",
    "fieldtype": "Int",
-   "label": "Next Service Due (KM)",
-   "description": "Based on odometer + service interval"
+   "label": "Next Service Due (KM)"
   },
   {
+   "description": "Based on last service + interval months",
    "fieldname": "next_service_due_date",
    "fieldtype": "Date",
-   "label": "Next Service Due Date",
-   "description": "Based on last service + interval months"
+   "label": "Next Service Due Date"
   },
   {
+   "default": "1",
    "fieldname": "service_reminder_sticker_given",
    "fieldtype": "Check",
-   "label": "Service Reminder Sticker Given",
-   "default": "1"
+   "label": "Service Reminder Sticker Given"
   },
   {
    "fieldname": "column_break_reminder",
    "fieldtype": "Column Break"
   },
   {
+   "default": "1",
    "fieldname": "service_booklet_updated",
    "fieldtype": "Check",
-   "label": "Service Booklet Updated",
-   "default": "1"
+   "label": "Service Booklet Updated"
   },
   {
+   "default": "0",
+   "description": "SMS/Email with service record",
    "fieldname": "digital_service_history_shared",
    "fieldtype": "Check",
-   "label": "Digital Service History Shared",
-   "description": "SMS/Email with service record"
+   "label": "Digital Service History Shared"
   },
   {
    "fieldname": "section_billing",
@@ -225,39 +276,41 @@
    "label": "Billing & Payment Confirmation"
   },
   {
+   "default": "0",
    "fieldname": "invoice_explained",
    "fieldtype": "Check",
    "label": "Invoice Explained to Customer",
    "reqd": 1
   },
   {
+   "default": "1",
    "fieldname": "invoice_copy_given",
    "fieldtype": "Check",
-   "label": "Invoice Copy Given",
-   "default": "1"
+   "label": "Invoice Copy Given"
   },
   {
+   "default": "0",
    "fieldname": "payment_cleared",
    "fieldtype": "Check",
    "label": "Payment Cleared",
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.payment_cleared == 1",
    "fieldname": "payment_method",
    "fieldtype": "Select",
    "label": "Payment Method",
-   "options": "Cash\nCard\nBank Transfer\nCredit Account\nWarranty\nInsurance\nFleet Account",
-   "depends_on": "eval:doc.payment_cleared == 1"
+   "options": "Cash\nCard\nBank Transfer\nCredit Account\nWarranty\nInsurance\nFleet Account"
   },
   {
    "fieldname": "column_break_billing",
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "job_card.net_amount",
    "fieldname": "final_amount",
    "fieldtype": "Currency",
    "label": "Final Amount Paid",
-   "fetch_from": "job_card.net_amount",
    "read_only": 1
   },
   {
@@ -266,25 +319,25 @@
    "label": "Payment Receipt Number"
   },
   {
+   "bold": 1,
    "fieldname": "section_signatures",
    "fieldtype": "Section Break",
-   "label": "Signatures",
-   "bold": 1
+   "label": "Signatures"
   },
   {
+   "description": "Customer confirms vehicle received in satisfactory condition",
    "fieldname": "customer_signature",
    "fieldtype": "Attach Image",
    "label": "Customer Signature",
-   "reqd": 1,
-   "description": "Customer confirms vehicle received in satisfactory condition"
+   "reqd": 1
   },
   {
+   "description": "Initial feedback at time of delivery",
    "fieldname": "customer_satisfaction_initial",
    "fieldtype": "Select",
    "label": "Customer Satisfaction (Initial)",
    "options": "Happy\nNeutral\nUnhappy",
-   "reqd": 1,
-   "description": "Initial feedback at time of delivery"
+   "reqd": 1
   },
   {
    "fieldname": "customer_comments",
@@ -296,17 +349,17 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "Service Advisor signature confirming delivery",
    "fieldname": "delivered_by_signature",
    "fieldtype": "Attach Image",
    "label": "Delivered By Signature",
-   "reqd": 1,
-   "description": "Service Advisor signature confirming delivery"
+   "reqd": 1
   },
   {
+   "description": "Photo of customer receiving vehicle",
    "fieldname": "customer_acknowledgment_photo",
    "fieldtype": "Attach Image",
-   "label": "Customer Photo (Optional)",
-   "description": "Photo of customer receiving vehicle"
+   "label": "Customer Photo (Optional)"
   },
   {
    "fieldname": "section_notes",
@@ -317,20 +370,12 @@
    "fieldname": "delivery_notes",
    "fieldtype": "Text Editor",
    "label": "Delivery Notes / Special Instructions"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "options": "Vehicle Delivery",
-   "read_only": 1,
-   "hidden": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 03:37:08.666790",
+ "modified": "2026-05-09 00:50:38.800677",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Delivery Note",

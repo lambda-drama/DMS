@@ -53,26 +53,7 @@
    "onboard": 0,
    "type": "Link"
   },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Vehicle Service Interval",
-   "link_count": 0,
-   "link_to": "Vehicle Service Interval",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Vehicle Warranty Rule",
-   "link_count": 0,
-   "link_to": "Vehicle Warranty Rule",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
+  
   {
    "hidden": 0,
    "is_query_report": 0,
@@ -168,16 +149,6 @@
    "label": "Customer Follow Up",
    "link_count": 0,
    "link_to": "Customer Follow Up",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Replaced Part Return",
-   "link_count": 0,
-   "link_to": "Replaced Part Return",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
