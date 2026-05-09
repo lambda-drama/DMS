@@ -6,7 +6,6 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "item_sequence",
   "check_item",
   "category",
   "is_mandatory",
@@ -23,20 +22,13 @@
  ],
  "fields": [
   {
-   "columns": 1,
-   "default": "0",
-   "fieldname": "item_sequence",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Sequence"
-  },
-  {
    "columns": 5,
    "description": "Description of what to check",
    "fieldname": "check_item",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Check Item",
+   "options": "QC Checklist Item Master",
    "reqd": 1
   },
   {
@@ -130,7 +122,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-08 02:07:26.707470",
+ "modified": "2026-05-09 21:17:39.456423",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "QC Checklist Item",

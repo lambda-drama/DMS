@@ -1,0 +1,310 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.618444",
+  "name": "All customer complaints addressed",
+  "qc_checklist_item": "All customer complaints addressed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.634216",
+  "name": "Technician correction notes completed",
+  "qc_checklist_item": "Technician correction notes completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.642869",
+  "name": "All approved labor lines completed",
+  "qc_checklist_item": "All approved labor lines completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.651326",
+  "name": "All approved parts fitted/issued correctly",
+  "qc_checklist_item": "All approved parts fitted/issued correctly"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.667918",
+  "name": "No pending unapproved work performed",
+  "qc_checklist_item": "No pending unapproved work performed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.677883",
+  "name": "Fluid levels rechecked",
+  "qc_checklist_item": "Fluid levels rechecked"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.688610",
+  "name": "Leaks checked after repair",
+  "qc_checklist_item": "Leaks checked after repair"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.697334",
+  "name": "Warning lights checked after repair",
+  "qc_checklist_item": "Warning lights checked after repair"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.709652",
+  "name": "Interior cleanliness checked",
+  "qc_checklist_item": "Interior cleanliness checked"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.717973",
+  "name": "Exterior cleanliness/wash completed",
+  "qc_checklist_item": "Exterior cleanliness/wash completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.726879",
+  "name": "No tools/parts left inside vehicle",
+  "qc_checklist_item": "No tools/parts left inside vehicle"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.733736",
+  "name": "Service reminder sticker/card updated",
+  "qc_checklist_item": "Service reminder sticker/card updated"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.738990",
+  "name": "Next service due entered",
+  "qc_checklist_item": "Next service due entered"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.743368",
+  "name": "Invoice work description matches actual work",
+  "qc_checklist_item": "Invoice work description matches actual work"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.747677",
+  "name": "Failed part photo taken and attached",
+  "qc_checklist_item": "Failed part photo taken and attached"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.751912",
+  "name": "Failed part labeled and stored in warranty bin",
+  "qc_checklist_item": "Failed part labeled and stored in warranty bin"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.755832",
+  "name": "Diagnostic trouble codes recorded",
+  "qc_checklist_item": "Diagnostic trouble codes recorded"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.759530",
+  "name": "Warranty eligibility verified",
+  "qc_checklist_item": "Warranty eligibility verified"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.762980",
+  "name": "Technician report completed",
+  "qc_checklist_item": "Technician report completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.766427",
+  "name": "All approved warranty labor completed",
+  "qc_checklist_item": "All approved warranty labor completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.770083",
+  "name": "Old part stored with correct labeling",
+  "qc_checklist_item": "Old part stored with correct labeling"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.774991",
+  "name": "Warranty claim documentation complete",
+  "qc_checklist_item": "Warranty claim documentation complete"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.778085",
+  "name": "High voltage system isolated before work",
+  "qc_checklist_item": "High voltage system isolated before work"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.781646",
+  "name": "Insulated gloves and tools used",
+  "qc_checklist_item": "Insulated gloves and tools used"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.785409",
+  "name": "No orange high voltage cable damage",
+  "qc_checklist_item": "No orange high voltage cable damage"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.788601",
+  "name": "Battery isolation interlock reconnected",
+  "qc_checklist_item": "Battery isolation interlock reconnected"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.791795",
+  "name": "High voltage system integrity verified",
+  "qc_checklist_item": "High voltage system integrity verified"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.794851",
+  "name": "No warning lights after repair",
+  "qc_checklist_item": "No warning lights after repair"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.798069",
+  "name": "Charging port and cable condition OK",
+  "qc_checklist_item": "Charging port and cable condition OK"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.801402",
+  "name": "All damaged panels repaired/replaced",
+  "qc_checklist_item": "All damaged panels repaired/replaced"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.808556",
+  "name": "Paint color matches surrounding panels",
+  "qc_checklist_item": "Paint color matches surrounding panels"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.811657",
+  "name": "No overspray on adjacent panels",
+  "qc_checklist_item": "No overspray on adjacent panels"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.814649",
+  "name": "Panel gaps within specification",
+  "qc_checklist_item": "Panel gaps within specification"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.818022",
+  "name": "All trim and moldings correctly installed",
+  "qc_checklist_item": "All trim and moldings correctly installed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.821225",
+  "name": "Lights and sensors functioning",
+  "qc_checklist_item": "Lights and sensors functioning"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.824513",
+  "name": "No paint defects (runs, orange peel, dust)",
+  "qc_checklist_item": "No paint defects (runs, orange peel, dust)"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.827456",
+  "name": "All protective films removed",
+  "qc_checklist_item": "All protective films removed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.830367",
+  "name": "Exterior paint inspection completed",
+  "qc_checklist_item": "Exterior paint inspection completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.833332",
+  "name": "Interior inspection completed",
+  "qc_checklist_item": "Interior inspection completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.836395",
+  "name": "All fluids checked and topped up",
+  "qc_checklist_item": "All fluids checked and topped up"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.839554",
+  "name": "Battery charged and terminals tight",
+  "qc_checklist_item": "Battery charged and terminals tight"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.842553",
+  "name": "Tire pressure checked and adjusted",
+  "qc_checklist_item": "Tire pressure checked and adjusted"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.845436",
+  "name": "All lights functioning",
+  "qc_checklist_item": "All lights functioning"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "QC Checklist Item Master",
+  "modified": "2026-05-09 21:15:34.848174",
+  "name": "All keys and documentation present",
+  "qc_checklist_item": "All keys and documentation present"
+ }
+]

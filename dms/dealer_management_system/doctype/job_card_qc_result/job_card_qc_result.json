@@ -6,51 +6,64 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "checklist_item",
   "check_item_text",
   "category",
   "column_break_bjxp",
   "is_mandatory",
+  "requires_photo",
+  "requires_measurement",
   "result",
   "measurement_value",
+  "column_break_measurement",
+  "min_value",
+  "max_value",
   "photo",
-  "section_break_xtex",
   "notes"
  ],
  "fields": [
   {
-   "columns": 4,
-   "description": "Reference to master checklist item",
-   "fieldname": "checklist_item",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Checklist Item",
-   "options": "QC Checklist Item",
-   "reqd": 1
-  },
-  {
    "columns": 3,
-   "fetch_from": "checklist_item.check_item",
+   "description": "Copied from QC Checklist Template row (no linked child record)",
    "fieldname": "check_item_text",
-   "fieldtype": "Read Only",
+   "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "Check Item"
   },
   {
    "columns": 1,
-   "fetch_from": "checklist_item.category",
    "fieldname": "category",
-   "fieldtype": "Read Only",
+   "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Category"
+   "label": "Category",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_bjxp",
+   "fieldtype": "Column Break"
   },
   {
    "columns": 1,
-   "fetch_from": "checklist_item.is_mandatory",
    "fieldname": "is_mandatory",
-   "fieldtype": "Read Only",
+   "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Mandatory"
+   "label": "Mandatory",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "requires_photo",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Requires Photo",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "requires_measurement",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Requires Measurement",
+   "read_only": 1
   },
   {
    "columns": 1,
@@ -63,17 +76,37 @@
   },
   {
    "columns": 1,
-   "depends_on": "eval:doc.checklist_item && doc.checklist_item.requires_measurement",
+   "depends_on": "eval:cint(doc.requires_measurement) == 1",
    "fieldname": "measurement_value",
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Measurement Value"
   },
   {
+   "fieldname": "column_break_measurement",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:cint(doc.requires_measurement) == 1",
+   "fieldname": "min_value",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Min Value",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:cint(doc.requires_measurement) == 1",
+   "fieldname": "max_value",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Max Value",
+   "read_only": 1
+  },
+  {
    "fieldname": "photo",
    "fieldtype": "Attach Image",
    "label": "Photo Evidence",
-   "mandatory_depends_on": "eval:doc.checklist_item && doc.checklist_item.requires_photo && doc.result == 'Fail'"
+   "mandatory_depends_on": "eval:cint(doc.requires_photo) && doc.result == 'Fail'"
   },
   {
    "columns": 2,
@@ -82,21 +115,13 @@
    "in_list_view": 1,
    "label": "Notes / Action Required",
    "mandatory_depends_on": "eval:doc.result == 'Fail'"
-  },
-  {
-   "fieldname": "column_break_bjxp",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_xtex",
-   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-08 02:06:30.858186",
+ "modified": "2026-05-09 22:40:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Job Card QC Result",

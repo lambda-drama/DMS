@@ -21,11 +21,12 @@ frappe.ui.form.on("Vehicle Inspection", {
 		dms_vehicle_inspection.sync_model_year_from_vin(frm);
 	},
 
-    refresh(frm){
-        apply_vin_filter(frm)
-        apply_customer_filter_advanced(frm)
-        apply_vehicle_item_filter(frm)
-    }
+	refresh(frm) {
+		dms_vehicle_inspection.setup_job_card_buttons(frm);
+		apply_vin_filter(frm);
+		apply_customer_filter_advanced(frm);
+		apply_vehicle_item_filter(frm);
+	},
 });
 
 const dms_vehicle_inspection = {
@@ -100,6 +101,51 @@ const dms_vehicle_inspection = {
 			console.error(e);
 		}
 	},
+
+	setup_job_card_buttons(frm) {
+		if (frm.doc.__islocal) {
+			return;
+		}
+
+		if (frm.doc.job_card) {
+			frm.add_custom_button(
+				__("Open Job Card"),
+				() => frappe.set_route("Form", "DMS Job Card", frm.doc.job_card),
+				__("Actions")
+			);
+		} else {
+			frm.add_custom_button(
+				__("Create DMS Job Card"),
+				() => dms_vehicle_inspection.create_job_card(frm),
+				__("Actions")
+			);
+		}
+	},
+
+	create_job_card(frm) {
+		frappe.confirm(
+			__(
+				"Create a DMS Job Card from this inspection? Customer, vehicle (VIN), service advisor, complaints, and appointment data will be copied where fields match."
+			),
+			() => {
+				frappe.call({
+					method: "dms.dealer_management_system.doctype.vehicle_inspection.vehicle_inspection.make_dms_job_card_from_inspection",
+					args: { source_name: frm.doc.name },
+					freeze: true,
+					freeze_message: __("Creating Job Card"),
+					callback: (r) => {
+						if (r.exc) {
+							return;
+						}
+						if (r.message) {
+							frappe.show_alert({ message: __("DMS Job Card created"), indicator: "green" });
+							frappe.set_route("Form", "DMS Job Card", r.message);
+						}
+					},
+				});
+			}
+		);
+	},
 };
 
 
@@ -129,8 +175,8 @@ function apply_vin_filter(frm) {
         let filters = {};
         
         // If vehicle is selected, filter by that vehicle item
-        if (doc.vehicle) {
-            filters.vehicle_item = doc.vehicle;
+        if (doc.customer_vehicle) {
+            filters.vehicle_item = doc.customer_vehicle;
         }
         
         return {

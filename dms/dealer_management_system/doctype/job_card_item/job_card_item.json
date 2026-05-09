@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-09 22:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "complaint_description",
+  "symptom_category",
+  "column_break_job_item",
+  "severity",
+  "labor_operation"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "fieldname": "complaint_description",
+   "fieldtype": "Text Editor",
+   "in_list_view": 1,
+   "label": "Complaint / Work Description",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "symptom_category",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Symptom Category"
+  },
+  {
+   "fieldname": "column_break_job_item",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "fieldname": "severity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Severity"
+  },
+  {
+   "columns": 2,
+   "description": "Optional labour/service item once operation is confirmed",
+   "fieldname": "labor_operation",
+   "fieldtype": "Link",
+   "label": "Labor Operation",
+   "options": "Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-09 22:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Job Card Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

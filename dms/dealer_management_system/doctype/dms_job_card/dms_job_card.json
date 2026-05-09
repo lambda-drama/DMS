@@ -8,14 +8,24 @@
  "field_order": [
   "section_header",
   "naming_series",
-  "qc_checklist_template",
   "job_card_type",
   "status",
-  "column_break_header",
   "posting_date",
+  "column_break_header",
   "opened_date_time",
   "completed_date_time",
   "promised_delivery_date_time",
+  "quality_control_section_section",
+  "qc_checklist_template",
+  "qc_results",
+  "section_quality_control",
+  "qc_inspector",
+  "qc_result",
+  "qc_fail_reason",
+  "column_break_qc",
+  "rework_required",
+  "rework_job_item",
+  "qc_checked_date",
   "section_customer_vehicle",
   "customer",
   "customer_name",
@@ -23,8 +33,8 @@
   "vehicle_vin",
   "vehicle_model",
   "license_plate",
-  "current_odometer",
   "column_break_vehicle",
+  "current_odometer",
   "appointment",
   "inspection",
   "warranty_status",
@@ -57,15 +67,6 @@
   "approval_reference",
   "approval_attachment",
   "approved_amount",
-  "section_quality_control",
-  "qc_inspector",
-  "qc_result",
-  "qc_fail_reason",
-  "qc_checked_date",
-  "column_break_qc",
-  "rework_required",
-  "rework_job_item",
-  "qc_checklist",
   "section_billing",
   "invoice",
   "payment_status",
@@ -111,6 +112,13 @@
    "fieldtype": "Link",
    "label": "QC Checklist Template",
    "options": "QC Checklist Template"
+  },
+  {
+   "description": "Line items populated from QC Checklist Template (use template field above)",
+   "fieldname": "qc_results",
+   "fieldtype": "Table",
+   "label": "QC Results",
+   "options": "Job Card QC Result"
   },
   {
    "default": "Customer Paid",
@@ -412,7 +420,6 @@
    "label": "Approved Amount Limit"
   },
   {
-   "collapsible": 1,
    "fieldname": "section_quality_control",
    "fieldtype": "Section Break",
    "label": "Quality Control"
@@ -421,7 +428,7 @@
    "fieldname": "qc_inspector",
    "fieldtype": "Link",
    "label": "QC Inspector",
-   "options": "User"
+   "options": "Service Advisor"
   },
   {
    "fieldname": "qc_result",
@@ -457,12 +464,6 @@
    "fieldtype": "Link",
    "label": "Rework Job Item",
    "options": "Job Card Item"
-  },
-  {
-   "fieldname": "qc_checklist",
-   "fieldtype": "Table",
-   "label": "QC Checklist",
-   "options": "Job Card QC Checklist"
   },
   {
    "collapsible": 1,
@@ -518,7 +519,7 @@
    "fieldname": "time_logs",
    "fieldtype": "Table",
    "label": "Time Logs",
-   "options": "Job Card Time Log"
+   "options": "DMS Job Card Time Log"
   },
   {
    "collapsible": 1,
@@ -601,13 +602,18 @@
    "fieldname": "customer_satisfaction",
    "fieldtype": "Text Editor",
    "label": "customer_satisfaction"
+  },
+  {
+   "fieldname": "quality_control_section_section",
+   "fieldtype": "Section Break",
+   "label": "Quality Control Section"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-09 19:39:41.110562",
+ "modified": "2026-05-09 21:25:13.849932",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

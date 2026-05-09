@@ -27,6 +27,9 @@ fixtures = [
  },
  {
 	 "doctype": "QC Checklist Template"
+ },
+ {
+	 "doctype": "QC Checklist Item Master"
  }
 ]
 
