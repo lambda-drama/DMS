@@ -24,6 +24,9 @@ fixtures = [
 	{"doctype": "Role", "filters": [["name", "=", "Dealer Manager"]]},
  {
 	 "doctype":"Vehicle Service Type"
+ },
+ {
+	 "doctype": "QC Checklist Template"
  }
 ]
 
