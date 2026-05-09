@@ -69,7 +69,10 @@
   "customer_signature",
   "advisor_signature",
   "manager_override_signature",
-  "amended_from"
+  "amended_from",
+  "column_break_ydcs",
+  "customer_digital_sign",
+  "service_advisor_sign"
  ],
  "fields": [
   {
@@ -164,7 +167,6 @@
    "label": "Vehicle Status at Intake"
   },
   {
-   "fetch_from": "appointment.vehicle",
    "fetch_if_empty": 1,
    "fieldname": "customer_vehicle",
    "fieldtype": "Link",
@@ -173,41 +175,40 @@
    "reqd": 1
   },
   {
-   "fetch_from": "appointment.customer",
+   "description": "Set manually for walk-ins, or populated when a Service Appointment is selected",
    "fieldname": "customer",
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer",
-   "read_only": 1
+   "reqd": 1
   },
   {
+   "description": "Filled from appointment/VIN record when applicable; editable for walk-ins",
    "fieldname": "license_plate",
    "fieldtype": "Data",
-   "label": "License Plate",
-   "read_only": 1
+   "label": "License Plate"
   },
   {
    "fieldname": "column_break_v1",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "appointment.vin_chassis",
+   "description": "Set manually or from Service Appointment link",
    "fieldname": "vin_chassis",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "VIN / Chassis Number",
    "options": "VIN No",
-   "read_only": 1,
    "reqd": 1
   },
   {
+   "description": "From VIN when linked; editable if missing (e.g. walk-in)",
    "fetch_from": "vin_chassis.model_year",
    "fieldname": "model_year",
    "fieldtype": "Int",
-   "label": "Model Year",
-   "read_only": 1
+   "label": "Model Year"
   },
   {
    "fieldname": "section_odometer",
@@ -472,12 +473,26 @@
    "fieldname": "service_advisor_name",
    "fieldtype": "Data",
    "label": "Service Advisor Name"
+  },
+  {
+   "fieldname": "column_break_ydcs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_digital_sign",
+   "fieldtype": "Signature",
+   "label": "Customer Digital Sign"
+  },
+  {
+   "fieldname": "service_advisor_sign",
+   "fieldtype": "Signature",
+   "label": "Service Advisor Sign"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-09 19:10:22.197009",
+ "modified": "2026-05-09 20:32:38.287629",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Inspection",

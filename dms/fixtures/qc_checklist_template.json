@@ -214,7 +214,11 @@
  },
  {
   "amended_from": null,
-  "applicable_vehicle_models": [],
+  "applicable_vehicle_models": [
+   {
+    "vehicle_model": "JETOUR X70"
+   }
+  ],
   "checklist_items": [
    {
     "category": "Customer Service",
@@ -331,13 +335,13 @@
   ],
   "checklist_name": "Warranty QC",
   "checklist_type": "Warranty",
-  "description": null,
+  "description": "<div class=\"ql-editor read-mode\"><p>It needs to have samples</p></div>",
   "docstatus": 0,
   "doctype": "QC Checklist Template",
   "effective_from": "2026-05-09",
-  "effective_to": null,
+  "effective_to": "2026-05-09",
   "is_active": 1,
-  "modified": "2026-05-09 20:14:55.663242",
+  "modified": "2026-05-09 20:20:38.295596",
   "name": "Warranty QC",
   "version": "1.0"
  },
