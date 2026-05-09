@@ -21,16 +21,48 @@ add_to_apps_screen = [
 ]
 
 fixtures = [
-	{"doctype": "Role", "filters": [["name", "=", "Dealer Manager"]]},
- {
-	 "doctype":"Vehicle Service Type"
- },
- {
-	 "doctype": "QC Checklist Template"
- },
- {
-	 "doctype": "QC Checklist Item Master"
- }
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    #Service item
+                    "Vehicle Service Item-custom_item_name",
+                    "Vehicle Service Item-custom_erpnext_item",
+                    
+                    "Vehicle Service Item-custom_estimated_timemin",
+                    "Vehicle Service Item-custom_rate",
+                    "Vehicle Service Item-custom_section_break_bk5jc",
+                    "Vehicle Service Item-custom_description",
+                    "Vehicle Service Item-custom_section_break_j9tgd",
+                    "Item Group-custom_is_vehicle",
+                    "Customer Group-custom_is_vehicle_customer",
+                    "Warehouse-custom_is_dms_warehouse",
+                ]
+            ]
+        ]
+    },
+
+    {
+        "doctype": "Role",
+        "filters": [
+            ["name", "=", "Dealer Manager"]
+        ]
+    },
+
+    {
+        "doctype": "Vehicle Service Type"
+    },
+
+    {
+        "doctype": "QC Checklist Template"
+    },
+
+    {
+        "doctype": "QC Checklist Item Master"
+    },
 ]
 
 # Includes in <head>

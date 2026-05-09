@@ -3,6 +3,7 @@
  "allow_rename": 1,
  "creation": "2026-05-08 01:21:35.452998",
  "doctype": "DocType",
+ "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "item_code",
@@ -35,7 +36,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Part Number",
-   "options": "Item",
+   "options": "Spare Part",
    "reqd": 1
   },
   {
@@ -73,7 +74,9 @@
   },
   {
    "columns": 2,
-   "fetch_from": "item_code.standard_rate",
+   "description": "Defaults from Spare Part recommended selling price when empty; your price is kept on save",
+   "fetch_from": "item_code.selling_price",
+   "fetch_if_empty": 1,
    "fieldname": "unit_price",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -88,7 +91,7 @@
    "read_only": 1
   },
   {
-   "fetch_from": "item_code.actual_qty",
+   "description": "Filled from ERP stock for the linked Spare Part\u2019s Item (warehouse row if set, else total across warehouses)",
    "fieldname": "stock_available",
    "fieldtype": "Float",
    "label": "Stock Available",
@@ -177,7 +180,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-08 02:11:37.480264",
+ "modified": "2026-05-10 01:08:13.808326",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Job Card Part Item",

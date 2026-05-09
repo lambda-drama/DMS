@@ -11,6 +11,7 @@
   "job_card_type",
   "status",
   "posting_date",
+  "company",
   "column_break_header",
   "opened_date_time",
   "completed_date_time",
@@ -54,6 +55,8 @@
   "total_sold_hours",
   "section_job_items",
   "job_items",
+  "labour_breakdown_section",
+  "labour",
   "section_parts",
   "parts",
   "section_estimate",
@@ -121,13 +124,13 @@
    "options": "Job Card QC Result"
   },
   {
-   "default": "Customer Paid",
+   "default": "Internal",
    "fieldname": "job_card_type",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Job Card Type",
-   "options": "Customer Paid\nWarranty\nInternal\nPDI\nCampaign/Recall\nInsurance\nGoodwill\nFleet Contract",
+   "options": "\nCustomer Paid\nWarranty\nInternal\nPDI\nCampaign/Recall\nInsurance\nGoodwill\nFleet Contract",
    "reqd": 1
   },
   {
@@ -172,6 +175,7 @@
    "reqd": 1
   },
   {
+   "collapsible": 1,
    "fieldname": "section_customer_vehicle",
    "fieldtype": "Section Break",
    "label": "Customer & Vehicle Information"
@@ -333,6 +337,7 @@
   },
   {
    "bold": 1,
+   "collapsible": 1,
    "fieldname": "section_job_items",
    "fieldtype": "Section Break",
    "label": "Job Items (Complaint \u2192 Cause \u2192 Correction)"
@@ -357,24 +362,26 @@
    "options": "Job Card Part Item"
   },
   {
-   "collapsible": 1,
    "fieldname": "section_estimate",
    "fieldtype": "Section Break",
    "label": "Estimate & Approval"
   },
   {
+   "description": "Billable labour only (Warranty labour lines excluded). Hours \u00d7 rate.",
    "fieldname": "total_labor_cost",
    "fieldtype": "Currency",
    "label": "Total Labor Cost",
    "read_only": 1
   },
   {
+   "description": "Billable parts at inventory cost: qty \u00d7 (Spare Part last purchase or Item valuation / last purchase). Warranty parts excluded.",
    "fieldname": "total_parts_cost",
    "fieldtype": "Currency",
-   "label": "Total Parts Cost",
+   "label": "Total Parts Cost (at cost)",
    "read_only": 1
   },
   {
+   "description": "Customer subtotal: billable labour + billable parts using unit price (before discount). Warranty lines excluded.",
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Total Amount",
@@ -607,13 +614,33 @@
    "fieldname": "quality_control_section_section",
    "fieldtype": "Section Break",
    "label": "Quality Control Section"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "labour_breakdown_section",
+   "fieldtype": "Section Break",
+   "label": "Labour Breakdown"
+  },
+  {
+   "fieldname": "labour",
+   "fieldtype": "Table",
+   "label": "Labour",
+   "options": "Vehicle Labour Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-09 21:25:13.849932",
+ "modified": "2026-05-10 01:05:22.233168",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

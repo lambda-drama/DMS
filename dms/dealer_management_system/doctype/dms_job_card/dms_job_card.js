@@ -48,6 +48,8 @@ frappe.ui.form.on("DMS Job Card", {
 		if (frm._dms_prev_qc_template === undefined) {
 			frm._dms_prev_qc_template = frm.doc.qc_checklist_template || "";
 		}
+		add_vehicle_delivery_button(frm);
+		add_sales_invoice_button(frm);
 		refresh_qc_dashboard(frm);
 	},
 });
@@ -127,10 +129,207 @@ function refresh_qc_dashboard(frm) {
 	const pass_count = results.filter((row) => row.result === "Pass").length;
 	const fail_count = results.filter((row) => row.result === "Fail").length;
 	const na_count = results.filter((row) => row.result === "N/A").length;
-	frm.dashboard.set_indicator(
+	frm.dashboard.add_indicator(
 		__("QC: {0} Pass, {1} Fail, {2} N/A", [pass_count, fail_count, na_count]),
 		fail_count > 0 ? "red" : "green"
 	);
+}
+
+const VEHICLE_DELIVERY_NOTE_DOCTYPE = "Vehicle Delivery Note";
+
+/** Inner toolbar grouped dropdown beside Save */
+const ACTIONS_GROUP = __("Action");
+
+function add_sales_invoice_button(frm) {
+	if (frm.doc.docstatus !== 1 || frm.is_new()) {
+		return;
+	}
+	if (!frappe.model.can_read("DMS Job Card")) {
+		return;
+	}
+
+	if (frm.doc.invoice) {
+		if (frappe.model.can_read("Sales Invoice")) {
+			frm.add_custom_button(
+				__("Sales Invoice"),
+				() => {
+					frappe.set_route("Form", "Sales Invoice", frm.doc.invoice);
+				},
+				ACTIONS_GROUP
+			);
+		}
+		add_sales_invoice_payment_action(frm, frm.doc.invoice);
+		return;
+	}
+
+	if (!frappe.model.can_create("Sales Invoice")) {
+		return;
+	}
+
+	frm.add_custom_button(
+		__("Create Sales Invoice"),
+		() => {
+			frappe.confirm(
+				__(
+					"Create a draft Sales Invoice from this job card? Billing is locked to one invoice per job — you cannot create another from Vehicle Delivery Note."
+				),
+				() => {
+					frappe.call({
+						method:
+							"dms.dealer_management_system.doctype.dms_job_card.dms_job_card.make_sales_invoice_from_job_card",
+						args: { job_card: frm.doc.name },
+						freeze: true,
+						callback: (r) => {
+							const name = r.message;
+							if (name) {
+								frappe.set_route("Form", "Sales Invoice", name);
+							}
+						},
+					});
+				}
+			);
+		},
+		ACTIONS_GROUP
+	);
+}
+
+/** Same logic as ERPNext Sales Invoice toolbar: Payment Entry when billed and unpaid. */
+function add_sales_invoice_payment_action(frm, sales_invoice_name) {
+	if (!sales_invoice_name || !frappe.model.can_create("Payment Entry")) {
+		return;
+	}
+
+	frappe.db
+		.get_value("Sales Invoice", sales_invoice_name, ["docstatus", "outstanding_amount"])
+		.then((r) => {
+			const m = r.message || {};
+			if (cint(m.docstatus) !== 1) {
+				return;
+			}
+			if (!flt(m.outstanding_amount)) {
+				return;
+			}
+			frm.add_custom_button(
+				__("Payment"),
+				() => {
+					open_payment_entry_from_sales_invoice(sales_invoice_name);
+				},
+				ACTIONS_GROUP
+			);
+		});
+}
+
+function open_payment_entry_from_sales_invoice(sales_invoice) {
+	frappe.db
+		.get_value("Sales Invoice", sales_invoice, ["docstatus", "outstanding_amount"])
+		.then((r) => {
+			const m = r.message || {};
+			if (cint(m.docstatus) !== 1) {
+				frappe.msgprint(__("Submit the Sales Invoice before recording payment."));
+				return;
+			}
+			if (!flt(m.outstanding_amount)) {
+				frappe.msgprint(__("This invoice has nothing left to allocate as payment."));
+				return;
+			}
+			frappe.call({
+				method: "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry",
+				args: { dt: "Sales Invoice", dn: sales_invoice },
+				freeze: true,
+				callback: (res) => {
+					const doclist = frappe.model.sync(res.message);
+					if (doclist && doclist.length) {
+						frappe.set_route("Form", doclist[0].doctype, doclist[0].name);
+					}
+				},
+			});
+		});
+}
+
+function add_vehicle_delivery_button(frm) {
+	if (frm.doc.docstatus !== 1) {
+		return;
+	}
+
+	const can_read_delivery = frappe.model.can_read(VEHICLE_DELIVERY_NOTE_DOCTYPE);
+	const can_create_delivery = frappe.model.can_create(VEHICLE_DELIVERY_NOTE_DOCTYPE);
+
+	if (!can_read_delivery && !can_create_delivery) {
+		return;
+	}
+
+	frm.add_custom_button(
+		__("Vehicle Delivery Note"),
+		() => {
+			open_or_create_vehicle_delivery(frm);
+		},
+		ACTIONS_GROUP
+	);
+}
+
+function open_or_create_vehicle_delivery(frm) {
+	const can_read_delivery = frappe.model.can_read(VEHICLE_DELIVERY_NOTE_DOCTYPE);
+	const can_create_delivery = frappe.model.can_create(VEHICLE_DELIVERY_NOTE_DOCTYPE);
+
+	if (!can_read_delivery && !can_create_delivery) {
+		return;
+	}
+
+	frappe.db
+		.get_list(VEHICLE_DELIVERY_NOTE_DOCTYPE, {
+			filters: { job_card: frm.doc.name },
+			fields: ["name"],
+			order_by: "creation desc",
+			limit: 1,
+		})
+		.then((rows) => {
+			const existing = rows && rows.length ? rows[0].name : null;
+
+			if (existing) {
+				if (!can_read_delivery) {
+					frappe.throw(__("You do not have permission to read Vehicle Delivery Note."));
+				}
+				frappe.set_route("Form", VEHICLE_DELIVERY_NOTE_DOCTYPE, existing);
+				return;
+			}
+
+			if (!can_create_delivery) {
+				frappe.msgprint(
+					__(
+						"There is no Vehicle Delivery Note linked to this job card yet. You do not have permission to create one."
+					)
+				);
+				return;
+			}
+
+			const opts = {
+				job_card: frm.doc.name,
+			};
+
+			const odo = frm.doc.final_odometer ?? frm.doc.current_odometer;
+			if (odo !== undefined && odo !== null && odo !== "") {
+				opts.final_odometer_km = cint(odo);
+			}
+
+			if (
+				frm.doc.next_service_due_km !== undefined &&
+				frm.doc.next_service_due_km !== null &&
+				frm.doc.next_service_due_km !== ""
+			) {
+				opts.next_service_due_km = cint(frm.doc.next_service_due_km);
+			}
+
+			if (frm.doc.next_service_due_date) {
+				opts.next_service_due_date = frm.doc.next_service_due_date;
+			}
+
+			frappe.route_options = opts;
+			frappe.set_route("Form", VEHICLE_DELIVERY_NOTE_DOCTYPE, "new");
+		})
+		.catch(() => {
+			// get_list denied or failed; surface only when user actually clicked
+			frappe.msgprint(__("Unable to check for an existing Vehicle Delivery Note."));
+		});
 }
 
 frappe.ui.form.on("Job Card QC Result", {

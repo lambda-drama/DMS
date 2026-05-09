@@ -16,7 +16,7 @@
   "column_break_header",
   "delivered_by",
   "delivery_date_time",
-  "delivery_status",
+  "status",
   "section_odometer_fuel",
   "final_odometer_km",
   "final_fuel_level",
@@ -47,6 +47,7 @@
   "column_break_billing",
   "final_amount",
   "payment_receipt_no",
+  "sales_invoice",
   "section_signatures",
   "customer_signature",
   "customer_satisfaction_initial",
@@ -55,7 +56,8 @@
   "delivered_by_signature",
   "customer_acknowledgment_photo",
   "section_notes",
-  "delivery_notes"
+  "delivery_notes",
+  "amended_from"
  ],
  "fields": [
   {
@@ -130,14 +132,6 @@
    "fieldtype": "Datetime",
    "label": "Delivery Date & Time",
    "reqd": 1
-  },
-  {
-   "default": "Completed",
-   "fieldname": "delivery_status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Delivery Status",
-   "options": "Completed\nPartial\nCustomer Not Available\nRescheduled\nFailed"
   },
   {
    "fieldname": "section_odometer_fuel",
@@ -319,6 +313,15 @@
    "label": "Payment Receipt Number"
   },
   {
+   "description": "Same as Job Card. Create the invoice from the Job Card or from this delivery note (not both flows).",
+   "fetch_from": "job_card.invoice",
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
    "bold": 1,
    "fieldname": "section_signatures",
    "fieldtype": "Section Break",
@@ -370,15 +373,35 @@
    "fieldname": "delivery_notes",
    "fieldtype": "Text Editor",
    "label": "Delivery Notes / Special Instructions"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Vehicle Delivery Note",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Completed",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Delivery Status",
+   "options": "Completed\nPartial\nCustomer Not Available\nRescheduled\nFailed"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2026-05-09 00:50:38.800677",
+ "modified": "2026-05-10 01:27:23.606480",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Delivery Note",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
@@ -410,5 +433,26 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [
+  {
+   "color": "Green",
+   "title": "Completed"
+  },
+  {
+   "color": "Orange",
+   "title": "Partial"
+  },
+  {
+   "color": "Gray",
+   "title": "Customer Not Available"
+  },
+  {
+   "color": "Blue",
+   "title": "Rescheduled"
+  },
+  {
+   "color": "Red",
+   "title": "Failed"
+  }
+ ]
 }

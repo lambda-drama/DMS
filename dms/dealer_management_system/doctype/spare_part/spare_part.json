@@ -1,193 +1,274 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:oem_part_number",
  "creation": "2026-05-08 00:12:27.054192",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_break_pfyx"
+  "section_identification",
+  "spare_part_item",
+  "item_code",
+  "item_name",
+  "column_break_ident",
+  "oem_part_number",
+  "manufacturer_part_number",
+  "supplier_code",
+  "barcode",
+  "section_classification",
+  "part_category",
+  "part_subcategory",
+  "part_type",
+  "hsn_sac_code",
+  "column_break_class",
+  "is_hazardous_material",
+  "hazardous_class",
+  "is_returnable_core",
+  "core_charge_amount",
+  "requires_serial_tracking",
+  "section_cross_reference",
+  "cross_reference_parts",
+  "superseded_by",
+  "supersedes",
+  "section_compatibility",
+  "compatible_vehicles",
+  "section_suppliers",
+  "preferred_supplier",
+  "supplier_pricing",
+  "last_purchase_price",
+  "last_purchase_date",
+  "column_break_supplier",
+  "markup_percentage",
+  "selling_price",
+  "wholesale_price",
+  "insurance_price",
+  "section_specifications",
+  "part_length_mm",
+  "part_width_mm",
+  "part_height_mm",
+  "part_weight_kg",
+  "column_break_specs",
+  "material_type",
+  "color_finish",
+  "thread_size",
+  "section_inventory",
+  "bin_location",
+  "minimum_stock_level",
+  "maximum_stock_level",
+  "reorder_quantity",
+  "lead_time_days",
+  "column_break_inv",
+  "stock_uom",
+  "minimum_order_quantity",
+  "expiry_days",
+  "storage_conditions",
+  "section_warranty",
+  "warranty_months",
+  "warranty_km",
+  "warranty_terms",
+  "supplier_warranty_info",
+  "section_service_info",
+  "labor_time_standard",
+  "special_tools_required",
+  "torque_specifications",
+  "installation_notes",
+  "column_break_service",
+  "oem_service_bulletin_ref",
+  "recall_campaign_ref",
+  "section_attachments",
+  "part_photo",
+  "part_diagram",
+  "technical_spec_sheet",
+  "installation_video",
+  "section_notes",
+  "internal_notes",
+  "discontinued",
+  "discontinued_date",
+  "amended_from"
  ],
  "fields": [
   {
+   "bold": 1,
    "fieldname": "section_identification",
    "fieldtype": "Section Break",
-   "label": "Part Identification",
-   "collapsible": 0,
-   "bold": 1
+   "label": "Part Identification"
   },
   {
+   "description": "Link to ERPNext Item master (inventory, pricing, accounting)",
    "fieldname": "spare_part_item",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Linked ERP Item",
    "options": "Item",
    "reqd": 1,
-   "unique": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "description": "Link to ERPNext Item master (inventory, pricing, accounting)",
-   "get_query": "{\"filters\":{\"item_group\":\"Spare Parts\"}}"
+   "unique": 1
   },
   {
-   "fieldname": "item_code",
-   "fieldtype": "Read Only",
-   "label": "Item Code",
    "fetch_from": "spare_part_item.item_code",
    "fetch_if_empty": 1,
-   "in_list_view": 1
+   "fieldname": "item_code",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Item Code"
   },
   {
+   "fetch_from": "spare_part_item.item_name",
    "fieldname": "item_name",
    "fieldtype": "Read Only",
-   "label": "Item Name",
-   "fetch_from": "spare_part_item.item_name",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "label": "Item Name"
   },
   {
    "fieldname": "column_break_ident",
    "fieldtype": "Column Break"
   },
   {
+   "description": "Original Equipment Manufacturer part number (e.g., Jetour OEM number)",
    "fieldname": "oem_part_number",
    "fieldtype": "Data",
-   "label": "OEM Part Number",
-   "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "description": "Original Equipment Manufacturer part number (e.g., Jetour OEM number)"
+   "label": "OEM Part Number",
+   "reqd": 1,
+   "unique": 1
   },
   {
+   "description": "Supplier's internal part number",
    "fieldname": "manufacturer_part_number",
    "fieldtype": "Data",
-   "label": "Manufacturer Part Number",
-   "description": "Supplier's internal part number"
+   "label": "Manufacturer Part Number"
   },
   {
+   "description": "Code used by primary supplier",
    "fieldname": "supplier_code",
    "fieldtype": "Data",
-   "label": "Supplier Code",
-   "description": "Code used by primary supplier"
+   "label": "Supplier Code"
   },
   {
+   "description": "For scanning at parts counter",
    "fieldname": "barcode",
    "fieldtype": "Data",
-   "label": "Barcode / QR Code",
-   "description": "For scanning at parts counter"
+   "label": "Barcode / QR Code"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_classification",
    "fieldtype": "Section Break",
-   "label": "Classification",
-   "collapsible": 1
+   "label": "Classification"
   },
   {
    "fieldname": "part_category",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Part Category",
    "options": "\nEngine Parts\nTransmission Parts\nBrake System\nSuspension & Steering\nElectrical & Electronics\nBody & Interior\nExhaust System\nCooling System\nFuel System\nHVAC\nLighting\nFilters\nFluids & Lubricants\nBelts & Hoses\nGaskets & Seals\nFasteners & Hardware\nTools & Equipment\nCleaning Products\nBatteries\nTires & Wheels\nService Kits\nConsumables\nGenuine Part\nOEM Equivalent\nAftermarket\nReconditioned/Remanufactured\nExchange Part\nCore Part\nOther",
-   "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
+   "reqd": 1
   },
   {
+   "description": "e.g., Brake Pads, Alternators, Fuel Filters, Water Pumps",
    "fieldname": "part_subcategory",
    "fieldtype": "Data",
-   "label": "Part Subcategory",
-   "description": "e.g., Brake Pads, Alternators, Fuel Filters, Water Pumps"
+   "label": "Part Subcategory"
   },
   {
+   "default": "Genuine OEM",
    "fieldname": "part_type",
    "fieldtype": "Select",
    "label": "Part Type",
-   "options": "\nGenuine OEM\nOEM Equivalent\nAftermarket\nReconditioned\nRemanufactured\nExchange (Core)\nUsed/Recycled\nConsumable\nTool/Equipment",
-   "default": "Genuine OEM"
+   "options": "\nGenuine OEM\nOEM Equivalent\nAftermarket\nReconditioned\nRemanufactured\nExchange (Core)\nUsed/Recycled\nConsumable\nTool/Equipment"
   },
   {
+   "description": "For GST/tax classification (Ethiopia: customs tariff code)",
    "fieldname": "hsn_sac_code",
    "fieldtype": "Data",
-   "label": "HSN / SAC Code",
-   "description": "For GST/tax classification (Ethiopia: customs tariff code)"
+   "label": "HSN / SAC Code"
   },
   {
    "fieldname": "column_break_class",
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
+   "description": "Requires special handling/storage/shipping",
    "fieldname": "is_hazardous_material",
    "fieldtype": "Check",
-   "label": "Hazardous Material",
-   "description": "Requires special handling/storage/shipping"
+   "label": "Hazardous Material"
   },
   {
+   "depends_on": "eval:doc.is_hazardous_material == 1",
+   "description": "e.g., UN2794 (Batteries), UN1263 (Paint)",
    "fieldname": "hazardous_class",
    "fieldtype": "Data",
-   "label": "Hazardous Class",
-   "depends_on": "eval:doc.is_hazardous_material == 1",
-   "description": "e.g., UN2794 (Batteries), UN1263 (Paint)"
+   "label": "Hazardous Class"
   },
   {
+   "default": "0",
+   "description": "e.g., Alternators, Starters, Calipers, Batteries",
    "fieldname": "is_returnable_core",
    "fieldtype": "Check",
-   "label": "Has Returnable Core Charge",
-   "description": "e.g., Alternators, Starters, Calipers, Batteries"
+   "label": "Has Returnable Core Charge"
   },
   {
+   "depends_on": "eval:doc.is_returnable_core == 1",
+   "description": "Refundable when old part is returned",
    "fieldname": "core_charge_amount",
    "fieldtype": "Currency",
-   "label": "Core Charge Amount",
-   "depends_on": "eval:doc.is_returnable_core == 1",
-   "description": "Refundable when old part is returned"
+   "label": "Core Charge Amount"
   },
   {
+   "default": "0",
+   "description": "For high-value or warranty-critical parts (engines, transmissions, ECUs)",
    "fieldname": "requires_serial_tracking",
    "fieldtype": "Check",
-   "label": "Requires Serial Number Tracking",
-   "description": "For high-value or warranty-critical parts (engines, transmissions, ECUs)"
+   "label": "Requires Serial Number Tracking"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_cross_reference",
    "fieldtype": "Section Break",
-   "label": "Cross Reference / Interchangeable Parts",
-   "collapsible": 1
+   "label": "Cross Reference / Interchangeable Parts"
   },
   {
+   "description": "Alternative/interchangeable part numbers from different brands",
    "fieldname": "cross_reference_parts",
    "fieldtype": "Table",
    "label": "Cross Reference Parts",
-   "options": "Spare Part Cross Reference",
-   "description": "Alternative/interchangeable part numbers from different brands"
+   "options": "Spare Part Cross Reference"
   },
   {
+   "description": "If this part is discontinued, link to replacement part",
    "fieldname": "superseded_by",
    "fieldtype": "Link",
    "label": "Superseded By (Newer Part)",
-   "options": "Spare Part",
-   "description": "If this part is discontinued, link to replacement part"
+   "options": "Spare Part"
   },
   {
+   "description": "If this part replaces an older part",
    "fieldname": "supersedes",
    "fieldtype": "Link",
    "label": "Supersedes (Older Part)",
-   "options": "Spare Part",
-   "description": "If this part replaces an older part"
+   "options": "Spare Part"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_compatibility",
    "fieldtype": "Section Break",
-   "label": "Vehicle Compatibility",
-   "collapsible": 1
+   "label": "Vehicle Compatibility"
   },
   {
+   "description": "Which vehicle models, variants, and years this part fits",
    "fieldname": "compatible_vehicles",
    "fieldtype": "Table",
    "label": "Compatible Vehicles",
-   "options": "Spare Part Compatibility",
-   "description": "Which vehicle models, variants, and years this part fits"
+   "options": "Spare Part Compatibility"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_suppliers",
    "fieldtype": "Section Break",
-   "label": "Supplier & Pricing",
-   "collapsible": 1
+   "label": "Supplier & Pricing"
   },
   {
    "fieldname": "preferred_supplier",
@@ -196,11 +277,11 @@
    "options": "Supplier"
   },
   {
+   "description": "Prices from different suppliers",
    "fieldname": "supplier_pricing",
    "fieldtype": "Table",
    "label": "Supplier Pricing",
-   "options": "Spare Part Supplier Price",
-   "description": "Prices from different suppliers"
+   "options": "Spare Part Supplier Price"
   },
   {
    "fieldname": "last_purchase_price",
@@ -219,17 +300,17 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "30",
+   "description": "Default selling price = cost \u00d7 (1 + markup%)",
    "fieldname": "markup_percentage",
    "fieldtype": "Percent",
-   "label": "Standard Markup (%)",
-   "default": "30",
-   "description": "Default selling price = cost × (1 + markup%)"
+   "label": "Standard Markup (%)"
   },
   {
+   "description": "Auto-calculated or manually set",
    "fieldname": "selling_price",
    "fieldtype": "Currency",
-   "label": "Recommended Selling Price",
-   "description": "Auto-calculated or manually set"
+   "label": "Recommended Selling Price"
   },
   {
    "fieldname": "wholesale_price",
@@ -242,10 +323,10 @@
    "label": "Insurance Claim Price"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_specifications",
    "fieldtype": "Section Break",
-   "label": "Physical Specifications",
-   "collapsible": 1
+   "label": "Physical Specifications"
   },
   {
    "fieldname": "part_length_mm",
@@ -276,41 +357,41 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "e.g., Cast Iron, Aluminum, Plastic, Rubber, Composite",
    "fieldname": "material_type",
    "fieldtype": "Data",
-   "label": "Material Type",
-   "description": "e.g., Cast Iron, Aluminum, Plastic, Rubber, Composite"
+   "label": "Material Type"
   },
   {
+   "description": "e.g., Black, Silver, Paint Code if body part",
    "fieldname": "color_finish",
    "fieldtype": "Data",
-   "label": "Color / Finish",
-   "description": "e.g., Black, Silver, Paint Code if body part"
+   "label": "Color / Finish"
   },
   {
+   "description": "e.g., M10\u00d71.5",
    "fieldname": "thread_size",
    "fieldtype": "Data",
-   "label": "Thread Size (if fastener)",
-   "description": "e.g., M10×1.5"
+   "label": "Thread Size (if fastener)"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_inventory",
    "fieldtype": "Section Break",
-   "label": "Inventory Management",
-   "collapsible": 1
+   "label": "Inventory Management"
   },
   {
+   "description": "Aisle-Rack-Shelf-Bin, e.g., A-12-B-03",
    "fieldname": "bin_location",
    "fieldtype": "Data",
-   "label": "Default Bin Location",
-   "description": "Aisle-Rack-Shelf-Bin, e.g., A-12-B-03",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "label": "Default Bin Location"
   },
   {
+   "default": "5",
    "fieldname": "minimum_stock_level",
    "fieldtype": "Float",
-   "label": "Minimum Stock Level (Re-order Point)",
-   "default": "5"
+   "label": "Minimum Stock Level (Re-order Point)"
   },
   {
    "fieldname": "maximum_stock_level",
@@ -323,60 +404,60 @@
    "label": "Standard Reorder Quantity"
   },
   {
+   "default": "7",
+   "description": "Days from order to delivery",
    "fieldname": "lead_time_days",
    "fieldtype": "Int",
-   "label": "Lead Time (Days)",
-   "default": "7",
-   "description": "Days from order to delivery"
+   "label": "Lead Time (Days)"
   },
   {
    "fieldname": "column_break_inv",
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "spare_part_item.stock_uom",
    "fieldname": "stock_uom",
    "fieldtype": "Link",
    "label": "Stock UOM",
    "options": "UOM",
-   "fetch_from": "spare_part_item.stock_uom",
    "read_only": 1
   },
   {
+   "default": "1",
    "fieldname": "minimum_order_quantity",
    "fieldtype": "Float",
-   "label": "Minimum Order Quantity",
-   "default": "1"
+   "label": "Minimum Order Quantity"
   },
   {
+   "description": "For batteries, fluids, rubber parts, adhesives",
    "fieldname": "expiry_days",
    "fieldtype": "Int",
-   "label": "Expiry Days (if applicable)",
-   "description": "For batteries, fluids, rubber parts, adhesives"
+   "label": "Expiry Days (if applicable)"
   },
   {
+   "description": "e.g., Temperature range, no moisture, away from sunlight",
    "fieldname": "storage_conditions",
    "fieldtype": "Small Text",
-   "label": "Storage Conditions",
-   "description": "e.g., Temperature range, no moisture, away from sunlight"
+   "label": "Storage Conditions"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_warranty",
    "fieldtype": "Section Break",
-   "label": "Part Warranty",
-   "collapsible": 1
+   "label": "Part Warranty"
   },
   {
+   "default": "12",
+   "description": "Standard warranty period for this part",
    "fieldname": "warranty_months",
    "fieldtype": "Int",
-   "label": "Warranty (Months)",
-   "default": "12",
-   "description": "Standard warranty period for this part"
+   "label": "Warranty (Months)"
   },
   {
+   "description": "Warranty limited to mileage if lower than time",
    "fieldname": "warranty_km",
    "fieldtype": "Int",
-   "label": "Warranty (KM)",
-   "description": "Warranty limited to mileage if lower than time"
+   "label": "Warranty (KM)"
   },
   {
    "fieldname": "warranty_terms",
@@ -389,29 +470,29 @@
    "label": "Supplier Warranty Information"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_service_info",
    "fieldtype": "Section Break",
-   "label": "Service / Installation Information",
-   "collapsible": 1
+   "label": "Service / Installation Information"
   },
   {
+   "description": "Manufacturer book time for replacement",
    "fieldname": "labor_time_standard",
    "fieldtype": "Float",
    "label": "Standard Labor Time (Hours)",
-   "precision": "1",
-   "description": "Manufacturer book time for replacement"
+   "precision": "1"
   },
   {
+   "description": "e.g., Torque wrench, puller, diagnostic tool",
    "fieldname": "special_tools_required",
    "fieldtype": "Small Text",
-   "label": "Special Tools Required",
-   "description": "e.g., Torque wrench, puller, diagnostic tool"
+   "label": "Special Tools Required"
   },
   {
+   "description": "For fasteners, bolts",
    "fieldname": "torque_specifications",
    "fieldtype": "Small Text",
-   "label": "Torque Specifications",
-   "description": "For fasteners, bolts"
+   "label": "Torque Specifications"
   },
   {
    "fieldname": "installation_notes",
@@ -423,10 +504,10 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "TSB number if applicable",
    "fieldname": "oem_service_bulletin_ref",
    "fieldtype": "Data",
-   "label": "OEM Service Bulletin Reference",
-   "description": "TSB number if applicable"
+   "label": "OEM Service Bulletin Reference"
   },
   {
    "fieldname": "recall_campaign_ref",
@@ -434,40 +515,40 @@
    "label": "Recall/Campaign Reference"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_attachments",
    "fieldtype": "Section Break",
-   "label": "Attachments & Media",
-   "collapsible": 1
+   "label": "Attachments & Media"
   },
   {
+   "description": "Clear image of the part",
    "fieldname": "part_photo",
    "fieldtype": "Attach Image",
-   "label": "Part Photo",
-   "description": "Clear image of the part"
+   "label": "Part Photo"
   },
   {
+   "description": "Technical drawing showing part in exploded view",
    "fieldname": "part_diagram",
    "fieldtype": "Attach",
-   "label": "Part Diagram / Exploded View",
-   "description": "Technical drawing showing part in exploded view"
+   "label": "Part Diagram / Exploded View"
   },
   {
+   "description": "PDF with detailed specs",
    "fieldname": "technical_spec_sheet",
    "fieldtype": "Attach",
-   "label": "Technical Specification Sheet",
-   "description": "PDF with detailed specs"
+   "label": "Technical Specification Sheet"
   },
   {
+   "description": "YouTube or internal video link",
    "fieldname": "installation_video",
    "fieldtype": "Data",
-   "label": "Installation Video URL",
-   "description": "YouTube or internal video link"
+   "label": "Installation Video URL"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_notes",
    "fieldtype": "Section Break",
-   "label": "Notes",
-   "collapsible": 1
+   "label": "Notes"
   },
   {
    "fieldname": "internal_notes",
@@ -475,32 +556,34 @@
    "label": "Internal Notes (Not visible to customer)"
   },
   {
+   "default": "0",
    "fieldname": "discontinued",
    "fieldtype": "Check",
    "label": "Discontinued / Obsolete"
   },
   {
+   "depends_on": "eval:doc.discontinued == 1",
    "fieldname": "discontinued_date",
    "fieldtype": "Date",
-   "label": "Discontinued Date",
-   "depends_on": "eval:doc.discontinued == 1"
+   "label": "Discontinued Date"
   },
   {
    "fieldname": "amended_from",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Amended From",
    "options": "Spare Part",
-   "read_only": 1,
-   "hidden": 1
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 00:12:27.054192",
+ "modified": "2026-05-10 01:09:30.913373",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Spare Part",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
