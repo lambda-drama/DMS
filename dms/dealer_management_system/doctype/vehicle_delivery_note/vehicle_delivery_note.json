@@ -78,7 +78,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Job Card",
-   "options": "Job Card",
+   "options": "DMS Job Card",
    "reqd": 1
   },
   {

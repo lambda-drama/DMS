@@ -23,15 +23,19 @@ class VINNo(Document):
         self.calculate_next_service()
         self.validate_odometer()
     
-    def on_submit(self):
-        """When document is submitted - create Serial No"""
+    def on_update(self):
+        """After document is saved - create Serial No if needed"""
+        # Only create if document is submitted (docstatus = 1)
+        # AND no serial exists yet
         if not self.linked_serial:
             self.create_serial_no()
-    
-    def on_update(self):
-        """When document is updated - sync to Serial No"""
-        if self.linked_serial and not self.is_new():
             self.sync_to_serial_no()
+            
+            
+    # def on_update(self):
+    #     """When document is updated - sync to Serial No"""
+    #     if self.linked_serial and not self.is_new():
+            
     
     def on_trash(self):
         """When document is deleted - unlink Serial No"""
@@ -149,11 +153,11 @@ class VINNo(Document):
             "item_code": self.linked_item,                   # Vehicle Model Item
             "item_name": self.model_name,                    # Model Name
             "description": f"{self.model_name} - {self.vin_number} - {self.exterior_color}",
-            "company": frappe.defaults.get_default_company(),
+            "company": self.company,
             
             # Customer & Status
             "customer": self.current_customer,               # Owner
-            "status": self._get_serial_status(),             # Active/Delivered
+            # "status": self._get_serial_status(),             # Active/Delivered
             
             # Warranty
             "warranty_period": warranty_days,                # Warranty in days
@@ -162,7 +166,7 @@ class VINNo(Document):
             "maintenance_status": "Under Warranty" if self.warranty_status == "Active" else "Out of Warranty",
             
             # Purchase / Delivery
-            "purchase_date": self.delivery_date,             # Delivery date
+            # "purchase_date": self.delivery_date,             # Delivery date
             "purchase_rate": 0,                              # Can be set from invoice
             
             # Reference to source document (VIN No)
@@ -185,14 +189,14 @@ class VINNo(Document):
         # Add custom fields that exist on Serial No (from your JSON)
         custom_fields = {
             "custom_engine_number": self.engine_number,
-            "custom_model": self.model,
+            "item_code": self.linked_item,
             "custom_vehicle_brand": self.brand,
             "custom_vehicle_template": None,                  # Can link to Vehicle Template doc
             "custom_transmission_type": self.transmission,
             "custom_max_power": None,                         # Can be set from Item
             "custom_exterior_color": self.exterior_color,
             "custom_interior_color": self.interior_color,
-            "custom_year": str(self.model_year) if self.model_year else None,
+            # "custom_year": str(self.model_year) if self.model_year else None,
             "custom_seat_capacity": None,                     # Can be set from Item
             "custom_max_torque": None,                        # Can be set from Item
             "custom_engine_description": None,                # Can be set from Item
@@ -269,9 +273,9 @@ class VINNo(Document):
             needs_update = True
         
         # Update purchase date
-        if serial_no.purchase_date != self.delivery_date:
-            serial_no.purchase_date = self.delivery_date
-            needs_update = True
+        # if serial_no.purchase_date != self.delivery_date:
+        #     serial_no.purchase_date = self.delivery_date
+        #     needs_update = True
         
         # Update description
         new_description = f"{self.model_name} - {self.vin_number} - {self.exterior_color}"
@@ -283,14 +287,31 @@ class VINNo(Document):
         if serial_no.item_name != self.model_name:
             serial_no.item_name = self.model_name
             needs_update = True
-        
+        custom_year = None
+
+        if self.model_year:
+            year_name = str(self.model_year)
+
+            # Check if Year exists
+            if not frappe.db.exists("Year", year_name):
+
+                # Create Year document
+                year_doc = frappe.get_doc({
+                    "doctype": "Year",
+                    "year": year_name
+                })
+
+                year_doc.insert(ignore_permissions=True)
+
+            custom_year = year_name
+    
         # Sync custom fields that exist on Serial No
         custom_field_mapping = {
             "custom_engine_number": self.engine_number,
             "custom_transmission_type": self.transmission,
             "custom_exterior_color": self.exterior_color,
             "custom_interior_color": self.interior_color,
-            "custom_year": str(self.model_year) if self.model_year else None,
+            "custom_year": custom_year,
         }
         
         for field, value in custom_field_mapping.items():
@@ -324,7 +345,7 @@ class VINNo(Document):
     def get_service_history(self):
         """Get all Job Cards for this vehicle"""
         return frappe.get_all(
-            "Job Card",
+            "DMS Job Card",
             filters={"vehicle_vin": self.name},
             fields=["name", "status", "service_date", "odometer"],
             order_by="modified desc"
@@ -373,9 +394,8 @@ class VINNo(Document):
         """Get the appropriate service interval based on vehicle conditions"""
         if not self.vehicle_model:
             return 10000
-        
+        frappe.throw("Haoa")
         model = frappe.get_doc("Vehicle Model", self.vehicle_model)
-        
         # Find matching service interval rule
         for rule in model.service_intervals:
             if rule.is_default:
@@ -392,7 +412,7 @@ class VINNo(Document):
         """Calculate warranty end dates based on vehicle model rules"""
         if not self.vehicle_model:
             return
-        
+        frappe.throw("Haoa")
         model = frappe.get_doc("Vehicle Model", self.vehicle_model)
         
         for rule in model.warranty_rules:

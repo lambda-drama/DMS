@@ -15,6 +15,7 @@
   "column_break_3",
   "customer_present",
   "service_advisor",
+  "service_advisor_name",
   "received_from",
   "received_from_name",
   "received_from_phone",
@@ -22,10 +23,10 @@
   "received_from_relationship",
   "section_vehicle_status",
   "customer_vehicle",
+  "vin_chassis",
   "customer",
   "license_plate",
   "column_break_v1",
-  "vin_chassis",
   "model_year",
   "section_odometer",
   "odometer",
@@ -95,7 +96,7 @@
    "fieldname": "job_card",
    "fieldtype": "Link",
    "label": "Job Card",
-   "options": "Job Card",
+   "options": "DMS Job Card",
    "read_only": 1
   },
   {
@@ -116,11 +117,10 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "frappe.session.user",
    "fieldname": "service_advisor",
    "fieldtype": "Link",
    "label": "Service Advisor",
-   "options": "User",
+   "options": "Service Advisor",
    "reqd": 1
   },
   {
@@ -164,16 +164,16 @@
    "label": "Vehicle Status at Intake"
   },
   {
-   "fetch_from": "vehicle.customer",
+   "fetch_from": "appointment.vehicle",
    "fetch_if_empty": 1,
    "fieldname": "customer_vehicle",
    "fieldtype": "Link",
    "label": "Vehicle",
-   "options": "Vehicle",
+   "options": "Item",
    "reqd": 1
   },
   {
-   "fetch_from": "customer_vehicle.customer",
+   "fetch_from": "appointment.customer",
    "fieldname": "customer",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -183,7 +183,6 @@
    "read_only": 1
   },
   {
-   "fetch_from": "customer_vehicle.plate_number",
    "fieldname": "license_plate",
    "fieldtype": "Data",
    "label": "License Plate",
@@ -194,15 +193,17 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "customer_vehicle.vin_chassis",
+   "fetch_from": "appointment.vin_chassis",
    "fieldname": "vin_chassis",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "VIN / Chassis Number",
-   "read_only": 1
+   "options": "VIN No",
+   "read_only": 1,
+   "reqd": 1
   },
   {
-   "fetch_from": "customer_vehicle.model_year",
+   "fetch_from": "vin_chassis.model_year",
    "fieldname": "model_year",
    "fieldtype": "Int",
    "label": "Model Year",
@@ -465,12 +466,18 @@
   {
    "fieldname": "column_break_gjua",
    "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "service_advisor.full_name",
+   "fieldname": "service_advisor_name",
+   "fieldtype": "Data",
+   "label": "Service Advisor Name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-09 00:59:48.906959",
+ "modified": "2026-05-09 19:10:22.197009",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Inspection",

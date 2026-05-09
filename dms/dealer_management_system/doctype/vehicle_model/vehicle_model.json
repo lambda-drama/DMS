@@ -1,11 +1,13 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:model",
  "creation": "2026-05-08 04:13:20.831574",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "section_basic",
+  "model",
   "model_code",
   "brand",
   "model_name",
@@ -162,15 +164,23 @@
    "label": "Amended From",
    "options": "Vehicle Model",
    "read_only": 1
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Item",
+   "unique": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-09 00:55:09.226738",
+ "modified": "2026-05-09 16:28:53.400575",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Model",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

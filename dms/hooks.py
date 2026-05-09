@@ -15,13 +15,16 @@ add_to_apps_screen = [
 	{
 		"name": "dms",
 		"logo": "/assets/dms/image/logo_t.jpg",
-		"title": "Dealer Management System",
+		"title": "DMS",
 		"route": "/app/dealer-management",
 	}
 ]
 
 fixtures = [
 	{"doctype": "Role", "filters": [["name", "=", "Dealer Manager"]]},
+ {
+	 "doctype":"Vehicle Service Type"
+ }
 ]
 
 # Includes in <head>

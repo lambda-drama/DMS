@@ -64,10 +64,9 @@
   "no_show_reason",
   "no_show_notes",
   "section_assignment",
-  "assigned_service_advisor",
-  "assigned_technician",
-  "assistant_technicians",
+  "technicians",
   "column_break_assignment",
+  "assigned_service_advisor",
   "assigned_bay",
   "alternate_bay",
   "section_estimated_costs",
@@ -194,18 +193,17 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Vehicle",
-   "options": "Vehicle",
+   "options": "Item",
    "reqd": 1
   },
   {
-   "fetch_from": "vehicle.vin_chassis",
    "fieldname": "vin_chassis",
-   "fieldtype": "Read Only",
+   "fieldtype": "Link",
    "label": "VIN / Chassis",
-   "read_only": 1
+   "options": "VIN No"
   },
   {
-   "fetch_from": "vehicle.plate_number",
+   "fetch_from": "vin_chassis.vin_number",
    "fieldname": "license_plate",
    "fieldtype": "Read Only",
    "label": "License Plate",
@@ -213,14 +211,13 @@
   },
   {
    "description": "Last recorded odometer from vehicle master",
-   "fetch_from": "vehicle.current_odometer",
    "fieldname": "current_odometer",
    "fieldtype": "Int",
    "label": "Current Odometer (km)",
    "read_only": 1
   },
   {
-   "fetch_from": "vehicle.warranty_status",
+   "fetch_from": "vin_chassis.warranty_status",
    "fieldname": "warranty_status",
    "fieldtype": "Read Only",
    "in_list_view": 1,
@@ -242,9 +239,9 @@
   {
    "description": "Predefined service package like '10,000 km service'",
    "fieldname": "service_package",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Service Package (if applicable)",
-   "options": "Service Package"
+   "options": "Vehicle Service Package"
   },
   {
    "description": "Record customer's exact words. This will be imported to Job Card.",
@@ -262,14 +259,14 @@
    "fieldname": "preferred_advisor",
    "fieldtype": "Link",
    "label": "Preferred Service Advisor",
-   "options": "User"
+   "options": "Service Advisor"
   },
   {
    "description": "Customer's requested technician (if any)",
    "fieldname": "preferred_technician",
    "fieldtype": "Link",
    "label": "Preferred Technician",
-   "options": "User"
+   "options": "Technician"
   },
   {
    "default": "Customer Waiting",
@@ -473,19 +470,7 @@
    "fieldname": "assigned_service_advisor",
    "fieldtype": "Link",
    "label": "Assigned Service Advisor",
-   "options": "User"
-  },
-  {
-   "fieldname": "assigned_technician",
-   "fieldtype": "Link",
-   "label": "Assigned Lead Technician",
-   "options": "User"
-  },
-  {
-   "fieldname": "assistant_technicians",
-   "fieldtype": "Table",
-   "label": "Assistant Technicians",
-   "options": "Assigned Technician Helper"
+   "options": "Service Advisor"
   },
   {
    "fieldname": "column_break_assignment",
@@ -555,7 +540,7 @@
    "fieldname": "job_card",
    "fieldtype": "Link",
    "label": "Job Card",
-   "options": "Job Card",
+   "options": "DMS Job Card",
    "read_only": 1
   },
   {
@@ -565,15 +550,22 @@
    "label": "Amended From",
    "options": "Service Appointment",
    "read_only": 1
+  },
+  {
+   "fieldname": "technicians",
+   "fieldtype": "Table",
+   "label": "Technicians",
+   "options": "Assigned Technician"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-09 00:36:35.401931",
+ "modified": "2026-05-09 19:00:01.791533",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Appointment",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

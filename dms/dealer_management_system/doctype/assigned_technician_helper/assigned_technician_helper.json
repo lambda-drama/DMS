@@ -29,8 +29,7 @@
    "fieldname": "skill_area",
    "fieldtype": "Data",
    "label": "Skill Area",
-   "fetch_from": "technician.specialization",
-   "read_only": 1
+   "read_only": 0
   }
  ],
  "grid_page_length": 50,

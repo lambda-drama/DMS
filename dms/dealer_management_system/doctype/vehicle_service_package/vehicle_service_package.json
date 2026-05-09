@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-09 17:59:13.184003",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "package_name",
+  "description",
+  "applicable_vehicle_models",
+  "interval_km",
+  "interval_months",
+  "labor_operations",
+  "parts_included",
+  "total_labor_hours",
+  "package_price",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "package_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Package Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "applicable_vehicle_models",
+   "fieldtype": "Table MultiSelect",
+   "label": "Applicable Vehicle Models",
+   "options": "Package Vehicle Model"
+  },
+  {
+   "default": "10000",
+   "fieldname": "interval_km",
+   "fieldtype": "Int",
+   "label": "Service Interval (KM)"
+  },
+  {
+   "default": "6",
+   "fieldname": "interval_months",
+   "fieldtype": "Int",
+   "label": "Service Interval (Months)"
+  },
+  {
+   "fieldname": "labor_operations",
+   "fieldtype": "Table",
+   "label": "Labor Operations",
+   "options": "Package Labor Operation"
+  },
+  {
+   "fieldname": "parts_included",
+   "fieldtype": "Table",
+   "label": "Parts Included",
+   "options": "Vehicle Package Part"
+  },
+  {
+   "fieldname": "total_labor_hours",
+   "fieldtype": "Float",
+   "label": "Total Labor Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "package_price",
+   "fieldtype": "Currency",
+   "label": "Package Price"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-09 18:11:58.414969",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Service Package",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

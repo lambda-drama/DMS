@@ -223,7 +223,7 @@
    "fieldname": "current_job_card",
    "fieldtype": "Link",
    "label": "Current Job Card",
-   "options": "Job Card",
+   "options": "DMS Job Card",
    "read_only": 1
   },
   {

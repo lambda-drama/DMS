@@ -6,48 +6,67 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "section_break_m4js"
+  "warning_light",
+  "color",
+  "is_flashing",
+  "notes"
  ],
  "fields": [
   {
    "fieldname": "warning_light",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Warning Light",
    "options": "Check Engine\nABS\nAirbag\nTPMS\nBattery\nOil Pressure\nBrake System\nEPS\nTransmission\nHybrid/PHEV\nCharging System\nADAS\nCoolant Temperature\nLow Fuel\nMaintenance Required\nESC\nTraction Control\nGlow Plug (Diesel)\nHigh Beam\nTurn Signal\nOther",
-   "reqd": 1,
-   "in_list_view": 1
+   "reqd": 1
   },
   {
+   "default": "Red",
    "fieldname": "color",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Light Color",
-   "options": "Red\nYellow/Amber\nGreen\nBlue\nWhite",
-   "default": "Red",
-   "in_list_view": 1
+   "options": "Red\nYellow/Amber\nGreen\nBlue\nWhite"
   },
   {
+   "default": "0",
    "fieldname": "is_flashing",
    "fieldtype": "Check",
-   "label": "Flashing",
-   "default": "0",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "label": "Flashing"
   },
   {
    "fieldname": "notes",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Notes"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "istable": 1,
  "links": [],
- "modified": "2026-05-07 23:26:28.028463",
+ "modified": "2026-05-09 19:15:01.769662",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Warning Light",
  "owner": "Administrator",
- "permissions": [],
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",

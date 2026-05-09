@@ -3,7 +3,9 @@
 
 # import frappe
 from frappe.model.document import Document
-
+from frappe.model.naming import make_autoname
 
 class VehicleWarningLight(Document):
-	pass
+	def autoname(self):
+		series = f"WL-{self.warning_light}"
+		self.name = series

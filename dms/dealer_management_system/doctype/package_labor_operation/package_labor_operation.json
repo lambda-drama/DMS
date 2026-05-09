@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-09 18:09:39.571561",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "labor_operation",
+  "operation_name",
+  "standard_hours",
+  "column_break_vdni",
+  "quantity",
+  "total_hours",
+  "section_break_pbfp",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "labor_operation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Labor Operation",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "labor_operation.item_name",
+   "fieldname": "operation_name",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Operation Name"
+  },
+  {
+   "fetch_from": "labor_operation.custom_standard_hours",
+   "fieldname": "standard_hours",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Standard Hours"
+  },
+  {
+   "default": "1",
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity"
+  },
+  {
+   "fieldname": "total_hours",
+   "fieldtype": "Float",
+   "label": "Total Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "column_break_vdni",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_pbfp",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-09 18:11:07.793059",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Package Labor Operation",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

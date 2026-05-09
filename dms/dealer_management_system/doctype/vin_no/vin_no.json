@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:vin_number",
  "creation": "2026-05-08 00:33:50.317630",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,6 +10,7 @@
   "vin_number",
   "engine_number",
   "plate_number",
+  "company",
   "column_break_ident",
   "linked_item",
   "model_name",
@@ -52,8 +54,8 @@
   "current_odometer",
   "odometer_unit",
   "odometer_last_updated",
-  "column_break_odo",
   "last_service_odometer",
+  "column_break_odo",
   "last_service_date",
   "next_service_due_km",
   "next_service_due_date",
@@ -93,8 +95,7 @@
   "special_notes",
   "internal_notes",
   "section_status",
-  "vehicle_status",
-  "amended_from"
+  "vehicle_status"
  ],
  "fields": [
   {
@@ -171,12 +172,10 @@
    "label": "Model & Trim Details"
   },
   {
-   "fetch_from": "linked_item.brand",
    "fieldname": "brand",
    "fieldtype": "Link",
    "label": "Brand",
    "options": "Brand",
-   "read_only": 1,
    "reqd": 1
   },
   {
@@ -238,20 +237,24 @@
   },
   {
    "fieldname": "exterior_color",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Exterior Color",
+   "options": "Color",
    "reqd": 1
   },
   {
    "fieldname": "exterior_color_code",
-   "fieldtype": "Data",
-   "label": "Exterior Color Code"
+   "fieldtype": "Link",
+   "label": "Exterior Color Code",
+   "options": "Color"
   },
   {
    "fieldname": "interior_color",
-   "fieldtype": "Data",
-   "label": "Interior Color"
+   "fieldtype": "Link",
+   "label": "Interior Color",
+   "options": "Color",
+   "reqd": 1
   },
   {
    "default": "Fabric",
@@ -613,14 +616,6 @@
    "options": "In Stock\nDelivered to Customer\nIn Service\nIn Transit\nTotal Loss\nScrapped"
   },
   {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Amended From",
-   "options": "VIN No",
-   "read_only": 1
-  },
-  {
    "fieldname": "column_break_eote",
    "fieldtype": "Column Break"
   },
@@ -635,15 +630,22 @@
   {
    "fieldname": "column_break_whhf",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 04:09:38.793349",
+ "modified": "2026-05-09 16:49:12.050832",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "VIN No",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

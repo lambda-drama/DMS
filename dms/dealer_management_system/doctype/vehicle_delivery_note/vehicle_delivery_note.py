@@ -23,4 +23,4 @@ class VehicleDeliveryNote(Document):
 		follow_up.insert()
 		
 		# Update Job Card status
-		frappe.db.set_value("Job Card", self.job_card, "status", "Delivered")
+		frappe.db.set_value("DMS Job Card", self.job_card, "status", "Delivered")

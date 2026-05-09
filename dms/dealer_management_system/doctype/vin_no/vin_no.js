@@ -1,14 +1,6 @@
 // Copyright (c) 2026, Mania and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("VIN No", {
-// 	refresh(frm) {
-
-// 	},
-// });
-// Script Name: vin_no_client
-// Script Type: Client
-// DocType: VIN No
 
 frappe.ui.form.on('VIN No', {
     refresh: function(frm) {
@@ -19,6 +11,8 @@ frappe.ui.form.on('VIN No', {
             }, __('ERPNext'));
         }
         
+        apply_vehicle_item_filter(frm);
+
         // Show linked Item button
         if (frm.doc.linked_item) {
             frm.add_custom_button(__('Open Vehicle Model (Item)'), function() {
@@ -65,13 +59,13 @@ frappe.ui.form.on('VIN No', {
     
     vin_number: function(frm) {
         // Validate VIN length and format
-        if (frm.doc.vin_number && frm.doc.vin_number.length !== 17) {
-            frappe.msgprint({
-                title: __('Invalid VIN'),
-                message: __('Standard VIN should be 17 characters. Please verify.'),
-                indicator: 'orange'
-            });
-        }
+        // if (frm.doc.vin_number && frm.doc.vin_number.length !== 17) {
+        //     frappe.msgprint({
+        //         title: __('Invalid VIN'),
+        //         message: __('Standard VIN should be 17 characters. Please verify.'),
+        //         indicator: 'orange'
+        //     });
+        // }
     }
 });
 
@@ -99,3 +93,16 @@ function calculate_warranty_status(frm) {
         frm.set_value('warranty_status', 'Active');
     }
 }
+
+
+
+function apply_vehicle_item_filter(frm) {
+    frm.fields_dict.linked_item.get_query = function(doc, cdt, cdn) {
+        return {
+            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
+            filters: {}
+        };
+    };
+}
+
+

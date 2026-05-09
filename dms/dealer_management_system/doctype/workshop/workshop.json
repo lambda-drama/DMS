@@ -7,7 +7,6 @@
  "engine": "InnoDB",
  "field_order": [
   "section_basic_info",
-  "branch_id",
   "branch_name",
   "branch_type",
   "is_active",
@@ -16,6 +15,7 @@
   "phone",
   "alternate_phone",
   "email",
+  "warehouse",
   "section_location",
   "location_address",
   "gps_coordinates",
@@ -72,15 +72,6 @@
    "label": "Workshop / Branch Information"
   },
   {
-   "description": "e.g., AA-SC-001, AA-MAIN-001",
-   "fieldname": "branch_id",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Branch ID / Code",
-   "reqd": 1,
-   "unique": 1
-  },
-  {
    "description": "e.g., Suweys Motors Addis Ababa Service Center",
    "fieldname": "branch_name",
    "fieldtype": "Data",
@@ -117,13 +108,12 @@
   },
   {
    "fieldname": "phone",
-   "fieldtype": "Phone",
-   "label": "Contact Phone",
-   "reqd": 1
+   "fieldtype": "Data",
+   "label": "Contact Phone"
   },
   {
    "fieldname": "alternate_phone",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",
    "label": "Alternate Phone"
   },
   {
@@ -404,12 +394,18 @@
    "fieldname": "notes",
    "fieldtype": "Text Editor",
    "label": "Additional Notes"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 03:56:35.015705",
+ "modified": "2026-05-09 19:32:55.371781",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "WorkShop",

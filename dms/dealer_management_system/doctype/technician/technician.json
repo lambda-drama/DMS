@@ -1,16 +1,17 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "TECH-.####",
  "creation": "2026-05-08 01:08:38.986852",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "section_personal_info",
-  "employee_id",
   "first_name",
   "last_name",
   "full_name",
   "column_break_personal",
+  "employee_id",
   "employee_code",
   "user_link",
   "status",
@@ -111,15 +112,16 @@
   },
   {
    "description": "Internal technician code",
+   "fetch_from": "employee_id.employee_name",
    "fieldname": "employee_code",
    "fieldtype": "Data",
-   "label": "Employee Code"
+   "label": "Employee Name"
   },
   {
    "description": "Link to Frappe/ERP user account",
    "fieldname": "user_link",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "ERP User",
    "options": "User"
   },
@@ -139,13 +141,13 @@
   },
   {
    "fieldname": "personal_phone",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",
    "label": "Personal Phone",
    "reqd": 1
   },
   {
    "fieldname": "alternative_phone",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",
    "label": "Alternative Phone"
   },
   {
@@ -164,7 +166,7 @@
   },
   {
    "fieldname": "emergency_contact_phone",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",
    "label": "Emergency Contact Phone"
   },
   {
@@ -476,10 +478,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 03:27:50.647020",
+ "modified": "2026-05-09 18:43:43.917510",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Technician",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
