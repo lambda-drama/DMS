@@ -51,7 +51,7 @@
    "fieldname": "applicable_vehicle_models",
    "fieldtype": "Table MultiSelect",
    "label": "Applicable Vehicle Models",
-   "options": "QC Checklist Vehicle Model"
+   "options": "Package Vehicle Model"
   },
   {
    "fieldname": "column_break_header",
@@ -110,7 +110,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-09 19:36:07.985780",
+ "modified": "2026-05-09 20:20:17.423500",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "QC Checklist Template",
