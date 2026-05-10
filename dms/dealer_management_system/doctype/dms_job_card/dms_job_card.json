@@ -16,17 +16,6 @@
   "opened_date_time",
   "completed_date_time",
   "promised_delivery_date_time",
-  "quality_control_section_section",
-  "qc_checklist_template",
-  "qc_results",
-  "section_quality_control",
-  "qc_inspector",
-  "qc_result",
-  "qc_fail_reason",
-  "column_break_qc",
-  "rework_required",
-  "rework_job_item",
-  "qc_checked_date",
   "section_customer_vehicle",
   "customer",
   "customer_name",
@@ -47,12 +36,13 @@
   "service_advisor",
   "assigned_bay",
   "column_break_priority",
-  "lead_technician",
-  "assistant_technicians",
   "estimated_duration_hours",
   "actual_duration_hours",
   "total_labor_hours",
   "total_sold_hours",
+  "section_break_cdii",
+  "lead_technician",
+  "assistant_technicians",
   "section_job_items",
   "job_items",
   "labour_breakdown_section",
@@ -70,6 +60,8 @@
   "approval_reference",
   "approval_attachment",
   "approved_amount",
+  "schedule_start_time",
+  "schedule_end_time",
   "section_billing",
   "invoice",
   "payment_status",
@@ -92,7 +84,21 @@
   "internal_notes",
   "amended_from",
   "section_break_pwum",
-  "customer_satisfaction"
+  "customer_satisfaction",
+  "section_break_cehe",
+  "reason_for_stop",
+  "final_inspection_tab",
+  "quality_control_section_section",
+  "qc_checklist_template",
+  "qc_results",
+  "section_quality_control",
+  "qc_inspector",
+  "qc_result",
+  "qc_fail_reason",
+  "column_break_qc",
+  "rework_required",
+  "rework_job_item",
+  "qc_checked_date"
  ],
  "fields": [
   {
@@ -110,6 +116,7 @@
    "options": "JC-.YYYY.-"
   },
   {
+   "allow_on_submit": 1,
    "description": "Select the appropriate checklist for this job type",
    "fieldname": "qc_checklist_template",
    "fieldtype": "Link",
@@ -117,6 +124,7 @@
    "options": "QC Checklist Template"
   },
   {
+   "allow_on_submit": 1,
    "description": "Line items populated from QC Checklist Template (use template field above)",
    "fieldname": "qc_results",
    "fieldtype": "Table",
@@ -134,13 +142,14 @@
    "reqd": 1
   },
   {
-   "default": "Draft",
+   "allow_on_submit": 1,
+   "default": "Estimation Pending",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nOpen\nEstimation Pending\nEstimation Approved\nIn Progress\nWaiting Parts\nWaiting Customer Approval\nQC In Progress\nQC Failed\nRework\nCompleted\nCancelled\nDelivered"
+   "options": "Draft\nOpen\nEstimation Pending\nEstimation Approved\nWaiting Customer Approval\"\nScheduled\nRepair In Progress\nRepair Completed\nWaiting Parts\nWaiting Customer Approval\nQC In Progress\nQC Failed\nRework\nCompleted\nCancelled\nDelivered"
   },
   {
    "fieldname": "column_break_header",
@@ -162,6 +171,7 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "completed_date_time",
    "fieldtype": "Datetime",
    "label": "Completed Date & Time",
@@ -292,6 +302,7 @@
    "options": "DMS Job Card"
   },
   {
+   "allow_on_submit": 1,
    "default": "__user",
    "fieldname": "service_advisor",
    "fieldtype": "Link",
@@ -301,6 +312,7 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "assigned_bay",
    "fieldtype": "Link",
    "label": "Assigned Service Bay",
@@ -311,12 +323,15 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "lead_technician",
    "fieldtype": "Link",
    "label": "Lead Technician",
    "options": "Technician"
   },
   {
+   "allow_bulk_edit": 1,
+   "allow_on_submit": 1,
    "fieldname": "assistant_technicians",
    "fieldtype": "Table",
    "label": "Assistant Technicians",
@@ -329,6 +344,7 @@
    "precision": "1"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "actual_duration_hours",
    "fieldtype": "Float",
    "label": "Actual Duration (Hours)",
@@ -403,9 +419,11 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "default": "Pending",
    "fieldname": "customer_approval_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Customer Approval Status",
    "options": "Pending\nApproved\nPartially Approved\nRejected\nVerbal Approval\nWritten Approval\nNot Required"
   },
@@ -432,24 +450,28 @@
    "label": "Quality Control"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "qc_inspector",
    "fieldtype": "Link",
    "label": "QC Inspector",
-   "options": "Service Advisor"
+   "options": "User"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "qc_result",
    "fieldtype": "Select",
    "label": "QC Result",
    "options": "\nPass\nFail\nPass with Advisory\nHold"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.qc_result == 'Fail'",
    "fieldname": "qc_fail_reason",
    "fieldtype": "Small Text",
    "label": "QC Fail Reason"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "qc_checked_date",
    "fieldtype": "Datetime",
    "label": "QC Checked Date & Time"
@@ -466,6 +488,7 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.rework_required == 1",
    "fieldname": "rework_job_item",
    "fieldtype": "Link",
@@ -523,6 +546,7 @@
    "label": "Technician Time Log"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "time_logs",
    "fieldtype": "Table",
    "label": "Time Logs",
@@ -634,13 +658,43 @@
    "fieldtype": "Table",
    "label": "Labour",
    "options": "Vehicle Labour Item"
+  },
+  {
+   "fieldname": "final_inspection_tab",
+   "fieldtype": "Tab Break",
+   "label": "Final Inspection"
+  },
+  {
+   "fieldname": "section_break_cdii",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "schedule_start_time",
+   "fieldtype": "Datetime",
+   "label": "Schedule Start Time"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "schedule_end_time",
+   "fieldtype": "Datetime",
+   "label": "Schedule End Time"
+  },
+  {
+   "fieldname": "section_break_cehe",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "reason_for_stop",
+   "fieldtype": "Text Editor",
+   "label": "Reason for Stop"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-10 01:05:22.233168",
+ "modified": "2026-05-11 03:10:57.332521",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",
@@ -676,5 +730,66 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [
+  {
+   "color": "Gray",
+   "title": "Draft"
+  },
+  {
+   "color": "Orange",
+   "title": "Open"
+  },
+  {
+   "color": "Orange",
+   "title": "Estimation Pending"
+  },
+  {
+   "color": "Light Blue",
+   "title": "Estimation Approved"
+  },
+  {
+   "color": "Light Blue",
+   "title": "Repair In Progress"
+  },
+  {
+   "color": "Blue",
+   "title": "Waiting Parts"
+  },
+  {
+   "color": "Blue",
+   "title": "Waiting Customer Approval"
+  },
+  {
+   "color": "Purple",
+   "title": "QC In Progress"
+  },
+  {
+   "color": "Red",
+   "title": "QC Failed"
+  },
+  {
+   "color": "Gray",
+   "title": "Rework"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
+  },
+  {
+   "color": "Red",
+   "title": "Cancelled"
+  },
+  {
+   "color": "Green",
+   "title": "Delivered"
+  },
+  {
+   "color": "Yellow",
+   "title": "Scheduled"
+  },
+  {
+   "color": "Blue",
+   "title": "Repair Completed"
+  }
+ ]
 }

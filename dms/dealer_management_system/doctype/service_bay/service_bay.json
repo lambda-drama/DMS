@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:bay_name",
  "creation": "2026-05-07 23:48:04.209538",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -64,7 +65,8 @@
    "fieldname": "bay_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Bay Name"
+   "label": "Bay Name",
+   "unique": 1
   },
   {
    "fieldname": "branch",
@@ -72,7 +74,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Branch/Workshop",
-   "options": "Branch",
+   "options": "WorkShop",
    "reqd": 1
   },
   {
@@ -278,10 +280,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 03:46:16.670637",
+ "modified": "2026-05-11 02:24:46.836314",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Bay",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

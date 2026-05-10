@@ -1,12 +1,6 @@
 # Copyright (c) 2026, Mania and contributors
 # For license information, please see license.txt
 
-# import frappe
-from frappe.model.document import Document
-
-# Copyright (c) 2024, Suweys Motors and contributors
-# For license information, please see license.txt
-
 import frappe
 from frappe.model.document import Document
 from frappe.utils import nowdate, getdate, add_months, date_diff
@@ -31,10 +25,10 @@ class VINNo(Document):
             self.create_serial_no()
             self.sync_to_serial_no()
             
-            
-    # def on_update(self):
-    #     """When document is updated - sync to Serial No"""
-    #     if self.linked_serial and not self.is_new():
+    def before_save(self):
+        """Server-side before save"""
+        if self.status == "Draft":
+            self.status = "Estimation Pending"
             
     
     def on_trash(self):
@@ -67,11 +61,6 @@ class VINNo(Document):
         if existing:
             frappe.throw(_("VIN Number {0} already exists.").format(self.vin_number))
         
-        # Also check if Serial No already exists with this VIN
-        # serial_exists = frappe.db.exists("Serial No", {"serial_no": self.vin_number})
-        # if serial_exists:
-        #     frappe.throw(_("Serial No with VIN {0} already exists. Cannot create duplicate.").format(self.vin_number))
-    
     def validate_engine_number(self):
         """Warn on duplicate engine numbers"""
         if self.engine_number:
@@ -271,10 +260,6 @@ class VINNo(Document):
             serial_no.status = new_status
             needs_update = True
         
-        # Update purchase date
-        # if serial_no.purchase_date != self.delivery_date:
-        #     serial_no.purchase_date = self.delivery_date
-        #     needs_update = True
         
         # Update description
         new_description = f"{self.model_name} - {self.vin_number} - {self.exterior_color}"
@@ -430,3 +415,5 @@ class VINNo(Document):
                     # Set engine warranty
                     self.engine_warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
                     self.engine_warranty_km_limit = rule.warranty_km
+                    
+                    

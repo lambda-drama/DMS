@@ -166,3 +166,101 @@ def get_job_card_part_stock_available(spare_part: str | None = None, warehouse: 
 		)
 
 	return flt(qty[0][0]) if qty and qty[0][0] is not None else 0.0
+
+
+"""
+Add these three whitelisted methods to:
+dms/dealer_management_system/doctype/dms_job_card/dms_job_card.py
+
+The key pattern: frappe.db.set_value() for scalar fields on the parent,
+and direct frappe.db operations for child table rows.
+"""
+
+import frappe
+import json
+from frappe import _
+from frappe.utils import now_datetime, flt
+
+
+@frappe.whitelist()
+def start_repair(job_card, time_logs=None):
+    doc = frappe.get_doc("DMS Job Card", job_card)
+    if doc.docstatus != 1:
+        frappe.throw(_("Job Card must be submitted before starting repair."))
+
+    # Wipe old logs and insert fresh ones directly — bypasses docstatus check
+    frappe.db.delete("DMS Job Card Time Log", {"parent": job_card})
+
+    if time_logs:
+        if isinstance(time_logs, str):
+            time_logs = json.loads(time_logs)
+        for idx, log in enumerate(time_logs, start=1):
+            child = frappe.new_doc("DMS Job Card Time Log")
+            child.update({
+                "parent": job_card,
+                "parenttype": "DMS Job Card",
+                "parentfield": "time_logs",
+                "idx": idx,
+                "technician": log.get("technician"),
+                "start_time": log.get("start_time") or now_datetime(),
+            })
+            child.db_insert()
+
+    frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
+    frappe.db.commit()
+    return "ok"
+
+
+@frappe.whitelist()
+def pause_repair(job_card, new_status, open_logs=None):
+    if isinstance(open_logs, str):
+        open_logs = json.loads(open_logs) if open_logs else []
+
+    for log in (open_logs or []):
+        frappe.db.set_value(
+            "DMS Job Card Time Log", log.get("name"),
+            {
+                "end_time": log.get("end_time"),
+                "duration_hours": flt(log.get("duration_hours")),
+                "pause_reason": log.get("pause_reason"),
+            },
+            update_modified=False
+        )
+
+    frappe.db.set_value("DMS Job Card", job_card, "status", new_status, update_modified=True)
+    frappe.db.commit()
+    return "ok"
+
+
+@frappe.whitelist()
+def stop_repair(job_card, open_logs=None, completed_date_time=None):
+    if isinstance(open_logs, str):
+        open_logs = json.loads(open_logs) if open_logs else []
+
+    for log in (open_logs or []):
+        frappe.db.set_value(
+            "DMS Job Card Time Log", log.get("name"),
+            {
+                "end_time": log.get("end_time"),
+                "duration_hours": flt(log.get("duration_hours")),
+            },
+            update_modified=False
+        )
+
+    # Sum ALL logs including previously paused ones
+    all_logs = frappe.get_all(
+        "DMS Job Card Time Log",
+        filters={"parent": job_card},
+        fields=["duration_hours"]
+    )
+    total_hours = sum(flt(l.duration_hours) for l in all_logs)
+
+    frappe.db.set_value("DMS Job Card", job_card, {
+        "status": "Repair Completed",
+        "actual_duration_hours": total_hours,
+        "total_sold_hours": total_hours,
+        "completed_date_time": completed_date_time or now_datetime(),
+    }, update_modified=True)
+
+    frappe.db.commit()
+    return "ok"

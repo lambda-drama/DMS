@@ -58,14 +58,14 @@ frappe.ui.form.on('VIN No', {
     },
     
     vin_number: function(frm) {
-        // Validate VIN length and format
-        // if (frm.doc.vin_number && frm.doc.vin_number.length !== 17) {
-        //     frappe.msgprint({
-        //         title: __('Invalid VIN'),
-        //         message: __('Standard VIN should be 17 characters. Please verify.'),
-        //         indicator: 'orange'
-        //     });
-        // }
+        //Validate VIN length and format
+        if (frm.doc.vin_number && frm.doc.vin_number.length !== 17) {
+            frappe.msgprint({
+                title: __('Invalid VIN'),
+                message: __('Standard VIN should be 17 characters. Please verify.'),
+                indicator: 'orange'
+            });
+        }
     }
 });
 
@@ -96,6 +96,9 @@ function calculate_warranty_status(frm) {
 
 
 
+
+
+
 function apply_vehicle_item_filter(frm) {
     frm.fields_dict.linked_item.get_query = function(doc, cdt, cdn) {
         return {
@@ -104,5 +107,7 @@ function apply_vehicle_item_filter(frm) {
         };
     };
 }
+
+
 
 

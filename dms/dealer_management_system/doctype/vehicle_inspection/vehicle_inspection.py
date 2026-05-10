@@ -25,6 +25,9 @@ class VehicleInspection(Document):
 
 	def on_update(self):
 		self._sync_inspection_link_on_service_appointment()
+  
+	def on_submit(self):
+		self.update_odometer()
 
 	def _sync_inspection_link_on_service_appointment(self):
 		"""Keep Service Appointment.inspection in sync (read-only link on SA)."""
@@ -39,6 +42,29 @@ class VehicleInspection(Document):
 			self.name,
 			update_modified=False,
 		)
+  
+	def update_odometer(self):
+	
+		"""When inspection is submitted, update VIN current odometer"""
+		if self.vin_chassis and self.odometer:
+			vin = frappe.get_doc("VIN No", self.vin_chassis)
+			
+			# Store old odometer before updating
+			old_odometer = vin.current_odometer
+			
+			# Update current odometer
+			vin.last_service_odometer = vin.current_odometer
+			vin.current_odometer = self.odometer
+			vin.odometer_last_updated = now_datetime()
+			
+			# Do NOT update last_service_odometer here
+			# That only happens when service is completed
+			
+			vin.save()
+			
+			frappe.msgprint(_("Vehicle odometer updated from {0} to {1} km").format(
+				old_odometer, self.odometer
+			))
 
 
 @frappe.whitelist()
