@@ -1,0 +1,216 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:model",
+ "creation": "2026-05-08 04:13:20.831574",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "model",
+  "model_code",
+  "brand",
+  "model_name",
+  "model_year",
+  "variant",
+  "column_break_basic",
+  "fuel_type",
+  "transmission",
+  "drive_type",
+  "is_active",
+  "engine_code",
+  "section_service_intervals",
+  "service_intervals",
+  "section_warranty",
+  "warranty_rules",
+  "section_labor_operations",
+  "standard_labor_operations",
+  "section_notes",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "description": "e.g., JET-X70-2024",
+   "fieldname": "model_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Model Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Brand",
+   "options": "Brand",
+   "reqd": 1
+  },
+  {
+   "description": "e.g., Jetour X70, Jetour T2",
+   "fieldname": "model_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Model Name",
+   "reqd": 1
+  },
+  {
+   "description": "e.g., Premium, Luxury, Base, GLX",
+   "fieldname": "variant",
+   "fieldtype": "Data",
+   "label": "Variant / Trim"
+  },
+  {
+   "fieldname": "model_year",
+   "fieldtype": "Int",
+   "label": "Model Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fuel_type",
+   "fieldtype": "Select",
+   "label": "Fuel Type",
+   "options": "Petrol\nDiesel\nHybrid\nPHEV\nEV\nCNG\nLPG",
+   "reqd": 1
+  },
+  {
+   "fieldname": "transmission",
+   "fieldtype": "Select",
+   "label": "Transmission",
+   "options": "Manual (MT)\nAutomatic (AT)\nCVT\nDCT\nAMT\nEV Single Speed",
+   "reqd": 1
+  },
+  {
+   "fieldname": "drive_type",
+   "fieldtype": "Select",
+   "label": "Drive Type",
+   "options": "FWD\nRWD\nAWD\n4WD"
+  },
+  {
+   "fieldname": "engine_code",
+   "fieldtype": "Data",
+   "label": "Engine Code"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "bold": 1,
+   "fieldname": "section_service_intervals",
+   "fieldtype": "Section Break",
+   "label": "Service Interval Rules"
+  },
+  {
+   "description": "Define service intervals for different conditions",
+   "fieldname": "service_intervals",
+   "fieldtype": "Table",
+   "label": "Service Interval Rules",
+   "options": "Vehicle Service Interval"
+  },
+  {
+   "bold": 1,
+   "fieldname": "section_warranty",
+   "fieldtype": "Section Break",
+   "label": "Warranty Rules"
+  },
+  {
+   "description": "Define warranty periods for different components",
+   "fieldname": "warranty_rules",
+   "fieldtype": "Table",
+   "label": "Warranty Rules",
+   "options": "Vehicle Warranty Rule"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_labor_operations",
+   "fieldtype": "Section Break",
+   "label": "Standard Labor Operations"
+  },
+  {
+   "description": "Predefined labor codes for common services",
+   "fieldname": "standard_labor_operations",
+   "fieldtype": "Table",
+   "label": "Standard Labor Operations",
+   "options": "Vehicle Standard Labor"
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "options": "Vehicle Model",
+   "read_only": 1
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Item",
+   "unique": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-10 22:10:57.673849",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Model",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

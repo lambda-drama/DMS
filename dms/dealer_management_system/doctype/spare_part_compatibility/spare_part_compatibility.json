@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 00:16:02.838750",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_heje"
+ ],
+ "fields": [
+  {
+   "fieldname": "vehicle_brand",
+   "fieldtype": "Link",
+   "label": "Vehicle Brand",
+   "options": "Brand",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "vehicle_model",
+   "fieldtype": "Link",
+   "label": "Vehicle Model",
+   "options": "Vehicle Model",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3,
+   "filters": "{\"brand\":\"doc.vehicle_brand\"}"
+  },
+  {
+   "fieldname": "vehicle_variant",
+   "fieldtype": "Link",
+   "label": "Variant (Optional)",
+   "options": "Vehicle Variant",
+   "in_list_view": 1,
+   "columns": 3,
+   "filters": "{\"model\":\"doc.vehicle_model\"}"
+  },
+  {
+   "fieldname": "model_years",
+   "fieldtype": "Data",
+   "label": "Model Years",
+   "in_list_view": 1,
+   "columns": 2,
+   "placeholder": "e.g., 2020-2024, 2022-"
+  },
+  {
+   "fieldname": "engine_code",
+   "fieldtype": "Data",
+   "label": "Engine Code",
+   "in_list_view": 1,
+   "columns": 2,
+   "placeholder": "e.g., SQRE4T15C, 4G15"
+  },
+  {
+   "fieldname": "transmission_type",
+   "fieldtype": "Select",
+   "label": "Transmission Type",
+   "options": "\nAll\nManual (MT)\nAutomatic (AT)\nCVT\nDCT\nEV (Single Speed)",
+   "in_list_view": 1,
+   "columns": 2,
+   "default": "All"
+  },
+  {
+   "fieldname": "drive_type",
+   "fieldtype": "Select",
+   "label": "Drive Type",
+   "options": "\nAll\nFWD\nRWD\nAWD\n4WD",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "All"
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Select",
+   "label": "Position on Vehicle",
+   "options": "\nFront Left\nFront Right\nRear Left\nRear Right\nAll Positions\nEngine Bay\nInterior\nExterior\nUndercarriage\nTrunk/Cargo\nDashboard\nDoor (Left)\nDoor (Right)",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "quantity_per_vehicle",
+   "fieldtype": "Int",
+   "label": "Qty per Vehicle",
+   "default": "1",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes",
+   "in_list_view": 1,
+   "columns": 2
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-08 00:16:02.838750",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Spare Part Compatibility",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,141 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-09 00:53:11.062927",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "labor_operation",
+  "operation_name",
+  "service_type",
+  "standard_hours",
+  "is_mandatory_for_service",
+  "service_package",
+  "required_at_intervals_km",
+  "required_at_months",
+  "column_break_gnyh",
+  "skill_level_required",
+  "special_equipment_required",
+  "warranty_applicable",
+  "notes"
+ ],
+ "fields": [
+  {
+   "columns": 3,
+   "description": "Standard labor code from ERP service items",
+   "fieldname": "labor_operation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Labor Operation",
+   "options": "Vehicle Service Item",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fetch_from": "labor_operation.custom_erpnext_item",
+   "fieldname": "operation_name",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Operation Name"
+  },
+  {
+   "columns": 2,
+   "default": "Periodic Service",
+   "fieldname": "service_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Service Type",
+   "options": "\nPeriodic Service\nOil Change\nBrake Service\nTire Rotation\nTire Replacement\nBattery Replacement\nAC Service\nEngine Diagnosis\nTransmission Service\nElectrical Diagnosis\nSuspension Repair\nSteering Repair\nCooling System\nTiming Belt Replacement\nWarranty Repair\nRecall Campaign\nPDI (Pre-Delivery Inspection)\nAnnual Inspection\nPre-Purchase Inspection\nSoftware Update\nCalibration\nRoad Test\nWashing/Detailing\nOther"
+  },
+  {
+   "columns": 1,
+   "default": "1.0",
+   "description": "Manufacturer's standard labor hours",
+   "fieldname": "standard_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Standard Hours (Book Time)",
+   "precision": "1",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "description": "Auto-include this operation in service packages",
+   "fieldname": "is_mandatory_for_service",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Mandatory for Service"
+  },
+  {
+   "description": "If part of a package (e.g., 10,000km service)",
+   "fieldname": "service_package",
+   "fieldtype": "Link",
+   "label": "Service Package",
+   "options": "Vehicle Service Package"
+  },
+  {
+   "description": "Comma-separated KM intervals when this operation is required",
+   "fieldname": "required_at_intervals_km",
+   "fieldtype": "Data",
+   "label": "Required at Intervals (KM)",
+   "placeholder": "e.g., 10000, 20000, 40000"
+  },
+  {
+   "description": "Comma-separated month intervals when this operation is required",
+   "fieldname": "required_at_months",
+   "fieldtype": "Data",
+   "label": "Required at Months",
+   "placeholder": "e.g., 12, 24, 36"
+  },
+  {
+   "columns": 1,
+   "default": "Junior",
+   "fieldname": "skill_level_required",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Minimum Skill Level Required",
+   "options": "\nTrainee\nJunior\nIntermediate\nSenior\nMaster Technician\nEV/PHEV Certified"
+  },
+  {
+   "description": "e.g., Diagnostic scanner, AC machine, Lift",
+   "fieldname": "special_equipment_required",
+   "fieldtype": "Small Text",
+   "label": "Special Equipment Required"
+  },
+  {
+   "default": "0",
+   "description": "Check if this operation is typically warranty-covered",
+   "fieldname": "warranty_applicable",
+   "fieldtype": "Check",
+   "label": "Covered Under Warranty"
+  },
+  {
+   "columns": 2,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Notes"
+  },
+  {
+   "fieldname": "column_break_gnyh",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-10 22:13:07.678798",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Standard Labor",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

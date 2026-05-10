@@ -1,0 +1,680 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-05-08 01:18:49.882197",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_header",
+  "naming_series",
+  "job_card_type",
+  "status",
+  "posting_date",
+  "company",
+  "column_break_header",
+  "opened_date_time",
+  "completed_date_time",
+  "promised_delivery_date_time",
+  "quality_control_section_section",
+  "qc_checklist_template",
+  "qc_results",
+  "section_quality_control",
+  "qc_inspector",
+  "qc_result",
+  "qc_fail_reason",
+  "column_break_qc",
+  "rework_required",
+  "rework_job_item",
+  "qc_checked_date",
+  "section_customer_vehicle",
+  "customer",
+  "customer_name",
+  "customer_mobile",
+  "vehicle_vin",
+  "vehicle_model",
+  "license_plate",
+  "column_break_vehicle",
+  "current_odometer",
+  "appointment",
+  "inspection",
+  "warranty_status",
+  "warranty_expiry_date",
+  "section_priority_assignment",
+  "priority",
+  "is_repeat_repair",
+  "repeat_repair_reference",
+  "service_advisor",
+  "assigned_bay",
+  "column_break_priority",
+  "lead_technician",
+  "assistant_technicians",
+  "estimated_duration_hours",
+  "actual_duration_hours",
+  "total_labor_hours",
+  "total_sold_hours",
+  "section_job_items",
+  "job_items",
+  "labour_breakdown_section",
+  "labour",
+  "section_parts",
+  "parts",
+  "section_estimate",
+  "total_labor_cost",
+  "total_parts_cost",
+  "total_amount",
+  "discount_amount",
+  "net_amount",
+  "column_break_estimate",
+  "customer_approval_status",
+  "approval_reference",
+  "approval_attachment",
+  "approved_amount",
+  "section_billing",
+  "invoice",
+  "payment_status",
+  "payment_reference",
+  "column_break_billing",
+  "release_blocked",
+  "release_block_reason",
+  "section_time_log",
+  "time_logs",
+  "section_delivery",
+  "delivered_to",
+  "delivered_to_phone",
+  "delivery_date_time",
+  "final_odometer",
+  "customer_signature",
+  "column_break_delivery",
+  "next_service_due_km",
+  "next_service_due_date",
+  "service_advisor_notes",
+  "internal_notes",
+  "amended_from",
+  "section_break_pwum",
+  "customer_satisfaction"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "section_header",
+   "fieldtype": "Section Break",
+   "label": "Job Card Information"
+  },
+  {
+   "default": "JC-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "JC-.YYYY.-"
+  },
+  {
+   "description": "Select the appropriate checklist for this job type",
+   "fieldname": "qc_checklist_template",
+   "fieldtype": "Link",
+   "label": "QC Checklist Template",
+   "options": "QC Checklist Template"
+  },
+  {
+   "description": "Line items populated from QC Checklist Template (use template field above)",
+   "fieldname": "qc_results",
+   "fieldtype": "Table",
+   "label": "QC Results",
+   "options": "Job Card QC Result"
+  },
+  {
+   "default": "Internal",
+   "fieldname": "job_card_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Job Card Type",
+   "options": "\nCustomer Paid\nWarranty\nInternal\nPDI\nCampaign/Recall\nInsurance\nGoodwill\nFleet Contract",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nOpen\nEstimation Pending\nEstimation Approved\nIn Progress\nWaiting Parts\nWaiting Customer Approval\nQC In Progress\nQC Failed\nRework\nCompleted\nCancelled\nDelivered"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "default": "Now",
+   "fieldname": "opened_date_time",
+   "fieldtype": "Datetime",
+   "label": "Opened Date & Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_date_time",
+   "fieldtype": "Datetime",
+   "label": "Completed Date & Time",
+   "read_only": 1
+  },
+  {
+   "description": "Commitment to customer",
+   "fieldname": "promised_delivery_date_time",
+   "fieldtype": "Datetime",
+   "label": "Promised Delivery Date & Time",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_customer_vehicle",
+   "fieldtype": "Section Break",
+   "label": "Customer & Vehicle Information"
+  },
+  {
+   "fetch_from": "vehicle_vin.current_customer",
+   "fetch_if_empty": 1,
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Read Only",
+   "label": "Customer Name"
+  },
+  {
+   "fetch_from": "customer.mobile_no",
+   "fieldname": "customer_mobile",
+   "fieldtype": "Read Only",
+   "label": "Customer Mobile"
+  },
+  {
+   "description": "Select VIN number of the vehicle",
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Vehicle (VIN)",
+   "options": "VIN No",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "vehicle_vin.model_name",
+   "fieldname": "vehicle_model",
+   "fieldtype": "Read Only",
+   "label": "Model"
+  },
+  {
+   "fetch_from": "vehicle_vin.plate_number",
+   "fieldname": "license_plate",
+   "fieldtype": "Read Only",
+   "label": "License Plate"
+  },
+  {
+   "fetch_from": "vehicle_vin.current_odometer",
+   "fieldname": "current_odometer",
+   "fieldtype": "Int",
+   "label": "Current Odometer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vehicle",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "appointment",
+   "fieldtype": "Link",
+   "label": "Service Appointment",
+   "options": "Service Appointment"
+  },
+  {
+   "description": "Must complete inspection before job card",
+   "fieldname": "inspection",
+   "fieldtype": "Link",
+   "label": "Vehicle Inspection",
+   "options": "Vehicle Inspection",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "vehicle_vin.warranty_status",
+   "fieldname": "warranty_status",
+   "fieldtype": "Read Only",
+   "label": "Warranty Status"
+  },
+  {
+   "fetch_from": "vehicle_vin.warranty_end_date",
+   "fieldname": "warranty_expiry_date",
+   "fieldtype": "Read Only",
+   "label": "Warranty Expiry Date"
+  },
+  {
+   "fieldname": "section_priority_assignment",
+   "fieldtype": "Section Break",
+   "label": "Priority & Assignment"
+  },
+  {
+   "default": "Normal",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Priority",
+   "options": "Normal\nUrgent\nVIP\nComeback/Repeat Repair\nSafety Critical\nImmobilized\nFleet Priority",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "Same complaint within last 90 days",
+   "fieldname": "is_repeat_repair",
+   "fieldtype": "Check",
+   "label": "Repeat Repair"
+  },
+  {
+   "depends_on": "eval:doc.is_repeat_repair == 1",
+   "fieldname": "repeat_repair_reference",
+   "fieldtype": "Link",
+   "label": "Previous Job Card Reference",
+   "options": "DMS Job Card"
+  },
+  {
+   "default": "__user",
+   "fieldname": "service_advisor",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Service Advisor",
+   "options": "Service Advisor",
+   "reqd": 1
+  },
+  {
+   "fieldname": "assigned_bay",
+   "fieldtype": "Link",
+   "label": "Assigned Service Bay",
+   "options": "Service Bay"
+  },
+  {
+   "fieldname": "column_break_priority",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lead_technician",
+   "fieldtype": "Link",
+   "label": "Lead Technician",
+   "options": "Technician"
+  },
+  {
+   "fieldname": "assistant_technicians",
+   "fieldtype": "Table",
+   "label": "Assistant Technicians",
+   "options": "Job Card Technician Assignment"
+  },
+  {
+   "fieldname": "estimated_duration_hours",
+   "fieldtype": "Float",
+   "label": "Estimated Duration (Hours)",
+   "precision": "1"
+  },
+  {
+   "fieldname": "actual_duration_hours",
+   "fieldtype": "Float",
+   "label": "Actual Duration (Hours)",
+   "precision": "1",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "collapsible": 1,
+   "fieldname": "section_job_items",
+   "fieldtype": "Section Break",
+   "label": "Job Items (Complaint \u2192 Cause \u2192 Correction)"
+  },
+  {
+   "fieldname": "job_items",
+   "fieldtype": "Table",
+   "label": "Job Card Items",
+   "options": "Job Card Item",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "section_parts",
+   "fieldtype": "Section Break",
+   "label": "Parts & Materials"
+  },
+  {
+   "fieldname": "parts",
+   "fieldtype": "Table",
+   "label": "Parts Requested / Issued",
+   "options": "Job Card Part Item"
+  },
+  {
+   "fieldname": "section_estimate",
+   "fieldtype": "Section Break",
+   "label": "Estimate & Approval"
+  },
+  {
+   "description": "Billable labour only (Warranty labour lines excluded). Hours \u00d7 rate.",
+   "fieldname": "total_labor_cost",
+   "fieldtype": "Currency",
+   "label": "Total Labor Cost",
+   "read_only": 1
+  },
+  {
+   "description": "Billable parts at inventory cost: qty \u00d7 (Spare Part last purchase or Item valuation / last purchase). Warranty parts excluded.",
+   "fieldname": "total_parts_cost",
+   "fieldtype": "Currency",
+   "label": "Total Parts Cost (at cost)",
+   "read_only": 1
+  },
+  {
+   "description": "Customer subtotal: billable labour + billable parts using unit price (before discount). Warranty lines excluded.",
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount Amount"
+  },
+  {
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "label": "Net Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_estimate",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "customer_approval_status",
+   "fieldtype": "Select",
+   "label": "Customer Approval Status",
+   "options": "Pending\nApproved\nPartially Approved\nRejected\nVerbal Approval\nWritten Approval\nNot Required"
+  },
+  {
+   "description": "WhatsApp screenshot ID, email ID, verbal approval note",
+   "fieldname": "approval_reference",
+   "fieldtype": "Data",
+   "label": "Approval Reference"
+  },
+  {
+   "fieldname": "approval_attachment",
+   "fieldtype": "Attach",
+   "label": "Approval Attachment"
+  },
+  {
+   "description": "Maximum amount approved by customer",
+   "fieldname": "approved_amount",
+   "fieldtype": "Currency",
+   "label": "Approved Amount Limit"
+  },
+  {
+   "fieldname": "section_quality_control",
+   "fieldtype": "Section Break",
+   "label": "Quality Control"
+  },
+  {
+   "fieldname": "qc_inspector",
+   "fieldtype": "Link",
+   "label": "QC Inspector",
+   "options": "Service Advisor"
+  },
+  {
+   "fieldname": "qc_result",
+   "fieldtype": "Select",
+   "label": "QC Result",
+   "options": "\nPass\nFail\nPass with Advisory\nHold"
+  },
+  {
+   "depends_on": "eval:doc.qc_result == 'Fail'",
+   "fieldname": "qc_fail_reason",
+   "fieldtype": "Small Text",
+   "label": "QC Fail Reason"
+  },
+  {
+   "fieldname": "qc_checked_date",
+   "fieldtype": "Datetime",
+   "label": "QC Checked Date & Time"
+  },
+  {
+   "fieldname": "column_break_qc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "rework_required",
+   "fieldtype": "Check",
+   "label": "Rework Required",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.rework_required == 1",
+   "fieldname": "rework_job_item",
+   "fieldtype": "Link",
+   "label": "Rework Job Item",
+   "options": "Job Card Item"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_billing",
+   "fieldtype": "Section Break",
+   "label": "Billing & Payment"
+  },
+  {
+   "fieldname": "invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "default": "Unpaid",
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "Unpaid\nPartially Paid\nPaid\nCredit\nWarranty\nInternal"
+  },
+  {
+   "fieldname": "payment_reference",
+   "fieldtype": "Data",
+   "label": "Payment Reference"
+  },
+  {
+   "fieldname": "column_break_billing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Blocked until payment/QC cleared",
+   "fieldname": "release_blocked",
+   "fieldtype": "Check",
+   "label": "Release Blocked",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.release_blocked == 1",
+   "fieldname": "release_block_reason",
+   "fieldtype": "Small Text",
+   "label": "Release Block Reason",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_time_log",
+   "fieldtype": "Section Break",
+   "label": "Technician Time Log"
+  },
+  {
+   "fieldname": "time_logs",
+   "fieldtype": "Table",
+   "label": "Time Logs",
+   "options": "DMS Job Card Time Log"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_delivery",
+   "fieldtype": "Section Break",
+   "label": "Delivery Information"
+  },
+  {
+   "fieldname": "delivered_to",
+   "fieldtype": "Data",
+   "label": "Delivered To (Name)"
+  },
+  {
+   "fieldname": "delivered_to_phone",
+   "fieldtype": "Phone",
+   "label": "Delivered To Phone"
+  },
+  {
+   "fieldname": "delivery_date_time",
+   "fieldtype": "Datetime",
+   "label": "Delivery Date & Time"
+  },
+  {
+   "fieldname": "final_odometer",
+   "fieldtype": "Int",
+   "label": "Final Odometer"
+  },
+  {
+   "fieldname": "customer_signature",
+   "fieldtype": "Attach Image",
+   "label": "Customer Signature"
+  },
+  {
+   "fieldname": "column_break_delivery",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "next_service_due_km",
+   "fieldtype": "Int",
+   "label": "Next Service Due (KM)"
+  },
+  {
+   "fieldname": "next_service_due_date",
+   "fieldtype": "Date",
+   "label": "Next Service Due Date"
+  },
+  {
+   "fieldname": "service_advisor_notes",
+   "fieldtype": "Text Editor",
+   "label": "Service Advisor Notes"
+  },
+  {
+   "fieldname": "internal_notes",
+   "fieldtype": "Text Editor",
+   "label": "Internal Notes (Not for Customer)"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "options": "DMS Job Card",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_labor_hours",
+   "fieldtype": "Float",
+   "label": "total_labor_hours"
+  },
+  {
+   "fieldname": "total_sold_hours",
+   "fieldtype": "Date",
+   "label": "total_sold_hours"
+  },
+  {
+   "fieldname": "section_break_pwum",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer_satisfaction",
+   "fieldtype": "Text Editor",
+   "label": "customer_satisfaction"
+  },
+  {
+   "fieldname": "quality_control_section_section",
+   "fieldtype": "Section Break",
+   "label": "Quality Control Section"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "labour_breakdown_section",
+   "fieldtype": "Section Break",
+   "label": "Labour Breakdown"
+  },
+  {
+   "fieldname": "labour",
+   "fieldtype": "Table",
+   "label": "Labour",
+   "options": "Vehicle Labour Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-05-10 01:05:22.233168",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "DMS Job Card",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,317 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-07 23:48:04.209538",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic_info",
+  "bay_number",
+  "bay_name",
+  "branch",
+  "column_break_basic",
+  "bay_type",
+  "is_active",
+  "section_equipment",
+  "has_lift_2_post",
+  "has_lift_4_post",
+  "has_scanner",
+  "has_compressed_air",
+  "has_ev_safety_equipment",
+  "has_ac_machine",
+  "has_tire_changer",
+  "has_balancer",
+  "has_alignment_rack",
+  "column_break_equipment",
+  "has_exhaust_extraction",
+  "has_heating",
+  "has_cooling",
+  "has_fire_extinguisher",
+  "has_waste_oil_drain",
+  "has_coolant_evacuator",
+  "has_brake_fluid_machine",
+  "section_current_status",
+  "current_status",
+  "current_job_card",
+  "current_vehicle",
+  "current_technician",
+  "column_break_status",
+  "occupied_from",
+  "estimated_free_time",
+  "section_notes",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "section_basic_info",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "description": "e.g., BAY-01, BAY-02, BAY-A1",
+   "fieldname": "bay_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bay Number",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "description": "e.g., Main Service Bay 1, Quick Service Bay",
+   "fieldname": "bay_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bay Name"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Branch/Workshop",
+   "options": "Branch",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "General Service",
+   "fieldname": "bay_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Bay Type",
+   "options": "General Service\nDiagnostic\nQuick Service\nEV/PHEV High Voltage\nBody Repair\nPaint Booth\nAlignment\nAC Service\nTransmission\nPDI Bay\nEngine Repair\nTire/Battery Bay",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_equipment",
+   "fieldtype": "Section Break",
+   "label": "Equipment & Capabilities"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_lift_2_post",
+   "fieldtype": "Check",
+   "label": "Has 2-Post Lift"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_lift_4_post",
+   "fieldtype": "Check",
+   "label": "Has 4-Post Lift"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_scanner",
+   "fieldtype": "Check",
+   "label": "Has Diagnostic Scanner"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_compressed_air",
+   "fieldtype": "Check",
+   "label": "Has Compressed Air"
+  },
+  {
+   "default": "0",
+   "description": "Insulated tools, gloves, mats for EV/PHEV",
+   "fieldname": "has_ev_safety_equipment",
+   "fieldtype": "Check",
+   "label": "Has EV Safety Equipment"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_ac_machine",
+   "fieldtype": "Check",
+   "label": "Has AC Service Machine"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_tire_changer",
+   "fieldtype": "Check",
+   "label": "Has Tire Changer"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_balancer",
+   "fieldtype": "Check",
+   "label": "Has Wheel Balancer"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_alignment_rack",
+   "fieldtype": "Check",
+   "label": "Has Alignment Rack"
+  },
+  {
+   "fieldname": "column_break_equipment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_exhaust_extraction",
+   "fieldtype": "Check",
+   "label": "Has Exhaust Extraction System"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_heating",
+   "fieldtype": "Check",
+   "label": "Has Heating System"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_cooling",
+   "fieldtype": "Check",
+   "label": "Has Cooling/AC"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_fire_extinguisher",
+   "fieldtype": "Check",
+   "label": "Has Fire Extinguisher"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_waste_oil_drain",
+   "fieldtype": "Check",
+   "label": "Has Waste Oil Drain"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_coolant_evacuator",
+   "fieldtype": "Check",
+   "label": "Has Coolant Evacuator"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_brake_fluid_machine",
+   "fieldtype": "Check",
+   "label": "Has Brake Fluid Machine"
+  },
+  {
+   "bold": 1,
+   "fieldname": "section_current_status",
+   "fieldtype": "Section Break",
+   "label": "Current Status"
+  },
+  {
+   "default": "Available",
+   "fieldname": "current_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Current Status",
+   "options": "Available\nOccupied\nMaintenance\nReserved\nCleaning",
+   "reqd": 1
+  },
+  {
+   "fieldname": "current_job_card",
+   "fieldtype": "Link",
+   "label": "Current Job Card",
+   "options": "DMS Job Card",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_vehicle",
+   "fieldtype": "Link",
+   "label": "Current Vehicle (VIN)",
+   "options": "VIN No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_technician",
+   "fieldtype": "Link",
+   "label": "Current Lead Technician",
+   "options": "Technician",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "occupied_from",
+   "fieldtype": "Datetime",
+   "label": "Occupied From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "estimated_free_time",
+   "fieldtype": "Datetime",
+   "label": "Estimated Free Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes / Special Instructions"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "options": "Service Bay",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-08 03:46:16.670637",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Service Bay",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

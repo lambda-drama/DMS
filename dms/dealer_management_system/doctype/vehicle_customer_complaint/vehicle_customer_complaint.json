@@ -1,0 +1,182 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 02:17:55.073297",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "complaint_sequence",
+  "section_break_ifwu",
+  "customer_exact_words",
+  "column_break_ttvg",
+  "symptom_category",
+  "frequency",
+  "severity",
+  "section_break_qnoi",
+  "first_occurrence_date",
+  "first_occurrence_odometer",
+  "previous_repair_attempt",
+  "column_break_kwgb",
+  "previous_repair_details",
+  "section_break_ppik",
+  "road_test_required",
+  "diagnostic_required",
+  "customer_approval_for_diagnostic_fee",
+  "column_break_toiw",
+  "diagnostic_fee_amount",
+  "customer_signature_for_diagnostic",
+  "section_break_otmt",
+  "notes"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "fieldname": "complaint_sequence",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Complaint No.",
+   "read_only": 1
+  },
+  {
+   "columns": 4,
+   "description": "Record exactly as customer explains",
+   "fieldname": "customer_exact_words",
+   "fieldtype": "Text Editor",
+   "in_list_view": 1,
+   "label": "Customer Complaint (Exact Words)",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "symptom_category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Symptom Category",
+   "options": "Engine\nTransmission\nBrake\nSteering\nSuspension\nElectrical\nAC\nBody\nInfotainment\nWarning Light\nNoise\nVibration\nLeak\nSmell\nPerformance\nCharging/PHEV\nOther",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "Sometimes",
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Frequency",
+   "options": "Always\nOften\nSometimes\nOnce\nIntermittent\nCannot Reproduce"
+  },
+  {
+   "columns": 1,
+   "default": "3 - Moderate",
+   "fieldname": "severity",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Severity (1-5)",
+   "options": "1 - Low\n2 - Minor\n3 - Moderate\n4 - High\n5 - Safety Critical"
+  },
+  {
+   "description": "When customer first noticed the issue",
+   "fieldname": "first_occurrence_date",
+   "fieldtype": "Date",
+   "label": "First Occurrence Date"
+  },
+  {
+   "description": "Mileage when issue first appeared",
+   "fieldname": "first_occurrence_odometer",
+   "fieldtype": "Int",
+   "label": "First Occurrence Odometer"
+  },
+  {
+   "default": "0",
+   "fieldname": "previous_repair_attempt",
+   "fieldtype": "Check",
+   "label": "Previous Repair Attempted?"
+  },
+  {
+   "depends_on": "eval:doc.previous_repair_attempt == 1",
+   "description": "Where and when was previous repair done?",
+   "fieldname": "previous_repair_details",
+   "fieldtype": "Small Text",
+   "label": "Previous Repair Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "road_test_required",
+   "fieldtype": "Check",
+   "label": "Road Test Required"
+  },
+  {
+   "default": "0",
+   "fieldname": "diagnostic_required",
+   "fieldtype": "Check",
+   "label": "Diagnostic Scan Required"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.diagnostic_required == 1",
+   "fieldname": "customer_approval_for_diagnostic_fee",
+   "fieldtype": "Check",
+   "label": "Customer Approved Diagnostic Fee"
+  },
+  {
+   "depends_on": "eval:doc.diagnostic_required == 1",
+   "fieldname": "diagnostic_fee_amount",
+   "fieldtype": "Currency",
+   "label": "Diagnostic Fee Amount"
+  },
+  {
+   "depends_on": "eval:doc.diagnostic_required == 1",
+   "fieldname": "customer_signature_for_diagnostic",
+   "fieldtype": "Attach Image",
+   "label": "Customer Signature (Diagnostic Fee)"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Additional Notes"
+  },
+  {
+   "fieldname": "section_break_ppik",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_toiw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_otmt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_ifwu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_ttvg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_qnoi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_kwgb",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-08 02:28:31.481372",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Customer Complaint",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
