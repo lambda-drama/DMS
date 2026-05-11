@@ -81,7 +81,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-12 02:22:31.113833",
+ "modified": "2026-05-12 03:35:42.158894",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Road Test Template",
@@ -97,6 +97,19 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "select": 1,
    "share": 1,
    "write": 1
   }
