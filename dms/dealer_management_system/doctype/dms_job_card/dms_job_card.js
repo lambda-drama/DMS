@@ -97,7 +97,7 @@ frappe.ui.form.on("DMS Job Card", {
         add_sales_invoice_button(frm);
         refresh_qc_dashboard(frm);
         add_status_flow_buttons(frm);
-
+        apply_customer_filter_advanced(frm)
         frm._scheduling_modal_open = false;
 
         if (frm.doc.status === "Repair In Progress") {
@@ -195,7 +195,8 @@ const VEHICLE_DELIVERY_NOTE_DOCTYPE = "Vehicle Delivery Note";
 const ACTIONS_GROUP = __("Action");
 
 function add_sales_invoice_button(frm) {
-    if (frm.doc.docstatus !== 1 || frm.is_new() || frm.doc.status !== "Completed") return;
+    if (frm.doc.docstatus !== 1 || frm.is_new() || (frm.doc.status !== "Completed" && frm.doc.status !== "Delivered"))
+    return;
     if (!frappe.model.can_read("DMS Job Card")) return;
 
     if (frm.doc.invoice) {
@@ -697,3 +698,13 @@ function calculate_duration(start_time, end_time) {
 $(document).on('form-closed', function () {
     stop_timer();
 });
+
+
+function apply_customer_filter_advanced(frm) {
+    frm.fields_dict.customer.get_query = function(doc, cdt, cdn) {
+        return {
+            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_customers",
+            filters: {}
+        };
+    };
+}
