@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-12 02:17:13.249300",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "sequence",
+  "category",
+  "test_item",
+  "test_condition",
+  "column_break_qaga",
+  "expected_result",
+  "is_critical"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sequence"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Category",
+   "options": "Engine\nTransmission\nBrakes\nSteering\nSuspension\nTires/Wheels\nElectrical\nAC\nNoise/Vibration\nPerformance\nSafety Systems\nLighting\nBody\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "test_item",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Test Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "test_condition",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Test Condition",
+   "options": "All\nCold Start\nWarm Engine\nIdle\nTurning\nAcceleration\nCruising\nDeceleration\nBraking\nTurning Left\nTurning Right\nHigh Speed (80+ km/h)\nLow Speed\nUphill\nDownhill\nRough Road\nHighway\nCity Driving\nReverse\nParking"
+  },
+  {
+   "description": "What is considered PASS?",
+   "fieldname": "expected_result",
+   "fieldtype": "Small Text",
+   "label": "Expected Result"
+  },
+  {
+   "default": "0",
+   "description": "If failed, vehicle cannot be delivered",
+   "fieldname": "is_critical",
+   "fieldtype": "Check",
+   "label": "Is Critical"
+  },
+  {
+   "fieldname": "column_break_qaga",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-12 02:32:45.851501",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Road Test Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

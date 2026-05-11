@@ -87,6 +87,12 @@
   "customer_satisfaction",
   "section_break_cehe",
   "reason_for_stop",
+  "road_test_tab",
+  "road_test_template",
+  "road_test_results",
+  "section_break_wguw",
+  "road_test_note",
+  "rt_result",
   "final_inspection_tab",
   "quality_control_section_section",
   "qc_checklist_template",
@@ -149,7 +155,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nOpen\nEstimation Pending\nEstimation Approved\nWaiting Customer Approval\"\nScheduled\nRepair In Progress\nRepair Completed\nWaiting Parts\nWaiting Customer Approval\nQC In Progress\nQC Failed\nRework\nCompleted\nCancelled\nDelivered"
+   "options": "Draft\nOpen\nEstimation Pending\nEstimation Approved\nWaiting Customer Approval\"\nScheduled\nRepair In Progress\nRepair Completed\nWaiting Parts\nWaiting Customer Approval\nRoad Test In Progress\nRoad Test Completed\nQC In Progress\nQC Failed\nRework\nCompleted\nCancelled\nDelivered"
   },
   {
    "fieldname": "column_break_header",
@@ -688,13 +694,51 @@
    "fieldname": "reason_for_stop",
    "fieldtype": "Text Editor",
    "label": "Reason for Stop"
+  },
+  {
+   "fieldname": "road_test_tab",
+   "fieldtype": "Tab Break",
+   "label": "Road Test"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "road_test_template",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Road Test Template",
+   "options": "Road Test Template"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "allow_on_submit": 1,
+   "fieldname": "road_test_results",
+   "fieldtype": "Table",
+   "label": "Road Test Results",
+   "options": "Road Test Item Result"
+  },
+  {
+   "fieldname": "section_break_wguw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "road_test_note",
+   "fieldtype": "Text Editor",
+   "label": "Road Test Note"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "rt_result",
+   "fieldtype": "Select",
+   "label": "Rt Result",
+   "options": "\nPass\nFail"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-11 03:10:57.332521",
+ "modified": "2026-05-12 03:33:42.361647",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",
@@ -790,6 +834,14 @@
   {
    "color": "Blue",
    "title": "Repair Completed"
+  },
+  {
+   "color": "Blue",
+   "title": "Road Test In Progress"
+  },
+  {
+   "color": "Blue",
+   "title": "Road Test Completed"
   }
  ]
 }

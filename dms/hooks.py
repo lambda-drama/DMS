@@ -63,6 +63,9 @@ fixtures = [
     {
         "doctype": "QC Checklist Item Master"
     },
+    {
+        "doctype": "Road Test Template"
+    }
 ]
 
 # Includes in <head>

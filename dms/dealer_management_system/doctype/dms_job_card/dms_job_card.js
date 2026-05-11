@@ -47,6 +47,10 @@ function save_submitted_doc(frm, field_map, callback) {
 // MAIN FORM EVENTS
 // ============================================================
 frappe.ui.form.on("DMS Job Card", {
+
+    // ----------------------------------------------------------
+    // QC Checklist Template handler
+    // ----------------------------------------------------------
     qc_checklist_template(frm) {
         if (!frm.doc.qc_checklist_template) {
             frm._dms_prev_qc_template = "";
@@ -77,6 +81,46 @@ frappe.ui.form.on("DMS Job Card", {
         });
     },
 
+    // ----------------------------------------------------------
+    // Road Test Template handler
+    // ----------------------------------------------------------
+    road_test_template(frm) {
+        if (!frm.doc.road_test_template) {
+            frm._dms_prev_road_test_template = "";
+            return;
+        }
+
+        const rows = frm.doc.road_test_results || [];
+        const previous = frm._dms_prev_road_test_template;
+
+        if (rows.length) {
+            frappe.confirm(
+                __("Replace existing Road Test Results with lines from this template?"),
+                () => {
+                    populate_road_test_from_template(frm, { force: true }).then(() => {
+                        frm._dms_prev_road_test_template = frm.doc.road_test_template;
+                    });
+                },
+                () => {
+                    frappe.model.set_value(
+                        frm.doctype,
+                        frm.doc.name,
+                        "road_test_template",
+                        previous || ""
+                    );
+                }
+            );
+            return;
+        }
+
+        populate_road_test_from_template(frm).then(() => {
+            frm._dms_prev_road_test_template = frm.doc.road_test_template;
+        });
+    },
+
+    // ----------------------------------------------------------
+    // onload_post_render: auto-populate child tables for new docs
+    // ----------------------------------------------------------
     onload_post_render(frm) {
         if (
             frm.is_new() &&
@@ -87,35 +131,223 @@ frappe.ui.form.on("DMS Job Card", {
                 frm._dms_prev_qc_template = frm.doc.qc_checklist_template || "";
             });
         }
+        if (
+            frm.is_new() &&
+            frm.doc.road_test_template &&
+            !(frm.doc.road_test_results || []).length
+        ) {
+            populate_road_test_from_template(frm, { silent: true }).then(() => {
+                frm._dms_prev_road_test_template = frm.doc.road_test_template || "";
+            });
+        }
     },
 
+    // ----------------------------------------------------------
+    // before_submit: validate required fields before submitting
+    // ----------------------------------------------------------
+    before_submit(frm) {
+        const required = [
+            { field: "lead_technician",    label: __("Lead Technician") },
+            { field: "service_advisor",    label: __("Service Advisor") },
+            { field: "schedule_start_time", label: __("Schedule Start Time") },
+            { field: "schedule_end_time",   label: __("Schedule End Time") }
+        ];
+
+        const missing = required
+            .filter(r => !frm.doc[r.field])
+            .map(r => r.label);
+
+        if (missing.length) {
+            frappe.throw(
+                __("Please fill in the following required fields before submitting:<br><b>{0}</b>",
+                    [missing.join(", ")])
+            );
+        }
+    },
+
+    // ----------------------------------------------------------
+    // on_submit: trigger after document is submitted
+    // ----------------------------------------------------------
+    on_submit(frm) {
+        // Trigger auto-start repair after submit
+        if (frm.doc.status === "Estimation Approved") {
+            setTimeout(() => {
+                auto_start_repair_on_submit(frm);
+            }, 500);
+        }
+    },
+
+    // ----------------------------------------------------------
+    // refresh: wire up all UI logic
+    // ----------------------------------------------------------
     refresh(frm) {
         if (frm._dms_prev_qc_template === undefined) {
             frm._dms_prev_qc_template = frm.doc.qc_checklist_template || "";
         }
+
         add_vehicle_delivery_button(frm);
         add_sales_invoice_button(frm);
         refresh_qc_dashboard(frm);
         add_status_flow_buttons(frm);
-        apply_customer_filter_advanced(frm)
-        frm._scheduling_modal_open = false;
+        apply_customer_filter_advanced(frm);
+        add_customer_approval_button(frm);
+        control_submit_button(frm);
 
-        if (frm.doc.status === "Repair In Progress") {
-            start_timer_display(frm);
+        // AFTER the document is submitted (docstatus=1), start the repair process
+        if (frm.doc.docstatus === 1) {
+            // If status is still "Estimation Approved", auto-start repair
+            if (frm.doc.status === "Estimation Approved") {
+                auto_start_repair_on_submit(frm);
+            }
+            
+            // If repair is in progress, show timer
+            if (frm.doc.status === "Repair In Progress") {
+                start_timer_display(frm);
+            }
+        }
+
+        // Hide the Submit button after submission
+        if (frm.doc.docstatus === 1) {
+            let $submit_btn = $('.primary-action');
+            if ($submit_btn) $submit_btn.hide();
         }
     },
 
+    // ----------------------------------------------------------
+    // customer_approval_status: reveal Submit button on approval
+    // ----------------------------------------------------------
     customer_approval_status(frm) {
-        if (
-            frm.doc.customer_approval_status === "Approved" &&
-            frm.doc.status === "Estimation Pending"
-        ) {
-            save_submitted_doc(frm, { status: "Estimation Approved" }, () => {
-                frappe.show_alert("Estimation Approved. Ready for workshop scheduling.", 5);
-            });
-        }
+        control_submit_button(frm);
     }
 });
+
+// ============================================================
+// SUBMIT BUTTON CONTROL
+// Show Submit button only after customer approval
+// ============================================================
+function control_submit_button(frm) {
+    if (frm.doc.docstatus !== 0) return;
+    
+    // Check if customer has approved
+    const can_submit = frm.doc.customer_approval_status === "Approved";
+    
+    // Get the submit button element
+    let $submit_btn = null;
+    
+    // Try different selectors for different Frappe versions
+    if (frm.page && frm.page.btn_primary) {
+        $submit_btn = $(frm.page.btn_primary);
+    } else {
+        $submit_btn = $('.primary-action');
+    }
+    
+    if ($submit_btn && $submit_btn.length) {
+        if (can_submit) {
+            $submit_btn.show();
+            $submit_btn.removeAttr('disabled');
+        } else {
+            $submit_btn.hide();
+        }
+    }
+}
+
+// ============================================================
+// CUSTOMER APPROVAL BUTTON
+// ============================================================
+function add_customer_approval_button(frm) {
+    if (frm.doc.docstatus !== 0) return;
+    if (frm.doc.customer_approval_status === "Approved") return;
+    if (frm.doc.status !== "Estimation Pending") return;
+    
+    frm.add_custom_button(__("Mark Customer Approved"), () => {
+        frappe.prompt([
+            {
+                fieldname: "approval_reference",
+                label: __("Approval Reference (WhatsApp/Email)"),
+                fieldtype: "Data",
+                reqd: 1
+            },
+            {
+                fieldname: "approved_amount",
+                label: __("Approved Amount"),
+                fieldtype: "Currency"
+            }
+        ], (values) => {
+            save_submitted_doc(frm, {
+                customer_approval_status: "Approved",
+                approval_reference: values.approval_reference,
+                approved_amount: values.approved_amount,
+                status: "Estimation Approved"
+            }, () => {
+                frappe.show_alert(__("Customer approved. Submit button is now available."), 5);
+                control_submit_button(frm);
+                frm.refresh();
+            });
+        }, __("Customer Approval"), __("Confirm Approval"));
+    }, __("Approval"));
+}
+
+// ============================================================
+// AUTO-START REPAIR ON SUBMIT
+// Timer starts automatically when document is submitted
+// ============================================================
+function auto_start_repair_on_submit(frm) {
+    // Only run if document is submitted (docstatus=1)
+    if (frm.doc.docstatus !== 1) return;
+    
+    // If already in progress or completed, don't restart
+    if (frm.doc.status !== "Estimation Approved") return;
+    
+    // Check if already has time logs
+    if (frm.doc.time_logs && frm.doc.time_logs.length > 0) return;
+    
+    // Get technicians
+    const technicians = [];
+    if (frm.doc.lead_technician) technicians.push(frm.doc.lead_technician);
+    if (frm.doc.assistant_technicians) {
+        frm.doc.assistant_technicians.forEach(tech => {
+            if (tech.technician) technicians.push(tech.technician);
+        });
+    }
+    
+    if (!technicians.length) {
+        frappe.msgprint(__("Warning: No technician assigned. Timer will not start."));
+        return;
+    }
+    
+    const now = frappe.datetime.now_datetime();
+    
+    // Clear existing time logs and add new ones
+    frm.clear_table("time_logs");
+    technicians.forEach(tech => {
+        const row = frm.add_child("time_logs");
+        row.technician = tech;
+        row.start_time = now;
+    });
+    frm.refresh_field("time_logs");
+    
+    // Save time logs and update status
+    frm.save().then(() => {
+        // Update status to Repair In Progress
+        frappe.call({
+            method: "frappe.client.set_value",
+            args: {
+                doctype: frm.doctype,
+                name: frm.doc.name,
+                fieldname: "status",
+                value: "Repair In Progress"
+            },
+            freeze: true,
+            callback: () => {
+                frm.reload_doc().then(() => {
+                    start_timer_display(frm);
+                    frappe.show_alert(__("Job submitted. Repair timer started automatically."), 4);
+                    frm.refresh();
+                });
+            }
+        });
+    });
+}
 
 // ============================================================
 // QC RESULTS POPULATION
@@ -181,7 +413,7 @@ function refresh_qc_dashboard(frm) {
 
     const pass_count = results.filter((r) => r.result === "Pass").length;
     const fail_count = results.filter((r) => r.result === "Fail").length;
-    const na_count = results.filter((r) => r.result === "N/A").length;
+    const na_count   = results.filter((r) => r.result === "N/A").length;
     frm.dashboard.add_indicator(
         __("QC: {0} Pass, {1} Fail, {2} N/A", [pass_count, fail_count, na_count]),
         fail_count > 0 ? "red" : "green"
@@ -195,8 +427,11 @@ const VEHICLE_DELIVERY_NOTE_DOCTYPE = "Vehicle Delivery Note";
 const ACTIONS_GROUP = __("Action");
 
 function add_sales_invoice_button(frm) {
-    if (frm.doc.docstatus !== 1 || frm.is_new() || (frm.doc.status !== "Completed" && frm.doc.status !== "Delivered"))
-    return;
+    if (
+        frm.doc.docstatus !== 1 ||
+        frm.is_new() ||
+        (frm.doc.status !== "Completed" && frm.doc.status !== "Delivered")
+    ) return;
     if (!frappe.model.can_read("DMS Job Card")) return;
 
     if (frm.doc.invoice) {
@@ -276,8 +511,10 @@ function open_payment_entry_from_sales_invoice(sales_invoice) {
 
 function add_vehicle_delivery_button(frm) {
     if (frm.doc.docstatus !== 1 || frm.doc.status !== "Completed") return;
-    if (!frappe.model.can_read(VEHICLE_DELIVERY_NOTE_DOCTYPE) &&
-        !frappe.model.can_create(VEHICLE_DELIVERY_NOTE_DOCTYPE)) return;
+    if (
+        !frappe.model.can_read(VEHICLE_DELIVERY_NOTE_DOCTYPE) &&
+        !frappe.model.can_create(VEHICLE_DELIVERY_NOTE_DOCTYPE)
+    ) return;
 
     frm.add_custom_button(
         __("Vehicle Delivery Note"),
@@ -287,7 +524,7 @@ function add_vehicle_delivery_button(frm) {
 }
 
 function open_or_create_vehicle_delivery(frm) {
-    const can_read = frappe.model.can_read(VEHICLE_DELIVERY_NOTE_DOCTYPE);
+    const can_read   = frappe.model.can_read(VEHICLE_DELIVERY_NOTE_DOCTYPE);
     const can_create = frappe.model.can_create(VEHICLE_DELIVERY_NOTE_DOCTYPE);
     if (!can_read && !can_create) return;
 
@@ -351,32 +588,23 @@ frappe.ui.form.on("Job Card QC Result", {
 
 // ============================================================
 // STATUS FLOW BUTTONS
+// Includes Road Test Pass/Fail with reasons
 // ============================================================
 function add_status_flow_buttons(frm) {
     if (frm.doc.docstatus !== 1) return;
 
     const status = frm.doc.status;
 
+    // ── Estimation ──────────────────────────────────────────
     if (status === "Draft") {
         frm.add_custom_button(__("Submit for Estimation"), () => {
             save_submitted_doc(frm, { status: "Estimation Pending" }, () => {
-                frappe.show_alert("Job Card sent for estimation.", 3);
+                frappe.show_alert(__("Job Card sent for estimation."), 3);
             });
         }, __("Status"));
     }
 
-    if (status === "Estimation Approved") {
-        frm.add_custom_button(__("Schedule Workshop"), () => {
-            open_scheduling_modal(frm);
-        }, __("Workshop"));
-    }
-
-    if (status === "Scheduled") {
-        frm.add_custom_button(__("Start Repair"), () => {
-            start_repair(frm);
-        }, __("Workshop"));
-    }
-
+    // ── Repair ──────────────────────────────────────────────
     if (status === "Repair In Progress") {
         frm.add_custom_button(__("Pause Repair"), () => {
             pause_repair(frm);
@@ -390,7 +618,7 @@ function add_status_flow_buttons(frm) {
     if (status === "Waiting Parts") {
         frm.add_custom_button(__("Parts Arrived"), () => {
             save_submitted_doc(frm, { status: "Repair In Progress" }, () => {
-                frappe.show_alert("Repair resumed.", 3);
+                frappe.show_alert(__("Repair resumed."), 3);
             });
         }, __("Workshop"));
     }
@@ -398,15 +626,90 @@ function add_status_flow_buttons(frm) {
     if (status === "Waiting Customer Approval") {
         frm.add_custom_button(__("Customer Approved"), () => {
             save_submitted_doc(frm, { status: "Repair In Progress" }, () => {
-                frappe.show_alert("Repair resumed.", 3);
+                frappe.show_alert(__("Repair resumed."), 3);
             });
         }, __("Approval"));
     }
 
+    // ── Road Test ────────────────────────────────────────────
     if (status === "Repair Completed") {
-        frm.add_custom_button(__("QC Check"), () => {
+        frm.add_custom_button(__("Start Road Test"), () => {
+            save_submitted_doc(frm, { status: "Road Test In Progress" }, () => {
+                frappe.show_alert(__("Road test started."), 3);
+            });
+        }, __("Workshop"));
+    }
+
+    if (status === "Road Test In Progress") {
+        // Pass Road Test button
+        frm.add_custom_button(__("Pass Road Test"), () => {
+            // Check if any critical items failed
+            const critical_fails = (frm.doc.road_test_results || []).filter(
+                row => cint(row.is_critical) === 1 && row.result === "Fail"
+            );
+            
+            if (critical_fails.length > 0) {
+                frappe.msgprint({
+                    title: __("Cannot Pass Road Test"),
+                    message: __("{0} critical item(s) failed. Please fix before passing.", [critical_fails.length]),
+                    indicator: "red"
+                });
+                return;
+            }
+            
+            frappe.prompt(
+                {
+                    fieldname: "road_test_notes",
+                    label: __("Road Test Notes (Optional)"),
+                    fieldtype: "Small Text",
+                    reqd: 0,
+                    description: __("Enter any observations or comments about the road test.")
+                },
+                (values) => {
+                    save_submitted_doc(frm, {
+                        road_test_note: values.road_test_notes || "",
+                        rt_result: "Pass",
+                        status: "Road Test Completed"
+                    }, () => {
+                        frappe.show_alert(__("Road test passed. Ready for QC."), 3);
+                    });
+                },
+                __("Pass Road Test"),
+                __("Confirm Pass")
+            );
+        }, __("Workshop"));
+        
+        // Fail Road Test button
+        frm.add_custom_button(__("Fail Road Test"), () => {
+            frappe.prompt(
+                {
+                    fieldname: "fail_reason",
+                    label: __("Failure Reason"),
+                    fieldtype: "Small Text",
+                    reqd: 1,
+                    description: __("Please explain why the road test failed.")
+                },
+                (values) => {
+                    save_submitted_doc(frm, {
+                        road_test_note: values.fail_reason,
+                        rt_result: "Fail",
+                        status: "Rework",
+                        rework_required: 1
+                    }, () => {
+                        frappe.show_alert(__("Road test failed. Sent back for rework."), 3);
+                    });
+                },
+                __("Fail Road Test"),
+                __("Confirm Fail")
+            );
+        }, __("Workshop"));
+    }
+
+    // ── QC ──────────────────────────────────────────────────
+    if (status === "Road Test Completed") {
+        frm.add_custom_button(__("Start QC Check"), () => {
             save_submitted_doc(frm, { status: "QC In Progress" }, () => {
-                frappe.show_alert("QC inspection started.", 3);
+                frappe.show_alert(__("QC inspection started."), 3);
             });
         }, __("Quality"));
     }
@@ -419,7 +722,7 @@ function add_status_flow_buttons(frm) {
                 qc_checked_date: frappe.datetime.now_datetime(),
                 qc_inspector: frappe.session.user
             }, () => {
-                frappe.show_alert("QC Passed. Job Completed.", 3);
+                frappe.show_alert(__("QC Passed. Job Completed."), 3);
             });
         }, __("Quality"));
 
@@ -433,7 +736,7 @@ function add_status_flow_buttons(frm) {
                         status: "Rework",
                         rework_required: 1
                     }, () => {
-                        frappe.show_alert("QC Failed. Sent back for rework.", 3);
+                        frappe.show_alert(__("QC Failed. Sent back for rework."), 3);
                     });
                 },
                 __("QC Failure Reason"),
@@ -445,118 +748,15 @@ function add_status_flow_buttons(frm) {
     if (status === "Rework") {
         frm.add_custom_button(__("Rework Completed"), () => {
             save_submitted_doc(frm, { status: "Repair Completed" }, () => {
-                frappe.show_alert("Rework completed. Ready for QC re-check.", 3);
+                frappe.show_alert(__("Rework completed. Ready for road test / QC re-check."), 3);
             });
         }, __("Workshop"));
     }
-
-}
-
-// ============================================================
-// SCHEDULING MODAL
-// ============================================================
-function open_scheduling_modal(frm) {
-    if (frm._scheduling_modal_open) return;
-    frm._scheduling_modal_open = true;
-
-    const d = new frappe.ui.Dialog({
-        title: __("Schedule Workshop"),
-        fields: [
-            {
-                fieldname: "schedule_start_time",
-                label: __("Start Time"),
-                fieldtype: "Datetime",
-                reqd: 1,
-                default: frappe.datetime.now_datetime()
-            },
-            {
-                fieldname: "schedule_end_time",
-                label: __("End Time"),
-                fieldtype: "Datetime",
-                reqd: 1,
-                default: frappe.datetime.add_days(frappe.datetime.now_datetime(), 1)
-            },
-            {
-                fieldname: "assigned_bay",
-                label: __("Service Bay"),
-                fieldtype: "Link",
-                options: "Service Bay",
-                reqd: 1
-            },
-            {
-                fieldname: "lead_technician",
-                label: __("Lead Technician"),
-                fieldtype: "Link",
-                options: "Technician",
-                reqd: 1
-            }
-        ],
-        primary_action_label: __("Schedule"),
-        primary_action(values) {
-            d.hide();
-            frm._scheduling_modal_open = false;
-
-            save_submitted_doc(frm, {
-                schedule_start_time: values.schedule_start_time,
-                schedule_end_time: values.schedule_end_time,
-                assigned_bay: values.assigned_bay,
-                lead_technician: values.lead_technician,
-                status: "Scheduled"
-            }, () => {
-                frappe.show_alert("Workshop scheduled.", 3);
-            });
-        }
-    });
-
-    d.on_hide = () => { frm._scheduling_modal_open = false; };
-    d.show();
 }
 
 // ============================================================
 // REPAIR TIMER & TIME LOGS
 // ============================================================
-function start_repair(frm) {
-    frappe.confirm("Start repair work? This will begin timing for assigned technicians.", () => {
-        const technicians = [];
-        if (frm.doc.lead_technician) technicians.push(frm.doc.lead_technician);
-        (frm.doc.assistant_technicians || []).forEach(tech => {
-            if (tech.technician) technicians.push(tech.technician);
-        });
-
-        const now = frappe.datetime.now_datetime();
-
-        // Build time_logs rows as a value to set via server
-        // We'll use a custom server call to set status + clear and add time_logs
-        frappe.call({
-            method: "frappe.client.set_value",
-            args: {
-                doctype: frm.doctype,
-                name: frm.doc.name,
-                fieldname: "status",
-                value: "Repair In Progress"
-            },
-            freeze: true,
-            callback: () => {
-                // Now reload and add time_log rows locally then save child table
-                frm.reload_doc().then(() => {
-                    frm.clear_table("time_logs");
-                    technicians.forEach(tech => {
-                        const row = frm.add_child("time_logs");
-                        row.technician = tech;
-                        row.start_time = now;
-                    });
-                    frm.refresh_field("time_logs");
-                    // Save the child table rows via normal save (only time_logs changed, status already persisted)
-                    frm.save().then(() => {
-                        start_timer_display(frm);
-                        frappe.show_alert("Repair started. Timer is running.", 3);
-                    });
-                });
-            }
-        });
-    });
-}
-
 function pause_repair(frm) {
     frappe.prompt(
         {
@@ -580,7 +780,7 @@ function pause_repair(frm) {
             });
             frm.refresh_field("time_logs");
 
-            // Save status first, then save child rows
+            // Persist status first, then save child rows
             frappe.call({
                 method: "frappe.client.set_value",
                 args: { doctype: frm.doctype, name: frm.doc.name, fieldname: "status", value: new_status },
@@ -588,7 +788,7 @@ function pause_repair(frm) {
                 callback: () => {
                     frm.save().then(() => {
                         stop_timer();
-                        frappe.show_alert("Repair paused: " + values.pause_reason, 3);
+                        frappe.show_alert(__("Repair paused: {0}", [values.pause_reason]), 3);
                         frm.reload_doc();
                     });
                 }
@@ -598,7 +798,7 @@ function pause_repair(frm) {
 }
 
 function stop_repair(frm) {
-    frappe.confirm("Mark repair as completed? This will record all time logs.", () => {
+    frappe.confirm(__("Mark repair as completed? This will record all time logs."), () => {
         const now = frappe.datetime.now_datetime();
 
         (frm.doc.time_logs || []).filter(log => !log.end_time).forEach(log => {
@@ -606,11 +806,11 @@ function stop_repair(frm) {
             log.duration_hours = calculate_duration(log.start_time, log.end_time);
         });
 
-        const total_actual = (frm.doc.time_logs || []).reduce((sum, log) => sum + (log.duration_hours || 0), 0);
+        const total_actual = (frm.doc.time_logs || [])
+            .reduce((sum, log) => sum + (log.duration_hours || 0), 0);
 
         frm.refresh_field("time_logs");
 
-        // Save status fields first, then save child rows (time_logs)
         frappe.call({
             method: "frappe.client.set_value",
             args: {
@@ -627,7 +827,7 @@ function stop_repair(frm) {
             callback: () => {
                 frm.save().then(() => {
                     stop_timer();
-                    frappe.show_alert("Repair completed. Ready for QC check.", 3);
+                    frappe.show_alert(__("Repair completed. Ready for road test."), 3);
                     frm.reload_doc();
                 });
             }
@@ -648,12 +848,16 @@ function stop_timer() {
 
 function start_timer_display(frm) {
     if (!timer_display_div) {
-        timer_display_div = $('<div id="job-card-timer" style="background:#e8f4f8;padding:10px;margin:10px 0;border-radius:5px;text-align:center;font-size:20px;font-weight:bold;">⏱️ Timer: 00:00:00</div>');
-        const $wrapper = $('.form-page');
+        timer_display_div = $(
+            '<div id="job-card-timer" style="background:#e8f4f8;padding:10px;margin:10px 0;' +
+            'border-radius:5px;text-align:center;font-size:20px;font-weight:bold;">' +
+            '⏱️ Timer: 00:00:00</div>'
+        );
+        const $wrapper = $(".form-page");
         if ($wrapper.length) {
             timer_display_div.prependTo($wrapper);
         } else if (frm.wrapper) {
-            $(frm.wrapper).find('.form-body').prepend(timer_display_div);
+            $(frm.wrapper).find(".form-body").prepend(timer_display_div);
         }
     }
 
@@ -673,7 +877,7 @@ function start_timer_display(frm) {
 function update_timer_display(frm) {
     const active_logs = (frm.doc.time_logs || []).filter(log => log.start_time && !log.end_time);
     if (!active_logs.length) {
-        if (timer_display_div) timer_display_div.html('⏱️ Timer: 00:00:00');
+        if (timer_display_div) timer_display_div.html("⏱️ Timer: 00:00:00");
         return;
     }
 
@@ -683,9 +887,9 @@ function update_timer_display(frm) {
         total_seconds += Math.floor((now - new Date(log.start_time)) / 1000);
     });
 
-    const h = Math.floor(total_seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((total_seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = (total_seconds % 60).toString().padStart(2, '0');
+    const h = Math.floor(total_seconds / 3600).toString().padStart(2, "0");
+    const m = Math.floor((total_seconds % 3600) / 60).toString().padStart(2, "0");
+    const s = (total_seconds % 60).toString().padStart(2, "0");
 
     if (timer_display_div) timer_display_div.html(`⏱️ Timer: ${h}:${m}:${s}`);
 }
@@ -695,16 +899,60 @@ function calculate_duration(start_time, end_time) {
 }
 
 // Clean up timer when form is closed
-$(document).on('form-closed', function () {
+$(document).on("form-closed", function () {
     stop_timer();
 });
 
-
+// ============================================================
+// CUSTOMER FILTER
+// ============================================================
 function apply_customer_filter_advanced(frm) {
-    frm.fields_dict.customer.get_query = function(doc, cdt, cdn) {
+    frm.fields_dict.customer.get_query = function (doc, cdt, cdn) {
         return {
             query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_customers",
             filters: {}
         };
     };
+}
+
+// ============================================================
+// ROAD TEST POPULATION FROM TEMPLATE
+// ============================================================
+function populate_road_test_from_template(frm, opts = {}) {
+    const { silent, force } = opts;
+
+    if (!frm.doc.road_test_template) return Promise.resolve();
+
+    const existing = frm.doc.road_test_results || [];
+    if (existing.length && !force) return Promise.resolve();
+
+    return frappe.db
+        .get_doc("Road Test Template", frm.doc.road_test_template)
+        .then((template) => {
+            const items = template.test_items || [];
+            if (!items.length) {
+                frappe.msgprint(__("This Road Test Template has no test items."));
+                return;
+            }
+
+            frm.clear_table("road_test_results");
+
+            for (const item of items) {
+                const row = frm.add_child("road_test_results");
+                row.test_item        = item.test_item;
+                row.test_description = item.test_item;
+                row.category         = item.category;
+                row.test_condition   = item.test_condition;
+                row.is_critical      = item.is_critical;
+                row.result           = "Pass";
+                row.tested_by        = frappe.session.user;
+                row.tested_on        = frappe.datetime.now_datetime();
+            }
+
+            frm.refresh_field("road_test_results");
+
+            if (!silent) {
+                frappe.show_alert(__("Road test items added from template."), 5);
+            }
+        });
 }
