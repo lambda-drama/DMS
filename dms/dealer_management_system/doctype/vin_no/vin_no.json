@@ -120,8 +120,7 @@
    "fieldname": "engine_number",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Engine Number",
-   "reqd": 1
+   "label": "Engine Number"
   },
   {
    "description": "Current registration plate (can be changed)",
@@ -176,22 +175,19 @@
    "fieldname": "brand",
    "fieldtype": "Link",
    "label": "Brand",
-   "options": "Brand",
-   "reqd": 1
+   "options": "Brand"
   },
   {
    "description": "e.g., Premium, Luxury, Base, GLX",
    "fieldname": "model_variant",
    "fieldtype": "Data",
-   "label": "Variant / Trim",
-   "reqd": 1
+   "label": "Variant / Trim"
   },
   {
    "description": "4-digit year (e.g., 2024)",
    "fieldname": "model_year",
    "fieldtype": "Int",
-   "label": "Model Year",
-   "reqd": 1
+   "label": "Model Year"
   },
   {
    "fieldname": "production_date",
@@ -207,16 +203,14 @@
    "fieldname": "fuel_type",
    "fieldtype": "Select",
    "label": "Fuel Type",
-   "options": "\nPetrol\nDiesel\nHybrid\nPHEV\nEV\nCNG\nLPG",
-   "reqd": 1
+   "options": "\nPetrol\nDiesel\nHybrid\nPHEV\nEV\nCNG\nLPG"
   },
   {
    "default": "Automatic (AT)",
    "fieldname": "transmission",
    "fieldtype": "Select",
    "label": "Transmission",
-   "options": "\nManual (MT)\nAutomatic (AT)\nCVT\nDCT\nAMT\nEV Single Speed",
-   "reqd": 1
+   "options": "\nManual (MT)\nAutomatic (AT)\nCVT\nDCT\nAMT\nEV Single Speed"
   },
   {
    "default": "FWD",
@@ -241,8 +235,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Exterior Color",
-   "options": "Color",
-   "reqd": 1
+   "options": "Color"
   },
   {
    "fieldname": "exterior_color_code",
@@ -254,8 +247,7 @@
    "fieldname": "interior_color",
    "fieldtype": "Link",
    "label": "Interior Color",
-   "options": "Color",
-   "reqd": 1
+   "options": "Color"
   },
   {
    "default": "Fabric",
@@ -319,8 +311,7 @@
    "description": "Usually delivery date",
    "fieldname": "warranty_start_date",
    "fieldtype": "Date",
-   "label": "Warranty Start Date",
-   "reqd": 1
+   "label": "Warranty Start Date"
   },
   {
    "description": "Based on warranty period from delivery",
@@ -648,7 +639,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-10 22:49:50.971652",
+ "modified": "2026-05-13 00:26:21.669225",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "VIN No",
