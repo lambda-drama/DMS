@@ -11,7 +11,6 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	is_part_row_billable,
 	part_issue_qty,
 	spare_part_default_selling_price,
-	spare_part_unit_cost,
 	apply_vehicle_labour_row_pricing,
 )
 
@@ -30,12 +29,11 @@ class DMSJobCard(Document):
 		"""Totals exclude warranty labour/parts.
 
 		• total_labor_cost — billable labour (hours × rate).
-		• total_parts_cost — billable parts at cost (qty × spare/Item cost basis).
-		• total_amount / net_amount — customer subtotal incl. discounted parts pricing.
+		• total_parts_cost — billable parts amount from the parts table.
+		• total_amount / net_amount — customer subtotal before/after discount.
 		"""
 		total_labor = 0.0
-		total_parts_at_cost = 0.0
-		total_parts_sell = 0.0
+		total_parts = 0.0
 
 		for row in self.labour or []:
 			row.amount = apply_vehicle_labour_row_pricing(row)
@@ -55,14 +53,32 @@ class DMSJobCard(Document):
 			if not is_part_row_billable(row):
 				continue
 
-			unit_cost = spare_part_unit_cost(row.item_code)
-			total_parts_at_cost += round(qty * unit_cost, 2)
-			total_parts_sell += flt(row.total_amount)
+			total_parts += flt(row.total_amount)
 
 		self.total_labor_cost = round(total_labor, 2)
-		self.total_parts_cost = round(total_parts_at_cost, 2)
-		self.total_amount = round(total_labor + total_parts_sell, 2)
-		self.net_amount = round(self.total_amount - flt(self.discount_amount or 0), 2)
+		self.total_parts_cost = round(total_parts, 2)
+		self.total_amount = round(total_labor + total_parts, 2)
+		self.apply_warranty_application()
+
+	def apply_warranty_application(self):
+		warranty_application_type = self.warranty_application_type
+		total_labor = flt(self.total_labor_cost or 0)
+		total_parts = flt(self.total_parts_cost or 0)
+		total_amount = flt(self.total_amount or 0)
+		discount_amount = flt(self.discount_amount or 0)
+
+		if warranty_application_type == "All Invoice":
+			self.net_amount = 0
+		elif warranty_application_type == "Spare Part":
+			self.net_amount = round(total_labor, 2)
+		elif warranty_application_type == "Labour":
+			self.net_amount = round(total_parts, 2)
+		elif warranty_application_type == "Discount":
+			if discount_amount < 1:
+				frappe.throw(_("Discount Amount must be at least 1 when Warranty Application Type is Discount."))
+			self.net_amount = round(total_amount - discount_amount, 2)
+		else:
+			self.net_amount = round(total_amount - discount_amount, 2)
 
 	def ensure_qc_results_from_template(self):
 		"""When a template is set and results are empty, copy lines (no link to template child names)."""
@@ -166,6 +182,18 @@ def get_job_card_part_stock_available(spare_part: str | None = None, warehouse: 
 		)
 
 	return flt(qty[0][0]) if qty and qty[0][0] is not None else 0.0
+
+
+@frappe.whitelist()
+def get_job_card_part_unit_price(spare_part: str | None = None):
+	"""Default unit price for a Job Card part row."""
+	spare_part = (spare_part or "").strip()
+	if not spare_part:
+		return None
+	if not frappe.db.exists("Spare Part", spare_part):
+		return None
+
+	return spare_part_default_selling_price(spare_part)
 
 
 """

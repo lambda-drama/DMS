@@ -65,6 +65,9 @@ fixtures = [
     },
     {
         "doctype": "Road Test Template"
+    },
+    {
+        "doctype": "Bay Type"
     }
 ]
 

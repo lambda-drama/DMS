@@ -71,13 +71,18 @@ def spare_part_unit_cost(spare_docname: str) -> float:
 	return 0.0
 
 
+def dms_spare_part_markup() -> float:
+	"""Global markup applied to Spare Part recommended selling prices."""
+	return flt(frappe.db.get_single_value("DMS Settings", "spare_part_markup") or 0)
+
+
 def spare_part_default_selling_price(spare_docname: str) -> float:
-	"""Default customer unit price when line is blank: Spare Part selling, or cost × markup, else ERP Item."""
+	"""Default customer unit price when line is blank."""
 	sp = spare_record(spare_docname)
 	if not sp:
 		return 0.0
 	if flt(sp.get("selling_price")) > 0:
-		return flt(sp["selling_price"])
+		return round(flt(sp["selling_price"]) * (1 + dms_spare_part_markup() / 100.0), 2)
 
 	cost = flt(sp.get("last_purchase_price"))
 	if cost > 0 and sp.get("markup_percentage") is not None:

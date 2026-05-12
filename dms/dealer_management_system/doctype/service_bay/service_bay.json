@@ -84,11 +84,9 @@
   {
    "default": "General Service",
    "fieldname": "bay_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
+   "fieldtype": "Table MultiSelect",
    "label": "Bay Type",
-   "options": "General Service\nDiagnostic\nQuick Service\nEV/PHEV High Voltage\nBody Repair\nPaint Booth\nAlignment\nAC Service\nTransmission\nPDI Bay\nEngine Repair\nTire/Battery Bay",
+   "options": "Bay Type TB",
    "reqd": 1
   },
   {
@@ -280,7 +278,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 02:24:46.836314",
+ "modified": "2026-05-13 00:54:20.436653",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Bay",

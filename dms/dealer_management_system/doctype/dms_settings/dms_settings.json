@@ -5,20 +5,49 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "posting_date"
+  "posting_date",
+  "spare_part_markup",
+  "serial_vin_no_section",
+  "auto_create_vin_from_serial",
+  "company"
  ],
  "fields": [
   {
+   "default": "Today",
    "fieldname": "posting_date",
    "fieldtype": "Date",
    "label": "Posting Date"
+  },
+  {
+   "default": "15",
+   "fieldname": "spare_part_markup",
+   "fieldtype": "Percent",
+   "label": "Spare Part Markup"
+  },
+  {
+   "fieldname": "serial_vin_no_section",
+   "fieldtype": "Section Break",
+   "label": "Serial & Vin No"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_create_vin_from_serial",
+   "fieldtype": "Check",
+   "label": "Auto-create Vin from Serial"
+  },
+  {
+   "depends_on": "auto_create_vin_from_serial",
+   "fieldname": "company",
+   "fieldtype": "Table MultiSelect",
+   "label": "Company",
+   "options": "Company TB"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-13 00:35:18.867211",
+ "modified": "2026-05-13 01:12:59.170922",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

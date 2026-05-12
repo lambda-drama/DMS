@@ -400,7 +400,8 @@
    "fieldname": "warehouse",
    "fieldtype": "Link",
    "label": "Warehouse",
-   "options": "Warehouse"
+   "options": "Warehouse",
+   "reqd": 1
   },
   {
    "fieldname": "company",
@@ -412,7 +413,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 00:17:48.943229",
+ "modified": "2026-05-13 02:07:34.812654",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "WorkShop",

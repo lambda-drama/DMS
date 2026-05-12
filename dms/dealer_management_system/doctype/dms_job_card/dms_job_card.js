@@ -218,6 +218,18 @@ frappe.ui.form.on("DMS Job Card", {
     // ----------------------------------------------------------
     customer_approval_status(frm) {
         control_submit_button(frm);
+    },
+
+    warehouse(frm) {
+        apply_job_card_warehouse_to_parts(frm);
+    },
+
+    warranty_application_type(frm) {
+        update_job_card_net_amount(frm);
+    },
+
+    discount_amount(frm) {
+        update_job_card_net_amount(frm);
     }
 });
 
@@ -557,6 +569,162 @@ function open_or_create_vehicle_delivery(frm) {
             frappe.set_route("Form", VEHICLE_DELIVERY_NOTE_DOCTYPE, "new");
         })
         .catch(() => frappe.msgprint(__("Unable to check for an existing Vehicle Delivery Note.")));
+}
+
+// ============================================================
+// PART ROW HANDLERS
+// ============================================================
+frappe.ui.form.on("Job Card Part Item", {
+    item_code(frm, cdt, cdn) {
+        if (!ensure_assigned_bay_for_part(frm, cdt, cdn)) return;
+
+        set_part_warehouse_from_job_card(frm, cdt, cdn).then(() => {
+            queue_part_stock_refresh(cdt, cdn);
+            queue_part_unit_price_refresh(frm, cdt, cdn);
+        });
+    },
+
+    warehouse(frm, cdt, cdn) {
+        queue_part_stock_refresh(cdt, cdn);
+    },
+
+    quantity_requested(frm, cdt, cdn) {
+        update_part_total(frm, cdt, cdn);
+    },
+
+    quantity_issued(frm, cdt, cdn) {
+        update_part_total(frm, cdt, cdn);
+    },
+
+    unit_price(frm, cdt, cdn) {
+        update_part_total(frm, cdt, cdn);
+    }
+});
+
+function ensure_assigned_bay_for_part(frm, cdt, cdn) {
+    if (frm.doc.assigned_bay) return true;
+
+    frappe.msgprint(__("Please fill Assigned Service Bay before choosing a spare part."));
+    frappe.model.set_value(cdt, cdn, "item_code", "");
+    frappe.model.set_value(cdt, cdn, "unit_price", null);
+    frappe.model.set_value(cdt, cdn, "total_amount", null);
+    frappe.model.set_value(cdt, cdn, "stock_available", null);
+    return false;
+}
+
+function set_part_warehouse_from_job_card(frm, cdt, cdn) {
+    if (!frm.doc.warehouse) return Promise.resolve();
+    return frappe.model.set_value(cdt, cdn, "warehouse", frm.doc.warehouse);
+}
+
+function apply_job_card_warehouse_to_parts(frm) {
+    if (!frm.doc.warehouse) return;
+
+    (frm.doc.parts || []).forEach((row) => {
+        if (row.item_code) {
+            frappe.model.set_value(row.doctype, row.name, "warehouse", frm.doc.warehouse);
+            queue_part_stock_refresh(row.doctype, row.name);
+        }
+    });
+}
+
+function queue_part_stock_refresh(cdt, cdn) {
+    setTimeout(() => refresh_part_stock_available(cdt, cdn), 0);
+}
+
+function queue_part_unit_price_refresh(frm, cdt, cdn) {
+    setTimeout(() => refresh_part_unit_price(frm, cdt, cdn), 0);
+}
+
+function refresh_part_stock_available(cdt, cdn) {
+    const row = frappe.get_doc(cdt, cdn);
+    if (!row.item_code) {
+        frappe.model.set_value(cdt, cdn, "stock_available", null);
+        return;
+    }
+
+    frappe.call({
+        method:
+            "dms.dealer_management_system.doctype.dms_job_card.dms_job_card.get_job_card_part_stock_available",
+        args: {
+            spare_part: row.item_code,
+            warehouse: row.warehouse || ""
+        },
+        callback: (r) => {
+            if (r.message !== undefined && r.message !== null) {
+                frappe.model.set_value(cdt, cdn, "stock_available", r.message);
+            }
+        }
+    });
+}
+
+function refresh_part_unit_price(frm, cdt, cdn) {
+    const row = frappe.get_doc(cdt, cdn);
+    if (!row.item_code) {
+        frappe.model.set_value(cdt, cdn, "unit_price", null);
+        return;
+    }
+
+    const spare_part = row.item_code;
+    frappe.call({
+        method:
+            "dms.dealer_management_system.doctype.dms_job_card.dms_job_card.get_job_card_part_unit_price",
+        args: {
+            spare_part
+        },
+        callback: (r) => {
+            const current_row = frappe.get_doc(cdt, cdn);
+            if (current_row.item_code === spare_part && r.message !== undefined && r.message !== null) {
+                frappe.model.set_value(cdt, cdn, "unit_price", r.message).then(() => {
+                    update_part_total(frm, cdt, cdn);
+                });
+            }
+        }
+    });
+}
+
+function update_part_total(frm, cdt, cdn) {
+    const row = frappe.get_doc(cdt, cdn);
+    const qty = flt(row.quantity_issued || row.quantity_requested || 0);
+    const rate = flt(row.unit_price || 0);
+    frappe.model.set_value(cdt, cdn, "total_amount", flt(qty * rate, 2)).then(() => {
+        update_job_card_parts_total(frm);
+    });
+}
+
+function update_job_card_parts_total(frm) {
+    const total_parts = (frm.doc.parts || []).reduce((total, row) => {
+        if (cint(row.is_warranty)) return total;
+        return total + flt(row.total_amount || 0);
+    }, 0);
+
+    frappe.model.set_value(frm.doctype, frm.doc.name, "total_parts_cost", flt(total_parts, 2)).then(() => {
+        const total_amount = flt(frm.doc.total_labor_cost || 0) + flt(frm.doc.total_parts_cost || 0);
+        frappe.model.set_value(frm.doctype, frm.doc.name, "total_amount", flt(total_amount, 2)).then(() => {
+            update_job_card_net_amount(frm);
+        });
+    });
+}
+
+function update_job_card_net_amount(frm) {
+    const warranty_type = frm.doc.warranty_application_type;
+    const total_amount = flt(frm.doc.total_amount || 0);
+    const total_labor = flt(frm.doc.total_labor_cost || 0);
+    const total_parts = flt(frm.doc.total_parts_cost || 0);
+    const discount_amount = flt(frm.doc.discount_amount || 0);
+
+    let net_amount = total_amount - discount_amount;
+    if (warranty_type === "All Invoice") {
+        net_amount = 0;
+    } else if (warranty_type === "Spare Part") {
+        net_amount = total_labor;
+    } else if (warranty_type === "Labour") {
+        net_amount = total_parts;
+    } else if (warranty_type === "Discount" && discount_amount < 1) {
+        frappe.show_alert(__("Discount Amount must be at least 1."), 5);
+    }
+
+    frappe.model.set_value(frm.doctype, frm.doc.name, "net_amount", flt(net_amount, 2));
 }
 
 // ============================================================

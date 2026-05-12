@@ -74,8 +74,6 @@
   },
   {
    "columns": 2,
-   "description": "Defaults from Spare Part recommended selling price when empty; your price is kept on save",
-   "fetch_from": "item_code.selling_price",
    "fetch_if_empty": 1,
    "fieldname": "unit_price",
    "fieldtype": "Currency",
@@ -98,7 +96,6 @@
    "read_only": 1
   },
   {
-   "default": "Main Store - MS",
    "fieldname": "warehouse",
    "fieldtype": "Link",
    "label": "Warehouse",
@@ -180,7 +177,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-10 01:08:13.808326",
+ "modified": "2026-05-13 01:59:14.606506",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Job Card Part Item",

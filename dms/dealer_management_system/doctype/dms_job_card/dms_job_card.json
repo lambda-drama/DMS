@@ -29,12 +29,15 @@
   "inspection",
   "warranty_status",
   "warranty_expiry_date",
+  "warranty_application_type",
   "section_priority_assignment",
   "priority",
   "is_repeat_repair",
   "repeat_repair_reference",
   "service_advisor",
   "assigned_bay",
+  "workshop",
+  "warehouse",
   "column_break_priority",
   "estimated_duration_hours",
   "actual_duration_hours",
@@ -322,7 +325,8 @@
    "fieldname": "assigned_bay",
    "fieldtype": "Link",
    "label": "Assigned Service Bay",
-   "options": "Service Bay"
+   "options": "Service Bay",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_priority",
@@ -732,13 +736,33 @@
    "fieldtype": "Select",
    "label": "Rt Result",
    "options": "\nPass\nFail"
+  },
+  {
+   "fetch_from": "assigned_bay.branch",
+   "fieldname": "workshop",
+   "fieldtype": "Link",
+   "label": "Workshop",
+   "options": "WorkShop"
+  },
+  {
+   "fetch_from": "workshop.warehouse",
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "warranty_application_type",
+   "fieldtype": "Select",
+   "label": "Warranty Application Type",
+   "options": "\nAll Invoice\nLabour\nSpare Part\nDiscount"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-12 03:33:42.361647",
+ "modified": "2026-05-13 02:26:33.891935",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",
