@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 01:24:24.031735",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "technician",
+  "job_item",
+  "start_time",
+  "column_break_mrcz",
+  "end_time",
+  "duration_hours",
+  "pause_reason",
+  "section_break_iubo",
+  "notes"
+ ],
+ "fields": [
+  {
+   "allow_on_submit": 1,
+   "columns": 3,
+   "fieldname": "technician",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Technician",
+   "options": "Technician",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 2,
+   "fieldname": "job_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Job Item",
+   "options": "Job Card Item"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 2,
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Start Time",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 2,
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "End Time"
+  },
+  {
+   "columns": 1,
+   "fieldname": "duration_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Duration (Hours)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "pause_reason",
+   "fieldtype": "Select",
+   "label": "Pause Reason",
+   "options": "\nWaiting Parts\nWaiting Approval\nLunch Break\nTool Unavailable\nTechnical Support\nRoad Test\nDiagnosis Pending\nOther"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "column_break_mrcz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_iubo",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-11 02:27:09.799796",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "DMS Job Card Time Log",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

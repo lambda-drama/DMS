@@ -1,0 +1,294 @@
+# Copyright (c) 2026, Mania and contributors
+# For license information, please see license.txt
+
+import frappe
+from frappe import _
+from frappe.model.document import Document
+from frappe.utils import cint, flt
+
+from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+	is_labour_row_billable,
+	is_part_row_billable,
+	part_issue_qty,
+	spare_part_default_selling_price,
+	apply_vehicle_labour_row_pricing,
+)
+
+
+class DMSJobCard(Document):
+	def validate(self):
+		self.ensure_qc_results_from_template()
+		self.validate_qc_measurements()
+		self.calculate_costing_and_totals()
+
+	def before_submit(self):
+		if not self.company:
+			frappe.throw(_("Set Company before submitting the Job Card."))
+
+	def calculate_costing_and_totals(self):
+		"""Totals exclude warranty labour/parts.
+
+		• total_labor_cost — billable labour (hours × rate).
+		• total_parts_cost — billable parts amount from the parts table.
+		• total_amount / net_amount — customer subtotal before/after discount.
+		"""
+		total_labor = 0.0
+		total_parts = 0.0
+
+		for row in self.labour or []:
+			row.amount = apply_vehicle_labour_row_pricing(row)
+			if is_labour_row_billable(row):
+				total_labor += flt(row.amount)
+
+		for row in self.parts or []:
+			if not row.item_code:
+				continue
+
+			qty = part_issue_qty(row)
+			if flt(row.unit_price or 0) <= 0:
+				row.unit_price = spare_part_default_selling_price(row.item_code)
+
+			row.total_amount = round(qty * flt(row.unit_price or 0), 2)
+
+			if not is_part_row_billable(row):
+				continue
+
+			total_parts += flt(row.total_amount)
+
+		self.total_labor_cost = round(total_labor, 2)
+		self.total_parts_cost = round(total_parts, 2)
+		self.total_amount = round(total_labor + total_parts, 2)
+		self.apply_warranty_application()
+
+	def apply_warranty_application(self):
+		warranty_application_type = self.warranty_application_type
+		total_labor = flt(self.total_labor_cost or 0)
+		total_parts = flt(self.total_parts_cost or 0)
+		total_amount = flt(self.total_amount or 0)
+		discount_amount = flt(self.discount_amount or 0)
+
+		if warranty_application_type == "All Invoice":
+			self.net_amount = 0
+		elif warranty_application_type == "Spare Part":
+			self.net_amount = round(total_labor, 2)
+		elif warranty_application_type == "Labour":
+			self.net_amount = round(total_parts, 2)
+		elif warranty_application_type == "Discount":
+			if discount_amount < 1:
+				frappe.throw(_("Discount Amount must be at least 1 when Warranty Application Type is Discount."))
+			self.net_amount = round(total_amount - discount_amount, 2)
+		else:
+			self.net_amount = round(total_amount - discount_amount, 2)
+
+	def ensure_qc_results_from_template(self):
+		"""When a template is set and results are empty, copy lines (no link to template child names)."""
+		if not self.qc_checklist_template:
+			return
+		if self.qc_results:
+			return
+		template = frappe.get_doc("QC Checklist Template", self.qc_checklist_template)
+		for item in template.get("checklist_items") or []:
+			display = item.get("check_item")
+			if display:
+				display = (
+					frappe.db.get_value("QC Checklist Item Master", display, "qc_checklist_item") or display
+				)
+
+			req_m = cint(item.get("requires_measurement"))
+			self.append(
+				"qc_results",
+				{
+					"check_item_text": display or "",
+					"category": item.get("category"),
+					"is_mandatory": item.get("is_mandatory"),
+					"requires_photo": item.get("requires_photo"),
+					"requires_measurement": item.get("requires_measurement"),
+					"min_value": item.min_value if req_m else None,
+					"max_value": item.max_value if req_m else None,
+					"result": "Pass",
+				},
+			)
+
+	def validate_qc_measurements(self):
+		"""Use min/max copied onto each QC result row (no checklist_item link)."""
+		for result in self.qc_results or []:
+			if not cint(getattr(result, "requires_measurement", 0)):
+				continue
+			if getattr(result, "measurement_value", None) is None:
+				continue
+
+			fail = False
+			min_v = getattr(result, "min_value", None)
+			max_v = getattr(result, "max_value", None)
+			if min_v is not None and result.measurement_value < min_v:
+				fail = True
+			if max_v is not None and result.measurement_value > max_v:
+				fail = True
+			if fail:
+				result.result = "Fail"
+
+
+@frappe.whitelist()
+def make_sales_invoice_from_job_card(job_card):
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		create_sales_invoice_from_dms_job_card,
+	)
+
+	job_card_name = (job_card or "").strip()
+	if not job_card_name:
+		frappe.throw(_("Job Card name is required."))
+
+	frappe.has_permission("Sales Invoice", "create", throw=True)
+	frappe.has_permission("DMS Job Card", "read", job_card_name, throw=True)
+
+	return create_sales_invoice_from_dms_job_card(job_card_name)
+
+
+@frappe.whitelist()
+def get_job_card_part_stock_available(spare_part: str | None = None, warehouse: str | None = None):
+	"""Qty on hand for the Spare Part's linked ERP Item (replaces invalid fetch_from on actual_qty)."""
+	spare_part = (spare_part or "").strip()
+	if not spare_part:
+		return None
+	if not frappe.db.exists("Spare Part", spare_part):
+		return None
+
+	erp_item = frappe.db.get_value("Spare Part", spare_part, "spare_part_item")
+	if not erp_item:
+		return None
+
+	warehouse = (warehouse or "").strip() or None
+
+	try:
+		from erpnext.stock.utils import get_stock_balance
+	except ImportError:
+		get_stock_balance = None
+
+	if get_stock_balance and warehouse:
+		return flt(get_stock_balance(erp_item, warehouse))
+
+	if not frappe.db.has_table("tabBin"):
+		return None
+
+	if warehouse:
+		qty = frappe.db.sql(
+			"""select sum(actual_qty) from `tabBin` where item_code = %s and warehouse = %s""",
+			(erp_item, warehouse),
+		)
+	else:
+		qty = frappe.db.sql(
+			"""select sum(actual_qty) from `tabBin` where item_code = %s""",
+			(erp_item,),
+		)
+
+	return flt(qty[0][0]) if qty and qty[0][0] is not None else 0.0
+
+
+@frappe.whitelist()
+def get_job_card_part_unit_price(spare_part: str | None = None):
+	"""Default unit price for a Job Card part row."""
+	spare_part = (spare_part or "").strip()
+	if not spare_part:
+		return None
+	if not frappe.db.exists("Spare Part", spare_part):
+		return None
+
+	return spare_part_default_selling_price(spare_part)
+
+
+"""
+Add these three whitelisted methods to:
+dms/dealer_management_system/doctype/dms_job_card/dms_job_card.py
+
+The key pattern: frappe.db.set_value() for scalar fields on the parent,
+and direct frappe.db operations for child table rows.
+"""
+
+import frappe
+import json
+from frappe import _
+from frappe.utils import now_datetime, flt
+
+
+@frappe.whitelist()
+def start_repair(job_card, time_logs=None):
+    doc = frappe.get_doc("DMS Job Card", job_card)
+    if doc.docstatus != 1:
+        frappe.throw(_("Job Card must be submitted before starting repair."))
+
+    # Wipe old logs and insert fresh ones directly — bypasses docstatus check
+    frappe.db.delete("DMS Job Card Time Log", {"parent": job_card})
+
+    if time_logs:
+        if isinstance(time_logs, str):
+            time_logs = json.loads(time_logs)
+        for idx, log in enumerate(time_logs, start=1):
+            child = frappe.new_doc("DMS Job Card Time Log")
+            child.update({
+                "parent": job_card,
+                "parenttype": "DMS Job Card",
+                "parentfield": "time_logs",
+                "idx": idx,
+                "technician": log.get("technician"),
+                "start_time": log.get("start_time") or now_datetime(),
+            })
+            child.db_insert()
+
+    frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
+    frappe.db.commit()
+    return "ok"
+
+
+@frappe.whitelist()
+def pause_repair(job_card, new_status, open_logs=None):
+    if isinstance(open_logs, str):
+        open_logs = json.loads(open_logs) if open_logs else []
+
+    for log in (open_logs or []):
+        frappe.db.set_value(
+            "DMS Job Card Time Log", log.get("name"),
+            {
+                "end_time": log.get("end_time"),
+                "duration_hours": flt(log.get("duration_hours")),
+                "pause_reason": log.get("pause_reason"),
+            },
+            update_modified=False
+        )
+
+    frappe.db.set_value("DMS Job Card", job_card, "status", new_status, update_modified=True)
+    frappe.db.commit()
+    return "ok"
+
+
+@frappe.whitelist()
+def stop_repair(job_card, open_logs=None, completed_date_time=None):
+    if isinstance(open_logs, str):
+        open_logs = json.loads(open_logs) if open_logs else []
+
+    for log in (open_logs or []):
+        frappe.db.set_value(
+            "DMS Job Card Time Log", log.get("name"),
+            {
+                "end_time": log.get("end_time"),
+                "duration_hours": flt(log.get("duration_hours")),
+            },
+            update_modified=False
+        )
+
+    # Sum ALL logs including previously paused ones
+    all_logs = frappe.get_all(
+        "DMS Job Card Time Log",
+        filters={"parent": job_card},
+        fields=["duration_hours"]
+    )
+    total_hours = sum(flt(l.duration_hours) for l in all_logs)
+
+    frappe.db.set_value("DMS Job Card", job_card, {
+        "status": "Repair Completed",
+        "actual_duration_hours": total_hours,
+        "total_sold_hours": total_hours,
+        "completed_date_time": completed_date_time or now_datetime(),
+    }, update_modified=True)
+
+    frappe.db.commit()
+    return "ok"

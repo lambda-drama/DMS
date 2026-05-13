@@ -1,0 +1,34 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-13 00:53:26.210302",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "bay_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "bay_type",
+   "fieldtype": "Link",
+   "label": "Bay Type",
+   "options": "Bay Type"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-13 00:53:38.012660",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Bay Type TB",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

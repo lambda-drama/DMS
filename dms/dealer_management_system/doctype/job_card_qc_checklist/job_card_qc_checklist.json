@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-08 01:25:22.581928",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_pwqg"
+ ],
+"fields": [
+  {
+   "fieldname": "checklist_name",
+   "fieldtype": "Data",
+   "label": "Checklist Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "e.g., Standard Service QC, Warranty QC, EV Safety QC"
+  },
+  {
+   "fieldname": "checklist_type",
+   "fieldtype": "Select",
+   "label": "Checklist Type",
+   "options": "Standard Service\nWarranty\nBody Repair\nPDI\nEV/PHEV Service\nExpress Service\nMajor Repair\nEngine Repair\nTransmission Repair\nAC Service\nElectrical Diagnosis\nFleet Service",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "applicable_vehicle_models",
+   "fieldtype": "Table MultiSelect",
+   "label": "Applicable Vehicle Models",
+   "options": "QC Checklist Vehicle Model",
+   "description": "Leave empty for all models"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "version",
+   "fieldtype": "Data",
+   "label": "Version",
+   "default": "1.0",
+   "description": "Track checklist version changes"
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "label": "Effective From",
+   "default": "Today"
+  },
+  {
+   "fieldname": "effective_to",
+   "fieldtype": "Date",
+   "label": "Effective To"
+  },
+  {
+   "fieldname": "section_items",
+   "fieldtype": "Section Break",
+   "label": "Checklist Items",
+   "bold": 1
+  },
+  {
+   "fieldname": "checklist_items",
+   "fieldtype": "Table",
+   "label": "QC Checklist Items",
+   "options": "QC Checklist Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description / Instructions"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "QC Checklist Template",
+   "read_only": 1,
+   "hidden": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-08 01:25:22.581928",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Job Card QC Checklist",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

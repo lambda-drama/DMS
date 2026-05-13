@@ -1,0 +1,518 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "TECH-.####",
+ "creation": "2026-05-08 01:08:38.986852",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_personal_info",
+  "first_name",
+  "last_name",
+  "full_name",
+  "column_break_personal",
+  "employee_id",
+  "employee_code",
+  "user_link",
+  "status",
+  "section_contact",
+  "personal_phone",
+  "alternative_phone",
+  "address",
+  "column_break_contact",
+  "emergency_contact_name",
+  "emergency_contact_phone",
+  "emergency_contact_relation",
+  "section_employment",
+  "date_of_joining",
+  "branch",
+  "department",
+  "designation",
+  "reports_to",
+  "column_break_employment",
+  "work_shift",
+  "weekly_off_days",
+  "hourly_base_rate",
+  "section_skills",
+  "skill_level",
+  "specialization",
+  "labor_rate_group",
+  "column_break_skills",
+  "years_of_experience",
+  "experience_at_suweys",
+  "certifications",
+  "section_performance",
+  "efficiency_rating",
+  "productivity_score",
+  "first_time_fix_rate",
+  "customer_satisfaction_score",
+  "column_break_performance",
+  "total_jobs_completed",
+  "total_labor_hours",
+  "total_sold_hours",
+  "total_idle_hours",
+  "last_performance_update",
+  "section_documents",
+  "digital_signature",
+  "profile_photo",
+  "id_proof",
+  "column_break_fktu",
+  "qualification_documents",
+  "training_certificates",
+  "contract_document",
+  "section_schedule",
+  "current_assigned_bay",
+  "current_job_card",
+  "today_scheduled_jobs",
+  "column_break_schedule",
+  "attendance_today",
+  "clock_in_time",
+  "clock_out_time",
+  "section_notes",
+  "notes",
+  "performance_notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "section_personal_info",
+   "fieldtype": "Section Break",
+   "label": "Personal Information"
+  },
+  {
+   "description": "Link to HR/ERP employee record",
+   "fieldname": "employee_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Linked Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Full Name"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "column_break_personal",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Internal technician code",
+   "fetch_from": "employee_id.employee_name",
+   "fieldname": "employee_code",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "description": "Link to Frappe/ERP user account",
+   "fieldname": "user_link",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "ERP User",
+   "options": "User"
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Active\nOn Leave\nInactive\nTerminated"
+  },
+  {
+   "fieldname": "section_contact",
+   "fieldtype": "Section Break",
+   "label": "Contact Information"
+  },
+  {
+   "fieldname": "personal_phone",
+   "fieldtype": "Data",
+   "label": "Personal Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "alternative_phone",
+   "fieldtype": "Data",
+   "label": "Alternative Phone"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Residential Address"
+  },
+  {
+   "fieldname": "column_break_contact",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "emergency_contact_name",
+   "fieldtype": "Data",
+   "label": "Emergency Contact Name"
+  },
+  {
+   "fieldname": "emergency_contact_phone",
+   "fieldtype": "Data",
+   "label": "Emergency Contact Phone"
+  },
+  {
+   "fieldname": "emergency_contact_relation",
+   "fieldtype": "Data",
+   "label": "Relationship"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_employment",
+   "fieldtype": "Section Break",
+   "label": "Employment Information"
+  },
+  {
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date of Joining",
+   "reqd": 1
+  },
+  {
+   "description": "Primary assigned branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch/Workshop",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "reports_to",
+   "fieldtype": "Link",
+   "label": "Reports To (Supervisor)",
+   "options": "Technician"
+  },
+  {
+   "fieldname": "column_break_employment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Morning (8AM-4PM)",
+   "fieldname": "work_shift",
+   "fieldtype": "Select",
+   "label": "Work Shift",
+   "options": "Morning (8AM-4PM)\nAfternoon (4PM-12AM)\nNight (12AM-8AM)\nRotating\nCustom"
+  },
+  {
+   "fieldname": "weekly_off_days",
+   "fieldtype": "Select",
+   "label": "Weekly Off Days",
+   "options": "Sunday\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday"
+  },
+  {
+   "description": "Standard hourly wage",
+   "fieldname": "hourly_base_rate",
+   "fieldtype": "Currency",
+   "label": "Hourly Base Rate"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_skills",
+   "fieldtype": "Section Break",
+   "label": "Skills & Certification"
+  },
+  {
+   "default": "Junior",
+   "fieldname": "skill_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Skill Level",
+   "options": "Trainee\nJunior\nIntermediate\nSenior\nMaster Technician\nEV/PHEV Certified\nExpert",
+   "reqd": 1
+  },
+  {
+   "description": "Select all areas of expertise",
+   "fieldname": "specialization",
+   "fieldtype": "Table",
+   "label": "Specialization",
+   "options": "Technician Specialization"
+  },
+  {
+   "default": "Standard",
+   "description": "Determines billing rate for labor operations",
+   "fieldname": "labor_rate_group",
+   "fieldtype": "Select",
+   "label": "Labor Rate Group",
+   "options": "Standard\nSenior\nSpecialist\nWarranty\nInternal\nTraining",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_skills",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Total automotive experience",
+   "fieldname": "years_of_experience",
+   "fieldtype": "Int",
+   "label": "Years of Experience"
+  },
+  {
+   "description": "Auto-calculated from joining date",
+   "fieldname": "experience_at_suweys",
+   "fieldtype": "Int",
+   "label": "Years at Suweys Motors",
+   "read_only": 1
+  },
+  {
+   "fieldname": "certifications",
+   "fieldtype": "Table",
+   "label": "Technician Certifications",
+   "options": "Technician Certification"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_performance",
+   "fieldtype": "Section Break",
+   "label": "Performance Metrics"
+  },
+  {
+   "description": "Actual hours / Booked hours",
+   "fieldname": "efficiency_rating",
+   "fieldtype": "Percent",
+   "label": "Efficiency Rating",
+   "read_only": 1
+  },
+  {
+   "description": "Jobs completed / Available hours",
+   "fieldname": "productivity_score",
+   "fieldtype": "Float",
+   "label": "Productivity Score",
+   "read_only": 1
+  },
+  {
+   "description": "Percentage of jobs not returning for same issue",
+   "fieldname": "first_time_fix_rate",
+   "fieldtype": "Percent",
+   "label": "First Time Fix Rate",
+   "read_only": 1
+  },
+  {
+   "description": "Average rating from 1-5",
+   "fieldname": "customer_satisfaction_score",
+   "fieldtype": "Float",
+   "label": "Customer Satisfaction Score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_performance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_jobs_completed",
+   "fieldtype": "Int",
+   "label": "Total Jobs Completed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_labor_hours",
+   "fieldtype": "Float",
+   "label": "Total Labor Hours",
+   "precision": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_sold_hours",
+   "fieldtype": "Float",
+   "label": "Total Sold Hours",
+   "precision": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_idle_hours",
+   "fieldtype": "Float",
+   "label": "Total Idle Hours",
+   "precision": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_performance_update",
+   "fieldtype": "Datetime",
+   "label": "Last Performance Update",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_documents",
+   "fieldtype": "Section Break",
+   "label": "Documents & Attachments"
+  },
+  {
+   "description": "Used on job cards, QC, delivery forms",
+   "fieldname": "digital_signature",
+   "fieldtype": "Attach Image",
+   "label": "Digital Signature"
+  },
+  {
+   "fieldname": "profile_photo",
+   "fieldtype": "Attach Image",
+   "label": "Profile Photo"
+  },
+  {
+   "fieldname": "id_proof",
+   "fieldtype": "Attach",
+   "label": "ID Proof (National ID/Passport)"
+  },
+  {
+   "fieldname": "qualification_documents",
+   "fieldtype": "Attach",
+   "label": "Qualification Certificates"
+  },
+  {
+   "fieldname": "training_certificates",
+   "fieldtype": "Attach",
+   "label": "Training Certificates"
+  },
+  {
+   "fieldname": "contract_document",
+   "fieldtype": "Attach",
+   "label": "Employment Contract"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_schedule",
+   "fieldtype": "Section Break",
+   "label": "Current Schedule"
+  },
+  {
+   "fieldname": "current_assigned_bay",
+   "fieldtype": "Link",
+   "label": "Currently Assigned Bay",
+   "options": "Service Bay",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_job_card",
+   "fieldtype": "Link",
+   "label": "Current Job Card",
+   "options": "Job Card",
+   "read_only": 1
+  },
+  {
+   "fieldname": "today_scheduled_jobs",
+   "fieldtype": "Int",
+   "label": "Today's Scheduled Jobs",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Present",
+   "fieldname": "attendance_today",
+   "fieldtype": "Select",
+   "label": "Attendance Today",
+   "options": "Present\nAbsent\nLate\nHalf Day\nOn Leave"
+  },
+  {
+   "fieldname": "clock_in_time",
+   "fieldtype": "Time",
+   "label": "Clock In Time (Today)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "clock_out_time",
+   "fieldtype": "Time",
+   "label": "Clock Out Time (Today)",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "General Notes"
+  },
+  {
+   "fieldname": "performance_notes",
+   "fieldtype": "Text Editor",
+   "label": "Performance Review Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "options": "Technician",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fktu",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-09 18:43:43.917510",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Technician",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

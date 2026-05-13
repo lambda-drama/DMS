@@ -1,0 +1,679 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:vin_number",
+ "creation": "2026-05-08 00:33:50.317630",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_identification",
+  "vin_number",
+  "engine_number",
+  "plate_number",
+  "company",
+  "status",
+  "column_break_ident",
+  "linked_item",
+  "model_name",
+  "linked_serial",
+  "serial_status",
+  "section_model_details",
+  "brand",
+  "model_variant",
+  "model_year",
+  "production_date",
+  "column_break_model",
+  "fuel_type",
+  "transmission",
+  "drive_type",
+  "engine_code",
+  "section_appearance",
+  "exterior_color",
+  "exterior_color_code",
+  "column_break_eote",
+  "interior_color",
+  "interior_material",
+  "section_customer",
+  "current_customer",
+  "customer_name",
+  "delivery_date",
+  "column_break_customer",
+  "assigned_driver",
+  "driver_license_number",
+  "driver_phone",
+  "section_warranty",
+  "warranty_start_date",
+  "warranty_end_date",
+  "warranty_km_limit",
+  "warranty_status",
+  "column_break_warranty",
+  "engine_warranty_end_date",
+  "engine_warranty_km_limit",
+  "battery_warranty_end_date",
+  "battery_warranty_km_limit",
+  "section_odometer",
+  "current_odometer",
+  "odometer_unit",
+  "odometer_last_updated",
+  "last_service_odometer",
+  "column_break_odo",
+  "last_service_date",
+  "next_service_due_km",
+  "next_service_due_date",
+  "service_interval_km",
+  "service_interval_months",
+  "section_import",
+  "import_type",
+  "registration_date",
+  "column_break_afdm",
+  "registration_country",
+  "customs_duty_reference",
+  "section_insurance",
+  "insurance_company",
+  "insurance_policy_number",
+  "insurance_expiry_date",
+  "column_break_insurance",
+  "is_fleet_vehicle",
+  "fleet_company",
+  "fleet_reference",
+  "section_ev_hybrid",
+  "battery_capacity_kwh",
+  "battery_health_percentage",
+  "column_break_kkww",
+  "ev_motor_power_kw",
+  "charger_type",
+  "section_campaigns",
+  "campaigns",
+  "section_photos",
+  "photo_front",
+  "photo_rear",
+  "photo_left_side",
+  "column_break_whhf",
+  "photo_right_side",
+  "photo_dashboard",
+  "photo_vin_plate",
+  "section_notes",
+  "special_notes",
+  "internal_notes",
+  "section_status",
+  "vehicle_status"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "section_identification",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Identification"
+  },
+  {
+   "description": "17-character VIN or local chassis number",
+   "fieldname": "vin_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "VIN / Chassis Number",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "description": "Unique engine identification number",
+   "fieldname": "engine_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Engine Number"
+  },
+  {
+   "description": "Current registration plate (can be changed)",
+   "fieldname": "plate_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "License Plate Number"
+  },
+  {
+   "fieldname": "column_break_ident",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Link to Item master for this model (e.g., Jetour X70 Premium)",
+   "fieldname": "linked_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Vehicle Model (Item)",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "linked_item.item_name",
+   "fetch_if_empty": 1,
+   "fieldname": "model_name",
+   "fieldtype": "Read Only",
+   "label": "Model Name"
+  },
+  {
+   "description": "Auto-created ERPNext Serial No",
+   "fieldname": "linked_serial",
+   "fieldtype": "Link",
+   "label": "Linked Serial No",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "linked_serial.status",
+   "fetch_if_empty": 1,
+   "fieldname": "serial_status",
+   "fieldtype": "Read Only",
+   "label": "Serial Status"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_model_details",
+   "fieldtype": "Section Break",
+   "label": "Model & Trim Details"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "description": "e.g., Premium, Luxury, Base, GLX",
+   "fieldname": "model_variant",
+   "fieldtype": "Data",
+   "label": "Variant / Trim"
+  },
+  {
+   "description": "4-digit year (e.g., 2024)",
+   "fieldname": "model_year",
+   "fieldtype": "Int",
+   "label": "Model Year"
+  },
+  {
+   "fieldname": "production_date",
+   "fieldtype": "Date",
+   "label": "Production Date"
+  },
+  {
+   "fieldname": "column_break_model",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Petrol",
+   "fieldname": "fuel_type",
+   "fieldtype": "Select",
+   "label": "Fuel Type",
+   "options": "\nPetrol\nDiesel\nHybrid\nPHEV\nEV\nCNG\nLPG"
+  },
+  {
+   "default": "Automatic (AT)",
+   "fieldname": "transmission",
+   "fieldtype": "Select",
+   "label": "Transmission",
+   "options": "\nManual (MT)\nAutomatic (AT)\nCVT\nDCT\nAMT\nEV Single Speed"
+  },
+  {
+   "default": "FWD",
+   "fieldname": "drive_type",
+   "fieldtype": "Select",
+   "label": "Drive Type",
+   "options": "\nFWD\nRWD\nAWD\n4WD"
+  },
+  {
+   "fieldname": "engine_code",
+   "fieldtype": "Data",
+   "label": "Engine Code"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_appearance",
+   "fieldtype": "Section Break",
+   "label": "Appearance"
+  },
+  {
+   "fieldname": "exterior_color",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Exterior Color",
+   "options": "Color"
+  },
+  {
+   "fieldname": "exterior_color_code",
+   "fieldtype": "Link",
+   "label": "Exterior Color Code",
+   "options": "Color"
+  },
+  {
+   "fieldname": "interior_color",
+   "fieldtype": "Link",
+   "label": "Interior Color",
+   "options": "Color"
+  },
+  {
+   "default": "Fabric",
+   "fieldname": "interior_material",
+   "fieldtype": "Select",
+   "label": "Interior Material",
+   "options": "\nFabric\nLeather\nVinyl\nSynthetic Leather\nAlcantara"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_customer",
+   "fieldtype": "Section Break",
+   "label": "Customer / Owner Information"
+  },
+  {
+   "description": "Current registered owner of the vehicle",
+   "fieldname": "current_customer",
+   "fieldtype": "Link",
+   "label": "Current Customer/Owner",
+   "options": "Customer"
+  },
+  {
+   "fetch_from": "current_customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Read Only",
+   "label": "Customer Name"
+  },
+  {
+   "description": "Date when vehicle was delivered to customer",
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "label": "Delivery Date to Customer"
+  },
+  {
+   "fieldname": "column_break_customer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "For fleet vehicles",
+   "fieldname": "assigned_driver",
+   "fieldtype": "Data",
+   "label": "Assigned Driver (Fleet)"
+  },
+  {
+   "fieldname": "driver_license_number",
+   "fieldtype": "Data",
+   "label": "Driver License Number"
+  },
+  {
+   "fieldname": "driver_phone",
+   "fieldtype": "Phone",
+   "label": "Driver Phone"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_warranty",
+   "fieldtype": "Section Break",
+   "label": "Warranty Information"
+  },
+  {
+   "description": "Usually delivery date",
+   "fieldname": "warranty_start_date",
+   "fieldtype": "Date",
+   "label": "Warranty Start Date"
+  },
+  {
+   "description": "Based on warranty period from delivery",
+   "fieldname": "warranty_end_date",
+   "fieldtype": "Date",
+   "label": "Warranty End Date (Time)"
+  },
+  {
+   "description": "Warranty expires after this mileage",
+   "fieldname": "warranty_km_limit",
+   "fieldtype": "Int",
+   "label": "Warranty KM Limit"
+  },
+  {
+   "default": "Active",
+   "fieldname": "warranty_status",
+   "fieldtype": "Select",
+   "label": "Warranty Status",
+   "options": "Active\nExpired by Time\nExpired by Mileage\nVoid\nPending Verification",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_warranty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Extended engine warranty if applicable",
+   "fieldname": "engine_warranty_end_date",
+   "fieldtype": "Date",
+   "label": "Engine Warranty End Date"
+  },
+  {
+   "fieldname": "engine_warranty_km_limit",
+   "fieldtype": "Int",
+   "label": "Engine Warranty KM Limit"
+  },
+  {
+   "depends_on": "eval:doc.fuel_type == 'EV' || doc.fuel_type == 'Hybrid' || doc.fuel_type == 'PHEV'",
+   "fieldname": "battery_warranty_end_date",
+   "fieldtype": "Date",
+   "label": "EV/Hybrid Battery Warranty End Date"
+  },
+  {
+   "depends_on": "eval:doc.fuel_type == 'EV' || doc.fuel_type == 'Hybrid' || doc.fuel_type == 'PHEV'",
+   "fieldname": "battery_warranty_km_limit",
+   "fieldtype": "Int",
+   "label": "Battery Warranty KM Limit"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_odometer",
+   "fieldtype": "Section Break",
+   "label": "Odometer & Mileage"
+  },
+  {
+   "description": "Last recorded mileage",
+   "fieldname": "current_odometer",
+   "fieldtype": "Int",
+   "label": "Current Odometer"
+  },
+  {
+   "default": "km",
+   "fieldname": "odometer_unit",
+   "fieldtype": "Select",
+   "label": "Unit",
+   "options": "km\nmiles"
+  },
+  {
+   "fieldname": "odometer_last_updated",
+   "fieldtype": "Datetime",
+   "label": "Odometer Last Updated",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_odo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_service_odometer",
+   "fieldtype": "Int",
+   "label": "Last Service Odometer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_service_date",
+   "fieldtype": "Date",
+   "label": "Last Service Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_service_due_km",
+   "fieldtype": "Int",
+   "label": "Next Service Due (KM)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_service_due_date",
+   "fieldtype": "Date",
+   "label": "Next Service Due Date",
+   "read_only": 1
+  },
+  {
+   "default": "10000",
+   "description": "Standard interval for this vehicle",
+   "fieldname": "service_interval_km",
+   "fieldtype": "Int",
+   "label": "Service Interval (KM)"
+  },
+  {
+   "default": "6",
+   "fieldname": "service_interval_months",
+   "fieldtype": "Int",
+   "label": "Service Interval (Months)"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_import",
+   "fieldtype": "Section Break",
+   "label": "Import / Registration"
+  },
+  {
+   "default": "CBU (Completely Built Up)",
+   "fieldname": "import_type",
+   "fieldtype": "Select",
+   "label": "Import Type",
+   "options": "\nCBU (Completely Built Up)\nSKD (Semi Knocked Down)\nCKD (Completely Knocked Down)\nLocal Assembly\nUsed Import"
+  },
+  {
+   "fieldname": "registration_date",
+   "fieldtype": "Date",
+   "label": "First Registration Date"
+  },
+  {
+   "default": "China",
+   "fieldname": "registration_country",
+   "fieldtype": "Data",
+   "label": "Country of Origin"
+  },
+  {
+   "fieldname": "customs_duty_reference",
+   "fieldtype": "Data",
+   "label": "Customs Duty Reference"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_insurance",
+   "fieldtype": "Section Break",
+   "label": "Insurance"
+  },
+  {
+   "fieldname": "insurance_company",
+   "fieldtype": "Data",
+   "label": "Insurance Company"
+  },
+  {
+   "fieldname": "insurance_policy_number",
+   "fieldtype": "Data",
+   "label": "Policy Number"
+  },
+  {
+   "fieldname": "insurance_expiry_date",
+   "fieldtype": "Date",
+   "label": "Insurance Expiry Date"
+  },
+  {
+   "fieldname": "column_break_insurance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_fleet_vehicle",
+   "fieldtype": "Check",
+   "label": "Fleet Vehicle"
+  },
+  {
+   "depends_on": "eval:doc.is_fleet_vehicle == 1",
+   "fieldname": "fleet_company",
+   "fieldtype": "Link",
+   "label": "Fleet Company",
+   "options": "Customer"
+  },
+  {
+   "depends_on": "eval:doc.is_fleet_vehicle == 1",
+   "fieldname": "fleet_reference",
+   "fieldtype": "Data",
+   "label": "Fleet Reference Number"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.fuel_type == 'EV' || doc.fuel_type == 'Hybrid' || doc.fuel_type == 'PHEV'",
+   "fieldname": "section_ev_hybrid",
+   "fieldtype": "Section Break",
+   "label": "EV / Hybrid Specific"
+  },
+  {
+   "fieldname": "battery_capacity_kwh",
+   "fieldtype": "Float",
+   "label": "Battery Capacity (kWh)",
+   "precision": "1"
+  },
+  {
+   "fieldname": "battery_health_percentage",
+   "fieldtype": "Percent",
+   "label": "Battery Health (SOH)"
+  },
+  {
+   "fieldname": "ev_motor_power_kw",
+   "fieldtype": "Int",
+   "label": "Motor Power (kW)"
+  },
+  {
+   "fieldname": "charger_type",
+   "fieldtype": "Select",
+   "label": "On-Board Charger Type",
+   "options": "\nType 1 (J1772)\nType 2 (Mennekes)\nCCS1\nCCS2\nCHAdeMO\nTesla"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_campaigns",
+   "fieldtype": "Section Break",
+   "label": "Recalls & Campaigns"
+  },
+  {
+   "fieldname": "campaigns",
+   "fieldtype": "Table",
+   "label": "Campaigns / Recalls",
+   "options": "Vehicle Campaign Item"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_photos",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Photos"
+  },
+  {
+   "fieldname": "photo_front",
+   "fieldtype": "Attach Image",
+   "label": "Front View"
+  },
+  {
+   "fieldname": "photo_rear",
+   "fieldtype": "Attach Image",
+   "label": "Rear View"
+  },
+  {
+   "fieldname": "photo_left_side",
+   "fieldtype": "Attach Image",
+   "label": "Left Side"
+  },
+  {
+   "fieldname": "photo_right_side",
+   "fieldtype": "Attach Image",
+   "label": "Right Side"
+  },
+  {
+   "fieldname": "photo_dashboard",
+   "fieldtype": "Attach Image",
+   "label": "Dashboard / Odometer"
+  },
+  {
+   "fieldname": "photo_vin_plate",
+   "fieldtype": "Attach Image",
+   "label": "VIN Plate"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Additional Notes"
+  },
+  {
+   "fieldname": "special_notes",
+   "fieldtype": "Text Editor",
+   "label": "Special Notes / Remarks"
+  },
+  {
+   "fieldname": "internal_notes",
+   "fieldtype": "Text Editor",
+   "label": "Internal Notes (Dealership Only)"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "default": "In Stock",
+   "fieldname": "vehicle_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Vehicle Status",
+   "options": "In Stock\nDelivered to Customer\nIn Service\nIn Transit\nTotal Loss\nScrapped"
+  },
+  {
+   "fieldname": "column_break_eote",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_afdm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_kkww",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_whhf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Link",
+   "label": "Status",
+   "options": "Vehicle Location Status"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-13 00:26:21.669225",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "VIN No",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

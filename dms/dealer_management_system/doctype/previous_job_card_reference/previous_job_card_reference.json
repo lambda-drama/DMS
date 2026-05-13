@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-07 23:46:13.733077",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ckrl"
+ ],
+"fields": [
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Previous Job Card",
+   "options": "Job Card",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "job_date",
+   "fieldtype": "Date",
+   "label": "Job Date",
+   "fetch_from": "job_card.job_date",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "previous_complaint",
+   "fieldtype": "Small Text",
+   "label": "Previous Complaint",
+   "fetch_from": "job_card.complaint_summary",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "correction_performed",
+   "fieldtype": "Small Text",
+   "label": "Correction Performed",
+   "fetch_from": "job_card.correction_summary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "days_since",
+   "fieldtype": "Int",
+   "label": "Days Since",
+   "fetch_from": "job_card.days_since_completion",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "km_since",
+   "fieldtype": "Int",
+   "label": "KM Since",
+   "read_only": 1,
+   "in_list_view": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-07 23:46:13.733077",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Previous Job Card Reference",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

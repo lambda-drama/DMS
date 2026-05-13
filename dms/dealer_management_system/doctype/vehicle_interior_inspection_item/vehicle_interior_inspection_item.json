@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-07 23:27:51.695334",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_kprb"
+ ],
+ "fields": [
+  {
+   "fieldname": "component",
+   "fieldtype": "Select",
+   "label": "Component",
+   "options": "Driver Seat\nPassenger Seat\nRear Seats (Left)\nRear Seats (Center)\nRear Seats (Right)\nDriver Seat Belt\nPassenger Seat Belt\nRear Seat Belts\nDashboard\nInstrument Cluster\nSteering Wheel\nSteering Wheel Controls\nHorn\nInterior Lights (Dome)\nInterior Lights (Map)\nInfotainment Screen\nTouchscreen Response\nSpeakers (All)\nAC/Climate Controls\nAir Vents (All)\nGear Selector/Shifter\nParking Brake Lever/Button\nFloor Mats (Driver)\nFloor Mats (Passenger)\nFloor Mats (Rear)\nCarpet (Front)\nCarpet (Rear)\nDoor Trims (Front Left)\nDoor Trims (Front Right)\nDoor Trims (Rear Left)\nDoor Trims (Rear Right)\nGlove Box\nCenter Console\nUSB/12V Charging Ports\nWireless Charger\nRear View Mirror\nSun Visors\nVanity Mirrors\nHeadliner\nRear Camera Display\n360 Camera View\nParking Assist Display\nSpare Tire\nJack & Tools\nOwner Manual\nService Booklet\nFire Extinguisher\nWarning Triangle\nFirst Aid Kit\nTrunk/Cargo Area",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "label": "Condition",
+   "options": "OK\nDirty\nStained\nTorn/Ripped\nBurned\nScratched\nBroken\nMissing\nNot Working\nNot Checked",
+   "reqd": 1,
+   "default": "OK",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "photo",
+   "fieldtype": "Attach Image",
+   "label": "Photo",
+   "mandatory_depends_on": "eval:doc.condition != 'OK' && doc.condition != 'Not Checked'",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "comments",
+   "fieldtype": "Small Text",
+   "label": "Comments",
+   "in_list_view": 1,
+   "columns": 3
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-07 23:27:51.695334",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Vehicle Interior Inspection Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

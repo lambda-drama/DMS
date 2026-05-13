@@ -1,0 +1,453 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:branch_name",
+ "creation": "2026-05-08 03:49:21.336054",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic_info",
+  "branch_name",
+  "branch_type",
+  "is_active",
+  "company",
+  "column_break_basic",
+  "manager",
+  "phone",
+  "alternate_phone",
+  "email",
+  "warehouse",
+  "section_location",
+  "location_address",
+  "gps_coordinates",
+  "city",
+  "region",
+  "column_break_location",
+  "service_bays_count",
+  "section_working_hours",
+  "monday_start",
+  "monday_end",
+  "tuesday_start",
+  "tuesday_end",
+  "wednesday_start",
+  "wednesday_end",
+  "thursday_start",
+  "thursday_end",
+  "friday_start",
+  "friday_end",
+  "saturday_start",
+  "saturday_end",
+  "sunday_start",
+  "sunday_end",
+  "column_break_hours",
+  "lunch_break_start",
+  "lunch_break_end",
+  "prayer_break_1_start",
+  "prayer_break_1_end",
+  "prayer_break_2_start",
+  "prayer_break_2_end",
+  "holiday_list",
+  "section_teams",
+  "teams",
+  "section_financial",
+  "tax_configuration",
+  "cost_center",
+  "column_break_financial",
+  "invoice_series_prefix",
+  "warranty_invoice_series_prefix",
+  "internal_invoice_series_prefix",
+  "estimate_series_prefix",
+  "section_statistics",
+  "total_technicians",
+  "total_jobs_this_month",
+  "total_revenue_this_month",
+  "customer_satisfaction_score",
+  "section_notes",
+  "notes"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "section_basic_info",
+   "fieldtype": "Section Break",
+   "label": "Workshop / Branch Information"
+  },
+  {
+   "description": "e.g., Suweys Motors Addis Ababa Service Center",
+   "fieldname": "branch_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Workshop / Branch Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Service Center",
+   "fieldname": "branch_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Branch Type",
+   "options": "Main Workshop\nService Center\nBody & Paint Shop\nPDI Center\nShowroom + Workshop\nMobile Service Unit\nFleet Service Center"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "manager",
+   "fieldtype": "Link",
+   "label": "Branch Manager",
+   "options": "User"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Contact Phone"
+  },
+  {
+   "fieldname": "alternate_phone",
+   "fieldtype": "Data",
+   "label": "Alternate Phone"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email Address"
+  },
+  {
+   "fieldname": "section_location",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "description": "Physical address including kebele, building, road, landmark",
+   "fieldname": "location_address",
+   "fieldtype": "Text",
+   "label": "Location / Address",
+   "reqd": 1
+  },
+  {
+   "description": "e.g., 9.0322\u00b0 N, 38.7469\u00b0 E",
+   "fieldname": "gps_coordinates",
+   "fieldtype": "Data",
+   "label": "GPS Coordinates"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City / Town"
+  },
+  {
+   "fieldname": "region",
+   "fieldtype": "Select",
+   "label": "Region",
+   "options": "Addis Ababa\nAfar\nAmhara\nBenishangul-Gumuz\nDire Dawa\nGambela\nHarari\nOromia\nSidama\nSomali\nSouth West Ethiopia\nSouthern Nations\nTigray"
+  },
+  {
+   "fieldname": "column_break_location",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Total number of physical service bays in this workshop",
+   "fieldname": "service_bays_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Service Bays",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_working_hours",
+   "fieldtype": "Section Break",
+   "label": "Working Hours"
+  },
+  {
+   "default": "08:00:00",
+   "fieldname": "monday_start",
+   "fieldtype": "Time",
+   "label": "Monday Start"
+  },
+  {
+   "default": "17:00:00",
+   "fieldname": "monday_end",
+   "fieldtype": "Time",
+   "label": "Monday End"
+  },
+  {
+   "default": "08:00:00",
+   "fieldname": "tuesday_start",
+   "fieldtype": "Time",
+   "label": "Tuesday Start"
+  },
+  {
+   "default": "17:00:00",
+   "fieldname": "tuesday_end",
+   "fieldtype": "Time",
+   "label": "Tuesday End"
+  },
+  {
+   "default": "08:00:00",
+   "fieldname": "wednesday_start",
+   "fieldtype": "Time",
+   "label": "Wednesday Start"
+  },
+  {
+   "default": "17:00:00",
+   "fieldname": "wednesday_end",
+   "fieldtype": "Time",
+   "label": "Wednesday End"
+  },
+  {
+   "default": "08:00:00",
+   "fieldname": "thursday_start",
+   "fieldtype": "Time",
+   "label": "Thursday Start"
+  },
+  {
+   "default": "17:00:00",
+   "fieldname": "thursday_end",
+   "fieldtype": "Time",
+   "label": "Thursday End"
+  },
+  {
+   "default": "08:00:00",
+   "fieldname": "friday_start",
+   "fieldtype": "Time",
+   "label": "Friday Start"
+  },
+  {
+   "default": "13:00:00",
+   "fieldname": "friday_end",
+   "fieldtype": "Time",
+   "label": "Friday End"
+  },
+  {
+   "default": "08:00:00",
+   "fieldname": "saturday_start",
+   "fieldtype": "Time",
+   "label": "Saturday Start"
+  },
+  {
+   "default": "13:00:00",
+   "fieldname": "saturday_end",
+   "fieldtype": "Time",
+   "label": "Saturday End"
+  },
+  {
+   "fieldname": "sunday_start",
+   "fieldtype": "Time",
+   "label": "Sunday Start"
+  },
+  {
+   "description": "Leave blank if closed",
+   "fieldname": "sunday_end",
+   "fieldtype": "Time",
+   "label": "Sunday End"
+  },
+  {
+   "fieldname": "column_break_hours",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "12:00:00",
+   "fieldname": "lunch_break_start",
+   "fieldtype": "Time",
+   "label": "Lunch Break Start"
+  },
+  {
+   "default": "13:00:00",
+   "fieldname": "lunch_break_end",
+   "fieldtype": "Time",
+   "label": "Lunch Break End"
+  },
+  {
+   "fieldname": "prayer_break_1_start",
+   "fieldtype": "Time",
+   "label": "Prayer Break 1 Start (Optional)"
+  },
+  {
+   "fieldname": "prayer_break_1_end",
+   "fieldtype": "Time",
+   "label": "Prayer Break 1 End"
+  },
+  {
+   "fieldname": "prayer_break_2_start",
+   "fieldtype": "Time",
+   "label": "Prayer Break 2 Start (Optional)"
+  },
+  {
+   "fieldname": "prayer_break_2_end",
+   "fieldtype": "Time",
+   "label": "Prayer Break 2 End"
+  },
+  {
+   "description": "Select holiday list for public holidays",
+   "fieldname": "holiday_list",
+   "fieldtype": "Link",
+   "label": "Holiday List",
+   "options": "Holiday List"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_teams",
+   "fieldtype": "Section Break",
+   "label": "Workshop Teams"
+  },
+  {
+   "description": "Select all teams operating in this workshop (Mechanical, Electrical, Body, PDI, Warranty, Washing, QC)",
+   "fieldname": "teams",
+   "fieldtype": "Table MultiSelect",
+   "label": "Teams Available",
+   "options": "Workshop Team"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_financial",
+   "fieldtype": "Section Break",
+   "label": "Financial Configuration"
+  },
+  {
+   "description": "VAT/tax rules based on Ethiopian accounting configuration",
+   "fieldname": "tax_configuration",
+   "fieldtype": "Link",
+   "label": "Tax Configuration",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Default Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "column_break_financial",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "e.g., INV-AA-SC- for service invoices",
+   "fieldname": "invoice_series_prefix",
+   "fieldtype": "Data",
+   "label": "Invoice Series Prefix"
+  },
+  {
+   "description": "e.g., WRN-AA-SC- for warranty invoices",
+   "fieldname": "warranty_invoice_series_prefix",
+   "fieldtype": "Data",
+   "label": "Warranty Invoice Series Prefix"
+  },
+  {
+   "description": "e.g., INT-AA-SC- for internal jobs",
+   "fieldname": "internal_invoice_series_prefix",
+   "fieldtype": "Data",
+   "label": "Internal Invoice Series Prefix"
+  },
+  {
+   "description": "e.g., EST-AA-SC- for estimates",
+   "fieldname": "estimate_series_prefix",
+   "fieldtype": "Data",
+   "label": "Estimate Series Prefix"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_statistics",
+   "fieldtype": "Section Break",
+   "label": "Statistics"
+  },
+  {
+   "fieldname": "total_technicians",
+   "fieldtype": "Int",
+   "label": "Total Technicians",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_jobs_this_month",
+   "fieldtype": "Int",
+   "label": "Jobs Completed This Month",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_revenue_this_month",
+   "fieldtype": "Currency",
+   "label": "Revenue This Month",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_satisfaction_score",
+   "fieldtype": "Float",
+   "label": "Customer Satisfaction Score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Additional Notes"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-13 02:07:34.812654",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "WorkShop",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
