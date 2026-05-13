@@ -6,23 +6,38 @@ import * as jobCardsSvc from '@/services/jobCards';
 import * as deliveriesSvc from '@/services/deliveries';
 import * as invoicesSvc from '@/services/invoices';
 import * as commonSvc from '@/services/common';
+import * as techniciansSvc from '@/services/technicians';
+import * as vehiclesSvc from '@/services/vehicles';
 import type {
   ServiceAppointment,
   VehicleInspection,
   DMSJobCard,
   Delivery,
-  Invoice,
+  SalesInvoiceListItem,
+  PaginatedResponse,
   Customer,
   VINNo,
+  VINNoListItem,
+  VINNoFull,
+  VehicleItem,
   ServiceAdvisor,
   Technician,
   ServiceBay,
+  TechnicianListItem,
+  TechnicianFull,
+  TechnicianAvailability,
+  TechnicianScheduleJob,
 } from '@/types/dms';
 
 // ============ APPOINTMENTS ============
 
-export function useAppointments(options?: { status?: string; date?: string }) {
-  return useSWR(
+export function useAppointments(options?: {
+  status?: string;
+  date?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR<PaginatedResponse<ServiceAppointment>>(
     ['appointments', options],
     () => appointmentsSvc.listAppointments(options),
     { refreshInterval: 30000 }
@@ -60,8 +75,13 @@ export function useMarkAppointmentArrived(name: string) {
 
 // ============ INSPECTIONS ============
 
-export function useInspections(options?: { customer?: string; date?: string }) {
-  return useSWR(
+export function useInspections(options?: {
+  customer?: string;
+  date?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR<PaginatedResponse<VehicleInspection>>(
     ['inspections', options],
     () => inspectionsSvc.listInspections(options),
     { refreshInterval: 30000 }
@@ -99,8 +119,13 @@ export function useSubmitInspection(name: string) {
 
 // ============ JOB CARDS ============
 
-export function useJobCards(options?: { status?: string; customer?: string }) {
-  return useSWR(
+export function useJobCards(options?: {
+  status?: string;
+  customer?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR<PaginatedResponse<DMSJobCard>>(
     ['jobcards', options],
     () => jobCardsSvc.listJobCards(options),
     { refreshInterval: 15000 }
@@ -133,7 +158,7 @@ export function useUpdateJobCard(name: string) {
 
 // ============ DELIVERIES ============
 
-export function useDeliveries(options?: { status?: string; search?: string }) {
+export function useDeliveries(options?: { search?: string }) {
   return useSWR(
     ['deliveries', options],
     () => deliveriesSvc.listDeliveries(options),
@@ -152,28 +177,36 @@ export function useCreateDelivery() {
 // ============ INVOICES ============
 
 export function useInvoices(options?: { status?: string; search?: string }) {
-  return useSWR(
+  return useSWR<SalesInvoiceListItem[]>(
     ['invoices', options],
     () => invoicesSvc.listInvoices(options),
     { refreshInterval: 30000 }
   );
 }
 
-export function useCreateInvoice() {
-  return useSWRMutation(
-    'invoices',
-    (_, { arg }: { arg: Partial<Invoice> }) =>
-      invoicesSvc.createInvoice(arg)
-  );
-}
 
 // ============ LOOKUPS ============
 
 export function useCustomers(search?: string) {
   return useSWR<Customer[]>(
     ['customers', search],
-    () => commonSvc.fetchCustomers(search),
+    async () => {
+      const res = await commonSvc.fetchCustomers(search);
+      return res.data;
+    },
     { dedupingInterval: 5000 }
+  );
+}
+
+export function useCustomersPaginated(options?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR<PaginatedResponse<Customer>>(
+    ['customers-paginated', options],
+    () => commonSvc.fetchCustomers(options?.search, options?.limit, options?.offset),
+    { refreshInterval: 30000 }
   );
 }
 
@@ -206,5 +239,124 @@ export function useServiceBays(status?: 'Available' | 'Occupied') {
     ['service-bays', status],
     () => commonSvc.fetchServiceBays(status),
     { refreshInterval: 30000 }
+  );
+}
+
+export function useSpareParts(search?: string) {
+  return useSWR(
+    ['spare-parts', search],
+    () => commonSvc.fetchSpareParts(search),
+    { dedupingInterval: 5000 }
+  );
+}
+
+export function useVehicleServiceItems(search?: string) {
+  return useSWR(
+    ['vehicle-service-items', search],
+    () => commonSvc.fetchVehicleServiceItems(search),
+    { dedupingInterval: 5000 }
+  );
+}
+
+export function useWorkshops(search?: string) {
+  return useSWR(
+    ['workshops', search],
+    () => commonSvc.fetchWorkshops(search),
+    { dedupingInterval: 10000 }
+  );
+}
+
+export function useWarehouses(search?: string, company?: string) {
+  return useSWR(
+    ['warehouses', search, company],
+    () => commonSvc.fetchWarehouses(search, company),
+    { dedupingInterval: 10000 }
+  );
+}
+
+export function useCompanies(search?: string) {
+  return useSWR(
+    ['companies', search],
+    () => commonSvc.fetchCompanies(search),
+    { dedupingInterval: 30000 }
+  );
+}
+
+// ============ TECHNICIANS ============
+
+export function useTechniciansList(options?: {
+  status?: string;
+  skill_level?: string;
+  search?: string;
+}) {
+  return useSWR<TechnicianListItem[]>(
+    ['technicians-list', options],
+    () => techniciansSvc.listTechnicians(options),
+    { refreshInterval: 30000 }
+  );
+}
+
+export function useTechnicianDetail(name: string | null) {
+  return useSWR<TechnicianFull>(
+    name ? ['technician', name] : null,
+    () => techniciansSvc.getTechnician(name!),
+    { refreshInterval: 30000 }
+  );
+}
+
+export function useTechnicianSchedule(name: string | null, date?: string) {
+  return useSWR<TechnicianScheduleJob[]>(
+    name ? ['technician-schedule', name, date] : null,
+    () => techniciansSvc.getTechnicianSchedule(name!, date),
+    { refreshInterval: 15000 }
+  );
+}
+
+export function useTechnicianWeeklySchedule(name: string | null, startDate?: string) {
+  return useSWR<Record<string, TechnicianScheduleJob[]>>(
+    name ? ['technician-weekly-schedule', name, startDate] : null,
+    () => techniciansSvc.getTechnicianWeeklySchedule(name!, startDate),
+    { refreshInterval: 30000 }
+  );
+}
+
+export function useTechniciansAvailability(date?: string) {
+  return useSWR<TechnicianAvailability[]>(
+    ['technicians-availability', date],
+    () => techniciansSvc.getAllTechniciansAvailability(date),
+    { refreshInterval: 15000 }
+  );
+}
+
+// ============ VEHICLES (VIN No) ============
+
+export function useVehicles(options?: {
+  customer?: string;
+  search?: string;
+  vehicle_status?: string;
+  warranty_status?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR<PaginatedResponse<VINNoListItem>>(
+    ['vehicles', options],
+    () => vehiclesSvc.listVehicles(options),
+    { refreshInterval: 30000 }
+  );
+}
+
+export function useVehicle(name: string | null) {
+  return useSWR<VINNoFull>(
+    name ? ['vehicle', name] : null,
+    () => vehiclesSvc.getVehicle(name!),
+    { refreshInterval: 30000 }
+  );
+}
+
+export function useVehicleItems(search?: string) {
+  return useSWR<VehicleItem[]>(
+    ['vehicle-items', search],
+    () => vehiclesSvc.getVehicleItems(search),
+    { dedupingInterval: 5000 }
   );
 }

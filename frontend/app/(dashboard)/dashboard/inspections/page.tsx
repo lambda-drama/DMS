@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
+import { useInspections, useInspection } from '@/hooks/use-dms';
+import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,86 +44,35 @@ import {
   Clock,
   FileText,
 } from 'lucide-react';
-
-// Demo data
-const demoInspections = [
-  {
-    name: 'INS-2026-00008',
-    inspection_date: '2026-05-13T08:30:00',
-    customer_name: 'Michael Johnson',
-    customer_vehicle: 'Toyota Camry 2024',
-    license_plate: 'ABC 1234',
-    vin_chassis: '1HGBH41JXMN109186',
-    service_advisor_name: 'John Smith',
-    odometer: 45230,
-    fuel_level: '3/4',
-    arrival_method: 'Driven In',
-    warning_lights_count: 0,
-    issues_found: 2,
-    docstatus: 1,
-    job_card: 'JC-2026-00056',
-  },
-  {
-    name: 'INS-2026-00007',
-    inspection_date: '2026-05-13T09:15:00',
-    customer_name: 'Sarah Williams',
-    customer_vehicle: 'Honda Accord 2023',
-    license_plate: 'XYZ 5678',
-    vin_chassis: '2HGFA16578H531458',
-    service_advisor_name: 'Jane Doe',
-    odometer: 32150,
-    fuel_level: '1/2',
-    arrival_method: 'Driven In',
-    warning_lights_count: 1,
-    issues_found: 3,
-    docstatus: 1,
-    job_card: 'JC-2026-00055',
-  },
-  {
-    name: 'INS-2026-00006',
-    inspection_date: '2026-05-13T10:00:00',
-    customer_name: 'James Brown',
-    customer_vehicle: 'BMW X5 2024',
-    license_plate: 'BMW 9012',
-    vin_chassis: '5UXFE43578L015879',
-    service_advisor_name: 'John Smith',
-    odometer: 18750,
-    fuel_level: '1/4',
-    arrival_method: 'Towed In',
-    warning_lights_count: 3,
-    issues_found: 5,
-    docstatus: 0,
-    job_card: null,
-  },
-  {
-    name: 'INS-2026-00005',
-    inspection_date: '2026-05-12T14:30:00',
-    customer_name: 'Emily Davis',
-    customer_vehicle: 'Mercedes C300 2023',
-    license_plate: 'MBZ 3456',
-    vin_chassis: 'WDDGF4HB1DA765432',
-    service_advisor_name: 'Jane Doe',
-    odometer: 28900,
-    fuel_level: 'Full',
-    arrival_method: 'Driven In',
-    warning_lights_count: 0,
-    issues_found: 1,
-    docstatus: 1,
-    job_card: 'JC-2026-00054',
-  },
-];
+import { PaginationControls } from '@/components/pagination-controls';
 
 export default function InspectionsPage() {
   const { navigate } = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const filteredInspections = demoInspections.filter((insp) => {
+  const { data: selectedInspection, isLoading: detailLoading } = useInspection(selectedId);
+
+  const { data: result, isLoading, error } = useInspections({
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
+  });
+  const inspections = result?.data ?? [];
+  const totalItems = result?.total || 0;
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
+
+  const filteredInspections = inspections.filter((insp) => {
     const matchesSearch =
-      insp.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (insp.customer_vehicle ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       insp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      insp.customer_vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      insp.license_plate.toLowerCase().includes(searchQuery.toLowerCase());
+      (insp.license_plate ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      insp.customer.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus =
       statusFilter === 'all' ||
@@ -131,13 +82,16 @@ export default function InspectionsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const todayCount = demoInspections.filter(
+  const todayCount = inspections.filter(
     (insp) =>
       format(new Date(insp.inspection_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   ).length;
 
-  const pendingCount = demoInspections.filter((insp) => insp.docstatus === 0).length;
-  const issuesCount = demoInspections.reduce((acc, insp) => acc + insp.issues_found, 0);
+  const pendingCount = inspections.filter((insp) => insp.docstatus === 0).length;
+  const issuesCount = inspections.reduce(
+    (acc, insp) => acc + (insp.customer_complaints?.length || 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -183,7 +137,7 @@ export default function InspectionsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {demoInspections.filter((insp) => insp.job_card).length}
+                {inspections.filter((insp) => insp.job_card).length}
               </p>
               <p className="text-sm text-muted-foreground">Job Cards Created</p>
             </div>
@@ -252,7 +206,7 @@ export default function InspectionsPage() {
                         </div>
                         <div>
                           <button
-                            onClick={() => navigate('inspection-detail', { id: insp.name })}
+                            onClick={() => setSelectedId(insp.name)}
                             className="font-medium hover:text-primary"
                           >
                             {insp.name}
@@ -268,7 +222,7 @@ export default function InspectionsPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span>{insp.customer_name}</span>
+                        <span>{insp.customer}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -283,10 +237,10 @@ export default function InspectionsPage() {
                     <TableCell>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          {insp.warning_lights_count > 0 ? (
-                            <Badge variant="outline\" className="bg-destructive/10 text-destructive border-destructive/20">
-                              {insp.warning_lights_count} Warning Light
-                              {insp.warning_lights_count > 1 ? 's' : ''}
+                          {(insp.warning_lights?.length || 0) > 0 ? (
+                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+                              {insp.warning_lights.length} Warning Light
+                              {insp.warning_lights.length > 1 ? 's' : ''}
                             </Badge>
                           ) : (
                             <Badge
@@ -298,7 +252,7 @@ export default function InspectionsPage() {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {insp.issues_found} issues found
+                          {insp.customer_complaints?.length || 0} issues found
                         </p>
                       </div>
                     </TableCell>
@@ -317,7 +271,7 @@ export default function InspectionsPage() {
                     <TableCell>
                       {insp.job_card ? (
                         <button
-                          onClick={() => navigate('job-card-detail', { id: insp.job_card! })}
+                          onClick={() => navigate('job-card-detail', { id: insp.job_card ?? '' })}
                           className="flex items-center gap-1 text-sm text-primary hover:underline"
                         >
                           <FileText className="h-4 w-4" />
@@ -359,7 +313,7 @@ export default function InspectionsPage() {
             </Table>
           </div>
 
-          {filteredInspections.length === 0 && (
+          {filteredInspections.length === 0 && !isLoading && (
             <div className="py-12 text-center">
               <ClipboardCheck className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-lg font-medium">No inspections found</p>
@@ -368,8 +322,55 @@ export default function InspectionsPage() {
               </p>
             </div>
           )}
+
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
+
+      <DetailSheet
+        open={!!selectedId}
+        onOpenChange={(open) => { if (!open) setSelectedId(null); }}
+        title={selectedId || ""}
+        subtitle={selectedInspection?.customer_name || selectedInspection?.customer}
+        badge={selectedInspection ? { label: selectedInspection.docstatus === 1 ? "Submitted" : "Draft" } : undefined}
+        isLoading={detailLoading}
+        onOpenInDesk={() => window.open(`/app/vehicle-inspection/${selectedId}`, '_blank')}
+      >
+        {selectedInspection && (
+          <>
+            <DetailSection title="Inspection Info">
+              <DetailRow label="Date" value={selectedInspection.inspection_date ? new Date(selectedInspection.inspection_date).toLocaleDateString() : undefined} />
+              <DetailRow label="Inspector" value={selectedInspection.inspector} />
+              <DetailRow label="Overall Condition" value={selectedInspection.overall_condition} />
+              <DetailRow label="Job Card" value={selectedInspection.job_card} />
+            </DetailSection>
+            <DetailSection title="Customer & Vehicle">
+              <DetailRow label="Customer" value={selectedInspection.customer_name || selectedInspection.customer} />
+              <DetailRow label="Vehicle VIN" value={selectedInspection.vehicle_vin} />
+              <DetailRow label="Vehicle Model" value={selectedInspection.vehicle_model} />
+              <DetailRow label="License Plate" value={selectedInspection.license_plate} />
+              <DetailRow label="Odometer" value={selectedInspection.current_odometer ? `${selectedInspection.current_odometer} km` : undefined} />
+              <DetailRow label="Fuel Level" value={selectedInspection.fuel_level} />
+            </DetailSection>
+            {selectedInspection.customer_concerns && (
+              <DetailSection title="Customer Concerns">
+                <p className="text-sm">{selectedInspection.customer_concerns}</p>
+              </DetailSection>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setSelectedId(null); navigate('inspection-detail', { id: selectedId! }); }}>
+                Open Full Details
+              </Button>
+            </div>
+          </>
+        )}
+      </DetailSheet>
     </div>
   );
 }

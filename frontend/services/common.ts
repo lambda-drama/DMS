@@ -1,46 +1,112 @@
+/**
+ * Common lookup service — calls whitelisted methods in dms.api.common
+ */
 import { apiRequest } from './apiClient';
-import type { Customer, VINNo, ServiceAdvisor, Technician, ServiceBay } from '@/types/dms';
+import type { Customer, VINNo, ServiceAdvisor, Technician, ServiceBay, PaginatedResponse } from '@/types/dms';
 
-export async function fetchCustomers(search?: string): Promise<Customer[]> {
-  const params = new URLSearchParams();
-  if (search) params.set('filters', JSON.stringify({ customer_name: ['like', `%${search}%`] }));
-  params.set('fields', JSON.stringify(['name', 'customer_name', 'mobile_no', 'email_id']));
-  params.set('limit_page_length', '20');
+const API = 'dms.api.common';
 
-  return apiRequest<Customer[]>(`/api/resource/Customer?${params}`);
+export interface SparePart {
+  name: string;
+  item_name: string;
+  item_code?: string;
+  part_category?: string;
+  oem_part_number?: string;
+}
+
+export interface VehicleServiceItem {
+  name: string;
+  operation_name: string;
+  standard_hours?: number;
+  service_type?: string;
+}
+
+export interface CompanyOption {
+  name: string;
+  company_name?: string;
+  default_currency?: string;
+}
+
+export interface Workshop {
+  name: string;
+  company?: string;
+}
+
+export interface Warehouse {
+  name: string;
+  warehouse_name?: string;
+  company?: string;
+}
+
+export async function fetchCustomers(search?: string, limit?: number, offset?: number): Promise<PaginatedResponse<Customer>> {
+  return apiRequest<PaginatedResponse<Customer>>(`/api/method/${API}.get_customers`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, limit: limit || 50, offset: offset || 0 }),
+  });
 }
 
 export async function fetchVINs(customer?: string, search?: string): Promise<VINNo[]> {
-  const params = new URLSearchParams();
-  const filters: Record<string, unknown> = {};
-  if (customer) filters.current_customer = customer;
-  if (search) filters.vin_number = ['like', `%${search}%`];
-  if (Object.keys(filters).length) params.set('filters', JSON.stringify(filters));
-  params.set('limit_page_length', '20');
-
-  return apiRequest<VINNo[]>(`/api/resource/VIN No?${params}`);
+  return apiRequest<VINNo[]>(`/api/method/${API}.get_vins`, {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: customer || null,
+      search: search || null,
+    }),
+  });
 }
 
 export async function fetchServiceAdvisors(): Promise<ServiceAdvisor[]> {
-  const params = new URLSearchParams();
-  params.set('fields', JSON.stringify(['name', 'full_name', 'email', 'phone']));
-  params.set('limit_page_length', '50');
-
-  return apiRequest<ServiceAdvisor[]>(`/api/resource/Service Advisor?${params}`);
+  return apiRequest<ServiceAdvisor[]>(`/api/method/${API}.get_service_advisors`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
 }
 
 export async function fetchTechnicians(): Promise<Technician[]> {
-  const params = new URLSearchParams();
-  params.set('fields', JSON.stringify(['name', 'full_name', 'specialization']));
-  params.set('limit_page_length', '50');
-
-  return apiRequest<Technician[]>(`/api/resource/Technician?${params}`);
+  return apiRequest<Technician[]>(`/api/method/${API}.get_technicians`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
 }
 
 export async function fetchServiceBays(status?: 'Available' | 'Occupied'): Promise<ServiceBay[]> {
-  const params = new URLSearchParams();
-  if (status) params.set('filters', JSON.stringify({ status }));
-  params.set('limit_page_length', '50');
+  return apiRequest<ServiceBay[]>(`/api/method/${API}.get_service_bays`, {
+    method: 'POST',
+    body: JSON.stringify({ status: status || null }),
+  });
+}
 
-  return apiRequest<ServiceBay[]>(`/api/resource/Service Bay?${params}`);
+export async function fetchSpareParts(search?: string): Promise<SparePart[]> {
+  return apiRequest<SparePart[]>(`/api/method/${API}.get_spare_parts`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null }),
+  });
+}
+
+export async function fetchVehicleServiceItems(search?: string): Promise<VehicleServiceItem[]> {
+  return apiRequest<VehicleServiceItem[]>(`/api/method/${API}.get_vehicle_service_items`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null }),
+  });
+}
+
+export async function fetchWorkshops(search?: string): Promise<Workshop[]> {
+  return apiRequest<Workshop[]>(`/api/method/${API}.get_workshops`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null }),
+  });
+}
+
+export async function fetchWarehouses(search?: string, company?: string): Promise<Warehouse[]> {
+  return apiRequest<Warehouse[]>(`/api/method/${API}.get_warehouses`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, company: company || null }),
+  });
+}
+
+export async function fetchCompanies(search?: string): Promise<CompanyOption[]> {
+  return apiRequest<CompanyOption[]>(`/api/method/${API}.get_companies`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null }),
+  });
 }

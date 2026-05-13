@@ -1,11 +1,11 @@
 /**
- * DMS Job Card service — calls whitelisted Python methods directly,
- * following the healthcare app pattern.
+ * DMS Job Card service — calls whitelisted Python methods in dms.api.job_cards
+ * and dms_job_card.py for workflow actions.
  */
 import { apiRequest, ensureCSRF } from './apiClient';
-import type { DMSJobCard } from '@/types/dms';
+import type { DMSJobCard, PaginatedResponse } from '@/types/dms';
 
-const DT = 'DMS Job Card';
+const API = 'dms.api.job_cards';
 const DT_PATH = 'dms.dealer_management_system.doctype.dms_job_card.dms_job_card';
 
 // ─── List & Get ──────────────────────────────────────────────
@@ -13,54 +13,58 @@ const DT_PATH = 'dms.dealer_management_system.doctype.dms_job_card.dms_job_card'
 export async function listJobCards(options?: {
   status?: string;
   customer?: string;
+  search?: string;
   limit?: number;
-}): Promise<DMSJobCard[]> {
-  const params = new URLSearchParams();
-  const filters: Record<string, unknown> = {};
-  if (options?.status) filters.status = options.status;
-  if (options?.customer) filters.customer = options.customer;
-  if (Object.keys(filters).length) params.set('filters', JSON.stringify(filters));
-  params.set('order_by', 'creation desc');
-  params.set('limit_page_length', String(options?.limit || 50));
-
-  const qs = params.toString();
-  return apiRequest<DMSJobCard[]>(`/api/resource/${DT}?${qs}`);
+  offset?: number;
+}): Promise<PaginatedResponse<DMSJobCard>> {
+  return apiRequest<PaginatedResponse<DMSJobCard>>(`/api/method/${API}.get_job_cards`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      customer: options?.customer || null,
+      search: options?.search || null,
+      limit: options?.limit || 50,
+      offset: options?.offset || 0,
+    }),
+  });
 }
 
 export async function getJobCard(name: string): Promise<DMSJobCard> {
-  return apiRequest<DMSJobCard>(`/api/resource/${DT}/${encodeURIComponent(name)}`);
+  return apiRequest<DMSJobCard>(`/api/method/${API}.get_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
 }
 
 // ─── Create & Update ─────────────────────────────────────────
 
-export async function createJobCard(data: Partial<DMSJobCard>): Promise<DMSJobCard> {
-  return apiRequest<DMSJobCard>(`/api/resource/${DT}`, {
+export async function createJobCard(data: Partial<DMSJobCard>): Promise<{ name: string; status: string; customer: string; customer_name: string }> {
+  return apiRequest(`/api/method/${API}.create_job_card`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ data }),
   });
 }
 
 export async function updateJobCard(
   name: string,
   data: Record<string, unknown>
-): Promise<DMSJobCard> {
-  return apiRequest<DMSJobCard>(`/api/resource/${DT}/${encodeURIComponent(name)}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
+): Promise<{ name: string; status: string }> {
+  return apiRequest(`/api/method/${API}.update_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
   });
 }
 
 // ─── Submit (docstatus 0→1) ──────────────────────────────────
 
-export async function submitJobCard(name: string): Promise<DMSJobCard> {
-  return apiRequest<DMSJobCard>(`/api/resource/${DT}/${encodeURIComponent(name)}`, {
-    method: 'PUT',
-    body: JSON.stringify({ docstatus: 1 }),
+export async function submitJobCard(name: string): Promise<{ name: string; status: string; docstatus: number }> {
+  return apiRequest(`/api/method/${API}.submit_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
   });
 }
 
 // ─── Field-level update on submitted doc ─────────────────────
-// Mirrors the desk save_submitted_doc pattern: uses frappe.client.set_value
 
 export async function setFieldValue(
   name: string,
@@ -69,7 +73,7 @@ export async function setFieldValue(
 ): Promise<void> {
   await apiRequest('/api/method/frappe.client.set_value', {
     method: 'POST',
-    body: JSON.stringify({ doctype: DT, name, fieldname, value }),
+    body: JSON.stringify({ doctype: 'DMS Job Card', name, fieldname, value }),
   });
 }
 
@@ -84,12 +88,10 @@ export async function setMultipleFields(
 
 // ─── Workflow Transitions (whitelisted methods) ──────────────
 
-/** Submit for Estimation: Draft → Estimation Pending (docstatus=1) */
 export async function submitForEstimation(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'Estimation Pending');
 }
 
-/** Mark Customer Approved: Estimation Pending → Estimation Approved (docstatus=0) */
 export async function markCustomerApproved(
   name: string,
   approvalReference: string,
@@ -101,10 +103,13 @@ export async function markCustomerApproved(
     status: 'Estimation Approved',
   };
   if (approvedAmount !== undefined) fields.approved_amount = approvedAmount;
-  await updateJobCard(name, fields);
+
+  await apiRequest(`/api/method/${API}.update_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data: fields }),
+  });
 }
 
-/** Start Repair: calls the whitelisted start_repair method */
 export async function startRepair(
   name: string,
   timeLogs?: Array<{ technician: string; technician_name: string; start_time: string }>
@@ -118,7 +123,6 @@ export async function startRepair(
   });
 }
 
-/** Pause Repair: calls the whitelisted pause_repair method */
 export async function pauseRepair(
   name: string,
   newStatus: 'Waiting Parts' | 'Waiting Customer Approval',
@@ -134,7 +138,6 @@ export async function pauseRepair(
   });
 }
 
-/** Complete Repair: calls the whitelisted stop_repair method */
 export async function completeRepair(
   name: string,
   openLogs?: Array<{ name: string; end_time: string; duration_hours: number }>,
@@ -150,22 +153,18 @@ export async function completeRepair(
   });
 }
 
-/** Parts Arrived: Waiting Parts → Repair In Progress */
 export async function partsArrived(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'Repair In Progress');
 }
 
-/** Customer Approved (during repair): Waiting Customer Approval → Repair In Progress */
 export async function customerApprovedDuringRepair(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'Repair In Progress');
 }
 
-/** Start Road Test: Repair Completed → Road Test In Progress */
 export async function startRoadTest(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'Road Test In Progress');
 }
 
-/** Pass Road Test */
 export async function passRoadTest(name: string, notes?: string): Promise<void> {
   await setMultipleFields(name, {
     rt_result: 'Pass',
@@ -174,7 +173,6 @@ export async function passRoadTest(name: string, notes?: string): Promise<void> 
   });
 }
 
-/** Fail Road Test */
 export async function failRoadTest(name: string, reason: string): Promise<void> {
   await setMultipleFields(name, {
     rt_result: 'Fail',
@@ -184,12 +182,10 @@ export async function failRoadTest(name: string, reason: string): Promise<void> 
   });
 }
 
-/** Start QC Check: Road Test Completed → QC In Progress */
 export async function startQC(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'QC In Progress');
 }
 
-/** Pass QC */
 export async function passQC(name: string): Promise<void> {
   await setMultipleFields(name, {
     qc_result: 'Pass',
@@ -198,7 +194,6 @@ export async function passQC(name: string): Promise<void> {
   });
 }
 
-/** Fail QC */
 export async function failQC(name: string, failReason: string): Promise<void> {
   await setMultipleFields(name, {
     qc_result: 'Fail',
@@ -208,7 +203,6 @@ export async function failQC(name: string, failReason: string): Promise<void> {
   });
 }
 
-/** Rework Completed: Rework → Repair Completed */
 export async function reworkCompleted(name: string): Promise<void> {
   await setMultipleFields(name, {
     rework_required: 0,
@@ -218,7 +212,6 @@ export async function reworkCompleted(name: string): Promise<void> {
 
 // ─── Actions (Invoice & Delivery) ────────────────────────────
 
-/** Create Sales Invoice from Job Card (whitelisted method) */
 export async function makeSalesInvoice(name: string): Promise<string> {
   await ensureCSRF();
   const csrf = (window as Record<string, unknown>).csrf_token as string;
@@ -237,7 +230,6 @@ export async function makeSalesInvoice(name: string): Promise<string> {
   throw new Error(resData?.exc || 'Failed to create sales invoice');
 }
 
-/** Get part stock availability (whitelisted method) */
 export async function getPartStockAvailable(
   sparePart: string,
   warehouse?: string
@@ -252,7 +244,6 @@ export async function getPartStockAvailable(
   return resData?.message ?? 0;
 }
 
-/** Get part unit price (whitelisted method) */
 export async function getPartUnitPrice(sparePart: string): Promise<number> {
   const response = await fetch(
     `/api/method/${DT_PATH}.get_job_card_part_unit_price?spare_part=${encodeURIComponent(sparePart)}`,

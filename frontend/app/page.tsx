@@ -22,6 +22,11 @@ const DeliveriesPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/
 const DeliveryNewPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/new/page'));
 const InvoicesPage = dynamic(() => import('./(dashboard)/dashboard/invoices/page'));
 const InvoiceNewPage = dynamic(() => import('./(dashboard)/dashboard/invoices/new/page'));
+const TechniciansPage = dynamic(() => import('./(dashboard)/dashboard/technicians/page'));
+const TechnicianDetailPage = dynamic(() => import('./(dashboard)/dashboard/technicians/detail/page'));
+const CustomersPage = dynamic(() => import('./(dashboard)/dashboard/customers/page'));
+const VehiclesPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/page'));
+const VehicleNewPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/new/page'));
 
 function LoadingScreen() {
   return (
@@ -58,6 +63,11 @@ function AppContent() {
       case 'delivery-new':       return <DeliveryNewPage />;
       case 'invoices':           return <InvoicesPage />;
       case 'invoice-new':        return <InvoiceNewPage />;
+      case 'technicians':        return <TechniciansPage />;
+      case 'technician-detail':  return <TechnicianDetailPage />;
+      case 'customers':          return <CustomersPage />;
+      case 'vehicles':           return <VehiclesPage />;
+      case 'vehicle-new':        return <VehicleNewPage />;
       default:                   return <DashboardMain />;
     }
   };

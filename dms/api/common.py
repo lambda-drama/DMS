@@ -1,0 +1,247 @@
+import frappe
+from frappe import _
+from dms.api.utils import get_vehicle_customer_groups
+
+
+@frappe.whitelist()
+def get_customers(search=None, limit=50, offset=0):
+	filters = {}
+
+	vehicle_groups = get_vehicle_customer_groups()
+	if vehicle_groups:
+		filters["customer_group"] = ["in", vehicle_groups]
+
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"customer_name": ["like", f"%{search}%"],
+			"mobile_no": ["like", f"%{search}%"],
+		}
+
+	total = len(frappe.get_all(
+		"Customer",
+		filters=filters,
+		or_filters=or_filters if or_filters else None,
+		limit_page_length=0,
+		pluck="name",
+	))
+
+	customers = frappe.get_all(
+		"Customer",
+		filters=filters,
+		or_filters=or_filters if or_filters else None,
+		fields=[
+			"name", "customer_name", "mobile_no", "email_id",
+			"customer_type", "customer_group", "territory",
+			"creation", "modified",
+		],
+		limit=int(limit),
+		limit_start=int(offset),
+		order_by="customer_name asc",
+	)
+
+	return {"data": customers, "total": total}
+
+
+@frappe.whitelist()
+def get_vins(customer=None, search=None, limit=20):
+	filters = {}
+	if customer:
+		filters["current_customer"] = customer
+
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"vin_number": ["like", f"%{search}%"],
+			"plate_number": ["like", f"%{search}%"],
+		}
+
+	vins = frappe.get_all(
+		"VIN No",
+		filters=filters,
+		or_filters=or_filters if or_filters else None,
+		fields=[
+			"name", "vin_number", "plate_number", "model_name",
+			"model_year", "current_customer", "current_odometer",
+			"warranty_status", "warranty_end_date",
+		],
+		limit=int(limit),
+		order_by="name desc",
+	)
+
+	return vins
+
+
+@frappe.whitelist()
+def get_service_advisors(search=None, limit=50):
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"full_name": ["like", f"%{search}%"],
+		}
+
+	advisors = frappe.get_all(
+		"Service Advisor",
+		filters={"status": "Active"},
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "full_name", "email", "phone", "workshop"],
+		limit=int(limit),
+		order_by="full_name asc",
+	)
+
+	return advisors
+
+
+@frappe.whitelist()
+def get_technicians(search=None, limit=50):
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"full_name": ["like", f"%{search}%"],
+		}
+
+	technicians = frappe.get_all(
+		"Technician",
+		filters={"status": "Active"},
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "full_name", "personal_phone"],
+		limit=int(limit),
+		order_by="full_name asc",
+	)
+
+	return technicians
+
+
+@frappe.whitelist()
+def get_service_bays(search=None, limit=50):
+	filters = {"is_active": 1}
+
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"bay_name": ["like", f"%{search}%"],
+			"bay_number": ["like", f"%{search}%"],
+		}
+
+	bays = frappe.get_all(
+		"Service Bay",
+		filters=filters,
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "bay_number", "bay_name", "branch"],
+		limit=int(limit),
+		order_by="bay_number asc",
+	)
+
+	return bays
+
+
+@frappe.whitelist()
+def get_spare_parts(search=None, limit=20):
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"item_name": ["like", f"%{search}%"],
+			"item_code": ["like", f"%{search}%"],
+			"oem_part_number": ["like", f"%{search}%"],
+		}
+
+	parts = frappe.get_all(
+		"Spare Part",
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "item_name", "item_code", "part_category", "oem_part_number"],
+		limit=int(limit),
+		order_by="item_name asc",
+	)
+
+	return parts
+
+
+@frappe.whitelist()
+def get_vehicle_service_items(search=None, limit=20):
+	"""Get Vehicle Standard Labor records for labour line lookups."""
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"operation_name": ["like", f"%{search}%"],
+		}
+
+	items = frappe.get_all(
+		"Vehicle Standard Labor",
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "operation_name", "standard_hours", "service_type"],
+		limit=int(limit),
+		order_by="operation_name asc",
+	)
+
+	return items
+
+
+@frappe.whitelist()
+def get_workshops(search=None, limit=20):
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+		}
+
+	workshops = frappe.get_all(
+		"WorkShop",
+		or_filters=or_filters if or_filters else None,
+		fields=["name"],
+		limit=int(limit),
+		order_by="name asc",
+	)
+
+	return workshops
+
+
+@frappe.whitelist()
+def get_warehouses(search=None, company=None, limit=20):
+	filters = {}
+	if company:
+		filters["company"] = company
+
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"warehouse_name": ["like", f"%{search}%"],
+		}
+
+	warehouses = frappe.get_all(
+		"Warehouse",
+		filters=filters,
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "warehouse_name", "company"],
+		limit=int(limit),
+		order_by="name asc",
+	)
+
+	return warehouses
+
+
+@frappe.whitelist()
+def get_companies(search=None, limit=20):
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"company_name": ["like", f"%{search}%"],
+		}
+
+	companies = frappe.get_all(
+		"Company",
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "company_name", "default_currency"],
+		limit=int(limit),
+		order_by="name asc",
+	)
+
+	return companies

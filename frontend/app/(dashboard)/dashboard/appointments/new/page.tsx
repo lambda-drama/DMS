@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
@@ -29,9 +28,16 @@ import {
   User,
   Plus,
   X,
-  AlertTriangle,
   CheckCircle2,
 } from 'lucide-react';
+import { SearchableSelect } from '@/components/searchable-select';
+import {
+  useCustomers,
+  useVINs,
+  useServiceAdvisors,
+  useServiceBays,
+  useCreateAppointment,
+} from '@/hooks/use-dms';
 import type { BookingSource, Priority, VehicleArrivalStatus } from '@/types/dms';
 
 const bookingSources: BookingSource[] = [
@@ -82,46 +88,40 @@ const serviceTypes = [
   'Other',
 ];
 
-// Demo customers for autocomplete
-const demoCustomers = [
-  { name: 'CUST-0001', customer_name: 'Michael Johnson', mobile_no: '+1 555-0123', email_id: 'michael.j@email.com' },
-  { name: 'CUST-0002', customer_name: 'Sarah Williams', mobile_no: '+1 555-0124', email_id: 'sarah.w@email.com' },
-  { name: 'CUST-0003', customer_name: 'James Brown', mobile_no: '+1 555-0125', email_id: 'james.b@email.com' },
-  { name: 'CUST-0004', customer_name: 'Emily Davis', mobile_no: '+1 555-0126', email_id: 'emily.d@email.com' },
-];
-
-// Demo vehicles
-const demoVehicles = [
-  { vin: '1HGBH41JXMN109186', vehicle: 'Toyota Camry 2024', plate: 'ABC 1234', customer: 'CUST-0001' },
-  { vin: '2HGFA16578H531458', vehicle: 'Honda Accord 2023', plate: 'XYZ 5678', customer: 'CUST-0002' },
-  { vin: '5UXFE43578L015879', vehicle: 'BMW X5 2024', plate: 'BMW 9012', customer: 'CUST-0003' },
-  { vin: 'WDDGF4HB1DA765432', vehicle: 'Mercedes C300 2023', plate: 'MBZ 3456', customer: 'CUST-0004' },
-];
-
-// Demo service advisors
-const demoAdvisors = [
-  { name: 'SA-001', full_name: 'John Smith' },
-  { name: 'SA-002', full_name: 'Jane Doe' },
-  { name: 'SA-003', full_name: 'Mike Wilson' },
-];
-
 export default function NewAppointmentPage() {
   const { navigate } = useNavigation();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<typeof demoCustomers[0] | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<typeof demoVehicles[0] | null>(null);
 
-  const handleCustomerSelect = (customerId: string) => {
-    const customer = demoCustomers.find((c) => c.name === customerId);
-    setSelectedCustomer(customer || null);
-    setSelectedVehicle(null);
-  };
+  const [form, setForm] = useState({
+    booking_source: 'Phone Call',
+    priority: 'Normal',
+    appointment_date_time: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+    promised_delivery_date_time: '',
+    estimated_duration_hours: 2,
+    customer: '',
+    vehicle: '',
+    vin_chassis: '',
+    license_plate: '',
+    current_odometer: 0,
+    customer_complaint_summary: '',
+    preferred_advisor: '',
+    assigned_bay: '',
+    special_instructions: '',
+    vehicle_arrival_status: 'Customer Waiting',
+    company: '',
+  });
 
-  const handleVehicleSelect = (vin: string) => {
-    const vehicle = demoVehicles.find((v) => v.vin === vin);
-    setSelectedVehicle(vehicle || null);
-  };
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [vinSearch, setVinSearch] = useState('');
+
+  const { data: customers } = useCustomers(customerSearch);
+  const { data: vins } = useVINs(form.customer || undefined, vinSearch);
+  const { data: advisors } = useServiceAdvisors();
+  const { data: bays } = useServiceBays();
+  const { trigger: createAppointment, isMutating } = useCreateAppointment();
+
+  const selectedCustomer = customers?.find((c) => c.name === form.customer);
+  const selectedVehicle = vins?.find((v) => v.name === form.vehicle);
 
   const handleAddService = (service: string) => {
     if (!selectedServices.includes(service)) {
@@ -135,11 +135,33 @@ export default function NewAppointmentPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setIsSubmitting(true);
+
+    if (!form.customer) {
+      toast.error('Please select a customer');
+      return;
+    }
+    if (!form.vehicle) {
+      toast.error('Please select a vehicle');
+      return;
+    }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await createAppointment({
+        booking_source: form.booking_source,
+        priority: form.priority,
+        appointment_date_time: form.appointment_date_time,
+        promised_delivery_date_time: form.promised_delivery_date_time,
+        estimated_duration_hours: form.estimated_duration_hours,
+        customer: form.customer,
+        vehicle: form.vehicle,
+        vin_chassis: form.vin_chassis,
+        license_plate: form.license_plate,
+        current_odometer: form.current_odometer,
+        customer_complaint_summary: form.customer_complaint_summary,
+        preferred_advisor: form.preferred_advisor,
+        special_instructions: form.special_instructions,
+        service_type_requested: selectedServices.map((s) => ({ service_type: s })),
+      } as any);
 
       toast.success('Appointment created successfully', {
         description: 'The customer will receive a confirmation.',
@@ -150,12 +172,8 @@ export default function NewAppointmentPage() {
       toast.error('Failed to create appointment', {
         description: 'Please try again.',
       });
-    } finally {
-      setIsSubmitting(false);
     }
   }
-
-  const customerVehicles = demoVehicles.filter((v) => v.customer === selectedCustomer?.name);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -183,7 +201,10 @@ export default function NewAppointmentPage() {
           <CardContent className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="booking_source">Booking Source</Label>
-              <Select defaultValue="Phone Call" required>
+              <Select
+                value={form.booking_source}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, booking_source: val }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select source" />
                 </SelectTrigger>
@@ -199,7 +220,10 @@ export default function NewAppointmentPage() {
 
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select defaultValue="Normal" required>
+              <Select
+                value={form.priority}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, priority: val }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
@@ -218,7 +242,8 @@ export default function NewAppointmentPage() {
               <Input
                 id="appointment_date"
                 type="datetime-local"
-                defaultValue={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                value={form.appointment_date_time}
+                onChange={(e) => setForm((prev) => ({ ...prev, appointment_date_time: e.target.value }))}
                 required
               />
             </div>
@@ -228,6 +253,8 @@ export default function NewAppointmentPage() {
               <Input
                 id="promised_delivery"
                 type="datetime-local"
+                value={form.promised_delivery_date_time}
+                onChange={(e) => setForm((prev) => ({ ...prev, promised_delivery_date_time: e.target.value }))}
                 required
               />
             </div>
@@ -239,13 +266,17 @@ export default function NewAppointmentPage() {
                 type="number"
                 step="0.5"
                 min="0.5"
-                defaultValue="2"
+                value={form.estimated_duration_hours}
+                onChange={(e) => setForm((prev) => ({ ...prev, estimated_duration_hours: parseFloat(e.target.value) || 0 }))}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="vehicle_arrival">Vehicle Arrival Status</Label>
-              <Select defaultValue="Customer Waiting" required>
+              <Select
+                value={form.vehicle_arrival_status}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, vehicle_arrival_status: val }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -274,38 +305,46 @@ export default function NewAppointmentPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="customer">Customer</Label>
-                <Select onValueChange={handleCustomerSelect} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {demoCustomers.map((customer) => (
-                      <SelectItem key={customer.name} value={customer.name}>
-                        {customer.customer_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={(customers || []).map((c) => ({
+                    value: c.name,
+                    label: c.customer_name,
+                    description: c.mobile_no,
+                  }))}
+                  value={form.customer}
+                  onValueChange={(val) => {
+                    setForm((prev) => ({ ...prev, customer: val, vehicle: '', vin_chassis: '', license_plate: '', current_odometer: 0 }));
+                  }}
+                  onSearchChange={setCustomerSearch}
+                  placeholder="Search customer..."
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="vehicle">Vehicle (VIN)</Label>
-                <Select
-                  onValueChange={handleVehicleSelect}
-                  disabled={!selectedCustomer}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={selectedCustomer ? 'Select vehicle' : 'Select customer first'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customerVehicles.map((vehicle) => (
-                      <SelectItem key={vehicle.vin} value={vehicle.vin}>
-                        {vehicle.vehicle} - {vehicle.plate}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={(vins || []).map((v) => ({
+                    value: v.name,
+                    label: `${v.model_name || v.name} - ${v.plate_number || ''}`,
+                    description: v.vin_number,
+                  }))}
+                  value={form.vehicle}
+                  onValueChange={(val) => {
+                    setForm((prev) => ({ ...prev, vehicle: val }));
+                    const vin = vins?.find((v) => v.name === val);
+                    if (vin) {
+                      setForm((prev) => ({
+                        ...prev,
+                        vin_chassis: vin.vin_number,
+                        license_plate: vin.plate_number || '',
+                        current_odometer: vin.current_odometer ?? 0,
+                      }));
+                    }
+                  }}
+                  onSearchChange={setVinSearch}
+                  placeholder="Search vehicle..."
+                  disabled={!form.customer}
+                />
               </div>
             </div>
 
@@ -319,11 +358,11 @@ export default function NewAppointmentPage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedCustomer.mobile_no}</span>
+                    <span>{selectedCustomer.mobile_no || '—'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedCustomer.email_id}</span>
+                    <span>{selectedCustomer.email_id || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -335,15 +374,15 @@ export default function NewAppointmentPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Car className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{selectedVehicle.vehicle}</span>
+                    <span className="font-medium">{selectedVehicle.model_name || selectedVehicle.name}</span>
                   </div>
                   <div className="text-sm">
                     <span className="text-muted-foreground">Plate: </span>
-                    <span className="font-medium">{selectedVehicle.plate}</span>
+                    <span className="font-medium">{selectedVehicle.plate_number || '—'}</span>
                   </div>
                   <div className="text-sm">
                     <span className="text-muted-foreground">VIN: </span>
-                    <span className="font-mono text-xs">{selectedVehicle.vin}</span>
+                    <span className="font-mono text-xs">{selectedVehicle.vin_number}</span>
                   </div>
                 </div>
               </div>
@@ -400,6 +439,8 @@ export default function NewAppointmentPage() {
                 id="complaint"
                 placeholder="Record customer's exact words about the issue..."
                 className="min-h-24"
+                value={form.customer_complaint_summary}
+                onChange={(e) => setForm((prev) => ({ ...prev, customer_complaint_summary: e.target.value }))}
                 required
               />
               <p className="text-xs text-muted-foreground">
@@ -413,6 +454,8 @@ export default function NewAppointmentPage() {
                 id="special_instructions"
                 placeholder="e.g., Do not wash, Customer has dog, etc."
                 className="min-h-20"
+                value={form.special_instructions}
+                onChange={(e) => setForm((prev) => ({ ...prev, special_instructions: e.target.value }))}
               />
             </div>
           </CardContent>
@@ -430,35 +473,29 @@ export default function NewAppointmentPage() {
           <CardContent className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="advisor">Preferred Service Advisor</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select advisor (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {demoAdvisors.map((advisor) => (
-                    <SelectItem key={advisor.name} value={advisor.name}>
-                      {advisor.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={(advisors || []).map((a) => ({
+                  value: a.name,
+                  label: a.full_name,
+                }))}
+                value={form.preferred_advisor}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, preferred_advisor: val }))}
+                placeholder="Select advisor..."
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="bay">Service Bay</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Assign bay (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bay-1">Bay 1</SelectItem>
-                  <SelectItem value="bay-2">Bay 2</SelectItem>
-                  <SelectItem value="bay-3">Bay 3</SelectItem>
-                  <SelectItem value="bay-4">Bay 4</SelectItem>
-                  <SelectItem value="bay-5">Bay 5</SelectItem>
-                  <SelectItem value="bay-6">Bay 6</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={(bays || []).map((b) => ({
+                  value: b.name,
+                  label: b.bay_name || b.name,
+                  description: b.branch,
+                }))}
+                value={form.assigned_bay}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, assigned_bay: val }))}
+                placeholder="Select bay..."
+              />
             </div>
           </CardContent>
         </Card>
@@ -466,8 +503,8 @@ export default function NewAppointmentPage() {
         {/* Actions */}
         <div className="flex items-center justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => navigate('appointments')}>Cancel</Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
+          <Button type="submit" disabled={isMutating}>
+            {isMutating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...

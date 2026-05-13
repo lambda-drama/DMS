@@ -30,6 +30,11 @@ const viewTitles: Record<string, string> = {
   'delivery-new': 'New Delivery',
   invoices: 'Invoices',
   'invoice-new': 'New Invoice',
+  technicians: 'Technicians',
+  'technician-detail': 'Technician Details',
+  customers: 'Customers',
+  vehicles: 'Vehicles',
+  'vehicle-new': 'New Vehicle',
 };
 
 interface HeaderProps {
@@ -41,7 +46,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const title = viewTitles[activeView] || 'Dashboard';
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"

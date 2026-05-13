@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
+import { SearchableSelect } from '@/components/searchable-select';
+import { useCustomers, useVINs, useCreateInspection } from '@/hooks/use-dms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -96,22 +98,6 @@ const tirePositions = ['Front Left', 'Front Right', 'Rear Left', 'Rear Right', '
 
 const conditions: InspectionItemCondition[] = ['Good', 'Fair', 'Poor', 'Damaged', 'Missing', 'N/A'];
 
-// Demo data
-const demoCustomers = [
-  { name: 'CUST-0001', customer_name: 'Michael Johnson' },
-  { name: 'CUST-0002', customer_name: 'Sarah Williams' },
-  { name: 'CUST-0003', customer_name: 'James Brown' },
-];
-
-const demoVehicles = [
-  { vin: '1HGBH41JXMN109186', vehicle: 'Toyota Camry 2024', plate: 'ABC 1234', customer: 'CUST-0001' },
-  { vin: '2HGFA16578H531458', vehicle: 'Honda Accord 2023', plate: 'XYZ 5678', customer: 'CUST-0002' },
-];
-
-const demoAdvisors = [
-  { name: 'SA-001', full_name: 'John Smith' },
-  { name: 'SA-002', full_name: 'Jane Doe' },
-];
 
 const steps = [
   { id: 1, name: 'Vehicle Info', icon: Car },
@@ -132,9 +118,20 @@ export default function NewInspectionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Search states
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [vinSearch, setVinSearch] = useState("");
+
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
+  const [licensePlate, setLicensePlate] = useState('');
+  const [currentOdometer, setCurrentOdometer] = useState<number>(0);
+
+  // Real data hooks
+  const { data: customers } = useCustomers(customerSearch);
+  const { data: vins } = useVINs(selectedCustomer || undefined, vinSearch);
+  const { trigger: createInspection } = useCreateInspection();
   const [customerPresent, setCustomerPresent] = useState(true);
   const [selectedWarnings, setSelectedWarnings] = useState<string[]>([]);
   const [exteriorConditions, setExteriorConditions] = useState<Record<string, string>>({});
@@ -180,7 +177,19 @@ export default function NewInspectionPage() {
   async function handleSubmit() {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const formData = {
+        customer: selectedCustomer,
+        vehicle_vin: selectedVehicle,
+        license_plate: licensePlate,
+        current_odometer: currentOdometer,
+        customer_present: customerPresent,
+        warning_lights: selectedWarnings,
+        exterior_conditions: exteriorConditions,
+        interior_conditions: interiorConditions,
+        tire_conditions: tireConditions,
+        complaints: complaints.filter(c => c.trim()),
+      };
+      await createInspection(formData);
       toast.success('Inspection submitted successfully', {
         description: 'You can now create a job card.',
       });
@@ -219,55 +228,41 @@ export default function NewInspectionPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Customer</Label>
-                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {demoCustomers.map((c) => (
-                        <SelectItem key={c.name} value={c.name}>
-                          {c.customer_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={(customers || []).map(c => ({ value: c.name, label: c.customer_name, description: c.mobile_no }))}
+                    value={selectedCustomer}
+                    onValueChange={(val) => setSelectedCustomer(val)}
+                    onSearchChange={setCustomerSearch}
+                    placeholder="Search customer..."
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Vehicle (VIN)</Label>
-                  <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {demoVehicles.map((v) => (
-                        <SelectItem key={v.vin} value={v.vin}>
-                          {v.vehicle} - {v.plate}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Service Advisor</Label>
-                  <Select defaultValue="SA-001">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select advisor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {demoAdvisors.map((a) => (
-                        <SelectItem key={a.name} value={a.name}>
-                          {a.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={(vins || []).map(v => ({ value: v.name, label: `${v.model_name || v.name} - ${v.plate_number || ''}`, description: v.vin_number }))}
+                    value={selectedVehicle}
+                    onValueChange={(val) => {
+                      setSelectedVehicle(val);
+                      const vin = vins?.find(v => v.name === val);
+                      if (vin) {
+                        setLicensePlate(vin.plate_number || '');
+                        setCurrentOdometer(vin.current_odometer || 0);
+                      }
+                    }}
+                    onSearchChange={setVinSearch}
+                    placeholder="Search vehicle..."
+                    disabled={!selectedCustomer}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>License Plate</Label>
-                  <Input placeholder="Enter plate number" />
+                  <Input
+                    value={licensePlate}
+                    onChange={(e) => setLicensePlate(e.target.value)}
+                    placeholder="Enter plate number"
+                  />
                 </div>
               </div>
 

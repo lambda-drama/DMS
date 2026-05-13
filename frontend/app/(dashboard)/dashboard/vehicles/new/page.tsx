@@ -1,0 +1,378 @@
+"use client";
+
+import { useState } from "react";
+import { useNavigation } from "@/contexts/navigation-context";
+import { useCustomers, useVehicleItems } from "@/hooks/use-dms";
+import * as vehiclesSvc from "@/services/vehicles";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+const fuelTypeOptions = [
+  "Petrol", "Diesel", "Hybrid", "PHEV", "EV", "CNG", "LPG",
+];
+const transmissionOptions = [
+  "Manual (MT)", "Automatic (AT)", "CVT", "DCT", "AMT", "EV Single Speed",
+];
+const driveTypeOptions = ["FWD", "RWD", "AWD", "4WD"];
+const vehicleStatusOptions = [
+  "In Stock", "Delivered to Customer", "In Service", "In Transit",
+];
+
+export default function NewVehiclePage() {
+  const { navigate } = useNavigation();
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [itemSearch, setItemSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+
+  const { data: vehicleItems } = useVehicleItems(itemSearch);
+  const { data: customers } = useCustomers(customerSearch);
+
+  const [form, setForm] = useState({
+    vin_number: "",
+    engine_number: "",
+    plate_number: "",
+    linked_item: "",
+    brand: "",
+    model_variant: "",
+    model_year: "",
+    fuel_type: "Petrol",
+    transmission: "Automatic (AT)",
+    drive_type: "FWD",
+    exterior_color: "",
+    current_customer: "",
+    current_odometer: "",
+    odometer_unit: "km",
+    vehicle_status: "In Stock",
+    special_notes: "",
+  });
+
+  const update = (field: string, value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+  async function handleSubmit() {
+    if (!form.vin_number.trim()) {
+      toast({ title: "VIN number is required", variant: "destructive" });
+      return;
+    }
+    if (!form.linked_item) {
+      toast({ title: "Vehicle model (Item) is required", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await vehiclesSvc.createVehicle({
+        vin_number: form.vin_number.trim(),
+        engine_number: form.engine_number || undefined,
+        plate_number: form.plate_number || undefined,
+        linked_item: form.linked_item,
+        brand: form.brand || undefined,
+        model_variant: form.model_variant || undefined,
+        model_year: form.model_year ? parseInt(form.model_year) : undefined,
+        fuel_type: form.fuel_type || undefined,
+        transmission: form.transmission || undefined,
+        drive_type: form.drive_type || undefined,
+        exterior_color: form.exterior_color || undefined,
+        current_customer: form.current_customer || undefined,
+        current_odometer: form.current_odometer ? parseInt(form.current_odometer) : undefined,
+        odometer_unit: form.odometer_unit,
+        vehicle_status: form.vehicle_status,
+        special_notes: form.special_notes || undefined,
+      });
+      toast({ title: `Vehicle ${result.name} created successfully` });
+      navigate("vehicles");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create vehicle";
+      toast({ title: message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <Button variant="ghost" size="sm" onClick={() => navigate("vehicles")}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Vehicles
+      </Button>
+
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Register New Vehicle</h1>
+        <p className="text-muted-foreground">Create a new VIN record</p>
+      </div>
+
+      {/* Vehicle Identification */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Vehicle Identification</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>
+                VIN / Chassis Number <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="17-character VIN"
+                value={form.vin_number}
+                onChange={(e) => update("vin_number", e.target.value.toUpperCase())}
+                maxLength={17}
+              />
+              {form.vin_number && form.vin_number.length !== 17 && (
+                <p className="text-xs text-amber-600">
+                  VIN should be 17 characters ({form.vin_number.length}/17)
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Engine Number</Label>
+              <Input
+                placeholder="Engine number"
+                value={form.engine_number}
+                onChange={(e) => update("engine_number", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>License Plate</Label>
+              <Input
+                placeholder="License plate number"
+                value={form.plate_number}
+                onChange={(e) => update("plate_number", e.target.value.toUpperCase())}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Vehicle Model (Item) <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={form.linked_item}
+                onValueChange={(v) => update("linked_item", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select vehicle model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="p-2">
+                    <Input
+                      placeholder="Search models..."
+                      value={itemSearch}
+                      onChange={(e) => setItemSearch(e.target.value)}
+                      className="mb-2"
+                    />
+                  </div>
+                  {vehicleItems?.map((item) => (
+                    <SelectItem key={item.name} value={item.name}>
+                      {item.item_name} {item.brand ? `(${item.brand})` : ""}
+                    </SelectItem>
+                  )) || (
+                    <SelectItem value="" disabled>
+                      No vehicle models found
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Model Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Model & Trim Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Model Year</Label>
+              <Input
+                type="number"
+                placeholder="e.g. 2024"
+                value={form.model_year}
+                onChange={(e) => update("model_year", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Variant / Trim</Label>
+              <Input
+                placeholder="e.g. Premium, Sport"
+                value={form.model_variant}
+                onChange={(e) => update("model_variant", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Exterior Color</Label>
+              <Input
+                placeholder="e.g. Pearl White"
+                value={form.exterior_color}
+                onChange={(e) => update("exterior_color", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Fuel Type</Label>
+              <Select value={form.fuel_type} onValueChange={(v) => update("fuel_type", v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fuelTypeOptions.map((f) => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Transmission</Label>
+              <Select value={form.transmission} onValueChange={(v) => update("transmission", v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {transmissionOptions.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Drive Type</Label>
+              <Select value={form.drive_type} onValueChange={(v) => update("drive_type", v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {driveTypeOptions.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Customer & Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Customer & Status</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Current Customer / Owner</Label>
+              <Select
+                value={form.current_customer}
+                onValueChange={(v) => update("current_customer", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select customer (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="p-2">
+                    <Input
+                      placeholder="Search customers..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      className="mb-2"
+                    />
+                  </div>
+                  {customers?.map((c) => (
+                    <SelectItem key={c.name} value={c.name}>
+                      {c.customer_name} ({c.name})
+                    </SelectItem>
+                  )) || (
+                    <SelectItem value="" disabled>
+                      No customers found
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Vehicle Status</Label>
+              <Select
+                value={form.vehicle_status}
+                onValueChange={(v) => update("vehicle_status", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicleStatusOptions.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Current Odometer</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={form.current_odometer}
+                  onChange={(e) => update("current_odometer", e.target.value)}
+                  className="flex-1"
+                />
+                <Select
+                  value={form.odometer_unit}
+                  onValueChange={(v) => update("odometer_unit", v)}
+                >
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="km">km</SelectItem>
+                    <SelectItem value="miles">miles</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Any special notes about this vehicle..."
+            value={form.special_notes}
+            onChange={(e) => update("special_notes", e.target.value)}
+            rows={3}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <Button variant="outline" onClick={() => navigate("vehicles")}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={saving}>
+          {saving ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          Create Vehicle
+        </Button>
+      </div>
+    </div>
+  );
+}

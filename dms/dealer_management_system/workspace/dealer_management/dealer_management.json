@@ -1,7 +1,7 @@
 {
  "app": "dms",
  "charts": [],
- "content": "[{\"id\":\"dms_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Dealer Management Workspace</b></span>\",\"col\":12}},{\"id\":\"dms_shortcut_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"DMS Job Card\",\"col\":3}},{\"id\":\"dms_shortcut_2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service Appointment\",\"col\":3}},{\"id\":\"dms_shortcut_3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Inspection\",\"col\":3}},{\"id\":\"dms_shortcut_4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Delivery Note\",\"col\":3}},{\"id\":\"dms_master_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Master\",\"col\":6}},{\"id\":\"dms_transaction_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Transactions\",\"col\":6}}]",
+ "content": "[{\"id\":\"dms_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Dealer Management Workspace</b></span>\",\"col\":12}},{\"id\":\"dms_shortcut_0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"DMS Frontend\",\"col\":4}},{\"id\":\"dms_shortcut_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"DMS Job Card\",\"col\":3}},{\"id\":\"dms_shortcut_2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service Appointment\",\"col\":3}},{\"id\":\"dms_shortcut_3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Inspection\",\"col\":3}},{\"id\":\"dms_shortcut_4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Delivery Note\",\"col\":3}},{\"id\":\"dms_master_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Master\",\"col\":6}},{\"id\":\"dms_transaction_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Transactions\",\"col\":6}}]",
  "creation": "2026-05-08 22:52:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -177,6 +177,12 @@
  "roles": [],
  "sequence_id": 1.0,
  "shortcuts": [
+  {
+   "color": "#4563f0",
+   "label": "DMS Frontend",
+   "link_to": "/dms/dashboard",
+   "type": "URL"
+  },
   {
    "doc_view": "List",
    "label": "DMS Job Card",

@@ -1,58 +1,64 @@
+/**
+ * Service Appointment service — calls whitelisted methods in dms.api.appointments
+ */
 import { apiRequest } from './apiClient';
-import type { ServiceAppointment } from '@/types/dms';
+import type { ServiceAppointment, PaginatedResponse } from '@/types/dms';
 
-const DT = 'Service Appointment';
+const API = 'dms.api.appointments';
 
 export async function listAppointments(options?: {
   status?: string;
   date?: string;
+  search?: string;
   limit?: number;
-}): Promise<ServiceAppointment[]> {
-  const params = new URLSearchParams();
-  const filters: Record<string, unknown> = {};
-  if (options?.status) filters.appointment_status = options.status;
-  if (options?.date) filters.appointment_date_time = ['like', `${options.date}%`];
-  if (Object.keys(filters).length) params.set('filters', JSON.stringify(filters));
-  params.set('order_by', 'appointment_date_time desc');
-  params.set('limit_page_length', String(options?.limit || 50));
-
-  return apiRequest<ServiceAppointment[]>(`/api/resource/${DT}?${params}`);
+  offset?: number;
+}): Promise<PaginatedResponse<ServiceAppointment>> {
+  return apiRequest<PaginatedResponse<ServiceAppointment>>(`/api/method/${API}.get_appointments`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      date: options?.date || null,
+      search: options?.search || null,
+      limit: options?.limit || 50,
+      offset: options?.offset || 0,
+    }),
+  });
 }
 
 export async function getAppointment(name: string): Promise<ServiceAppointment> {
-  return apiRequest<ServiceAppointment>(`/api/resource/${DT}/${encodeURIComponent(name)}`);
+  return apiRequest<ServiceAppointment>(`/api/method/${API}.get_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
 }
 
-export async function createAppointment(data: Partial<ServiceAppointment>): Promise<ServiceAppointment> {
-  return apiRequest<ServiceAppointment>(`/api/resource/${DT}`, {
+export async function createAppointment(data: Partial<ServiceAppointment>): Promise<{ name: string; customer: string; customer_name: string; appointment_date_time: string; appointment_status: string }> {
+  return apiRequest(`/api/method/${API}.create_appointment`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ data }),
   });
 }
 
 export async function updateAppointment(
   name: string,
   data: Partial<ServiceAppointment>
-): Promise<ServiceAppointment> {
-  return apiRequest<ServiceAppointment>(`/api/resource/${DT}/${encodeURIComponent(name)}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
+): Promise<{ name: string; appointment_status: string }> {
+  return apiRequest(`/api/method/${API}.update_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
   });
 }
 
-export async function submitAppointment(name: string): Promise<ServiceAppointment> {
-  return apiRequest<ServiceAppointment>(`/api/resource/${DT}/${encodeURIComponent(name)}`, {
-    method: 'PUT',
-    body: JSON.stringify({ docstatus: 1 }),
+export async function submitAppointment(name: string): Promise<{ name: string; docstatus: number }> {
+  return apiRequest(`/api/method/${API}.submit_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
   });
 }
 
-export async function markArrived(name: string): Promise<ServiceAppointment> {
-  return apiRequest<ServiceAppointment>(`/api/resource/${DT}/${encodeURIComponent(name)}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      appointment_status: 'Arrived',
-      arrived_date_time: new Date().toISOString().replace('T', ' ').slice(0, 19),
-    }),
+export async function markArrived(name: string): Promise<{ name: string; appointment_status: string; arrived_date_time: string }> {
+  return apiRequest(`/api/method/${API}.mark_arrived`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
   });
 }

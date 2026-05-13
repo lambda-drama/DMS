@@ -37,6 +37,10 @@
   --chart-3: #2E7D32;
   --chart-4: #F9A825;
   --chart-5: #D32F2F;
+  /* DMS Green Accent */
+  --dms-green: #2E7D32;
+  --dms-green-light: #E8F5E9;
+  --dms-green-medium: #43A047;
   --radius: 0.5rem;
   /* Sidebar */
   --sidebar: #0F3D5E;
@@ -80,6 +84,9 @@
   --chart-3: #66BB6A;
   --chart-4: #FFC107;
   --chart-5: #EF5350;
+  --dms-green: #43A047;
+  --dms-green-light: #1B3D1E;
+  --dms-green-medium: #66BB6A;
   --sidebar: #081E2D;
   --sidebar-foreground: #F5F7FA;
   --sidebar-primary: #1E88E5;
@@ -135,6 +142,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-dms-green: var(--dms-green);
+  --color-dms-green-light: var(--dms-green-light);
+  --color-dms-green-medium: var(--dms-green-medium);
 }
 
 @layer base {
@@ -144,4 +154,5 @@
   body {
     @apply bg-background text-foreground;
   }
+
 }

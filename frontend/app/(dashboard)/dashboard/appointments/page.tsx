@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -43,96 +43,10 @@ import {
   XCircle,
   AlertTriangle,
 } from 'lucide-react';
+import { PaginationControls } from '@/components/pagination-controls';
+import { useAppointments, useAppointment } from '@/hooks/use-dms';
+import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
 import type { AppointmentStatus, Priority } from '@/types/dms';
-
-// Demo data
-const demoAppointments = [
-  {
-    name: 'APP-2026-00012',
-    appointment_date_time: '2026-05-13T09:00:00',
-    promised_delivery_date_time: '2026-05-13T17:00:00',
-    customer_name: 'Michael Johnson',
-    primary_phone: '+1 555-0123',
-    customer_email: 'michael.j@email.com',
-    vehicle: 'Toyota Camry',
-    license_plate: 'ABC 1234',
-    vin_chassis: '1HGBH41JXMN109186',
-    service_type_requested: [{ service_type: 'Regular Service' }],
-    customer_complaint_summary: 'Oil change and tire rotation needed',
-    appointment_status: 'Booked' as AppointmentStatus,
-    priority: 'Normal' as Priority,
-    booking_source: 'Phone Call',
-    assigned_service_advisor: 'John Smith',
-  },
-  {
-    name: 'APP-2026-00011',
-    appointment_date_time: '2026-05-13T10:30:00',
-    promised_delivery_date_time: '2026-05-13T16:00:00',
-    customer_name: 'Sarah Williams',
-    primary_phone: '+1 555-0124',
-    customer_email: 'sarah.w@email.com',
-    vehicle: 'Honda Accord',
-    license_plate: 'XYZ 5678',
-    vin_chassis: '2HGFA16578H531458',
-    service_type_requested: [{ service_type: 'Brake Service' }],
-    customer_complaint_summary: 'Squeaking noise when braking',
-    appointment_status: 'Arrived' as AppointmentStatus,
-    priority: 'VIP' as Priority,
-    booking_source: 'WhatsApp',
-    assigned_service_advisor: 'Jane Doe',
-  },
-  {
-    name: 'APP-2026-00010',
-    appointment_date_time: '2026-05-13T11:00:00',
-    promised_delivery_date_time: '2026-05-14T12:00:00',
-    customer_name: 'James Brown',
-    primary_phone: '+1 555-0125',
-    customer_email: 'james.b@email.com',
-    vehicle: 'BMW X5',
-    license_plate: 'BMW 9012',
-    vin_chassis: '5UXFE43578L015879',
-    service_type_requested: [{ service_type: 'Engine Diagnostic' }, { service_type: 'AC Repair' }],
-    customer_complaint_summary: 'Check engine light on, AC not cooling properly',
-    appointment_status: 'In Inspection' as AppointmentStatus,
-    priority: 'Urgent' as Priority,
-    booking_source: 'Website',
-    assigned_service_advisor: 'John Smith',
-  },
-  {
-    name: 'APP-2026-00009',
-    appointment_date_time: '2026-05-13T14:00:00',
-    promised_delivery_date_time: '2026-05-13T18:00:00',
-    customer_name: 'Emily Davis',
-    primary_phone: '+1 555-0126',
-    customer_email: 'emily.d@email.com',
-    vehicle: 'Mercedes C300',
-    license_plate: 'MBZ 3456',
-    vin_chassis: 'WDDGF4HB1DA765432',
-    service_type_requested: [{ service_type: 'Warranty Service' }],
-    customer_complaint_summary: 'Electrical issue - warranty claim',
-    appointment_status: 'Completed' as AppointmentStatus,
-    priority: 'Normal' as Priority,
-    booking_source: 'Sales Referral',
-    assigned_service_advisor: 'Jane Doe',
-  },
-  {
-    name: 'APP-2026-00008',
-    appointment_date_time: '2026-05-12T09:00:00',
-    promised_delivery_date_time: '2026-05-12T15:00:00',
-    customer_name: 'Robert Wilson',
-    primary_phone: '+1 555-0127',
-    customer_email: 'robert.w@email.com',
-    vehicle: 'Audi A4',
-    license_plate: 'AUD 7890',
-    vin_chassis: 'WAUZZZ8E18A098765',
-    service_type_requested: [{ service_type: 'Tire Replacement' }],
-    customer_complaint_summary: 'Replace all 4 tires',
-    appointment_status: 'No-Show' as AppointmentStatus,
-    priority: 'Normal' as Priority,
-    booking_source: 'Phone Call',
-    assigned_service_advisor: 'John Smith',
-  },
-];
 
 function getStatusConfig(status: AppointmentStatus) {
   const configs: Record<AppointmentStatus, { color: string; icon: typeof CheckCircle2 }> = {
@@ -169,26 +83,43 @@ export default function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const filteredAppointments = demoAppointments.filter((apt) => {
+  const { data: selectedAppointment, isLoading: detailLoading } = useAppointment(selectedId);
+
+  const { data: result, isLoading, error } = useAppointments({
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
+  });
+  const appointments = result?.data;
+  const totalItems = result?.total || 0;
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, priorityFilter, searchQuery]);
+
+  const filteredAppointments = (appointments || []).filter((apt) => {
     const matchesSearch =
-      apt.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.license_plate.toLowerCase().includes(searchQuery.toLowerCase());
+      searchQuery === '' ||
+      apt.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.vehicle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.license_plate?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || apt.appointment_status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || apt.priority === priorityFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch && matchesPriority;
   });
 
-  const todayCount = demoAppointments.filter(
-    (apt) => format(new Date(apt.appointment_date_time), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+  const todayCount = (appointments || []).filter(
+    (apt) => apt.appointment_date_time && format(new Date(apt.appointment_date_time), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   ).length;
 
-  const arrivedCount = demoAppointments.filter((apt) => apt.appointment_status === 'Arrived').length;
-  const pendingCount = demoAppointments.filter((apt) => apt.appointment_status === 'Booked').length;
+  const arrivedCount = (appointments || []).filter((apt) => apt.appointment_status === 'Arrived').length;
+  const pendingCount = (appointments || []).filter((apt) => apt.appointment_status === 'Booked').length;
 
   return (
     <div className="space-y-6">
@@ -234,7 +165,7 @@ export default function AppointmentsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {demoAppointments.filter((apt) => apt.priority === 'VIP' || apt.priority === 'Urgent').length}
+                {(appointments || []).filter((apt) => apt.priority === 'VIP' || apt.priority === 'Urgent').length}
               </p>
               <p className="text-sm text-muted-foreground">Priority</p>
             </div>
@@ -326,7 +257,7 @@ export default function AppointmentsPage() {
                           <div>
                             <a
                               href="#"
-                              onClick={(e) => { e.preventDefault(); navigate('appointment-detail', { id: apt.name }); }}
+                              onClick={(e) => { e.preventDefault(); setSelectedId(apt.name); }}
                               className="font-medium hover:text-primary"
                             >
                               {apt.name}
@@ -393,7 +324,7 @@ export default function AppointmentsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate('appointment-detail', { id: apt.name })}>
+                            <DropdownMenuItem onClick={() => setSelectedId(apt.name)}>
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate('appointment-detail', { id: apt.name, mode: 'edit' })}>
@@ -424,7 +355,7 @@ export default function AppointmentsPage() {
             </Table>
           </div>
 
-          {filteredAppointments.length === 0 && (
+          {filteredAppointments.length === 0 && !isLoading && (
             <div className="py-12 text-center">
               <Calendar className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-lg font-medium">No appointments found</p>
@@ -433,8 +364,65 @@ export default function AppointmentsPage() {
               </p>
             </div>
           )}
+
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
+
+      <DetailSheet
+        open={!!selectedId}
+        onOpenChange={(open) => { if (!open) setSelectedId(null); }}
+        title={selectedId || ""}
+        subtitle={selectedAppointment?.customer_name}
+        badge={selectedAppointment ? { label: selectedAppointment.appointment_status } : undefined}
+        isLoading={detailLoading}
+        onOpenInDesk={() => window.open(`/app/service-appointment/${selectedId}`, '_blank')}
+      >
+        {selectedAppointment && (
+          <>
+            <DetailSection title="Appointment Info">
+              <DetailRow label="Status" value={selectedAppointment.appointment_status} />
+              <DetailRow label="Booking Source" value={selectedAppointment.booking_source} />
+              <DetailRow label="Priority" value={selectedAppointment.priority} />
+              <DetailRow label="Date & Time" value={selectedAppointment.appointment_date_time ? new Date(selectedAppointment.appointment_date_time).toLocaleString() : undefined} />
+              <DetailRow label="Promised Delivery" value={selectedAppointment.promised_delivery_date_time ? new Date(selectedAppointment.promised_delivery_date_time).toLocaleString() : undefined} />
+              <DetailRow label="Est. Duration" value={selectedAppointment.estimated_duration_hours ? `${selectedAppointment.estimated_duration_hours} hrs` : undefined} />
+            </DetailSection>
+            <DetailSection title="Customer">
+              <DetailRow label="Name" value={selectedAppointment.customer_name} />
+              <DetailRow label="Phone" value={selectedAppointment.primary_phone} />
+              <DetailRow label="Email" value={selectedAppointment.customer_email} />
+            </DetailSection>
+            <DetailSection title="Vehicle">
+              <DetailRow label="VIN" value={selectedAppointment.vin_chassis} />
+              <DetailRow label="License Plate" value={selectedAppointment.license_plate} />
+              <DetailRow label="Odometer" value={selectedAppointment.current_odometer ? `${selectedAppointment.current_odometer} km` : undefined} />
+              <DetailRow label="Warranty" value={selectedAppointment.warranty_status} />
+            </DetailSection>
+            <DetailSection title="Assignment">
+              <DetailRow label="Service Advisor" value={selectedAppointment.service_advisor} />
+              <DetailRow label="Service Bay" value={selectedAppointment.assigned_bay} />
+              <DetailRow label="Arrival Status" value={selectedAppointment.vehicle_arrival_status} />
+            </DetailSection>
+            {selectedAppointment.customer_complaint_summary && (
+              <DetailSection title="Complaints">
+                <p className="text-sm">{selectedAppointment.customer_complaint_summary}</p>
+              </DetailSection>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setSelectedId(null); navigate('appointment-detail', { id: selectedId! }); }}>
+                Open Full Details
+              </Button>
+            </div>
+          </>
+        )}
+      </DetailSheet>
     </div>
   );
 }

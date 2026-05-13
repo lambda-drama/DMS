@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useJobCard, useCreateInvoice } from "@/hooks/use-dms";
+import { useJobCard } from "@/hooks/use-dms";
+import * as jobCardsSvc from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ export default function NewInvoicePage() {
   const jobCardId = viewParams.get("jobcard");
   
   const { data: jobCard } = useJobCard(jobCardId || "");
-  const { trigger: createInvoice, isMutating } = useCreateInvoice();
+  const [isMutating, setIsMutating] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Invoice>>({
     job_card: "",
@@ -205,12 +206,17 @@ export default function NewInvoicePage() {
       return;
     }
 
+    setIsMutating(true);
     try {
-      const result = await createInvoice(formData);
+      if (jobCardId) {
+        await jobCardsSvc.makeSalesInvoice(jobCardId);
+      }
       toast.success("Invoice created successfully");
       navigate('invoices');
     } catch {
       toast.error("Failed to create invoice");
+    } finally {
+      setIsMutating(false);
     }
   };
 

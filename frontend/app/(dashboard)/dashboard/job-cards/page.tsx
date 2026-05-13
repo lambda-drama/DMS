@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useJobCards } from "@/hooks/use-dms";
+import { useJobCards, useJobCard } from "@/hooks/use-dms";
+import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { StatusBadge } from "@/components/job-card/status-badge";
+import { PaginationControls } from "@/components/pagination-controls";
 import type { JobCardStatus } from "@/types/dms";
 
 const statusFilterOptions: { value: string; label: string }[] = [
@@ -73,12 +75,14 @@ const ACTIVE_STATUSES = [
 ];
 
 function WorkflowProgress({ status }: { status: JobCardStatus }) {
-  const stages = ["Draft", "Estimation", "Repair", "Road Test", "QC", "Completed"];
+  const stages = ["Draft", "Estimate", "Repair", "Road Test", "QC", "Done"];
   const stageMap: Record<string, number> = {
     Draft: 0,
+    Open: 0,
     "Estimation Pending": 1,
     "Estimation Approved": 1,
     "Waiting Customer Approval": 1,
+    Scheduled: 1,
     "Repair In Progress": 2,
     "Repair Completed": 2,
     "Waiting Parts": 2,
@@ -95,18 +99,30 @@ function WorkflowProgress({ status }: { status: JobCardStatus }) {
   if (currentIndex < 0 || status === "Cancelled") return null;
 
   return (
-    <div className="flex items-center gap-1">
-      {stages.map((_, index) => (
-        <div
-          key={index}
-          className={`h-1.5 w-6 rounded-full transition-colors ${
-            index <= currentIndex
-              ? index === currentIndex
-                ? "bg-primary"
-                : "bg-primary/60"
-              : "bg-muted"
-          }`}
-        />
+    <div className="flex items-center gap-0.5" title={status}>
+      {stages.map((label, index) => (
+        <div key={index} className="flex flex-col items-center">
+          <div
+            className={`h-1.5 w-5 rounded-full transition-colors ${
+              index <= currentIndex
+                ? index === currentIndex
+                  ? "bg-primary"
+                  : "bg-primary/60"
+                : "bg-muted"
+            }`}
+          />
+          <span
+            className={`text-[9px] leading-tight mt-0.5 ${
+              index === currentIndex
+                ? "text-primary font-semibold"
+                : index < currentIndex
+                  ? "text-muted-foreground"
+                  : "text-muted-foreground/50"
+            }`}
+          >
+            {label}
+          </span>
+        </div>
       ))}
     </div>
   );
@@ -116,9 +132,21 @@ export default function JobCardsPage() {
   const { navigate } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const { data: jobCards, isLoading, error } = useJobCards({
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { data: result, isLoading, error } = useJobCards({
     status: statusFilter !== "all" ? statusFilter : undefined,
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
   });
+  const jobCards = result?.data;
+  const totalItems = result?.total || 0;
+  const { data: selectedJobCard, isLoading: detailLoading } = useJobCard(selectedId);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   const filtered = jobCards?.filter((jc) => {
     if (!searchQuery) return true;
@@ -269,7 +297,7 @@ export default function JobCardsPage() {
                       <TableCell>
                         <button
                           type="button"
-                          onClick={() => navigate("job-card-detail", { id: jc.name })}
+                          onClick={() => setSelectedId(jc.name)}
                           className="font-medium text-primary hover:underline"
                         >
                           {jc.name}
@@ -277,7 +305,7 @@ export default function JobCardsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{jc.license_plate || jc.vehicle_registration}</p>
+                          <p className="font-medium">{jc.license_plate || "—"}</p>
                           <p className="text-sm text-muted-foreground">{jc.vehicle_model}</p>
                         </div>
                       </TableCell>
@@ -285,7 +313,7 @@ export default function JobCardsPage() {
                         <p className="font-medium">{jc.customer_name}</p>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{jc.service_type}</Badge>
+                        <Badge variant="outline">{jc.job_card_type}</Badge>
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={jc.status} />
@@ -296,9 +324,7 @@ export default function JobCardsPage() {
                       <TableCell>
                         {jc.promised_delivery_date_time
                           ? new Date(jc.promised_delivery_date_time).toLocaleDateString()
-                          : jc.expected_completion_date
-                            ? new Date(jc.expected_completion_date).toLocaleDateString()
-                            : "–"}
+                          : "–"}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -308,16 +334,14 @@ export default function JobCardsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate("job-card-detail", { id: jc.name })}>
+                            <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            {jc.status === "Draft" && (
-                              <DropdownMenuItem onClick={() => navigate("job-card-detail", { id: jc.name, mode: "edit" })}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem onClick={() => navigate("job-card-detail", { id: jc.name })}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -335,8 +359,70 @@ export default function JobCardsPage() {
               </Button>
             </div>
           )}
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
+
+      <DetailSheet
+        open={!!selectedId}
+        onOpenChange={(open) => { if (!open) setSelectedId(null); }}
+        title={selectedId || ""}
+        subtitle={selectedJobCard?.customer_name}
+        badge={selectedJobCard ? { label: selectedJobCard.status } : undefined}
+        isLoading={detailLoading}
+        onOpenInDesk={() => window.open(`/app/dms-job-card/${selectedId}`, '_blank')}
+      >
+        {selectedJobCard && (
+          <>
+            <DetailSection title="Customer & Vehicle">
+              <DetailRow label="Customer" value={selectedJobCard.customer_name} />
+              <DetailRow label="Vehicle" value={selectedJobCard.vehicle_model} />
+              <DetailRow label="License Plate" value={selectedJobCard.license_plate} />
+              <DetailRow label="VIN" value={selectedJobCard.vehicle_vin} />
+              <DetailRow label="Odometer" value={selectedJobCard.current_odometer ? `${selectedJobCard.current_odometer} km` : undefined} />
+            </DetailSection>
+            <DetailSection title="Service Details">
+              <DetailRow label="Type" value={selectedJobCard.job_card_type} />
+              <DetailRow label="Priority" value={selectedJobCard.priority} />
+              <DetailRow label="Service Advisor" value={selectedJobCard.service_advisor} />
+              <DetailRow label="Lead Technician" value={selectedJobCard.lead_technician_name || selectedJobCard.lead_technician} />
+              <DetailRow label="Service Bay" value={selectedJobCard.assigned_bay} />
+              <DetailRow label="Warranty" value={selectedJobCard.warranty_status} />
+            </DetailSection>
+            <DetailSection title="Timing">
+              <DetailRow label="Opened" value={selectedJobCard.opened_date_time ? new Date(selectedJobCard.opened_date_time).toLocaleString() : undefined} />
+              <DetailRow label="Promised Delivery" value={selectedJobCard.promised_delivery_date_time ? new Date(selectedJobCard.promised_delivery_date_time).toLocaleString() : undefined} />
+              <DetailRow label="Completed" value={selectedJobCard.completed_date_time ? new Date(selectedJobCard.completed_date_time).toLocaleString() : undefined} />
+              <DetailRow label="Est. Duration" value={selectedJobCard.estimated_duration_hours ? `${selectedJobCard.estimated_duration_hours} hrs` : undefined} />
+              <DetailRow label="Actual Duration" value={selectedJobCard.actual_duration_hours ? `${selectedJobCard.actual_duration_hours} hrs` : undefined} />
+            </DetailSection>
+            <DetailSection title="Financials">
+              <DetailRow label="Labor Cost" value={selectedJobCard.total_labor_cost?.toLocaleString()} />
+              <DetailRow label="Parts Cost" value={selectedJobCard.total_parts_cost?.toLocaleString()} />
+              <DetailRow label="Total Amount" value={selectedJobCard.total_amount?.toLocaleString()} />
+              <DetailRow label="Approval Status" value={selectedJobCard.customer_approval_status} />
+              <DetailRow label="Payment Status" value={selectedJobCard.payment_status} />
+              <DetailRow label="Invoice" value={selectedJobCard.invoice} />
+            </DetailSection>
+            {selectedJobCard.customer_complaint_summary && (
+              <DetailSection title="Customer Complaints">
+                <p className="text-sm">{selectedJobCard.customer_complaint_summary}</p>
+              </DetailSection>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setSelectedId(null); navigate('job-card-detail', { id: selectedId! }); }}>
+                Open Full Details
+              </Button>
+            </div>
+          </>
+        )}
+      </DetailSheet>
     </div>
   );
 }

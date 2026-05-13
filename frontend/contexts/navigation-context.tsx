@@ -9,6 +9,9 @@ const ALL_VIEWS = [
   'job-cards', 'job-card-detail', 'job-card-new',
   'deliveries', 'delivery-new',
   'invoices', 'invoice-new',
+  'technicians', 'technician-detail',
+  'customers',
+  'vehicles', 'vehicle-new',
 ];
 
 const VIEW_GROUPS: Record<string, string> = {
@@ -26,6 +29,11 @@ const VIEW_GROUPS: Record<string, string> = {
   'delivery-new': 'deliveries',
   'invoices': 'invoices',
   'invoice-new': 'invoices',
+  'technicians': 'technicians',
+  'technician-detail': 'technicians',
+  'customers': 'customers',
+  'vehicles': 'vehicles',
+  'vehicle-new': 'vehicles',
 };
 
 interface NavigationContextType {

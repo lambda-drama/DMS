@@ -8,13 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -29,54 +22,57 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  DetailSheet,
+  DetailSection,
+  DetailRow,
+} from "@/components/detail-sheet";
+import {
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   Eye,
   Truck,
   CheckCircle2,
   Clock,
   FileText,
+  ExternalLink,
 } from "lucide-react";
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  Draft: { label: "Draft", variant: "secondary" },
-  "Ready for Delivery": { label: "Ready", variant: "default" },
-  Delivered: { label: "Delivered", variant: "default" },
-  Cancelled: { label: "Cancelled", variant: "destructive" },
+const docstatusMap: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  0: { label: "Draft", variant: "secondary" },
+  1: { label: "Submitted", variant: "default" },
+  2: { label: "Cancelled", variant: "destructive" },
 };
 
 export default function DeliveriesPage() {
   const { navigate } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: deliveries, isLoading, error } = useDeliveries({
-    status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchQuery || undefined,
   });
 
+  const selectedDelivery = deliveries?.find((d) => d.name === selectedId);
+
   const stats = {
     total: deliveries?.length || 0,
-    ready: deliveries?.filter((d) => d.status === "Ready for Delivery").length || 0,
-    delivered: deliveries?.filter((d) => d.status === "Delivered").length || 0,
+    draft: deliveries?.filter((d) => d.docstatus === 0).length || 0,
+    submitted: deliveries?.filter((d) => d.docstatus === 1).length || 0,
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Vehicle Deliveries</h1>
           <p className="text-muted-foreground mt-1">Manage vehicle delivery and handover</p>
         </div>
-        <Button onClick={() => navigate('delivery-new')}>
+        <Button onClick={() => navigate("delivery-new")}>
           <Plus className="h-4 w-4 mr-2" />
           New Delivery
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -95,8 +91,8 @@ export default function DeliveriesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Ready</p>
-                <p className="text-2xl font-bold">{stats.ready}</p>
+                <p className="text-sm text-muted-foreground">Draft</p>
+                <p className="text-2xl font-bold">{stats.draft}</p>
               </div>
               <div className="p-2 rounded-lg bg-[#F9A825]/10">
                 <Clock className="h-5 w-5 text-[#F9A825]" />
@@ -108,8 +104,8 @@ export default function DeliveriesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Delivered</p>
-                <p className="text-2xl font-bold">{stats.delivered}</p>
+                <p className="text-sm text-muted-foreground">Submitted</p>
+                <p className="text-2xl font-bold">{stats.submitted}</p>
               </div>
               <div className="p-2 rounded-lg bg-[#2E7D32]/10">
                 <CheckCircle2 className="h-5 w-5 text-[#2E7D32]" />
@@ -119,38 +115,20 @@ export default function DeliveriesPage() {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by delivery ID, vehicle, customer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {Object.entries(statusConfig).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    {config.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by delivery ID, vehicle, customer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card>
         <CardHeader>
           <CardTitle>Deliveries List</CardTitle>
@@ -179,56 +157,71 @@ export default function DeliveriesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deliveries.map((delivery) => (
-                    <TableRow key={delivery.name}>
-                      <TableCell>
-                        <button 
-                          onClick={() => navigate('delivery-detail', { id: delivery.name })}
-                          className="font-medium text-primary hover:underline"
-                        >
-                          {delivery.name}
-                        </button>
-                      </TableCell>
-                      <TableCell>
-                        <button 
-                          onClick={() => navigate('job-card-detail', { id: delivery.job_card })}
-                          className="text-muted-foreground hover:text-primary hover:underline"
-                        >
-                          {delivery.job_card}
-                        </button>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-medium">{delivery.vehicle_registration}</p>
-                      </TableCell>
-                      <TableCell>{delivery.customer_name}</TableCell>
-                      <TableCell>
-                        <Badge variant={statusConfig[delivery.status]?.variant || "secondary"}>
-                          {delivery.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {delivery.delivery_date 
-                          ? new Date(delivery.delivery_date).toLocaleDateString()
-                          : "-"
-                        }
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate('delivery-detail', { id: delivery.name })}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {deliveries.map((delivery) => {
+                    const ds = docstatusMap[delivery.docstatus] || docstatusMap[0];
+                    return (
+                      <TableRow key={delivery.name}>
+                        <TableCell>
+                          <button
+                            onClick={() => setSelectedId(delivery.name)}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {delivery.name}
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          {delivery.job_card ? (
+                            <button
+                              onClick={() => navigate("job-card-detail", { id: delivery.job_card })}
+                              className="text-muted-foreground hover:text-primary hover:underline"
+                            >
+                              {delivery.job_card}
+                            </button>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{delivery.license_plate || "—"}</p>
+                            <p className="text-xs text-muted-foreground">{delivery.vehicle_model}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{delivery.customer || "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={ds.variant}>{ds.label}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {delivery.delivery_date_time
+                            ? new Date(delivery.delivery_date_time).toLocaleDateString()
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setSelectedId(delivery.name)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  window.open(`/app/vehicle-delivery-note/${delivery.name}`, "_blank")
+                                }
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Open in Desk
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -240,6 +233,75 @@ export default function DeliveriesPage() {
           )}
         </CardContent>
       </Card>
+
+      <DetailSheet
+        open={!!selectedId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
+        title={selectedId || ""}
+        subtitle={selectedDelivery?.customer}
+        badge={
+          selectedDelivery
+            ? {
+                label: docstatusMap[selectedDelivery.docstatus]?.label || "Draft",
+                variant: docstatusMap[selectedDelivery.docstatus]?.variant,
+              }
+            : undefined
+        }
+        onOpenInDesk={() =>
+          window.open(`/app/vehicle-delivery-note/${selectedId}`, "_blank")
+        }
+      >
+        {selectedDelivery && (
+          <>
+            <DetailSection title="Delivery Info">
+              <DetailRow label="Job Card" value={selectedDelivery.job_card} />
+              <DetailRow label="Customer" value={selectedDelivery.customer} />
+              <DetailRow label="Delivered By" value={selectedDelivery.delivered_by} />
+              <DetailRow
+                label="Delivery Date"
+                value={
+                  selectedDelivery.delivery_date_time
+                    ? new Date(selectedDelivery.delivery_date_time).toLocaleString()
+                    : undefined
+                }
+              />
+            </DetailSection>
+            <DetailSection title="Vehicle">
+              <DetailRow label="VIN" value={selectedDelivery.vehicle_vin} />
+              <DetailRow label="Model" value={selectedDelivery.vehicle_model} />
+              <DetailRow label="License Plate" value={selectedDelivery.license_plate} />
+              <DetailRow
+                label="Final Odometer"
+                value={
+                  selectedDelivery.final_odometer_km
+                    ? `${selectedDelivery.final_odometer_km} km`
+                    : undefined
+                }
+              />
+            </DetailSection>
+            <DetailSection title="Next Service">
+              <DetailRow
+                label="Due KM"
+                value={
+                  selectedDelivery.next_service_due_km
+                    ? `${selectedDelivery.next_service_due_km} km`
+                    : undefined
+                }
+              />
+              <DetailRow
+                label="Due Date"
+                value={
+                  selectedDelivery.next_service_due_date
+                    ? new Date(selectedDelivery.next_service_due_date).toLocaleDateString()
+                    : undefined
+                }
+              />
+            </DetailSection>
+          </>
+        )}
+      </DetailSheet>
     </div>
   );
 }

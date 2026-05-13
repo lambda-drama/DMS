@@ -1,13 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useCreateJobCard, useInspection, useAppointment } from "@/hooks/use-dms";
+import {
+  useCreateJobCard,
+  useCustomers,
+  useVINs,
+  useServiceAdvisors,
+  useTechnicians,
+  useServiceBays,
+  useSpareParts,
+  useVehicleServiceItems,
+  useWorkshops,
+  useWarehouses,
+  useInspections,
+} from "@/hooks/use-dms";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -16,247 +35,336 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, Trash2, Car, User, Wrench, Calendar, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Car, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import type { JobCard, JobCardServiceLine, JobCardPartLine } from "@/types/dms";
+import type { DMSJobCard, JobCardType, Priority } from "@/types/dms";
 
-const serviceTypes = [
-  "Periodic Service",
-  "General Repair",
-  "Body Repair",
-  "Accident Repair",
-  "Warranty Repair",
-  "Running Repair",
-  "Pre-Delivery Inspection",
-  "Insurance Claim",
+const jobCardTypes: JobCardType[] = [
+  "Customer Paid",
+  "Warranty",
+  "Internal",
+  "PDI",
+  "Campaign/Recall",
+  "Insurance",
+  "Goodwill",
+  "Fleet Contract",
 ];
 
-const repairCategories = [
-  "Mechanical",
-  "Electrical",
-  "Body & Paint",
-  "AC & Cooling",
-  "Suspension",
-  "Engine",
-  "Transmission",
-  "Brakes",
-  "Steering",
-  "Interior",
-  "Exterior",
-  "Safety Systems",
+const priorities: Priority[] = [
+  "Normal",
+  "VIP",
+  "Comeback/Repeat Repair",
+  "Safety Critical",
+  "Immobilized",
+  "Fleet Priority",
+  "Emergency",
+  "Urgent",
 ];
+
+interface JobItemRow {
+  complaint_description: string;
+  symptom_category: string;
+  severity: string;
+  labor_operation: string;
+}
+
+interface LabourRow {
+  vehicle_service_item: string;
+  vehicle_service_item_name: string;
+  technician: string;
+  technician_name: string;
+  estimated_hours: number;
+  rate_per_hour: number;
+  complaint: string;
+}
+
+interface PartRow {
+  item_code: string;
+  item_name: string;
+  quantity_requested: number;
+  unit_price: number;
+}
 
 export default function NewJobCardPage() {
   const { navigate, viewParams } = useNavigation();
-  const inspectionId = viewParams.get("inspection");
-  const appointmentId = viewParams.get("appointment");
-  
-  const { data: inspection } = useInspection(inspectionId || "");
-  const { data: appointment } = useAppointment(appointmentId || "");
   const { trigger: createJobCard, isMutating } = useCreateJobCard();
 
-  const [formData, setFormData] = useState<Partial<JobCard>>({
-    service_type: "",
-    vehicle_registration: "",
-    vehicle_model: "",
-    vin_number: "",
-    customer: "",
-    customer_name: "",
-    contact_number: "",
-    email: "",
-    odometer_reading: 0,
-    fuel_level: "",
-    customer_complaints: "",
-    internal_notes: "",
-    is_warranty: false,
-    is_insurance_claim: false,
-    expected_completion_date: "",
-    assigned_technician: "",
-    assigned_service_advisor: "",
-    service_lines: [],
-    part_lines: [],
+  // Search states for searchable selects
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [vinSearch, setVinSearch] = useState("");
+  const [serviceItemSearch, setServiceItemSearch] = useState("");
+  const [sparePartSearch, setSparePartSearch] = useState("");
+  const [workshopSearch, setWorkshopSearch] = useState("");
+  const [warehouseSearch, setWarehouseSearch] = useState("");
+
+  // Lookup hooks
+  const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
+  const { data: serviceAdvisors, isLoading: advisorsLoading } = useServiceAdvisors();
+  const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+  const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
+  const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(serviceItemSearch);
+  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
+  const { data: workshops, isLoading: workshopsLoading } = useWorkshops(workshopSearch);
+  const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(warehouseSearch);
+
+  // Main form state
+  const [jobCardType, setJobCardType] = useState<string>("");
+  const [priority, setPriority] = useState<string>("Normal");
+  const [estimatedDurationHours, setEstimatedDurationHours] = useState<number>(0);
+  const [promisedDelivery, setPromisedDelivery] = useState<string>("");
+
+  const [customer, setCustomer] = useState("");
+  const [vehicleVin, setVehicleVin] = useState("");
+  const [licensePlate, setLicensePlate] = useState("");
+  const [currentOdometer, setCurrentOdometer] = useState<number>(0);
+  const [warrantyStatus, setWarrantyStatus] = useState("");
+
+  const [serviceAdvisor, setServiceAdvisor] = useState("");
+  const [leadTechnician, setLeadTechnician] = useState("");
+  const [assignedBay, setAssignedBay] = useState("");
+  const [workshop, setWorkshop] = useState("");
+  const [warehouse, setWarehouse] = useState("");
+  const [company, setCompany] = useState("");
+
+  const [customerComplaintSummary, setCustomerComplaintSummary] = useState("");
+  const [serviceAdvisorNotes, setServiceAdvisorNotes] = useState("");
+  const [internalNotes, setInternalNotes] = useState("");
+
+  const appointment = viewParams.get("appointment") || "";
+  const [inspectionId, setInspectionId] = useState(viewParams.get("inspection") || "");
+
+  // Inspections filtered by customer/vin
+  const { data: inspectionsData } = useInspections({ search: customer || undefined });
+
+  // VINs filtered by selected customer
+  const { data: vins, isLoading: vinsLoading } = useVINs(customer || undefined, vinSearch);
+
+  // Child table: Job Items
+  const [jobItems, setJobItems] = useState<JobItemRow[]>([]);
+  const [newJobItem, setNewJobItem] = useState<JobItemRow>({
+    complaint_description: "",
+    symptom_category: "",
+    severity: "",
+    labor_operation: "",
   });
 
-  const [serviceLine, setServiceLine] = useState<Partial<JobCardServiceLine>>({
-    service_description: "",
-    repair_category: "",
+  // Child table: Labour
+  const [labourRows, setLabourRows] = useState<LabourRow[]>([]);
+  const [newLabour, setNewLabour] = useState<LabourRow>({
+    vehicle_service_item: "",
+    vehicle_service_item_name: "",
+    technician: "",
+    technician_name: "",
     estimated_hours: 0,
-    labour_rate: 0,
-    estimated_amount: 0,
+    rate_per_hour: 0,
+    complaint: "",
   });
 
-  const [partLine, setPartLine] = useState<Partial<JobCardPartLine>>({
-    part_number: "",
-    part_name: "",
-    quantity: 1,
+  // Child table: Parts
+  const [partRows, setPartRows] = useState<PartRow[]>([]);
+  const [newPart, setNewPart] = useState<PartRow>({
+    item_code: "",
+    item_name: "",
+    quantity_requested: 1,
     unit_price: 0,
-    amount: 0,
   });
 
-  // Prefill from inspection
-  useEffect(() => {
-    if (inspection) {
-      setFormData((prev) => ({
-        ...prev,
-        vehicle_inspection: inspection.name,
-        vehicle_registration: inspection.vehicle_registration,
-        vehicle_model: inspection.vehicle_model,
-        vin_number: inspection.vin_number || "",
-        customer_name: inspection.customer_name,
-        odometer_reading: inspection.odometer_reading,
-        fuel_level: `${inspection.fuel_level_percentage}%`,
-      }));
-    }
-  }, [inspection]);
+  // --- Auto-fill handlers ---
 
-  // Prefill from appointment
-  useEffect(() => {
-    if (appointment) {
-      setFormData((prev) => ({
-        ...prev,
-        service_appointment: appointment.name,
-        vehicle_registration: appointment.vehicle_registration,
-        vehicle_model: appointment.vehicle_model || "",
-        customer: appointment.customer,
-        customer_name: appointment.customer_name,
-        contact_number: appointment.contact_number,
-        email: appointment.email,
-        service_type: appointment.service_type,
-        customer_complaints: appointment.service_requests?.map(r => r.request_description).join("\n") || "",
-      }));
+  const handleVinSelect = (vinName: string) => {
+    setVehicleVin(vinName);
+    const vin = vins?.find((v) => v.name === vinName);
+    if (vin) {
+      setLicensePlate(vin.plate_number || "");
+      setCurrentOdometer(vin.current_odometer || 0);
+      setWarrantyStatus(vin.warranty_status || "");
     }
-  }, [appointment]);
-
-  const handleInputChange = (field: keyof JobCard, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const addServiceLine = () => {
-    if (!serviceLine.service_description) {
-      toast.error("Please enter a service description");
+  const handleServiceItemSelect = (itemName: string) => {
+    const item = serviceItems?.find((i) => i.name === itemName);
+    setNewLabour((prev) => ({
+      ...prev,
+      vehicle_service_item: itemName,
+      vehicle_service_item_name: item?.operation_name || itemName,
+      estimated_hours: item?.standard_hours || prev.estimated_hours,
+      rate_per_hour: prev.rate_per_hour,
+    }));
+  };
+
+  const handleSparePartSelect = (partName: string) => {
+    const part = spareParts?.find((p) => p.name === partName);
+    setNewPart((prev) => ({
+      ...prev,
+      item_code: partName,
+      item_name: part?.item_name || partName,
+      unit_price: prev.unit_price,
+    }));
+  };
+
+  // --- Child table add/remove ---
+
+  const addJobItem = () => {
+    if (!newJobItem.complaint_description) {
+      toast.error("Please enter a complaint description");
       return;
     }
-    const newLine: JobCardServiceLine = {
-      idx: (formData.service_lines?.length || 0) + 1,
-      service_description: serviceLine.service_description || "",
-      repair_category: serviceLine.repair_category || "",
-      estimated_hours: serviceLine.estimated_hours || 0,
-      labour_rate: serviceLine.labour_rate || 0,
-      estimated_amount: (serviceLine.estimated_hours || 0) * (serviceLine.labour_rate || 0),
-    };
-    setFormData((prev) => ({
-      ...prev,
-      service_lines: [...(prev.service_lines || []), newLine],
-    }));
-    setServiceLine({
-      service_description: "",
-      repair_category: "",
+    setJobItems((prev) => [...prev, { ...newJobItem }]);
+    setNewJobItem({ complaint_description: "", symptom_category: "", severity: "", labor_operation: "" });
+  };
+
+  const removeJobItem = (idx: number) => {
+    setJobItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const addLabourRow = () => {
+    if (!newLabour.vehicle_service_item) {
+      toast.error("Please select a service item");
+      return;
+    }
+    setLabourRows((prev) => [...prev, { ...newLabour }]);
+    setNewLabour({
+      vehicle_service_item: "",
+      vehicle_service_item_name: "",
+      technician: "",
+      technician_name: "",
       estimated_hours: 0,
-      labour_rate: 0,
-      estimated_amount: 0,
+      rate_per_hour: 0,
+      complaint: "",
     });
   };
 
-  const removeServiceLine = (idx: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      service_lines: prev.service_lines?.filter((_, i) => i !== idx) || [],
-    }));
+  const removeLabourRow = (idx: number) => {
+    setLabourRows((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const addPartLine = () => {
-    if (!partLine.part_name) {
-      toast.error("Please enter a part name");
+  const addPartRow = () => {
+    if (!newPart.item_code) {
+      toast.error("Please select a spare part");
       return;
     }
-    const newPart: JobCardPartLine = {
-      idx: (formData.part_lines?.length || 0) + 1,
-      part_number: partLine.part_number || "",
-      part_name: partLine.part_name || "",
-      quantity: partLine.quantity || 1,
-      unit_price: partLine.unit_price || 0,
-      amount: (partLine.quantity || 1) * (partLine.unit_price || 0),
-    };
-    setFormData((prev) => ({
-      ...prev,
-      part_lines: [...(prev.part_lines || []), newPart],
-    }));
-    setPartLine({
-      part_number: "",
-      part_name: "",
-      quantity: 1,
-      unit_price: 0,
-      amount: 0,
-    });
+    setPartRows((prev) => [...prev, { ...newPart }]);
+    setNewPart({ item_code: "", item_name: "", quantity_requested: 1, unit_price: 0 });
   };
 
-  const removePartLine = (idx: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      part_lines: prev.part_lines?.filter((_, i) => i !== idx) || [],
-    }));
+  const removePartRow = (idx: number) => {
+    setPartRows((prev) => prev.filter((_, i) => i !== idx));
   };
+
+  // --- Totals ---
+
+  const labourTotal = labourRows.reduce(
+    (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
+    0
+  );
+  const partsTotal = partRows.reduce(
+    (sum, r) => sum + r.quantity_requested * r.unit_price,
+    0
+  );
+  const grandTotal = labourTotal + partsTotal;
+
+  // --- Submit ---
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.service_type) {
-      toast.error("Please select a service type");
+
+    if (!jobCardType) {
+      toast.error("Please select a job card type");
       return;
     }
-    if (!formData.vehicle_registration) {
-      toast.error("Please enter vehicle registration");
+    if (!customer) {
+      toast.error("Please select a customer");
       return;
     }
-    if (!formData.customer_name) {
-      toast.error("Please enter customer name");
+    if (!vehicleVin) {
+      toast.error("Please select a vehicle VIN");
+      return;
+    }
+    if (!inspectionId) {
+      toast.error("Please select a vehicle inspection");
+      return;
+    }
+    if (jobItems.length === 0) {
+      toast.error("Please add at least one job item");
       return;
     }
 
+    const payload: Partial<DMSJobCard> = {
+      job_card_type: jobCardType as JobCardType,
+      priority: priority as Priority,
+      estimated_duration_hours: estimatedDurationHours || undefined,
+      promised_delivery_date_time: promisedDelivery || undefined,
+      customer,
+      vehicle_vin: vehicleVin,
+      license_plate: licensePlate || undefined,
+      current_odometer: currentOdometer || undefined,
+      warranty_status: warrantyStatus || undefined,
+      service_advisor: serviceAdvisor || undefined,
+      lead_technician: leadTechnician || undefined,
+      assigned_bay: assignedBay || undefined,
+      workshop: workshop || undefined,
+      warehouse: warehouse || undefined,
+      company: company || undefined,
+      customer_complaint_summary: customerComplaintSummary || undefined,
+      service_advisor_notes: serviceAdvisorNotes || undefined,
+      internal_notes: internalNotes || undefined,
+      appointment: appointment || undefined,
+      inspection: inspectionId || undefined,
+      job_items: jobItems.map((ji) => ({
+        name: "",
+        complaint_description: ji.complaint_description,
+        symptom_category: ji.symptom_category || undefined,
+        severity: ji.severity || undefined,
+        labor_operation: ji.labor_operation || undefined,
+      })),
+      labour: labourRows.map((lr) => ({
+        name: "",
+        operation: lr.vehicle_service_item_name || lr.vehicle_service_item,
+        hours: lr.estimated_hours,
+        rate: lr.rate_per_hour,
+        amount: lr.estimated_hours * lr.rate_per_hour,
+        technician: lr.technician || undefined,
+      })),
+      parts: partRows.map((pr) => ({
+        name: "",
+        part_code: pr.item_code,
+        part_name: pr.item_name || pr.item_code,
+        quantity: pr.quantity_requested,
+        unit_price: pr.unit_price,
+        total_price: pr.quantity_requested * pr.unit_price,
+      })),
+    } as Partial<DMSJobCard>;
+
     try {
-      const result = await createJobCard(formData);
+      const result = await createJobCard(payload);
       toast.success("Job card created successfully");
-      navigate('job-card-detail', { id: result.name });
+      navigate("job-card-detail", { id: result.name });
     } catch {
       toast.error("Failed to create job card");
     }
   };
 
-  // Calculate totals
-  const totalLabour = formData.service_lines?.reduce((sum, line) => sum + (line.estimated_amount || 0), 0) || 0;
-  const totalParts = formData.part_lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0;
-  const grandTotal = totalLabour + totalParts;
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('job-cards')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("job-cards")}
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">New Job Card</h1>
-          <p className="text-muted-foreground mt-1">Create a new workshop job card</p>
+          <p className="text-muted-foreground mt-1">
+            Create a new workshop job card
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Quick Info */}
-        {(inspection || appointment) && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-primary">
-                <FileText className="h-5 w-5" />
-                <span className="font-medium">
-                  {inspection ? `Linked to Inspection: ${inspection.name}` : `Linked to Appointment: ${appointment?.name}`}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Service Type */}
+        {/* 1. Service Details */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -267,225 +375,339 @@ export default function NewJobCardPage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="service_type">Service Type *</Label>
-                <Select
-                  value={formData.service_type}
-                  onValueChange={(v) => handleInputChange("service_type", v)}
-                >
-                  <SelectTrigger id="service_type">
-                    <SelectValue placeholder="Select service type" />
+                <Label htmlFor="job_card_type">Job Card Type *</Label>
+                <Select value={jobCardType} onValueChange={setJobCardType}>
+                  <SelectTrigger id="job_card_type">
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {serviceTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {jobCardTypes.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="expected_completion_date">Expected Completion Date</Label>
-                <Input
-                  id="expected_completion_date"
-                  type="date"
-                  value={formData.expected_completion_date}
-                  onChange={(e) => handleInputChange("expected_completion_date", e.target.value)}
-                />
-              </div>
-            </div>
 
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="is_warranty"
-                  checked={formData.is_warranty}
-                  onCheckedChange={(v) => handleInputChange("is_warranty", v)}
-                />
-                <Label htmlFor="is_warranty" className="cursor-pointer">Warranty Repair</Label>
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={priority} onValueChange={setPriority}>
+                  <SelectTrigger id="priority">
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {priorities.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="is_insurance_claim"
-                  checked={formData.is_insurance_claim}
-                  onCheckedChange={(v) => handleInputChange("is_insurance_claim", v)}
+
+              <div className="space-y-2">
+                <Label htmlFor="estimated_duration_hours">
+                  Estimated Duration (hours)
+                </Label>
+                <Input
+                  id="estimated_duration_hours"
+                  type="number"
+                  step="0.5"
+                  min={0}
+                  placeholder="0"
+                  value={estimatedDurationHours || ""}
+                  onChange={(e) =>
+                    setEstimatedDurationHours(parseFloat(e.target.value) || 0)
+                  }
                 />
-                <Label htmlFor="is_insurance_claim" className="cursor-pointer">Insurance Claim</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="promised_delivery">
+                  Promised Delivery Date/Time
+                </Label>
+                <Input
+                  id="promised_delivery"
+                  type="datetime-local"
+                  value={promisedDelivery}
+                  onChange={(e) => setPromisedDelivery(e.target.value)}
+                />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Vehicle Information */}
+        {/* 2. Customer & Vehicle */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Car className="h-5 w-5" />
-              Vehicle Information
+              Customer & Vehicle
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="vehicle_registration">Registration Number *</Label>
-                <Input
-                  id="vehicle_registration"
-                  placeholder="e.g., KAA 123A"
-                  value={formData.vehicle_registration}
-                  onChange={(e) => handleInputChange("vehicle_registration", e.target.value.toUpperCase())}
+                <Label>Customer *</Label>
+                <SearchableSelect
+                  options={
+                    customers?.map((c) => ({
+                      value: c.name,
+                      label: c.customer_name,
+                      description: c.mobile_no || undefined,
+                    })) || []
+                  }
+                  value={customer}
+                  onValueChange={(val) => {
+                    setCustomer(val);
+                    setVehicleVin("");
+                    setLicensePlate("");
+                    setCurrentOdometer(0);
+                    setWarrantyStatus("");
+                  }}
+                  onSearchChange={setCustomerSearch}
+                  placeholder="Search customers..."
+                  isLoading={customersLoading}
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="vehicle_model">Vehicle Model</Label>
-                <Input
-                  id="vehicle_model"
-                  placeholder="e.g., Toyota Corolla 2020"
-                  value={formData.vehicle_model}
-                  onChange={(e) => handleInputChange("vehicle_model", e.target.value)}
+                <Label>Vehicle VIN *</Label>
+                <SearchableSelect
+                  options={
+                    vins?.map((v) => ({
+                      value: v.name,
+                      label: v.vin_number,
+                      description: [v.model_name, v.model_year, v.plate_number]
+                        .filter(Boolean)
+                        .join(" · "),
+                    })) || []
+                  }
+                  value={vehicleVin}
+                  onValueChange={handleVinSelect}
+                  onSearchChange={setVinSearch}
+                  placeholder={
+                    customer ? "Search VINs..." : "Select customer first"
+                  }
+                  isLoading={vinsLoading}
+                  disabled={!customer}
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="vin_number">VIN Number</Label>
+                <Label htmlFor="license_plate">License Plate</Label>
                 <Input
-                  id="vin_number"
-                  placeholder="Vehicle Identification Number"
-                  value={formData.vin_number}
-                  onChange={(e) => handleInputChange("vin_number", e.target.value.toUpperCase())}
-                  className="font-mono"
+                  id="license_plate"
+                  value={licensePlate}
+                  readOnly
+                  className="bg-muted"
+                  placeholder="Auto-filled from VIN"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="current_odometer">Current Odometer (km)</Label>
+                <Input
+                  id="current_odometer"
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={currentOdometer || ""}
+                  onChange={(e) =>
+                    setCurrentOdometer(parseInt(e.target.value) || 0)
+                  }
                 />
               </div>
             </div>
 
+            {warrantyStatus && (
+              <div className="text-sm text-muted-foreground">
+                Warranty Status:{" "}
+                <span className="font-medium text-foreground">
+                  {warrantyStatus}
+                </span>
+              </div>
+            )}
+
+            <Separator />
+
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="odometer_reading">Odometer Reading (km)</Label>
-                <Input
-                  id="odometer_reading"
-                  type="number"
-                  placeholder="0"
-                  value={formData.odometer_reading || ""}
-                  onChange={(e) => handleInputChange("odometer_reading", parseInt(e.target.value) || 0)}
+                <Label>Vehicle Inspection *</Label>
+                <SearchableSelect
+                  options={
+                    (inspectionsData?.data || []).map((insp) => ({
+                      value: insp.name!,
+                      label: insp.name!,
+                      description: [insp.vehicle_vin, insp.customer].filter(Boolean).join(" · "),
+                    }))
+                  }
+                  value={inspectionId}
+                  onValueChange={setInspectionId}
+                  placeholder="Search inspections..."
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fuel_level">Fuel Level</Label>
-                <Select
-                  value={formData.fuel_level}
-                  onValueChange={(v) => handleInputChange("fuel_level", v)}
-                >
-                  <SelectTrigger id="fuel_level">
-                    <SelectValue placeholder="Select fuel level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Empty">Empty</SelectItem>
-                    <SelectItem value="25%">1/4 Tank</SelectItem>
-                    <SelectItem value="50%">1/2 Tank</SelectItem>
-                    <SelectItem value="75%">3/4 Tank</SelectItem>
-                    <SelectItem value="100%">Full Tank</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Customer Information */}
+        {/* 3. Assignment */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Customer Information
+              Assignment
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="customer_name">Customer Name *</Label>
-                <Input
-                  id="customer_name"
-                  placeholder="Full name"
-                  value={formData.customer_name}
-                  onChange={(e) => handleInputChange("customer_name", e.target.value)}
+                <Label>Service Advisor</Label>
+                <SearchableSelect
+                  options={
+                    serviceAdvisors?.map((sa) => ({
+                      value: sa.name,
+                      label: sa.full_name,
+                    })) || []
+                  }
+                  value={serviceAdvisor}
+                  onValueChange={setServiceAdvisor}
+                  placeholder="Search advisors..."
+                  isLoading={advisorsLoading}
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="contact_number">Contact Number</Label>
-                <Input
-                  id="contact_number"
-                  type="tel"
-                  placeholder="+254 700 000 000"
-                  value={formData.contact_number}
-                  onChange={(e) => handleInputChange("contact_number", e.target.value)}
+                <Label>Lead Technician</Label>
+                <SearchableSelect
+                  options={
+                    technicians?.map((t) => ({
+                      value: t.name,
+                      label: t.full_name,
+                    })) || []
+                  }
+                  value={leadTechnician}
+                  onValueChange={setLeadTechnician}
+                  placeholder="Search technicians..."
+                  isLoading={techniciansLoading}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="customer@example.com"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-              />
+
+              <div className="space-y-2">
+                <Label>Assigned Bay</Label>
+                <SearchableSelect
+                  options={
+                    serviceBays?.map((b) => ({
+                      value: b.name,
+                      label: b.bay_name || b.bay_number || b.name,
+                      description: b.branch || undefined,
+                    })) || []
+                  }
+                  value={assignedBay}
+                  onValueChange={setAssignedBay}
+                  placeholder="Search bays..."
+                  isLoading={baysLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Workshop</Label>
+                <SearchableSelect
+                  options={
+                    workshops?.map((w: { name: string }) => ({
+                      value: w.name,
+                      label: w.name,
+                    })) || []
+                  }
+                  value={workshop}
+                  onValueChange={setWorkshop}
+                  onSearchChange={setWorkshopSearch}
+                  placeholder="Search workshops..."
+                  isLoading={workshopsLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Warehouse</Label>
+                <SearchableSelect
+                  options={
+                    warehouses?.map((w: { name: string; warehouse_name?: string }) => ({
+                      value: w.name,
+                      label: w.warehouse_name || w.name,
+                    })) || []
+                  }
+                  value={warehouse}
+                  onValueChange={setWarehouse}
+                  onSearchChange={setWarehouseSearch}
+                  placeholder="Search warehouses..."
+                  isLoading={warehousesLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company">Company</Label>
+                <Input
+                  id="company"
+                  placeholder="Company name"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Customer Complaints */}
+        {/* 4. Customer Complaints */}
         <Card>
           <CardHeader>
-            <CardTitle>Customer Complaints / Work Description</CardTitle>
-            <CardDescription>Describe what the customer reported or what work needs to be done</CardDescription>
+            <CardTitle>Customer Complaints</CardTitle>
+            <CardDescription>
+              Summarize the customer&apos;s reported issues
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
-              placeholder="Enter customer complaints or work description..."
+              placeholder="Enter customer complaint summary..."
               rows={4}
-              value={formData.customer_complaints}
-              onChange={(e) => handleInputChange("customer_complaints", e.target.value)}
+              value={customerComplaintSummary}
+              onChange={(e) => setCustomerComplaintSummary(e.target.value)}
             />
           </CardContent>
         </Card>
 
-        {/* Service Lines */}
+        {/* 5. Job Items (Complaint / Cause / Correction) */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="h-5 w-5" />
-              Service Lines (Labour)
-            </CardTitle>
-            <CardDescription>Add estimated labour items for this job</CardDescription>
+            <CardTitle>Job Items</CardTitle>
+            <CardDescription>
+              Complaint, Cause, and Correction lines
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Existing Lines */}
-            {formData.service_lines && formData.service_lines.length > 0 && (
+            {jobItems.length > 0 && (
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="text-left p-3">Description</th>
-                      <th className="text-left p-3">Category</th>
-                      <th className="text-right p-3">Hours</th>
-                      <th className="text-right p-3">Rate</th>
-                      <th className="text-right p-3">Amount</th>
+                      <th className="text-left p-3">Complaint Description</th>
+                      <th className="text-left p-3">Symptom Category</th>
+                      <th className="text-left p-3">Severity</th>
                       <th className="p-3 w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {formData.service_lines.map((line, idx) => (
+                    {jobItems.map((ji, idx) => (
                       <tr key={idx} className="border-t">
-                        <td className="p-3">{line.service_description}</td>
-                        <td className="p-3">{line.repair_category || "-"}</td>
-                        <td className="p-3 text-right">{line.estimated_hours}</td>
-                        <td className="p-3 text-right">{line.labour_rate?.toLocaleString()}</td>
-                        <td className="p-3 text-right font-medium">{line.estimated_amount?.toLocaleString()}</td>
+                        <td className="p-3">{ji.complaint_description}</td>
+                        <td className="p-3">{ji.symptom_category || "—"}</td>
+                        <td className="p-3">{ji.severity || "—"}</td>
                         <td className="p-3">
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeServiceLine(idx)}
+                            onClick={() => removeJobItem(idx)}
                             className="h-8 w-8 text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -498,55 +720,194 @@ export default function NewJobCardPage() {
               </div>
             )}
 
-            {/* Add New Line */}
             <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-4 space-y-1">
-                <Label className="text-xs">Description</Label>
+              <div className="col-span-5 space-y-1">
+                <Label className="text-xs">Complaint Description *</Label>
                 <Input
-                  placeholder="Service description"
-                  value={serviceLine.service_description}
-                  onChange={(e) => setServiceLine((prev) => ({ ...prev, service_description: e.target.value }))}
+                  placeholder="Customer complaint / work description"
+                  value={newJobItem.complaint_description}
+                  onChange={(e) =>
+                    setNewJobItem((prev) => ({
+                      ...prev,
+                      complaint_description: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Symptom Category</Label>
+                <Input
+                  placeholder="e.g. Engine, Brakes"
+                  value={newJobItem.symptom_category}
+                  onChange={(e) =>
+                    setNewJobItem((prev) => ({
+                      ...prev,
+                      symptom_category: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Category</Label>
-                <Select
-                  value={serviceLine.repair_category}
-                  onValueChange={(v) => setServiceLine((prev) => ({ ...prev, repair_category: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {repairCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
+                <Label className="text-xs">Severity</Label>
+                <Input
+                  placeholder="e.g. High, Low"
+                  value={newJobItem.severity}
+                  onChange={(e) =>
+                    setNewJobItem((prev) => ({
+                      ...prev,
+                      severity: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="col-span-2">
+                <Button type="button" onClick={addJobItem} className="w-full">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 6. Labour Lines */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Labour Lines
+            </CardTitle>
+            <CardDescription>
+              Add labour items for this job card
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {labourRows.length > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-3">Service Item</th>
+                      <th className="text-left p-3">Technician</th>
+                      <th className="text-right p-3">Hours</th>
+                      <th className="text-right p-3">Rate/Hr</th>
+                      <th className="text-right p-3">Amount</th>
+                      <th className="p-3 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {labourRows.map((lr, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="p-3">
+                          {lr.vehicle_service_item_name ||
+                            lr.vehicle_service_item}
+                        </td>
+                        <td className="p-3">
+                          {lr.technician_name || lr.technician || "-"}
+                        </td>
+                        <td className="p-3 text-right">{lr.estimated_hours}</td>
+                        <td className="p-3 text-right">
+                          {lr.rate_per_hour.toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right font-medium">
+                          {(
+                            lr.estimated_hours * lr.rate_per_hour
+                          ).toLocaleString()}
+                        </td>
+                        <td className="p-3">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeLabourRow(idx)}
+                            className="h-8 w-8 text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="grid grid-cols-12 gap-2 items-end">
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Service Item *</Label>
+                <SearchableSelect
+                  options={
+                    serviceItems?.map((si) => ({
+                      value: si.name,
+                      label: si.operation_name || si.name,
+                    })) || []
+                  }
+                  value={newLabour.vehicle_service_item}
+                  onValueChange={handleServiceItemSelect}
+                  onSearchChange={setServiceItemSearch}
+                  placeholder="Search items..."
+                  isLoading={serviceItemsLoading}
+                />
+              </div>
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Technician</Label>
+                <SearchableSelect
+                  options={
+                    technicians?.map((t) => ({
+                      value: t.name,
+                      label: t.full_name,
+                    })) || []
+                  }
+                  value={newLabour.technician}
+                  onValueChange={(val) => {
+                    const tech = technicians?.find((t) => t.name === val);
+                    setNewLabour((prev) => ({
+                      ...prev,
+                      technician: val,
+                      technician_name: tech?.full_name || val,
+                    }));
+                  }}
+                  placeholder="Search technicians..."
+                  isLoading={techniciansLoading}
+                />
               </div>
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Hours</Label>
                 <Input
                   type="number"
                   step="0.5"
+                  min={0}
                   placeholder="0"
-                  value={serviceLine.estimated_hours || ""}
-                  onChange={(e) => setServiceLine((prev) => ({ ...prev, estimated_hours: parseFloat(e.target.value) || 0 }))}
+                  value={newLabour.estimated_hours || ""}
+                  onChange={(e) =>
+                    setNewLabour((prev) => ({
+                      ...prev,
+                      estimated_hours: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                 />
               </div>
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Rate/Hr</Label>
                 <Input
                   type="number"
+                  min={0}
                   placeholder="0"
-                  value={serviceLine.labour_rate || ""}
-                  onChange={(e) => setServiceLine((prev) => ({ ...prev, labour_rate: parseFloat(e.target.value) || 0 }))}
+                  value={newLabour.rate_per_hour || ""}
+                  onChange={(e) =>
+                    setNewLabour((prev) => ({
+                      ...prev,
+                      rate_per_hour: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                 />
               </div>
               <div className="col-span-2">
-                <Button type="button" onClick={addServiceLine} className="w-full">
+                <Button
+                  type="button"
+                  onClick={addLabourRow}
+                  className="w-full"
+                >
                   <Plus className="h-4 w-4 mr-1" />
                   Add
                 </Button>
@@ -555,44 +916,48 @@ export default function NewJobCardPage() {
           </CardContent>
         </Card>
 
-        {/* Parts Lines */}
+        {/* 7. Parts */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Parts Required
-            </CardTitle>
-            <CardDescription>Add parts needed for this job</CardDescription>
+            <CardTitle>Parts Required</CardTitle>
+            <CardDescription>Add spare parts needed for this job</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Existing Parts */}
-            {formData.part_lines && formData.part_lines.length > 0 && (
+            {partRows.length > 0 && (
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="text-left p-3">Part Number</th>
-                      <th className="text-left p-3">Part Name</th>
+                      <th className="text-left p-3">Part</th>
                       <th className="text-right p-3">Qty</th>
                       <th className="text-right p-3">Unit Price</th>
-                      <th className="text-right p-3">Amount</th>
+                      <th className="text-right p-3">Total</th>
                       <th className="p-3 w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {formData.part_lines.map((part, idx) => (
+                    {partRows.map((pr, idx) => (
                       <tr key={idx} className="border-t">
-                        <td className="p-3 font-mono text-sm">{part.part_number || "-"}</td>
-                        <td className="p-3">{part.part_name}</td>
-                        <td className="p-3 text-right">{part.quantity}</td>
-                        <td className="p-3 text-right">{part.unit_price?.toLocaleString()}</td>
-                        <td className="p-3 text-right font-medium">{part.amount?.toLocaleString()}</td>
+                        <td className="p-3">
+                          {pr.item_name || pr.item_code}
+                        </td>
+                        <td className="p-3 text-right">
+                          {pr.quantity_requested}
+                        </td>
+                        <td className="p-3 text-right">
+                          {pr.unit_price.toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right font-medium">
+                          {(
+                            pr.quantity_requested * pr.unit_price
+                          ).toLocaleString()}
+                        </td>
                         <td className="p-3">
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removePartLine(idx)}
+                            onClick={() => removePartRow(idx)}
                             className="h-8 w-8 text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -605,45 +970,56 @@ export default function NewJobCardPage() {
               </div>
             )}
 
-            {/* Add New Part */}
             <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Part Number</Label>
-                <Input
-                  placeholder="Part #"
-                  value={partLine.part_number}
-                  onChange={(e) => setPartLine((prev) => ({ ...prev, part_number: e.target.value }))}
-                  className="font-mono"
-                />
-              </div>
-              <div className="col-span-4 space-y-1">
-                <Label className="text-xs">Part Name</Label>
-                <Input
-                  placeholder="Part description"
-                  value={partLine.part_name}
-                  onChange={(e) => setPartLine((prev) => ({ ...prev, part_name: e.target.value }))}
+              <div className="col-span-5 space-y-1">
+                <Label className="text-xs">Spare Part *</Label>
+                <SearchableSelect
+                  options={
+                    spareParts?.map((sp) => ({
+                      value: sp.name,
+                      label: sp.item_name || sp.name,
+                      description: sp.oem_part_number || sp.part_category || undefined,
+                    })) || []
+                  }
+                  value={newPart.item_code}
+                  onValueChange={handleSparePartSelect}
+                  onSearchChange={setSparePartSearch}
+                  placeholder="Search parts..."
+                  isLoading={sparePartsLoading}
                 />
               </div>
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Quantity</Label>
                 <Input
                   type="number"
+                  min={1}
                   placeholder="1"
-                  value={partLine.quantity || ""}
-                  onChange={(e) => setPartLine((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                  value={newPart.quantity_requested || ""}
+                  onChange={(e) =>
+                    setNewPart((prev) => ({
+                      ...prev,
+                      quantity_requested: parseInt(e.target.value) || 1,
+                    }))
+                  }
                 />
               </div>
-              <div className="col-span-2 space-y-1">
+              <div className="col-span-3 space-y-1">
                 <Label className="text-xs">Unit Price</Label>
                 <Input
                   type="number"
+                  min={0}
                   placeholder="0"
-                  value={partLine.unit_price || ""}
-                  onChange={(e) => setPartLine((prev) => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))}
+                  value={newPart.unit_price || ""}
+                  onChange={(e) =>
+                    setNewPart((prev) => ({
+                      ...prev,
+                      unit_price: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                 />
               </div>
               <div className="col-span-2">
-                <Button type="button" onClick={addPartLine} className="w-full">
+                <Button type="button" onClick={addPartRow} className="w-full">
                   <Plus className="h-4 w-4 mr-1" />
                   Add
                 </Button>
@@ -652,46 +1028,71 @@ export default function NewJobCardPage() {
           </CardContent>
         </Card>
 
-        {/* Totals */}
+        {/* 8. Totals */}
         <Card>
           <CardContent className="p-4">
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-8">
                 <span className="text-muted-foreground">Labour Total:</span>
-                <span className="font-medium w-32 text-right">{totalLabour.toLocaleString()}</span>
+                <span className="font-medium w-32 text-right">
+                  {labourTotal.toLocaleString()}
+                </span>
               </div>
               <div className="flex items-center gap-8">
                 <span className="text-muted-foreground">Parts Total:</span>
-                <span className="font-medium w-32 text-right">{totalParts.toLocaleString()}</span>
+                <span className="font-medium w-32 text-right">
+                  {partsTotal.toLocaleString()}
+                </span>
               </div>
               <Separator className="w-48" />
               <div className="flex items-center gap-8">
                 <span className="font-semibold">Estimated Total:</span>
-                <span className="font-bold text-lg w-32 text-right text-primary">{grandTotal.toLocaleString()}</span>
+                <span className="font-bold text-lg w-32 text-right text-primary">
+                  {grandTotal.toLocaleString()}
+                </span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Internal Notes */}
+        {/* 9. Notes */}
         <Card>
           <CardHeader>
-            <CardTitle>Internal Notes</CardTitle>
-            <CardDescription>Notes visible only to workshop staff</CardDescription>
+            <CardTitle>Notes</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Enter internal notes..."
-              rows={3}
-              value={formData.internal_notes}
-              onChange={(e) => handleInputChange("internal_notes", e.target.value)}
-            />
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="service_advisor_notes">
+                Service Advisor Notes
+              </Label>
+              <Textarea
+                id="service_advisor_notes"
+                placeholder="Notes from the service advisor..."
+                rows={3}
+                value={serviceAdvisorNotes}
+                onChange={(e) => setServiceAdvisorNotes(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="internal_notes">Internal Notes</Label>
+              <Textarea
+                id="internal_notes"
+                placeholder="Internal workshop notes..."
+                rows={3}
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
+              />
+            </div>
           </CardContent>
         </Card>
 
-        {/* Actions */}
+        {/* 10. Actions */}
         <div className="flex items-center justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('job-cards')}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("job-cards")}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isMutating}>

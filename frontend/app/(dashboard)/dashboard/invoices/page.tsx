@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useInvoices } from "@/hooks/use-dms";
+import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,28 +46,43 @@ import {
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   Draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: Clock },
-  Sent: { label: "Sent", color: "bg-[#1E88E5]/10 text-[#1E88E5]", icon: Send },
+  Unpaid: { label: "Unpaid", color: "bg-[#1E88E5]/10 text-[#1E88E5]", icon: Send },
   Paid: { label: "Paid", color: "bg-[#2E7D32]/10 text-[#2E7D32]", icon: CheckCircle2 },
-  "Partially Paid": { label: "Partial", color: "bg-[#F9A825]/10 text-[#F9A825]", icon: AlertCircle },
+  "Partly Paid": { label: "Partly Paid", color: "bg-[#F9A825]/10 text-[#F9A825]", icon: AlertCircle },
   Overdue: { label: "Overdue", color: "bg-destructive/10 text-destructive", icon: AlertCircle },
   Cancelled: { label: "Cancelled", color: "bg-muted text-muted-foreground", icon: AlertCircle },
+  Return: { label: "Return", color: "bg-muted text-muted-foreground", icon: AlertCircle },
 };
+
+function formatCurrency(amount: number, currency?: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency || "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
 
 export default function InvoicesPage() {
   const { navigate } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: invoices, isLoading, error } = useInvoices({
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchQuery || undefined,
   });
 
+  const selectedInvoice = invoices?.find((i) => i.name === selectedId);
+
   const stats = {
-    total: invoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0,
-    paid: invoices?.filter((inv) => inv.status === "Paid").reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0,
-    pending: invoices?.filter((inv) => ["Draft", "Sent"].includes(inv.status)).reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0,
-    overdue: invoices?.filter((inv) => inv.status === "Overdue").reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0,
+    total: invoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
+    paid: invoices?.filter((inv) => inv.status === "Paid").reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
+    outstanding: invoices?.reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0) || 0,
+    overdue: invoices?.filter((inv) => inv.status === "Overdue").reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0) || 0,
   };
+
+  const defaultCurrency = invoices?.[0]?.currency;
 
   return (
     <div className="space-y-6">
@@ -88,8 +104,8 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Total Invoiced</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.total, defaultCurrency)}</p>
               </div>
               <div className="p-2 rounded-lg bg-primary/10">
                 <DollarSign className="h-5 w-5 text-primary" />
@@ -101,8 +117,8 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Paid</p>
-                <p className="text-2xl font-bold text-[#2E7D32]">{stats.paid.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Collected</p>
+                <p className="text-2xl font-bold text-[#2E7D32]">{formatCurrency(stats.paid, defaultCurrency)}</p>
               </div>
               <div className="p-2 rounded-lg bg-[#2E7D32]/10">
                 <CheckCircle2 className="h-5 w-5 text-[#2E7D32]" />
@@ -114,8 +130,8 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-[#F9A825]">{stats.pending.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Outstanding</p>
+                <p className="text-2xl font-bold text-[#F9A825]">{formatCurrency(stats.outstanding, defaultCurrency)}</p>
               </div>
               <div className="p-2 rounded-lg bg-[#F9A825]/10">
                 <Clock className="h-5 w-5 text-[#F9A825]" />
@@ -128,7 +144,7 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Overdue</p>
-                <p className="text-2xl font-bold text-destructive">{stats.overdue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-destructive">{formatCurrency(stats.overdue, defaultCurrency)}</p>
               </div>
               <div className="p-2 rounded-lg bg-destructive/10">
                 <AlertCircle className="h-5 w-5 text-destructive" />
@@ -145,7 +161,7 @@ export default function InvoicesPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by invoice ID, customer, job card..."
+                placeholder="Search by invoice ID or customer..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -189,10 +205,11 @@ export default function InvoicesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Invoice #</TableHead>
-                    <TableHead>Job Card</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Outstanding</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -204,32 +221,37 @@ export default function InvoicesPage() {
                     return (
                       <TableRow key={invoice.name}>
                         <TableCell>
-                          <button 
-                            onClick={() => navigate('invoice-detail', { id: invoice.name })}
+                          <button
                             className="font-medium text-primary hover:underline"
+                            onClick={() => setSelectedId(invoice.name)}
                           >
                             {invoice.name}
                           </button>
                         </TableCell>
+                        <TableCell>{invoice.customer_name || invoice.customer}</TableCell>
                         <TableCell>
-                          {invoice.job_card && (
-                            <button 
-                              onClick={() => navigate('job-card-detail', { id: invoice.job_card })}
-                              className="text-muted-foreground hover:text-primary hover:underline"
-                            >
-                              {invoice.job_card}
-                            </button>
-                          )}
+                          {invoice.posting_date
+                            ? new Date(invoice.posting_date).toLocaleDateString()
+                            : "—"
+                          }
                         </TableCell>
-                        <TableCell>{invoice.customer_name}</TableCell>
                         <TableCell>
-                          {invoice.invoice_date 
-                            ? new Date(invoice.invoice_date).toLocaleDateString()
-                            : "-"
+                          {invoice.due_date
+                            ? new Date(invoice.due_date).toLocaleDateString()
+                            : "—"
                           }
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {invoice.total_amount?.toLocaleString()}
+                          {formatCurrency(invoice.grand_total || 0, invoice.currency)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {invoice.outstanding_amount > 0 ? (
+                            <span className="text-amber-600 dark:text-amber-400">
+                              {formatCurrency(invoice.outstanding_amount, invoice.currency)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge className={`${config.color} border-0 gap-1`}>
@@ -245,7 +267,7 @@ export default function InvoicesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate('invoice-detail', { id: invoice.name })}>
+                              <DropdownMenuItem>
                                 <Eye className="h-4 w-4 mr-2" />
                                 View
                               </DropdownMenuItem>
@@ -253,12 +275,6 @@ export default function InvoicesPage() {
                                 <Printer className="h-4 w-4 mr-2" />
                                 Print
                               </DropdownMenuItem>
-                              {invoice.status === "Draft" && (
-                                <DropdownMenuItem>
-                                  <Send className="h-4 w-4 mr-2" />
-                                  Send to Customer
-                                </DropdownMenuItem>
-                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -279,6 +295,37 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Detail slide-over */}
+      <DetailSheet
+        open={!!selectedId}
+        onOpenChange={(open) => !open && setSelectedId(null)}
+        title={selectedInvoice?.name || selectedId || ""}
+        subtitle={selectedInvoice?.customer_name || selectedInvoice?.customer || undefined}
+        badge={selectedInvoice?.status ? { label: selectedInvoice.status } : undefined}
+        onOpenInDesk={() => window.open(`/app/sales-invoice/${selectedId}`, "_blank")}
+      >
+        {selectedInvoice && (
+          <>
+            <DetailSection title="Customer">
+              <DetailRow label="Customer" value={selectedInvoice.customer} />
+              <DetailRow label="Customer Name" value={selectedInvoice.customer_name} />
+            </DetailSection>
+            <DetailSection title="Dates">
+              <DetailRow label="Posting Date" value={selectedInvoice.posting_date ? new Date(selectedInvoice.posting_date).toLocaleDateString() : undefined} />
+              <DetailRow label="Due Date" value={selectedInvoice.due_date ? new Date(selectedInvoice.due_date).toLocaleDateString() : undefined} />
+            </DetailSection>
+            <DetailSection title="Amounts">
+              <DetailRow label="Grand Total" value={formatCurrency(selectedInvoice.grand_total || 0, selectedInvoice.currency)} />
+              <DetailRow label="Outstanding" value={formatCurrency(selectedInvoice.outstanding_amount || 0, selectedInvoice.currency)} />
+            </DetailSection>
+            <DetailSection title="Info">
+              <DetailRow label="Status" value={selectedInvoice.status} />
+              <DetailRow label="Currency" value={selectedInvoice.currency} />
+            </DetailSection>
+          </>
+        )}
+      </DetailSheet>
     </div>
   );
 }

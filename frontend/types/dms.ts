@@ -574,12 +574,24 @@ export interface Customer {
   mobile_no?: string;
   email_id?: string;
   customer_type?: string;
+  customer_group?: string;
+  territory?: string;
+  creation?: string;
+  modified?: string;
 }
 
 export interface Vehicle {
   name: string;
   item_name: string;
   item_code: string;
+}
+
+export interface VehicleItem {
+  name: string;
+  item_name: string;
+  item_code?: string;
+  item_group?: string;
+  brand?: string;
 }
 
 export interface VINNo {
@@ -594,11 +606,217 @@ export interface VINNo {
   warranty_end_date?: string;
 }
 
+export interface VINNoListItem {
+  name: string;
+  vin_number: string;
+  engine_number?: string;
+  plate_number?: string;
+  linked_item?: string;
+  model_name?: string;
+  model_year?: number;
+  brand?: string;
+  fuel_type?: string;
+  transmission?: string;
+  exterior_color?: string;
+  current_customer?: string;
+  customer_name?: string;
+  current_odometer?: number;
+  odometer_unit?: string;
+  warranty_status?: string;
+  warranty_end_date?: string;
+  vehicle_status?: string;
+  company?: string;
+  next_service_due_km?: number;
+  next_service_due_date?: string;
+  creation?: string;
+  modified?: string;
+}
+
+export interface VINNoFull {
+  name: string;
+  vin_number: string;
+  engine_number?: string;
+  plate_number?: string;
+  company?: string;
+  status?: string;
+  linked_item?: string;
+  model_name?: string;
+  linked_serial?: string;
+  brand?: string;
+  model_variant?: string;
+  model_year?: number;
+  production_date?: string;
+  fuel_type?: string;
+  transmission?: string;
+  drive_type?: string;
+  engine_code?: string;
+  exterior_color?: string;
+  interior_color?: string;
+  interior_material?: string;
+  current_customer?: string;
+  customer_name?: string;
+  delivery_date?: string;
+  warranty_start_date?: string;
+  warranty_end_date?: string;
+  warranty_km_limit?: number;
+  warranty_status?: string;
+  current_odometer?: number;
+  odometer_unit?: string;
+  last_service_odometer?: number;
+  last_service_date?: string;
+  next_service_due_km?: number;
+  next_service_due_date?: string;
+  vehicle_status?: string;
+  import_type?: string;
+  registration_date?: string;
+  insurance_company?: string;
+  insurance_expiry_date?: string;
+  is_fleet_vehicle?: boolean;
+  special_notes?: string;
+  internal_notes?: string;
+}
+
 export interface ServiceAdvisor {
   name: string;
   full_name: string;
   email?: string;
   phone?: string;
+}
+
+export type TechnicianStatus = 'Active' | 'On Leave' | 'Inactive' | 'Terminated';
+
+export type TechnicianSkillLevel =
+  | 'Trainee'
+  | 'Junior'
+  | 'Intermediate'
+  | 'Senior'
+  | 'Master Technician'
+  | 'EV/PHEV Certified'
+  | 'Expert';
+
+export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'On Leave';
+
+export interface TechnicianSpecialization {
+  name: string;
+  specialization: string;
+  proficiency_level?: string;
+  years_experience_in_area?: number;
+  last_training_date?: string;
+  certification_held?: string;
+}
+
+export interface TechnicianCertification {
+  name: string;
+  certification_name: string;
+  issuing_authority?: string;
+  certification_date?: string;
+  expiry_date?: string;
+  certificate_number?: string;
+  is_active?: boolean;
+  notes?: string;
+}
+
+export interface TechnicianFull {
+  name: string;
+  first_name: string;
+  last_name?: string;
+  full_name: string;
+  status: TechnicianStatus;
+  skill_level: TechnicianSkillLevel;
+  labor_rate_group?: string;
+  personal_phone: string;
+  alternative_phone?: string;
+  address?: string;
+  branch?: string;
+  department?: string;
+  designation?: string;
+  work_shift?: string;
+  weekly_off_days?: string;
+  hourly_base_rate?: number;
+  years_of_experience?: number;
+  experience_at_suweys?: number;
+  date_of_joining?: string;
+
+  specialization?: TechnicianSpecialization[];
+  certifications?: TechnicianCertification[];
+
+  efficiency_rating?: number;
+  productivity_score?: number;
+  first_time_fix_rate?: number;
+  customer_satisfaction_score?: number;
+  total_jobs_completed?: number;
+  total_labor_hours?: number;
+  total_sold_hours?: number;
+  total_idle_hours?: number;
+
+  current_assigned_bay?: string;
+  current_job_card?: string;
+  today_scheduled_jobs?: number;
+  attendance_today?: AttendanceStatus;
+  clock_in_time?: string;
+  clock_out_time?: string;
+
+  profile_photo?: string;
+  digital_signature?: string;
+  notes?: string;
+  performance_notes?: string;
+}
+
+export interface TechnicianListItem {
+  name: string;
+  first_name?: string;
+  last_name?: string;
+  full_name: string;
+  status: TechnicianStatus;
+  skill_level: TechnicianSkillLevel;
+  labor_rate_group?: string;
+  personal_phone?: string;
+  branch?: string;
+  work_shift?: string;
+  weekly_off_days?: string;
+  current_assigned_bay?: string;
+  current_job_card?: string;
+  today_scheduled_jobs?: number;
+  attendance_today?: AttendanceStatus;
+  clock_in_time?: string;
+  clock_out_time?: string;
+  efficiency_rating?: number;
+  total_jobs_completed?: number;
+  total_labor_hours?: number;
+  profile_photo?: string;
+  years_of_experience?: number;
+}
+
+export interface TechnicianAvailability extends TechnicianListItem {
+  active_jobs: Array<{
+    name: string;
+    status: string;
+    customer_name?: string;
+    vehicle_model?: string;
+    schedule_start_time?: string;
+    schedule_end_time?: string;
+    priority?: string;
+  }>;
+  active_job_count: number;
+  currently_working: boolean;
+  is_available: boolean;
+}
+
+export interface TechnicianScheduleJob {
+  name: string;
+  status: string;
+  customer_name?: string;
+  vehicle_model?: string;
+  license_plate?: string;
+  priority?: string;
+  posting_date?: string;
+  schedule_start_time?: string;
+  schedule_end_time?: string;
+  assigned_bay?: string;
+  job_card_type?: string;
+  estimated_duration_hours?: number;
+  actual_duration_hours?: number;
+  role?: 'Lead' | 'Assistant';
 }
 
 export interface Technician {
@@ -609,10 +827,10 @@ export interface Technician {
 
 export interface ServiceBay {
   name: string;
-  bay_name: string;
+  bay_number?: string;
+  bay_name?: string;
   bay_type?: string;
   branch?: string;
-  status?: 'Available' | 'Occupied' | 'Maintenance';
 }
 
 export interface Workshop {
@@ -647,20 +865,17 @@ export interface VehicleDelivery {
 
 export interface Delivery {
   name?: string;
-  job_card: string;
-  vehicle_registration: string;
+  job_card?: string;
+  customer?: string;
+  vehicle_vin?: string;
   vehicle_model?: string;
-  customer_name: string;
-  contact_number: string;
-  delivery_date: string;
-  delivery_time: string;
-  delivered_by: string;
-  received_by: string;
-  odometer_at_delivery: number;
-  fuel_level_at_delivery: string;
-  delivery_notes: string;
-  checklist_completed: boolean;
-  status?: string;
+  license_plate?: string;
+  delivered_by?: string;
+  delivery_date_time?: string;
+  final_odometer_km?: number;
+  next_service_due_km?: number;
+  next_service_due_date?: string;
+  docstatus: number;
   creation?: string;
   modified?: string;
 }
@@ -703,7 +918,29 @@ export interface Invoice {
   modified?: string;
 }
 
+// ============ SALES INVOICE (from Frappe) ============
+
+export interface SalesInvoiceListItem {
+  name: string;
+  customer: string;
+  customer_name?: string;
+  posting_date: string;
+  due_date?: string;
+  grand_total: number;
+  outstanding_amount: number;
+  status: string;
+  currency?: string;
+  docstatus?: 0 | 1 | 2;
+  creation?: string;
+  modified?: string;
+}
+
 // ============ API RESPONSE TYPES ============
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+}
 
 export interface FrappeListResponse<T> {
   data: T[];
