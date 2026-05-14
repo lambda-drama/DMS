@@ -16,9 +16,11 @@ export interface SparePart {
 
 export interface VehicleServiceItem {
   name: string;
-  operation_name: string;
-  standard_hours?: number;
-  service_type?: string;
+  service_item?: string;
+  custom_erpnext_item?: string;
+  custom_item_name?: string;
+  custom_rate?: number;
+  custom_estimated_timemin?: string;
 }
 
 export interface CompanyOption {
@@ -108,5 +110,29 @@ export async function fetchCompanies(search?: string): Promise<CompanyOption[]> 
   return apiRequest<CompanyOption[]>(`/api/method/${API}.get_companies`, {
     method: 'POST',
     body: JSON.stringify({ search: search || null }),
+  });
+}
+
+export async function fetchSparePartPrice(sparePart: string): Promise<number> {
+  return apiRequest<number>(
+    `/api/method/dms.dealer_management_system.doctype.dms_job_card.dms_job_card.get_job_card_part_unit_price`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ spare_part: sparePart }),
+    }
+  );
+}
+
+export async function fetchLabourRate(vehicleServiceItem: string): Promise<number> {
+  return apiRequest<number>(`/api/method/${API}.get_labour_rate`, {
+    method: 'POST',
+    body: JSON.stringify({ vehicle_service_item: vehicleServiceItem }),
+  });
+}
+
+export async function fetchServiceBayDetail(bayName: string): Promise<{ branch?: string; bay_number?: string; bay_name?: string }> {
+  return apiRequest<{ branch?: string; bay_number?: string; bay_name?: string }>(`/api/method/${API}.get_service_bay_detail`, {
+    method: 'POST',
+    body: JSON.stringify({ bay_name: bayName }),
   });
 }

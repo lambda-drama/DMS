@@ -180,9 +180,10 @@
   {
    "color": "#4563f0",
    "label": "DMS Frontend",
-   "link_to": "/dms/dashboard",
+   "url": "/dms/dashboard",
    "type": "URL"
   },
+ 
   {
    "doc_view": "List",
    "label": "DMS Job Card",

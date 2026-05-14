@@ -11,15 +11,27 @@ import {
   useServiceBays,
   useSpareParts,
   useVehicleServiceItems,
-  useWorkshops,
   useWarehouses,
   useInspections,
+  useCompanies,
 } from "@/hooks/use-dms";
 import { SearchableSelect } from "@/components/searchable-select";
+import {
+  fetchSparePartPrice,
+  fetchLabourRate,
+  fetchServiceBayDetail,
+} from "@/services/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -28,13 +40,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ArrowLeft, Plus, Trash2, Car, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import type { DMSJobCard, JobCardType, Priority } from "@/types/dms";
@@ -94,8 +99,8 @@ export default function NewJobCardPage() {
   const [vinSearch, setVinSearch] = useState("");
   const [serviceItemSearch, setServiceItemSearch] = useState("");
   const [sparePartSearch, setSparePartSearch] = useState("");
-  const [workshopSearch, setWorkshopSearch] = useState("");
   const [warehouseSearch, setWarehouseSearch] = useState("");
+  const [companySearch, setCompanySearch] = useState("");
 
   // Lookup hooks
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
@@ -104,8 +109,8 @@ export default function NewJobCardPage() {
   const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
   const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(serviceItemSearch);
   const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
-  const { data: workshops, isLoading: workshopsLoading } = useWorkshops(workshopSearch);
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(warehouseSearch);
+  const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
 
   // Main form state
   const [jobCardType, setJobCardType] = useState<string>("");
@@ -126,6 +131,9 @@ export default function NewJobCardPage() {
   const [warehouse, setWarehouse] = useState("");
   const [company, setCompany] = useState("");
 
+  const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+
   const [customerComplaintSummary, setCustomerComplaintSummary] = useState("");
   const [serviceAdvisorNotes, setServiceAdvisorNotes] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
@@ -133,8 +141,8 @@ export default function NewJobCardPage() {
   const appointment = viewParams.get("appointment") || "";
   const [inspectionId, setInspectionId] = useState(viewParams.get("inspection") || "");
 
-  // Inspections filtered by customer/vin
-  const { data: inspectionsData } = useInspections({ search: customer || undefined });
+  // Inspections filtered by selected customer
+  const { data: inspectionsData } = useInspections({ customer: customer || undefined });
 
   // VINs filtered by selected customer
   const { data: vins, isLoading: vinsLoading } = useVINs(customer || undefined, vinSearch);
@@ -181,24 +189,50 @@ export default function NewJobCardPage() {
     }
   };
 
-  const handleServiceItemSelect = (itemName: string) => {
+  const handleBaySelect = async (bayName: string) => {
+    setAssignedBay(bayName);
+    if (bayName) {
+      try {
+        const detail = await fetchServiceBayDetail(bayName);
+        if (detail?.branch) {
+          setWorkshop(detail.branch);
+        }
+      } catch { /* ignore */ }
+    }
+  };
+
+  const handleServiceItemSelect = async (itemName: string) => {
     const item = serviceItems?.find((i) => i.name === itemName);
+    let rate = item?.custom_rate || 0;
+    if (!rate && itemName) {
+      try {
+        rate = await fetchLabourRate(itemName);
+      } catch { /* ignore */ }
+    }
+    const estMinutes = parseFloat(item?.custom_estimated_timemin || "0") || 0;
+    const estHours = estMinutes > 0 ? Math.round((estMinutes / 60) * 10) / 10 : 0;
     setNewLabour((prev) => ({
       ...prev,
       vehicle_service_item: itemName,
-      vehicle_service_item_name: item?.operation_name || itemName,
-      estimated_hours: item?.standard_hours || prev.estimated_hours,
-      rate_per_hour: prev.rate_per_hour,
+      vehicle_service_item_name: item?.service_item || item?.custom_item_name || itemName,
+      estimated_hours: estHours || prev.estimated_hours,
+      rate_per_hour: rate || prev.rate_per_hour,
     }));
   };
 
-  const handleSparePartSelect = (partName: string) => {
+  const handleSparePartSelect = async (partName: string) => {
     const part = spareParts?.find((p) => p.name === partName);
+    let price = 0;
+    if (partName) {
+      try {
+        price = await fetchSparePartPrice(partName);
+      } catch { /* ignore */ }
+    }
     setNewPart((prev) => ({
       ...prev,
       item_code: partName,
       item_name: part?.item_name || partName,
-      unit_price: prev.unit_price,
+      unit_price: price || prev.unit_price,
     }));
   };
 
@@ -251,17 +285,31 @@ export default function NewJobCardPage() {
     setPartRows((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // --- Totals ---
+  // --- Totals (include current row being edited) ---
 
-  const labourTotal = labourRows.reduce(
+  const labourRowsTotal = labourRows.reduce(
     (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
     0
   );
-  const partsTotal = partRows.reduce(
+  const currentLabourAmount = newLabour.estimated_hours * newLabour.rate_per_hour;
+  const labourTotal = labourRowsTotal + currentLabourAmount;
+
+  const partsRowsTotal = partRows.reduce(
     (sum, r) => sum + r.quantity_requested * r.unit_price,
     0
   );
-  const grandTotal = labourTotal + partsTotal;
+  const currentPartAmount = newPart.quantity_requested * newPart.unit_price;
+  const partsTotal = partsRowsTotal + currentPartAmount;
+
+  const totalAmount = labourTotal + partsTotal;
+
+  const netAmount = (() => {
+    if (warrantyApplicationType === "All Invoice") return 0;
+    if (warrantyApplicationType === "Spare Part") return labourTotal;
+    if (warrantyApplicationType === "Labour") return partsTotal;
+    if (warrantyApplicationType === "Discount") return Math.max(totalAmount - discountAmount, 0);
+    return totalAmount - discountAmount;
+  })();
 
   // --- Submit ---
 
@@ -305,6 +353,8 @@ export default function NewJobCardPage() {
       workshop: workshop || undefined,
       warehouse: warehouse || undefined,
       company: company || undefined,
+      warranty_application_type: (warrantyApplicationType && warrantyApplicationType !== "none") ? warrantyApplicationType : undefined,
+      discount_amount: discountAmount || undefined,
       customer_complaint_summary: customerComplaintSummary || undefined,
       service_advisor_notes: serviceAdvisorNotes || undefined,
       internal_notes: internalNotes || undefined,
@@ -318,20 +368,16 @@ export default function NewJobCardPage() {
         labor_operation: ji.labor_operation || undefined,
       })),
       labour: labourRows.map((lr) => ({
-        name: "",
-        operation: lr.vehicle_service_item_name || lr.vehicle_service_item,
-        hours: lr.estimated_hours,
-        rate: lr.rate_per_hour,
-        amount: lr.estimated_hours * lr.rate_per_hour,
+        vehicle_service_item: lr.vehicle_service_item,
         technician: lr.technician || undefined,
+        estimated_hours: lr.estimated_hours,
+        rate_per_hour: lr.rate_per_hour,
+        complaint: lr.complaint || undefined,
       })),
       parts: partRows.map((pr) => ({
-        name: "",
-        part_code: pr.item_code,
-        part_name: pr.item_name || pr.item_code,
-        quantity: pr.quantity_requested,
+        item_code: pr.item_code,
+        quantity_requested: pr.quantity_requested,
         unit_price: pr.unit_price,
-        total_price: pr.quantity_requested * pr.unit_price,
       })),
     } as Partial<DMSJobCard>;
 
@@ -434,6 +480,38 @@ export default function NewJobCardPage() {
                   onChange={(e) => setPromisedDelivery(e.target.value)}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="warranty_application_type">
+                  Warranty Application Type
+                </Label>
+                <Select value={warrantyApplicationType} onValueChange={setWarrantyApplicationType}>
+                  <SelectTrigger id="warranty_application_type">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="All Invoice">All Invoice</SelectItem>
+                    <SelectItem value="Labour">Labour</SelectItem>
+                    <SelectItem value="Spare Part">Spare Part</SelectItem>
+                    <SelectItem value="Discount">Discount</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {warrantyApplicationType === "Discount" && (
+                <div className="space-y-2">
+                  <Label htmlFor="discount_amount">Discount Amount</Label>
+                  <Input
+                    id="discount_amount"
+                    type="number"
+                    min={1}
+                    step="0.01"
+                    value={discountAmount || ""}
+                    onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -605,7 +683,7 @@ export default function NewJobCardPage() {
                     })) || []
                   }
                   value={assignedBay}
-                  onValueChange={setAssignedBay}
+                  onValueChange={handleBaySelect}
                   placeholder="Search bays..."
                   isLoading={baysLoading}
                 />
@@ -613,18 +691,11 @@ export default function NewJobCardPage() {
 
               <div className="space-y-2">
                 <Label>Workshop</Label>
-                <SearchableSelect
-                  options={
-                    workshops?.map((w: { name: string }) => ({
-                      value: w.name,
-                      label: w.name,
-                    })) || []
-                  }
+                <Input
                   value={workshop}
-                  onValueChange={setWorkshop}
-                  onSearchChange={setWorkshopSearch}
-                  placeholder="Search workshops..."
-                  isLoading={workshopsLoading}
+                  readOnly
+                  placeholder="Auto-filled from service bay"
+                  className="bg-muted"
                 />
               </div>
 
@@ -647,11 +718,16 @@ export default function NewJobCardPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="company">Company</Label>
-                <Input
-                  id="company"
-                  placeholder="Company name"
+                <SearchableSelect
                   value={company}
-                  onChange={(e) => setCompany(e.target.value)}
+                  onValueChange={setCompany}
+                  onSearchChange={setCompanySearch}
+                  placeholder="Select company..."
+                  isLoading={companiesLoading}
+                  options={(companies || []).map((c) => ({
+                    value: c.name,
+                    label: c.company_name || c.name,
+                  }))}
                 />
               </div>
             </div>
@@ -839,7 +915,8 @@ export default function NewJobCardPage() {
                   options={
                     serviceItems?.map((si) => ({
                       value: si.name,
-                      label: si.operation_name || si.name,
+                      label: si.service_item || si.name,
+                      description: si.custom_rate ? `Rate: ${si.custom_rate}` : undefined,
                     })) || []
                   }
                   value={newLabour.vehicle_service_item}
@@ -1035,20 +1112,45 @@ export default function NewJobCardPage() {
               <div className="flex items-center gap-8">
                 <span className="text-muted-foreground">Labour Total:</span>
                 <span className="font-medium w-32 text-right">
-                  {labourTotal.toLocaleString()}
+                  {labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex items-center gap-8">
                 <span className="text-muted-foreground">Parts Total:</span>
                 <span className="font-medium w-32 text-right">
-                  {partsTotal.toLocaleString()}
+                  {partsTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-              <Separator className="w-48" />
+              <Separator className="w-64" />
               <div className="flex items-center gap-8">
-                <span className="font-semibold">Estimated Total:</span>
+                <span className="text-muted-foreground">Total Amount:</span>
+                <span className="font-medium w-32 text-right">
+                  {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              {warrantyApplicationType && warrantyApplicationType !== "none" && (
+                <div className="flex items-center gap-8">
+                  <span className="text-muted-foreground text-sm">
+                    Warranty ({warrantyApplicationType}):
+                  </span>
+                  <span className="font-medium w-32 text-right text-orange-600">
+                    -{(totalAmount - netAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+              {discountAmount > 0 && warrantyApplicationType !== "All Invoice" && warrantyApplicationType !== "Spare Part" && warrantyApplicationType !== "Labour" && (
+                <div className="flex items-center gap-8">
+                  <span className="text-muted-foreground text-sm">Discount:</span>
+                  <span className="font-medium w-32 text-right text-orange-600">
+                    -{discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+              <Separator className="w-64" />
+              <div className="flex items-center gap-8">
+                <span className="font-semibold">Net Amount:</span>
                 <span className="font-bold text-lg w-32 text-right text-primary">
-                  {grandTotal.toLocaleString()}
+                  {netAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

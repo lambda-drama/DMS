@@ -14,7 +14,7 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 	if search:
 		or_filters = {
 			"name": ["like", f"%{search}%"],
-			"customer_name": ["like", f"%{search}%"],
+			"customer": ["like", f"%{search}%"],
 			"license_plate": ["like", f"%{search}%"],
 		}
 
@@ -31,9 +31,9 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "customer", "customer_name", "vehicle_vin",
-			"vehicle_model", "license_plate", "inspection_date",
-			"inspector", "overall_condition",
+			"name", "customer", "vin_chassis",
+			"license_plate", "model_year", "inspection_date",
+			"service_advisor", "customer_vehicle",
 			"docstatus", "creation", "modified",
 		],
 		limit=int(limit),

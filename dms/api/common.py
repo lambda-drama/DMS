@@ -164,20 +164,24 @@ def get_spare_parts(search=None, limit=20):
 
 @frappe.whitelist()
 def get_vehicle_service_items(search=None, limit=20):
-	"""Get Vehicle Standard Labor records for labour line lookups."""
+	"""Get Vehicle Service Item records for labour line lookups."""
 	or_filters = {}
 	if search:
 		or_filters = {
 			"name": ["like", f"%{search}%"],
-			"operation_name": ["like", f"%{search}%"],
+			"service_item": ["like", f"%{search}%"],
 		}
 
 	items = frappe.get_all(
-		"Vehicle Standard Labor",
+		"Vehicle Service Item",
 		or_filters=or_filters if or_filters else None,
-		fields=["name", "operation_name", "standard_hours", "service_type"],
+		fields=[
+			"name", "service_item",
+			"custom_erpnext_item", "custom_item_name",
+			"custom_rate", "custom_estimated_timemin",
+		],
 		limit=int(limit),
-		order_by="operation_name asc",
+		order_by="service_item asc",
 	)
 
 	return items
@@ -229,6 +233,13 @@ def get_warehouses(search=None, company=None, limit=20):
 
 @frappe.whitelist()
 def get_companies(search=None, limit=20):
+	settings = frappe.get_single("DMS Settings")
+	allowed = [row.company for row in (settings.company or []) if row.company]
+
+	if not allowed:
+		return []
+
+	filters = {"name": ["in", allowed]}
 	or_filters = {}
 	if search:
 		or_filters = {
@@ -238,6 +249,7 @@ def get_companies(search=None, limit=20):
 
 	companies = frappe.get_all(
 		"Company",
+		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=["name", "company_name", "default_currency"],
 		limit=int(limit),
@@ -245,3 +257,46 @@ def get_companies(search=None, limit=20):
 	)
 
 	return companies
+
+
+@frappe.whitelist()
+def get_spare_part_price(spare_part=None):
+	"""Return default selling price for a spare part using the costing module logic."""
+	spare_part = (spare_part or "").strip()
+	if not spare_part:
+		return 0
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		spare_part_default_selling_price,
+	)
+	return spare_part_default_selling_price(spare_part)
+
+
+@frappe.whitelist()
+def get_labour_rate(vehicle_service_item=None):
+	"""Return the standard rate for a labour item from linked ERP Item."""
+	vsi = (vehicle_service_item or "").strip()
+	if not vsi:
+		return 0
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		resolve_vehicle_service_item_to_item_code,
+	)
+	from frappe.utils import flt
+
+	item_code = resolve_vehicle_service_item_to_item_code(vsi)
+	if not item_code:
+		return 0
+
+	sr = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+	return sr
+
+
+@frappe.whitelist()
+def get_service_bay_detail(bay_name=None):
+	"""Return the workshop (branch) linked to a service bay."""
+	bay_name = (bay_name or "").strip()
+	if not bay_name:
+		return {}
+	bay = frappe.db.get_value("Service Bay", bay_name, ["branch", "bay_number", "bay_name"], as_dict=True)
+	return bay or {}

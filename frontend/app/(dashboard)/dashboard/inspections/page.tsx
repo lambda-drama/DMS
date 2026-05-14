@@ -337,7 +337,7 @@ export default function InspectionsPage() {
         open={!!selectedId}
         onOpenChange={(open) => { if (!open) setSelectedId(null); }}
         title={selectedId || ""}
-        subtitle={selectedInspection?.customer_name || selectedInspection?.customer}
+        subtitle={selectedInspection?.customer}
         badge={selectedInspection ? { label: selectedInspection.docstatus === 1 ? "Submitted" : "Draft" } : undefined}
         isLoading={detailLoading}
         onOpenInDesk={() => window.open(`/app/vehicle-inspection/${selectedId}`, '_blank')}
@@ -346,21 +346,20 @@ export default function InspectionsPage() {
           <>
             <DetailSection title="Inspection Info">
               <DetailRow label="Date" value={selectedInspection.inspection_date ? new Date(selectedInspection.inspection_date).toLocaleDateString() : undefined} />
-              <DetailRow label="Inspector" value={selectedInspection.inspector} />
-              <DetailRow label="Overall Condition" value={selectedInspection.overall_condition} />
+              <DetailRow label="Service Advisor" value={selectedInspection.service_advisor} />
               <DetailRow label="Job Card" value={selectedInspection.job_card} />
             </DetailSection>
             <DetailSection title="Customer & Vehicle">
-              <DetailRow label="Customer" value={selectedInspection.customer_name || selectedInspection.customer} />
-              <DetailRow label="Vehicle VIN" value={selectedInspection.vehicle_vin} />
-              <DetailRow label="Vehicle Model" value={selectedInspection.vehicle_model} />
+              <DetailRow label="Customer" value={selectedInspection.customer} />
+              <DetailRow label="VIN / Chassis" value={selectedInspection.vin_chassis} />
+              <DetailRow label="Model Year" value={selectedInspection.model_year?.toString()} />
               <DetailRow label="License Plate" value={selectedInspection.license_plate} />
-              <DetailRow label="Odometer" value={selectedInspection.current_odometer ? `${selectedInspection.current_odometer} km` : undefined} />
+              <DetailRow label="Odometer" value={selectedInspection.odometer ? `${selectedInspection.odometer} ${selectedInspection.odometer_unit || 'km'}` : undefined} />
               <DetailRow label="Fuel Level" value={selectedInspection.fuel_level} />
             </DetailSection>
-            {selectedInspection.customer_concerns && (
-              <DetailSection title="Customer Concerns">
-                <p className="text-sm">{selectedInspection.customer_concerns}</p>
+            {selectedInspection.customer_complaints && (
+              <DetailSection title="Customer Complaints">
+                <p className="text-sm">{selectedInspection.customer_complaints}</p>
               </DetailSection>
             )}
             <div className="flex justify-end gap-2 pt-2">
