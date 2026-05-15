@@ -9,7 +9,9 @@
   "spare_part_markup",
   "serial_vin_no_section",
   "auto_create_vin_from_serial",
-  "company"
+  "company",
+  "defaults_section",
+  "company_defaults"
  ],
  "fields": [
   {
@@ -41,13 +43,24 @@
    "fieldtype": "Table MultiSelect",
    "label": "Company",
    "options": "Company TB"
+  },
+  {
+   "fieldname": "defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Defaults"
+  },
+  {
+   "fieldname": "company_defaults",
+   "fieldtype": "Table",
+   "label": "Company Defaults",
+   "options": "DMS Company Defaults"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-13 01:12:59.170922",
+ "modified": "2026-05-16 02:17:11.737241",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

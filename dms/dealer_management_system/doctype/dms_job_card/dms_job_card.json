@@ -13,6 +13,7 @@
   "posting_date",
   "company",
   "column_break_header",
+  "currency",
   "opened_date_time",
   "completed_date_time",
   "promised_delivery_date_time",
@@ -397,6 +398,7 @@
    "fieldname": "total_labor_cost",
    "fieldtype": "Currency",
    "label": "Total Labor Cost",
+   "options": "currency",
    "read_only": 1
   },
   {
@@ -404,6 +406,7 @@
    "fieldname": "total_parts_cost",
    "fieldtype": "Currency",
    "label": "Total Parts Cost (at cost)",
+   "options": "currency",
    "read_only": 1
   },
   {
@@ -411,12 +414,14 @@
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Total Amount",
+   "options": "currency",
    "read_only": 1
   },
   {
    "fieldname": "discount_amount",
    "fieldtype": "Currency",
-   "label": "Discount Amount"
+   "label": "Discount Amount",
+   "options": "currency"
   },
   {
    "fieldname": "net_amount",
@@ -452,7 +457,8 @@
    "description": "Maximum amount approved by customer",
    "fieldname": "approved_amount",
    "fieldtype": "Currency",
-   "label": "Approved Amount Limit"
+   "label": "Approved Amount Limit",
+   "options": "currency"
   },
   {
    "fieldname": "section_quality_control",
@@ -760,13 +766,20 @@
    "label": "Total Hours",
    "precision": "1",
    "read_only": 1
+  },
+  {
+   "default": "ETB",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-15 14:53:30.907038",
+ "modified": "2026-05-16 02:08:24.960379",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

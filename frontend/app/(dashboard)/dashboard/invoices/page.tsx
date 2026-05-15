@@ -42,7 +42,11 @@ import {
   DollarSign,
   Printer,
   Send,
+  CreditCard,
 } from "lucide-react";
+import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
+import * as invoicesSvc from "@/services/invoices";
+import type { SalesInvoiceDetail } from "@/types/dms";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   Draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -68,6 +72,8 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -79,6 +85,19 @@ export default function InvoicesPage() {
   });
 
   const selectedInvoice = invoices?.find((i) => i.name === selectedId);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setInvoiceDetail(null);
+      return;
+    }
+    invoicesSvc.getSalesInvoiceDetail(selectedId).then(setInvoiceDetail).catch(() => setInvoiceDetail(null));
+  }, [selectedId]);
+
+  const canCollectPayment =
+    invoiceDetail &&
+    invoiceDetail.docstatus === 1 &&
+    (invoiceDetail.outstanding_amount || 0) > 0;
 
   const stats = {
     total: invoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
@@ -309,6 +328,14 @@ export default function InvoicesPage() {
         subtitle={selectedInvoice?.customer_name || selectedInvoice?.customer || undefined}
         badge={selectedInvoice?.status ? { label: selectedInvoice.status } : undefined}
         onOpenInDesk={() => window.open(`/app/sales-invoice/${selectedId}`, "_blank")}
+        footer={
+          canCollectPayment && selectedId ? (
+            <Button className="w-full" onClick={() => setShowPaymentDialog(true)}>
+              <CreditCard className="h-4 w-4 mr-2" />
+              Collect Payment
+            </Button>
+          ) : undefined
+        }
       >
         {selectedInvoice && (
           <>
@@ -328,9 +355,48 @@ export default function InvoicesPage() {
               <DetailRow label="Status" value={selectedInvoice.status} />
               <DetailRow label="Currency" value={selectedInvoice.currency} />
             </DetailSection>
+            {invoiceDetail?.items && invoiceDetail.items.length > 0 && (
+              <DetailSection title="Line Items">
+                <div className="dms-table-panel rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoiceDetail.items.map((line, idx) => (
+                        <TableRow key={`${line.item_code}-${idx}`}>
+                          <TableCell className="max-w-[200px] truncate">
+                            {line.description || line.item_code}
+                          </TableCell>
+                          <TableCell className="text-right">{line.qty}</TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(line.amount || 0, selectedInvoice.currency)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </DetailSection>
+            )}
           </>
         )}
       </DetailSheet>
+
+      {selectedId && (
+        <CollectPaymentDialog
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          salesInvoice={selectedId}
+          onPaid={() => {
+            invoicesSvc.getSalesInvoiceDetail(selectedId).then(setInvoiceDetail);
+          }}
+        />
+      )}
     </div>
   );
 }

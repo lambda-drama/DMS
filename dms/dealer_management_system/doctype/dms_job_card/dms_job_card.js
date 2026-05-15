@@ -185,6 +185,7 @@ frappe.ui.form.on("DMS Job Card", {
             frm._dms_prev_qc_template = frm.doc.qc_checklist_template || "";
         }
 
+        set_job_card_warehouse_queries(frm);
         add_vehicle_delivery_button(frm);
         add_sales_invoice_button(frm);
         refresh_qc_dashboard(frm);
@@ -220,8 +221,21 @@ frappe.ui.form.on("DMS Job Card", {
         control_submit_button(frm);
     },
 
+    setup(frm) {
+        set_job_card_warehouse_queries(frm);
+    },
+
+    company(frm) {
+        set_job_card_warehouse_queries(frm);
+        clear_warehouse_if_wrong_company(frm);
+    },
+
     warehouse(frm) {
         apply_job_card_warehouse_to_parts(frm);
+    },
+
+    workshop(frm) {
+        suggest_warehouse_from_workshop(frm);
     },
 
     warranty_application_type(frm) {
@@ -569,6 +583,55 @@ function open_or_create_vehicle_delivery(frm) {
             frappe.set_route("Form", VEHICLE_DELIVERY_NOTE_DOCTYPE, "new");
         })
         .catch(() => frappe.msgprint(__("Unable to check for an existing Vehicle Delivery Note.")));
+}
+
+// ============================================================
+// COMPANY → WAREHOUSE (filter + sync)
+// ============================================================
+function set_job_card_warehouse_queries(frm) {
+    const company = frm.doc.company;
+    const filters = company ? { company } : { name: ["in", []] };
+
+    frm.set_query("warehouse", () => ({ filters }));
+    frm.set_query("warehouse", "parts", () => ({ filters }));
+}
+
+function clear_warehouse_if_wrong_company(frm) {
+    if (!frm.doc.company) {
+        if (frm.doc.warehouse) {
+            frm.set_value("warehouse", "");
+        }
+        return;
+    }
+
+    if (!frm.doc.warehouse) {
+        return;
+    }
+
+    frappe.db.get_value("Warehouse", frm.doc.warehouse, "company", (r) => {
+        const wh_company = r.message;
+        if (wh_company && wh_company !== frm.doc.company) {
+            frm.set_value("warehouse", "");
+        }
+    });
+}
+
+function suggest_warehouse_from_workshop(frm) {
+    if (!frm.doc.workshop || !frm.doc.company) {
+        return;
+    }
+
+    frappe.db.get_value("WorkShop", frm.doc.workshop, "warehouse", (r) => {
+        const wh = r.message;
+        if (!wh) {
+            return;
+        }
+        frappe.db.get_value("Warehouse", wh, "company", (wr) => {
+            if (wr.message === frm.doc.company) {
+                frm.set_value("warehouse", wh);
+            }
+        });
+    });
 }
 
 // ============================================================
