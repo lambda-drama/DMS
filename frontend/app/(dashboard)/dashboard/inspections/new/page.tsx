@@ -10,6 +10,7 @@ import { SignaturePad } from '@/components/signature-pad';
 import { uploadFile } from '@/services/common';
 import * as inspectionsSvc from '@/services/inspections';
 import { RequiredLabel } from '@/components/required-label';
+import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { useCustomers, useVINs, useServiceAdvisors, useCreateInspection } from '@/hooks/use-dms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1106,7 +1107,7 @@ export default function NewInspectionPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="dms-form-page mx-auto max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -1169,17 +1170,21 @@ export default function NewInspectionPage() {
       {/* Step Content */}
       {renderStep()}
 
-      {/* Navigation */}
-      <div className="dms-sticky-actions flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Button
-          variant="outline"
-          className="w-full sm:w-auto"
-          onClick={() => setCurrentStep(currentStep - 1)}
-          disabled={currentStep === 1}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Previous
-        </Button>
+      <FormActionsBar align="between">
+        {currentStep === 1 ? (
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('inspections')}>
+            Cancel
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => setCurrentStep(currentStep - 1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Previous
+          </Button>
+        )}
 
         {currentStep < steps.length ? (
           <Button className="w-full sm:w-auto" onClick={() => setCurrentStep(currentStep + 1)}>
@@ -1201,7 +1206,7 @@ export default function NewInspectionPage() {
             )}
           </Button>
         )}
-      </div>
+      </FormActionsBar>
     </div>
   );
 }

@@ -99,6 +99,11 @@ export default function VehiclesPage() {
   const totalItems = result?.total || 0;
 
   useEffect(() => {
+    const id = viewParams.get("id");
+    if (id) setSelectedId(id);
+  }, [viewParams]);
+
+  useEffect(() => {
     setPage(1);
   }, [search, statusFilter, warrantyFilter, customerFromUrl]);
 

@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Receipt, Car, User, FileText, Plus, Trash2 } from "lucide-react";
+import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { toast } from "sonner";
 import type { Invoice, InvoiceLine } from "@/types/dms";
 
@@ -233,7 +234,7 @@ export default function NewInvoicePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
         {/* Job Card Link */}
         {jobCard && (
           <Card className="border-primary/30 bg-primary/5">
@@ -533,8 +534,7 @@ export default function NewInvoicePage() {
           </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-4">
+        <FormActionsBar>
           <Button type="button" variant="outline" onClick={() => navigate('invoices')}>
             Cancel
           </Button>
@@ -542,7 +542,7 @@ export default function NewInvoicePage() {
             <Receipt className="h-4 w-4 mr-2" />
             {isMutating ? "Creating..." : "Create Invoice"}
           </Button>
-        </div>
+        </FormActionsBar>
       </form>
     </div>
   );

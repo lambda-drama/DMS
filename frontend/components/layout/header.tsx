@@ -1,8 +1,8 @@
 'use client';
 
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { GlobalSearch } from '@/components/layout/global-search';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,14 +62,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-3">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search appointments, job cards..."
-            className="h-9 w-64 bg-muted/50 pl-9"
-          />
-        </div>
+        <GlobalSearch />
 
         <UserMenu />
 

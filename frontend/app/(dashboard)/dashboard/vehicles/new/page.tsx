@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FormActionsBar } from "@/components/layout/form-actions-bar";
 
 const fuelTypeOptions = [
   "Petrol", "Diesel", "Hybrid", "PHEV", "EV", "CNG", "LPG",
@@ -103,7 +104,7 @@ export default function NewVehiclePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="dms-form-page space-y-6 max-w-4xl">
       <Button variant="ghost" size="sm" onClick={() => navigate("vehicles")}>
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Vehicles
       </Button>
@@ -359,8 +360,7 @@ export default function NewVehiclePage() {
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3">
+      <FormActionsBar>
         <Button variant="outline" onClick={() => navigate("vehicles")}>
           Cancel
         </Button>
@@ -372,7 +372,7 @@ export default function NewVehiclePage() {
           )}
           Create Vehicle
         </Button>
-      </div>
+      </FormActionsBar>
     </div>
   );
 }

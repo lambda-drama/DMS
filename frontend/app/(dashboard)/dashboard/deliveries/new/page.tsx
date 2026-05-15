@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SignaturePad } from "@/components/signature-pad";
+import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { uploadFile } from "@/services/common";
 import { ArrowLeft, Truck, Car, User, FileText, CheckCircle2, PenLine } from "lucide-react";
 import { toast } from "sonner";
@@ -231,7 +232,7 @@ export default function NewDeliveryPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
         <Card className={jobCard ? "border-primary/30 bg-primary/5" : ""}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -582,7 +583,7 @@ export default function NewDeliveryPage() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-end gap-4">
+        <FormActionsBar>
           <Button type="button" variant="outline" onClick={() => navigate("deliveries")}>
             Cancel
           </Button>
@@ -590,7 +591,7 @@ export default function NewDeliveryPage() {
             <Truck className="h-4 w-4 mr-2" />
             {isMutating ? "Recording…" : "Record delivery"}
           </Button>
-        </div>
+        </FormActionsBar>
       </form>
     </div>
   );
