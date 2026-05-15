@@ -95,7 +95,8 @@ export async function submitForEstimation(name: string): Promise<void> {
 export async function markCustomerApproved(
   name: string,
   approvalReference: string,
-  approvedAmount?: number
+  approvedAmount?: number,
+  customerSignature?: string
 ): Promise<void> {
   const fields: Record<string, unknown> = {
     customer_approval_status: 'Approved',
@@ -103,11 +104,44 @@ export async function markCustomerApproved(
     status: 'Estimation Approved',
   };
   if (approvedAmount !== undefined) fields.approved_amount = approvedAmount;
+  if (customerSignature) fields.customer_signature = customerSignature;
 
-  await apiRequest(`/api/method/${API}.update_job_card`, {
+  await setMultipleFields(name, fields);
+}
+
+export interface ApproveAndSubmitPayload {
+  approval_reference: string;
+  approved_amount?: number;
+  customer_signature?: string;
+  schedule_start_time: string;
+  schedule_end_time: string;
+  lead_technician: string;
+  assistant_technicians?: Array<{ technician: string; role?: string }>;
+}
+
+export async function approveAndSubmitJobCard(
+  name: string,
+  payload: ApproveAndSubmitPayload
+): Promise<{ name: string; status: string; docstatus: number }> {
+  return apiRequest(`/api/method/${API}.approve_and_submit_job_card`, {
     method: 'POST',
-    body: JSON.stringify({ name, data: fields }),
+    body: JSON.stringify({
+      name,
+      approval_reference: payload.approval_reference,
+      approved_amount: payload.approved_amount ?? null,
+      customer_signature: payload.customer_signature ?? null,
+      schedule_start_time: payload.schedule_start_time,
+      schedule_end_time: payload.schedule_end_time,
+      lead_technician: payload.lead_technician,
+      assistant_technicians: payload.assistant_technicians
+        ? JSON.stringify(payload.assistant_technicians)
+        : null,
+    }),
   });
+}
+
+export async function saveCustomerSignature(name: string, fileUrl: string): Promise<void> {
+  await setFieldValue(name, 'customer_signature', fileUrl);
 }
 
 export async function startRepair(

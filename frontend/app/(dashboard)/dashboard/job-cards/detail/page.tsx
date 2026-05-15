@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useJobCard } from "@/hooks/use-dms";
+import { useJobCard, useTechnicians } from "@/hooks/use-dms";
 import * as jobCardsSvc from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +48,6 @@ import {
   AlertCircle,
   FileText,
   Pencil,
-  Printer,
   ClipboardList,
   Settings2,
   Truck,
@@ -61,12 +60,30 @@ import {
   Timer,
   RotateCcw,
   Send,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { JobCardStatus, DMSJobCard } from "@/types/dms";
 import { StatusBadge } from "@/components/job-card/status-badge";
 import { WorkflowStepper } from "@/components/job-card/workflow-stepper";
 import { RepairTimer } from "@/components/job-card/repair-timer";
+import { SignaturePad } from "@/components/signature-pad";
+import { PrintFormatDropdown } from "@/components/print-format-dropdown";
+import { uploadFile } from "@/services/common";
+import { SearchableSelect } from "@/components/searchable-select";
+function toDatetimeLocal(value?: string) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toFrappeDatetime(local: string) {
+  if (!local) return "";
+  return `${local.replace("T", " ")}:00`;
+}
 
 export default function JobCardDetailPage() {
   const { viewParams, navigate } = useNavigation();
@@ -87,6 +104,32 @@ export default function JobCardDetailPage() {
   const [roadTestPassNotes, setRoadTestPassNotes] = useState("");
   const [showQCFailDialog, setShowQCFailDialog] = useState(false);
   const [qcFailReason, setQcFailReason] = useState("");
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [savedSignatureUrl, setSavedSignatureUrl] = useState<string | null>(null);
+  const [scheduleStart, setScheduleStart] = useState("");
+  const [scheduleEnd, setScheduleEnd] = useState("");
+  const [leadTechnician, setLeadTechnician] = useState("");
+  const [assistantRows, setAssistantRows] = useState<Array<{ technician: string }>>([]);
+
+  const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+
+  useEffect(() => {
+    if (!jobCard) return;
+    setScheduleStart(toDatetimeLocal(jobCard.schedule_start_time));
+    setScheduleEnd(toDatetimeLocal(jobCard.schedule_end_time));
+    setLeadTechnician(jobCard.lead_technician || "");
+    setAssistantRows(
+      (jobCard.assistant_technicians || [])
+        .filter((r) => r.technician)
+        .map((r) => ({ technician: r.technician }))
+    );
+  }, [
+    jobCard?.name,
+    jobCard?.schedule_start_time,
+    jobCard?.schedule_end_time,
+    jobCard?.lead_technician,
+    jobCard?.assistant_technicians,
+  ]);
 
   const runAction = useCallback(
     async (label: string, action: () => Promise<unknown>) => {
@@ -142,24 +185,59 @@ export default function JobCardDetailPage() {
   // ─── Workflow Action Handlers ───────────────────────────────
 
   const handleSubmitForEstimation = () =>
-    runAction("Submitted for Estimation", async () => {
-      if (docstatus === 0) {
-        await jobCardsSvc.submitJobCard(id);
-      }
-      await jobCardsSvc.submitForEstimation(id);
-    });
+    runAction("Submitted for Estimation", () => jobCardsSvc.submitForEstimation(id));
+
+  const customerSignatureUrl =
+    savedSignatureUrl || jobCard?.customer_signature || "";
+
+  const hasCustomerSignature = Boolean(customerSignatureUrl?.trim());
+
+  const handleSaveCustomerSignature = async (file: File) => {
+    setSignatureUploading(true);
+    try {
+      const fileUrl = await uploadFile(file);
+      await jobCardsSvc.saveCustomerSignature(id, fileUrl);
+      setSavedSignatureUrl(fileUrl);
+      toast.success("Customer signature saved");
+      await mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save signature");
+    } finally {
+      setSignatureUploading(false);
+    }
+  };
 
   const handleMarkCustomerApproved = () => {
+    if (!hasCustomerSignature) {
+      toast.error("Customer signature is required before approval");
+      return;
+    }
     if (!approvalReference.trim()) {
       toast.error("Approval reference is required");
       return;
     }
-    runAction("Customer Approved", async () => {
-      await jobCardsSvc.markCustomerApproved(
-        id,
-        approvalReference,
-        approvedAmount ? parseFloat(approvedAmount) : undefined
-      );
+    if (!leadTechnician) {
+      toast.error("Lead technician is required");
+      return;
+    }
+    if (!scheduleStart) {
+      toast.error("Schedule start time is required");
+      return;
+    }
+    if (!scheduleEnd) {
+      toast.error("Schedule end time is required");
+      return;
+    }
+    runAction("Customer approved and job card submitted", async () => {
+      await jobCardsSvc.approveAndSubmitJobCard(id, {
+        approval_reference: approvalReference.trim(),
+        approved_amount: approvedAmount ? parseFloat(approvedAmount) : undefined,
+        customer_signature: customerSignatureUrl || undefined,
+        schedule_start_time: toFrappeDatetime(scheduleStart),
+        schedule_end_time: toFrappeDatetime(scheduleEnd),
+        lead_technician: leadTechnician,
+        assistant_technicians: assistantRows.filter((r) => r.technician),
+      });
     });
     setShowApproveDialog(false);
     setApprovalReference("");
@@ -262,9 +340,29 @@ export default function JobCardDetailPage() {
 
   // ─── Cost calculations ─────────────────────────────────────
 
-  const labourTotal = jobCard.labour?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
-  const partsTotal = jobCard.parts?.reduce((sum, p) => sum + (p.total_price || 0), 0) || 0;
+  const labourTotal = jobCard.total_labor_cost || jobCard.labour?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
+  const partsTotal = jobCard.total_parts_cost || jobCard.parts?.reduce((sum, p) => sum + (p.total_amount || 0), 0) || 0;
   const grandTotal = jobCard.total_amount || labourTotal + partsTotal;
+
+  const showApprovalSignature =
+    status === "Estimation Pending" &&
+    jobCard.customer_approval_status !== "Approved" &&
+    docstatus === 0;
+
+  const canMarkApproved =
+    hasCustomerSignature && !!leadTechnician && !!scheduleStart && !!scheduleEnd;
+
+  const technicianOptions =
+    technicians?.map((t) => ({
+      value: t.name,
+      label: t.full_name,
+    })) || [];
+
+  const signaturePreviewUrl = customerSignatureUrl
+    ? customerSignatureUrl.startsWith("http") || customerSignatureUrl.startsWith("data:")
+      ? customerSignatureUrl
+      : `${typeof window !== "undefined" ? window.location.origin : ""}${customerSignatureUrl}`
+    : "";
 
   // ─── Render ─────────────────────────────────────────────────
 
@@ -287,10 +385,7 @@ export default function JobCardDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm">
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
+          <PrintFormatDropdown doctype="DMS Job Card" docName={id} />
           {status === "Draft" && (
             <Button variant="outline" size="sm" onClick={() => navigate("job-card-detail", { id, mode: "edit" })}>
               <Pencil className="h-4 w-4 mr-2" />
@@ -306,11 +401,99 @@ export default function JobCardDetailPage() {
       {/* Repair Timer */}
       <RepairTimer jobCard={jobCard} />
 
+      {showApprovalSignature && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Schedule &amp; technicians
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Required before customer approval. The job card will be submitted when approved.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="schedule-start">Schedule start *</Label>
+                <Input
+                  id="schedule-start"
+                  type="datetime-local"
+                  value={scheduleStart}
+                  onChange={(e) => setScheduleStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="schedule-end">Schedule end *</Label>
+                <Input
+                  id="schedule-end"
+                  type="datetime-local"
+                  value={scheduleEnd}
+                  onChange={(e) => setScheduleEnd(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Lead technician *</Label>
+              <SearchableSelect
+                options={technicianOptions}
+                value={leadTechnician}
+                onValueChange={setLeadTechnician}
+                placeholder="Search technicians..."
+                isLoading={techniciansLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Assistant technicians</Label>
+              <div className="space-y-2">
+                {assistantRows.map((row, index) => (
+                  <div key={index} className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <SearchableSelect
+                        options={technicianOptions}
+                        value={row.technician}
+                        onValueChange={(value) => {
+                          const next = [...assistantRows];
+                          next[index] = { technician: value };
+                          setAssistantRows(next);
+                        }}
+                        placeholder="Search technicians..."
+                        isLoading={techniciansLoading}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        setAssistantRows(assistantRows.filter((_, i) => i !== index))
+                      }
+                      aria-label="Remove assistant"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAssistantRows([...assistantRows, { technician: "" }])}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add assistant
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ─── Workflow Action Buttons ─────────────────────────── */}
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Draft → Submit for Estimation (requires docstatus=1 first) */}
+            {/* Draft → Submit for Estimation */}
             {status === "Draft" && (
               <Button onClick={handleSubmitForEstimation} disabled={busy}>
                 <Send className="h-4 w-4 mr-2" />
@@ -318,12 +501,32 @@ export default function JobCardDetailPage() {
               </Button>
             )}
 
-            {/* Estimation Pending → Mark Customer Approved (docstatus=0) */}
-            {status === "Estimation Pending" && (
-              <Button onClick={() => setShowApproveDialog(true)} disabled={busy}>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Mark Customer Approved
-              </Button>
+            {/* Estimation Pending → signature then Mark Customer Approved */}
+            {showApprovalSignature && (
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="w-full sm:max-w-md">
+                  <p className="text-sm font-medium mb-2">Customer signature</p>
+                  <SignaturePad
+                    existingUrl={customerSignatureUrl || undefined}
+                    uploading={signatureUploading}
+                    onSave={handleSaveCustomerSignature}
+                    onClear={() => setSavedSignatureUrl(null)}
+                  />
+                  {!canMarkApproved && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Complete signature, schedule times, and lead technician before approval.
+                    </p>
+                  )}
+                </div>
+                <Button
+                  onClick={() => setShowApproveDialog(true)}
+                  disabled={busy || !canMarkApproved}
+                  className="shrink-0"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Mark Customer Approved
+                </Button>
+              </div>
             )}
 
             {/* Estimation Approved → auto starts repair on submit */}
@@ -592,6 +795,36 @@ export default function JobCardDetailPage() {
                     <Badge variant="outline">{jobCard.payment_status}</Badge>
                   </div>
                 </div>
+
+                {(showApprovalSignature || customerSignatureUrl) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-2">Customer digital signature</p>
+                      {showApprovalSignature ? (
+                        <SignaturePad
+                          existingUrl={customerSignatureUrl || undefined}
+                          uploading={signatureUploading}
+                          onSave={handleSaveCustomerSignature}
+                          onClear={() => setSavedSignatureUrl(null)}
+                        />
+                      ) : customerSignatureUrl ? (
+                        <div className="rounded-lg border bg-muted/30 p-4 flex justify-center">
+                          <img
+                            src={
+                              customerSignatureUrl.startsWith("http") ||
+                              customerSignatureUrl.startsWith("data:")
+                                ? customerSignatureUrl
+                                : `${typeof window !== "undefined" ? window.location.origin : ""}${customerSignatureUrl}`
+                            }
+                            alt="Customer signature"
+                            className="max-h-24 object-contain"
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -610,7 +843,9 @@ export default function JobCardDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Lead Technician</p>
-                    <p className="font-medium">{jobCard.lead_technician || "N/A"}</p>
+                    <p className="font-medium">
+                      {jobCard.lead_technician_name || jobCard.lead_technician || "N/A"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Assigned Bay</p>
@@ -623,6 +858,18 @@ export default function JobCardDetailPage() {
                     </Badge>
                   </div>
                 </div>
+                {jobCard.assistant_technicians && jobCard.assistant_technicians.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Assistant technicians</p>
+                    <ul className="text-sm font-medium space-y-1">
+                      {jobCard.assistant_technicians.map((row, i) => (
+                        <li key={row.name || i}>
+                          {row.technician_name || row.technician}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -643,6 +890,22 @@ export default function JobCardDetailPage() {
                         : "N/A"}
                     </p>
                   </div>
+                  {jobCard.schedule_start_time && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Schedule start</p>
+                      <p className="font-medium">
+                        {new Date(jobCard.schedule_start_time).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                  {jobCard.schedule_end_time && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Schedule end</p>
+                      <p className="font-medium">
+                        {new Date(jobCard.schedule_end_time).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm text-muted-foreground">Promised Delivery</p>
                     <p className="font-medium">
@@ -760,14 +1023,14 @@ export default function JobCardDetailPage() {
                     <TableBody>
                       {jobCard.labour.map((line, idx) => (
                         <TableRow key={line.name || idx}>
-                          <TableCell className="font-medium">{line.operation}</TableCell>
+                          <TableCell className="font-medium">{line.service_name || line.vehicle_service_item}</TableCell>
                           <TableCell>{line.technician || "–"}</TableCell>
-                          <TableCell className="text-right">{line.hours}</TableCell>
+                          <TableCell className="text-right">{line.actual_hours || line.estimated_hours || 0}</TableCell>
                           <TableCell className="text-right">
-                            {line.rate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {(line.rate_per_hour || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {line.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {(line.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell>
                             {line.is_warranty ? (
@@ -824,14 +1087,14 @@ export default function JobCardDetailPage() {
                     <TableBody>
                       {jobCard.parts.map((part, idx) => (
                         <TableRow key={part.name || idx}>
-                          <TableCell className="font-mono text-sm">{part.part_code}</TableCell>
-                          <TableCell className="font-medium">{part.part_name}</TableCell>
-                          <TableCell className="text-right">{part.quantity}</TableCell>
+                          <TableCell className="font-mono text-sm">{part.item_code}</TableCell>
+                          <TableCell className="font-medium">{part.part_name || part.item_code}</TableCell>
+                          <TableCell className="text-right">{part.quantity_issued || part.quantity_requested || 0}</TableCell>
                           <TableCell className="text-right">
-                            {part.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {(part.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {part.total_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {(part.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">{part.status || "Requested"}</Badge>
@@ -1066,7 +1329,7 @@ export default function JobCardDetailPage() {
           <DialogHeader>
             <DialogTitle>Mark Customer Approved</DialogTitle>
             <DialogDescription>
-              Record customer approval for the estimated work on this job card.
+              Record customer approval and submit the job card so repair can start after approval.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

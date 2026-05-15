@@ -1,7 +1,7 @@
 /**
  * Common lookup service — calls whitelisted methods in dms.api.common
  */
-import { apiRequest } from './apiClient';
+import { apiRequest, ensureCSRF } from './apiClient';
 import type { Customer, VINNo, ServiceAdvisor, Technician, ServiceBay, PaginatedResponse } from '@/types/dms';
 
 const API = 'dms.api.common';
@@ -135,4 +135,51 @@ export async function fetchServiceBayDetail(bayName: string): Promise<{ branch?:
     method: 'POST',
     body: JSON.stringify({ bay_name: bayName }),
   });
+}
+
+export async function fetchPrintFormats(doctype: string): Promise<string[]> {
+  if (!doctype) return ['Standard'];
+  const formats = await apiRequest<string[]>(`/api/method/${API}.get_print_formats`, {
+    method: 'POST',
+    body: JSON.stringify({ doctype }),
+  });
+  return Array.isArray(formats) && formats.length ? formats : ['Standard'];
+}
+
+/** Upload a file to Frappe (returns file_url for Attach / Attach Image fields). */
+export async function uploadFile(file: File): Promise<string> {
+  await ensureCSRF();
+  const csrf = (typeof window !== 'undefined' && (window as Record<string, unknown>).csrf_token) as string | undefined;
+  const form = new FormData();
+  form.append('file', file);
+  form.append('is_private', '0');
+  form.append('folder', 'Home/Attachments');
+  if (csrf) form.append('csrf_token', csrf);
+
+  const base = typeof window !== 'undefined' ? window.location.origin : '';
+  const res = await fetch(`${base}/api/method/upload_file`, {
+    method: 'POST',
+    headers: csrf ? { 'X-Frappe-CSRF-Token': csrf } : {},
+    body: form,
+    credentials: 'include',
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (data?.exc) {
+    let reason = 'Upload failed';
+    try {
+      const msgs = JSON.parse(data._server_messages || '[]');
+      const first = JSON.parse(msgs[0] || '{}');
+      reason = first?.message || data?.message || reason;
+    } catch {
+      reason = data?.message || reason;
+    }
+    throw new Error(reason);
+  }
+  if (!res.ok) throw new Error(`Upload failed: HTTP ${res.status}`);
+
+  const doc = data?.message;
+  if (doc && typeof doc === 'object' && doc.file_url) return doc.file_url as string;
+  if (typeof doc === 'string' && doc.startsWith('/')) return doc;
+  throw new Error('Upload failed: no file URL in response');
 }

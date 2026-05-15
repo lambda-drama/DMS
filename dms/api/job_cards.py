@@ -159,6 +159,13 @@ def update_job_card(name, data):
 		if field in data:
 			doc.set(field, data[field])
 
+	if "assistant_technicians" in data:
+		rows = data["assistant_technicians"]
+		if isinstance(rows, str):
+			import json
+			rows = json.loads(rows)
+		_apply_assistant_technicians(doc, rows)
+
 	doc.save()
 	frappe.db.commit()
 
@@ -173,3 +180,104 @@ def submit_job_card(name):
 	frappe.db.commit()
 
 	return {"name": doc.name, "status": doc.status, "docstatus": doc.docstatus}
+
+
+def _validate_job_card_before_submit(doc):
+	"""Same mandatory checks as desk before_submit."""
+	missing = []
+	if not doc.lead_technician:
+		missing.append(_("Lead Technician"))
+	if not doc.service_advisor:
+		missing.append(_("Service Advisor"))
+	if not doc.schedule_start_time:
+		missing.append(_("Schedule Start Time"))
+	if not doc.schedule_end_time:
+		missing.append(_("Schedule End Time"))
+
+	if missing:
+		frappe.throw(
+			_("Please fill in the following before submitting: {0}").format(", ".join(missing))
+		)
+
+	for row in doc.assistant_technicians or []:
+		if not row.technician:
+			frappe.throw(_("Each Assistant Technician row must have a technician selected."))
+
+
+def _apply_assistant_technicians(doc, rows):
+	doc.set("assistant_technicians", [])
+	for row in rows or []:
+		if isinstance(row, str):
+			import json
+			row = json.loads(row)
+		technician = (row.get("technician") or "").strip()
+		if not technician:
+			continue
+		doc.append(
+			"assistant_technicians",
+			{
+				"technician": technician,
+				"role": row.get("role") or "Assistant",
+			},
+		)
+
+
+@frappe.whitelist()
+def approve_and_submit_job_card(
+	name,
+	approval_reference,
+	approved_amount=None,
+	customer_signature=None,
+	schedule_start_time=None,
+	schedule_end_time=None,
+	lead_technician=None,
+	assistant_technicians=None,
+):
+	"""Customer approval: validate schedule/technicians, save approval fields, submit document."""
+	if isinstance(assistant_technicians, str):
+		import json
+		assistant_technicians = json.loads(assistant_technicians) if assistant_technicians else []
+
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+	if not (approval_reference or "").strip():
+		frappe.throw(_("Approval Reference is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	if doc.docstatus != 0:
+		frappe.throw(_("Job Card is already submitted."))
+
+	if schedule_start_time:
+		doc.schedule_start_time = schedule_start_time
+	if schedule_end_time:
+		doc.schedule_end_time = schedule_end_time
+	if lead_technician:
+		doc.lead_technician = lead_technician
+	if assistant_technicians is not None:
+		_apply_assistant_technicians(doc, assistant_technicians)
+
+	if customer_signature:
+		doc.customer_signature = customer_signature
+
+	if not doc.customer_signature:
+		frappe.throw(_("Customer signature is required before approval."))
+
+	doc.customer_approval_status = "Approved"
+	doc.approval_reference = approval_reference.strip()
+	doc.status = "Estimation Approved"
+	if approved_amount not in (None, ""):
+		doc.approved_amount = approved_amount
+
+	_validate_job_card_before_submit(doc)
+
+	doc.save()
+	doc.submit()
+	frappe.db.commit()
+
+	return {
+		"name": doc.name,
+		"status": doc.status,
+		"docstatus": doc.docstatus,
+	}

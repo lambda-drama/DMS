@@ -260,6 +260,26 @@ def get_companies(search=None, limit=20):
 
 
 @frappe.whitelist()
+def get_print_formats(doctype):
+	"""Return print format names for the given doctype (Frappe printview dropdown)."""
+	if not doctype:
+		return ["Standard"]
+	formats = frappe.get_all(
+		"Print Format",
+		filters={"doc_type": doctype, "disabled": 0},
+		pluck="name",
+		order_by="name",
+	)
+	result = ["Standard"]
+	seen = {"Standard"}
+	for name in formats:
+		if name and name not in seen:
+			result.append(name)
+			seen.add(name)
+	return result
+
+
+@frappe.whitelist()
 def get_spare_part_price(spare_part=None):
 	"""Return default selling price for a spare part using the costing module logic."""
 	spare_part = (spare_part or "").strip()
