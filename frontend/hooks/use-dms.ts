@@ -8,6 +8,7 @@ import * as invoicesSvc from '@/services/invoices';
 import * as commonSvc from '@/services/common';
 import * as techniciansSvc from '@/services/technicians';
 import * as vehiclesSvc from '@/services/vehicles';
+import * as dashboardSvc from '@/services/dashboard';
 import type {
   ServiceAppointment,
   VehicleInspection,
@@ -28,6 +29,17 @@ import type {
   TechnicianAvailability,
   TechnicianScheduleJob,
 } from '@/types/dms';
+import type { DashboardSummary } from '@/services/dashboard';
+
+// ============ DASHBOARD ============
+
+export function useDashboard() {
+  return useSWR<DashboardSummary>(
+    'dashboard',
+    () => dashboardSvc.getDashboardSummary(),
+    { refreshInterval: 30000 },
+  );
+}
 
 // ============ APPOINTMENTS ============
 

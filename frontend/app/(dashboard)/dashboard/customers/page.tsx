@@ -57,7 +57,7 @@ export default function CustomersPage() {
   }, [customers]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -139,7 +139,7 @@ export default function CustomersPage() {
               Failed to load customers
             </div>
           ) : customers && customers.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="dms-table-panel">
               <Table>
                 <TableHeader>
                   <TableRow>

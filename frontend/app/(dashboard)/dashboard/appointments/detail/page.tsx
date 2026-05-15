@@ -131,7 +131,7 @@ export default function AppointmentDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('appointments')}>
@@ -265,7 +265,7 @@ export default function AppointmentDetailPage() {
                 Service Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="min-w-0 space-y-4 sm:space-y-6">
               <div>
                 <h4 className="mb-3 text-sm font-medium text-muted-foreground">Requested Services</h4>
                 <div className="flex flex-wrap gap-2">
@@ -376,7 +376,7 @@ export default function AppointmentDetailPage() {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">

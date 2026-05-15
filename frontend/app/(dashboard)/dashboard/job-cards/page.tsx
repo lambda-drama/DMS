@@ -197,7 +197,7 @@ export default function JobCardsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Job Cards</h1>
@@ -209,7 +209,7 @@ export default function JobCardsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -307,7 +307,7 @@ export default function JobCardsPage() {
               Failed to load job cards
             </div>
           ) : filtered && filtered.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="dms-table-panel">
               <Table>
                 <TableHeader>
                   <TableRow>

@@ -221,7 +221,7 @@ export default function NewInvoicePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('invoices')}>
@@ -233,7 +233,7 @@ export default function NewInvoicePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
         {/* Job Card Link */}
         {jobCard && (
           <Card className="border-primary/30 bg-primary/5">

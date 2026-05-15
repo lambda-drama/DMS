@@ -47,7 +47,11 @@ const navigation = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, navigate } = useNavigation();
 
@@ -84,6 +88,7 @@ export function Sidebar() {
                       onClick={(e) => {
                         e.preventDefault();
                         navigate(item.view);
+                        onNavigate?.();
                       }}
                       className={cn(
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',

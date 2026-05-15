@@ -463,19 +463,19 @@ export default function JobCardDetailPage() {
   // ─── Render ─────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("job-cards")}>
+        <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("job-cards")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{jobCard.name}</h1>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl font-bold text-foreground sm:text-2xl">{jobCard.name}</h1>
               <StatusBadge status={status} />
             </div>
-            <p className="text-muted-foreground mt-1">
+            <p className="mt-1 truncate text-muted-foreground">
               {jobCard.license_plate} – {jobCard.vehicle_model}
             </p>
           </div>
@@ -795,7 +795,7 @@ export default function JobCardDetailPage() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -859,13 +859,15 @@ export default function JobCardDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/50">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
+        <div className="dms-tabs-scroll">
+        <TabsList className="bg-muted/50 w-full justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="parts">Parts</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6">
@@ -878,7 +880,7 @@ export default function JobCardDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-muted-foreground">License Plate</p>
                     <p className="font-medium">{jobCard.license_plate || "N/A"}</p>
@@ -919,7 +921,7 @@ export default function JobCardDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-muted-foreground">Customer</p>
                     <p className="font-medium">{jobCard.customer_name || jobCard.customer}</p>
@@ -978,7 +980,7 @@ export default function JobCardDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-muted-foreground">Service Advisor</p>
                     <p className="font-medium">{jobCard.service_advisor || "N/A"}</p>
@@ -1023,7 +1025,7 @@ export default function JobCardDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-muted-foreground">Opened</p>
                     <p className="font-medium">
@@ -1305,7 +1307,7 @@ export default function JobCardDetailPage() {
 
         {/* Timeline Tab */}
         <TabsContent value="timeline" className="mt-6">
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-4 sm:space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

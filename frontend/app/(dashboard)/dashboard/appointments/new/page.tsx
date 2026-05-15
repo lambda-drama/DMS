@@ -189,7 +189,7 @@ export default function NewAppointmentPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
         {/* Appointment Details */}
         <Card>
           <CardHeader>
@@ -302,7 +302,7 @@ export default function NewAppointmentPage() {
             </CardTitle>
             <CardDescription>Select customer and vehicle information</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="min-w-0 space-y-4 sm:space-y-6">
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="customer">Customer</Label>
@@ -405,7 +405,7 @@ export default function NewAppointmentPage() {
             </CardTitle>
             <CardDescription>Specify the services requested</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="min-w-0 space-y-4 sm:space-y-6">
             <div className="space-y-2">
               <Label>Service Types</Label>
               <div className="flex flex-wrap gap-2">
@@ -422,7 +422,7 @@ export default function NewAppointmentPage() {
                   </Badge>
                 ))}
                 <Select onValueChange={handleAddService}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <Plus className="mr-2 h-4 w-4" />
                     <span>Add Service</span>
                   </SelectTrigger>

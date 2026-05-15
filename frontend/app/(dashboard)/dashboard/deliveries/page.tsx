@@ -61,7 +61,7 @@ export default function DeliveriesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Vehicle Deliveries</h1>
@@ -143,7 +143,7 @@ export default function DeliveriesPage() {
               Failed to load deliveries
             </div>
           ) : deliveries && deliveries.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="dms-table-panel">
               <Table>
                 <TableHeader>
                   <TableRow>
