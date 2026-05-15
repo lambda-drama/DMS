@@ -16,6 +16,7 @@ import {
   useCompanies,
 } from "@/hooks/use-dms";
 import { SearchableSelect } from "@/components/searchable-select";
+import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import {
   fetchSparePartPrice,
   fetchLabourRate,
@@ -409,7 +410,7 @@ export default function NewJobCardPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
         {/* 1. Service Details */}
         <Card>
           <CardHeader>
@@ -1188,19 +1189,14 @@ export default function NewJobCardPage() {
           </CardContent>
         </Card>
 
-        {/* 10. Actions */}
-        <div className="flex items-center justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("job-cards")}
-          >
+        <FormActionsBar>
+          <Button type="button" variant="outline" onClick={() => navigate("job-cards")}>
             Cancel
           </Button>
           <Button type="submit" disabled={isMutating}>
             {isMutating ? "Creating..." : "Create Job Card"}
           </Button>
-        </div>
+        </FormActionsBar>
       </form>
     </div>
   );

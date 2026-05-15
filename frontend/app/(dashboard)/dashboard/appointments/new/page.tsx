@@ -31,6 +31,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { SearchableSelect } from '@/components/searchable-select';
+import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import {
   useCustomers,
   useVINs,
@@ -189,7 +190,7 @@ export default function NewAppointmentPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
         {/* Appointment Details */}
         <Card>
           <CardHeader>
@@ -506,9 +507,10 @@ export default function NewAppointmentPage() {
           </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('appointments')}>Cancel</Button>
+        <FormActionsBar>
+          <Button type="button" variant="outline" onClick={() => navigate('appointments')}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={isMutating}>
             {isMutating ? (
               <>
@@ -522,7 +524,7 @@ export default function NewAppointmentPage() {
               </>
             )}
           </Button>
-        </div>
+        </FormActionsBar>
       </form>
     </div>
   );

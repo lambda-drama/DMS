@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useInvoices } from "@/hooks/use-dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
@@ -64,10 +64,15 @@ function formatCurrency(amount: number, currency?: string) {
 }
 
 export default function InvoicesPage() {
-  const { navigate } = useNavigation();
+  const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = viewParams.get("id");
+    if (id) setSelectedId(id);
+  }, [viewParams]);
   const { data: invoices, isLoading, error } = useInvoices({
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchQuery || undefined,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useDeliveries } from "@/hooks/use-dms";
 import { Button } from "@/components/ui/button";
@@ -45,9 +45,14 @@ const docstatusMap: Record<number, { label: string; variant: "default" | "second
 };
 
 export default function DeliveriesPage() {
-  const { navigate } = useNavigation();
+  const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = viewParams.get("id");
+    if (id) setSelectedId(id);
+  }, [viewParams]);
   const { data: deliveries, isLoading, error } = useDeliveries({
     search: searchQuery || undefined,
   });

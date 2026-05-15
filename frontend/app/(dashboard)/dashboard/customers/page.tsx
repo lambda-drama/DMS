@@ -27,11 +27,16 @@ import {
 } from "lucide-react";
 
 export default function CustomersPage() {
-  const { navigate } = useNavigation();
+  const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = viewParams.get("id");
+    if (id) setSelectedId(id);
+  }, [viewParams]);
 
   const { data: result, isLoading, error } = useCustomersPaginated({
     search: searchQuery || undefined,
