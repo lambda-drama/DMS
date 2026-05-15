@@ -2,7 +2,7 @@
  * Common lookup service — calls whitelisted methods in dms.api.common
  */
 import { apiRequest, ensureCSRF } from './apiClient';
-import type { Customer, VINNo, ServiceAdvisor, Technician, ServiceBay, PaginatedResponse } from '@/types/dms';
+import type { Customer, VINNo, VehicleServiceType, ServiceAdvisor, Technician, ServiceBay, PaginatedResponse } from '@/types/dms';
 
 const API = 'dms.api.common';
 
@@ -54,6 +54,13 @@ export async function fetchVINs(customer?: string, search?: string): Promise<VIN
       customer: customer || null,
       search: search || null,
     }),
+  });
+}
+
+export async function fetchVehicleServiceTypes(search?: string): Promise<VehicleServiceType[]> {
+  return apiRequest<VehicleServiceType[]>(`/api/method/${API}.get_vehicle_service_types`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null }),
   });
 }
 

@@ -34,6 +34,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import {
   useCustomers,
   useVINs,
+  useVehicleServiceTypes,
   useServiceAdvisors,
   useServiceBays,
   useCreateAppointment,
@@ -72,22 +73,6 @@ const arrivalStatuses: VehicleArrivalStatus[] = [
   'Fleet Driver Drop-off',
 ];
 
-const serviceTypes = [
-  'Regular Service',
-  'Oil Change',
-  'Brake Service',
-  'Tire Rotation',
-  'Tire Replacement',
-  'Engine Diagnostic',
-  'AC Repair',
-  'Electrical Repair',
-  'Body Work',
-  'Warranty Service',
-  'PDI',
-  'Campaign/Recall',
-  'Other',
-];
-
 export default function NewAppointmentPage() {
   const { navigate } = useNavigation();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -116,12 +101,13 @@ export default function NewAppointmentPage() {
 
   const { data: customers } = useCustomers(customerSearch);
   const { data: vins } = useVINs(form.customer || undefined, vinSearch);
+  const { data: serviceTypes } = useVehicleServiceTypes();
   const { data: advisors } = useServiceAdvisors();
   const { data: bays } = useServiceBays();
   const { trigger: createAppointment, isMutating } = useCreateAppointment();
 
   const selectedCustomer = customers?.find((c) => c.name === form.customer);
-  const selectedVehicle = vins?.find((v) => v.name === form.vehicle);
+  const selectedVin = vins?.find((v) => v.name === form.vin_chassis);
 
   const handleAddService = (service: string) => {
     if (!selectedServices.includes(service)) {
@@ -140,8 +126,16 @@ export default function NewAppointmentPage() {
       toast.error('Please select a customer');
       return;
     }
-    if (!form.vehicle) {
+    if (!form.vin_chassis) {
       toast.error('Please select a vehicle');
+      return;
+    }
+    if (!form.vehicle) {
+      toast.error('Selected vehicle has no linked model. Update the VIN record in Vehicles.');
+      return;
+    }
+    if (selectedServices.length === 0) {
+      toast.error('Please add at least one service type');
       return;
     }
 
@@ -160,7 +154,14 @@ export default function NewAppointmentPage() {
         customer_complaint_summary: form.customer_complaint_summary,
         preferred_advisor: form.preferred_advisor,
         special_instructions: form.special_instructions,
-        service_type_requested: selectedServices.map((s) => ({ service_type: s })),
+        service_type_requested: selectedServices.map((s) => {
+          const st = serviceTypes?.find((t) => t.name === s);
+          return {
+            service_type: s,
+            estimated_hours: st?.default_estimated_hours,
+            is_warranty: st?.warranty_applicable ? 1 : 0,
+          };
+        }),
       } as any);
 
       toast.success('Appointment created successfully', {
@@ -313,7 +314,14 @@ export default function NewAppointmentPage() {
                   }))}
                   value={form.customer}
                   onValueChange={(val) => {
-                    setForm((prev) => ({ ...prev, customer: val, vehicle: '', vin_chassis: '', license_plate: '', current_odometer: 0 }));
+                    setForm((prev) => ({
+                      ...prev,
+                      customer: val,
+                      vehicle: '',
+                      vin_chassis: '',
+                      license_plate: '',
+                      current_odometer: 0,
+                    }));
                   }}
                   onSearchChange={setCustomerSearch}
                   placeholder="Search customer..."
@@ -328,18 +336,16 @@ export default function NewAppointmentPage() {
                     label: `${v.model_name || v.name} - ${v.plate_number || ''}`,
                     description: v.vin_number,
                   }))}
-                  value={form.vehicle}
+                  value={form.vin_chassis}
                   onValueChange={(val) => {
-                    setForm((prev) => ({ ...prev, vehicle: val }));
                     const vin = vins?.find((v) => v.name === val);
-                    if (vin) {
-                      setForm((prev) => ({
-                        ...prev,
-                        vin_chassis: vin.vin_number,
-                        license_plate: vin.plate_number || '',
-                        current_odometer: vin.current_odometer ?? 0,
-                      }));
-                    }
+                    setForm((prev) => ({
+                      ...prev,
+                      vin_chassis: val,
+                      vehicle: vin?.linked_item || '',
+                      license_plate: vin?.plate_number || '',
+                      current_odometer: vin?.current_odometer ?? 0,
+                    }));
                   }}
                   onSearchChange={setVinSearch}
                   placeholder="Search vehicle..."
@@ -369,20 +375,20 @@ export default function NewAppointmentPage() {
             )}
 
             {/* Vehicle Info Display */}
-            {selectedVehicle && (
+            {selectedVin && (
               <div className="rounded-lg border bg-muted/30 p-4">
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Car className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{selectedVehicle.model_name || selectedVehicle.name}</span>
+                    <span className="font-medium">{selectedVin.model_name || selectedVin.name}</span>
                   </div>
                   <div className="text-sm">
                     <span className="text-muted-foreground">Plate: </span>
-                    <span className="font-medium">{selectedVehicle.plate_number || '—'}</span>
+                    <span className="font-medium">{selectedVin.plate_number || '—'}</span>
                   </div>
                   <div className="text-sm">
                     <span className="text-muted-foreground">VIN: </span>
-                    <span className="font-mono text-xs">{selectedVehicle.vin_number}</span>
+                    <span className="font-mono text-xs">{selectedVin.vin_number}</span>
                   </div>
                 </div>
               </div>
@@ -405,7 +411,7 @@ export default function NewAppointmentPage() {
               <div className="flex flex-wrap gap-2">
                 {selectedServices.map((service) => (
                   <Badge key={service} variant="secondary" className="gap-1 py-1.5">
-                    {service}
+                    {serviceTypes?.find((s) => s.name === service)?.service_type_name || service}
                     <button
                       type="button"
                       onClick={() => handleRemoveService(service)}
@@ -421,11 +427,11 @@ export default function NewAppointmentPage() {
                     <span>Add Service</span>
                   </SelectTrigger>
                   <SelectContent>
-                    {serviceTypes
-                      .filter((s) => !selectedServices.includes(s))
+                    {(serviceTypes || [])
+                      .filter((s) => !selectedServices.includes(s.name))
                       .map((service) => (
-                        <SelectItem key={service} value={service}>
-                          {service}
+                        <SelectItem key={service.name} value={service.name}>
+                          {service.service_type_name}
                         </SelectItem>
                       ))}
                   </SelectContent>

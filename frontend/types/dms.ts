@@ -608,9 +608,19 @@ export interface VehicleItem {
   brand?: string;
 }
 
+export interface VehicleServiceType {
+  name: string;
+  service_type_name: string;
+  description?: string;
+  default_estimated_hours?: number;
+  warranty_applicable?: number;
+  requires_diagnostic?: number;
+}
+
 export interface VINNo {
   name: string;
   vin_number: string;
+  linked_item?: string;
   plate_number?: string;
   model_name?: string;
   model_year?: number;

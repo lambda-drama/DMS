@@ -48,8 +48,8 @@ import { useAppointments, useAppointment } from '@/hooks/use-dms';
 import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
 import type { AppointmentStatus, Priority } from '@/types/dms';
 
-function getStatusConfig(status: AppointmentStatus) {
-  const configs: Record<AppointmentStatus, { color: string; icon: typeof CheckCircle2 }> = {
+function getStatusConfig(status: AppointmentStatus | string | undefined) {
+  const configs: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
     'Booked': { color: 'bg-chart-1/10 text-chart-1 border-chart-1/20', icon: Calendar },
     'Reminder Sent': { color: 'bg-chart-4/10 text-chart-4 border-chart-4/20', icon: Clock },
     'Arrived': { color: 'bg-chart-3/10 text-chart-3 border-chart-3/20', icon: CheckCircle2 },
@@ -61,7 +61,14 @@ function getStatusConfig(status: AppointmentStatus) {
     'Cancelled': { color: 'bg-destructive/10 text-destructive border-destructive/20', icon: XCircle },
     'Rescheduled': { color: 'bg-chart-4/10 text-chart-4 border-chart-4/20', icon: Clock },
   };
-  return configs[status] || configs['Booked'];
+  return configs[status || 'Booked'] || configs['Booked'];
+}
+
+function formatAppointmentDateTime(value: string | undefined) {
+  if (!value) return { date: '—', time: '' };
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return { date: value, time: '' };
+  return { date: format(d, 'MMM d, yyyy'), time: format(d, 'h:mm a') };
 }
 
 function getPriorityConfig(priority: Priority) {
@@ -114,9 +121,11 @@ export default function AppointmentsPage() {
     return matchesSearch && matchesPriority;
   });
 
-  const todayCount = (appointments || []).filter(
-    (apt) => apt.appointment_date_time && format(new Date(apt.appointment_date_time), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
-  ).length;
+  const todayCount = (appointments || []).filter((apt) => {
+    if (!apt.appointment_date_time) return false;
+    const d = new Date(apt.appointment_date_time);
+    return !Number.isNaN(d.getTime()) && format(d, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+  }).length;
 
   const arrivedCount = (appointments || []).filter((apt) => apt.appointment_status === 'Arrived').length;
   const pendingCount = (appointments || []).filter((apt) => apt.appointment_status === 'Booked').length;
@@ -246,6 +255,11 @@ export default function AppointmentsPage() {
                   const statusConfig = getStatusConfig(apt.appointment_status);
                   const priorityConfig = getPriorityConfig(apt.priority);
                   const StatusIcon = statusConfig.icon;
+                  const { date: aptDate, time: aptTime } = formatAppointmentDateTime(apt.appointment_date_time);
+                  const serviceTypes = (apt.service_type_requested || [])
+                    .map((s) => s.service_type)
+                    .filter(Boolean)
+                    .join(', ');
 
                   return (
                     <TableRow key={apt.name}>
@@ -293,7 +307,7 @@ export default function AppointmentsPage() {
                       <TableCell>
                         <div className="max-w-48">
                           <p className="truncate text-sm">
-                            {apt.service_type_requested.map((s) => s.service_type).join(', ')}
+                            {serviceTypes || '—'}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             {apt.customer_complaint_summary}
@@ -302,12 +316,10 @@ export default function AppointmentsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <p className="font-medium">
-                            {format(new Date(apt.appointment_date_time), 'MMM d, yyyy')}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {format(new Date(apt.appointment_date_time), 'h:mm a')}
-                          </p>
+                          <p className="font-medium">{aptDate}</p>
+                          {aptTime ? (
+                            <p className="text-muted-foreground">{aptTime}</p>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -406,7 +418,7 @@ export default function AppointmentsPage() {
               <DetailRow label="Warranty" value={selectedAppointment.warranty_status} />
             </DetailSection>
             <DetailSection title="Assignment">
-              <DetailRow label="Service Advisor" value={selectedAppointment.service_advisor} />
+              <DetailRow label="Service Advisor" value={selectedAppointment.assigned_service_advisor} />
               <DetailRow label="Service Bay" value={selectedAppointment.assigned_bay} />
               <DetailRow label="Arrival Status" value={selectedAppointment.vehicle_arrival_status} />
             </DetailSection>

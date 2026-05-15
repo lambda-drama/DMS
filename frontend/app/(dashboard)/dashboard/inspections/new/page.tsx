@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/searchable-select';
-import { useCustomers, useVINs, useCreateInspection } from '@/hooks/use-dms';
+import { ImageCaptureField } from '@/components/image-capture-field';
+import { MultiImageCaptureField } from '@/components/multi-image-capture-field';
+import { SignaturePad } from '@/components/signature-pad';
+import { uploadFile } from '@/services/common';
+import * as inspectionsSvc from '@/services/inspections';
+import { RequiredLabel } from '@/components/required-label';
+import { useCustomers, useVINs, useServiceAdvisors, useCreateInspection } from '@/hooks/use-dms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +31,6 @@ import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft,
   ArrowRight,
-  Camera,
   Car,
   CheckCircle2,
   AlertTriangle,
@@ -37,7 +42,7 @@ import {
   User,
   Wrench,
 } from 'lucide-react';
-import type { FuelLevel, ArrivalMethod, InspectionItemCondition } from '@/types/dms';
+import type { FuelLevel, ArrivalMethod } from '@/types/dms';
 
 const fuelLevels: FuelLevel[] = ['Empty', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8', 'Full'];
 
@@ -57,47 +62,164 @@ const warningLights = [
   'None',
 ];
 
+/** Must match Vehicle Exterior Inspection Item.component options exactly */
 const exteriorAreas = [
   'Front Bumper',
   'Rear Bumper',
-  'Hood',
-  'Trunk/Tailgate',
+  'Bonnet/Hood',
+  'Roof',
+  'Front Windshield',
+  'Rear Windshield',
+  'Left Front Door',
+  'Left Rear Door',
+  'Right Front Door',
+  'Right Rear Door',
   'Left Front Fender',
   'Right Front Fender',
-  'Left Rear Fender',
-  'Right Rear Fender',
-  'Left Front Door',
-  'Right Front Door',
-  'Left Rear Door',
-  'Right Rear Door',
-  'Roof',
-  'Windshield',
-  'Rear Window',
-  'Left Mirror',
-  'Right Mirror',
-  'Headlights',
-  'Taillights',
+  'Left Rear Quarter Panel',
+  'Right Rear Quarter Panel',
+  'Boot/Tailgate',
+  'Left Side Mirror',
+  'Right Side Mirror',
+  'Headlamps (Left)',
+  'Headlamps (Right)',
+  'Tail Lamps (Left)',
+  'Tail Lamps (Right)',
+  'Fog Lamps',
+  'Grille',
+  'Front Number Plate',
+  'Rear Number Plate',
+  'Wipers (Front)',
+  'Wipers (Rear)',
+  'Sunroof/Panoramic Roof',
+  'Left Door Handles',
+  'Right Door Handles',
+  'Parking Sensors',
+  'Camera Lenses',
+  'Charging Port Cover (EV/PHEV)',
+  'Fuel Filler Cap',
 ];
 
+const exteriorConditionsList = [
+  'OK',
+  'Scratch',
+  'Dent',
+  'Broken',
+  'Missing',
+  'Previous Repair/Mismatched Paint',
+  'Rust/Corrosion',
+  'Crack',
+  'Not Checked',
+] as const;
+
+/** Must match Vehicle Interior Inspection Item.component options exactly */
 const interiorAreas = [
   'Dashboard',
+  'Instrument Cluster',
   'Steering Wheel',
-  'Seats',
-  'Carpet/Floor Mats',
-  'Headliner',
-  'Door Panels',
+  'Steering Wheel Controls',
+  'Horn',
+  'Interior Lights (Dome)',
+  'Interior Lights (Map)',
+  'Infotainment Screen',
+  'Touchscreen Response',
+  'Speakers (All)',
+  'AC/Climate Controls',
+  'Air Vents (All)',
+  'Gear Selector/Shifter',
+  'Parking Brake Lever/Button',
+  'Floor Mats (Driver)',
+  'Floor Mats (Passenger)',
+  'Floor Mats (Rear)',
+  'Carpet (Front)',
+  'Carpet (Rear)',
+  'Door Trims (Front Left)',
+  'Door Trims (Front Right)',
+  'Door Trims (Rear Left)',
+  'Door Trims (Rear Right)',
+  'Glove Box',
   'Center Console',
-  'Radio/Infotainment',
-  'AC/Heating',
-  'Windows',
-  'Mirrors',
-  'Seat Belts',
+  'USB/12V Charging Ports',
+  'Wireless Charger',
+  'Rear View Mirror',
+  'Sun Visors',
+  'Vanity Mirrors',
+  'Headliner',
+  'Rear Camera Display',
+  '360 Camera View',
+  'Parking Assist Display',
+  'Driver Seat',
+  'Passenger Seat',
+  'Rear Seats (Left)',
+  'Rear Seats (Center)',
+  'Rear Seats (Right)',
+  'Driver Seat Belt',
+  'Passenger Seat Belt',
+  'Rear Seat Belts',
+  'Trunk/Cargo Area',
 ];
+
+const interiorConditionsList = [
+  'OK',
+  'Dirty',
+  'Stained',
+  'Torn/Ripped',
+  'Burned',
+  'Scratched',
+  'Broken',
+  'Missing',
+  'Not Working',
+  'Not Checked',
+] as const;
 
 const tirePositions = ['Front Left', 'Front Right', 'Rear Left', 'Rear Right', 'Spare'];
 
-const conditions: InspectionItemCondition[] = ['Good', 'Fair', 'Poor', 'Damaged', 'Missing', 'N/A'];
+const tireConditionsList = [
+  'OK',
+  'Uneven Wear',
+  'Sidewall Damage',
+  'Puncture/Bulge',
+  'Aged/Cracked',
+  'Wrong Size',
+  'Missing Valve Cap',
+  'Low Pressure',
+] as const;
 
+const SYMPTOM_CATEGORIES = [
+  'Engine', 'Transmission', 'Brake', 'Steering', 'Suspension', 'Electrical', 'AC', 'Body',
+  'Infotainment', 'Warning Light', 'Noise', 'Vibration', 'Leak', 'Smell', 'Performance',
+  'Charging/PHEV', 'Other',
+] as const;
+
+type ComplaintRow = { text: string; category: string };
+
+const EXTERIOR_VIEW_SLOTS = [
+  { id: 'front', label: 'Front' },
+  { id: 'rear', label: 'Rear' },
+  { id: 'left', label: 'Left side' },
+  { id: 'right', label: 'Right side' },
+];
+
+const TIRE_POSITION_MAP: Record<string, string> = {
+  'Front Left': 'Left Front (LF)',
+  'Front Right': 'Right Front (RF)',
+  'Rear Left': 'Left Rear (LR)',
+  'Rear Right': 'Right Rear (RR)',
+  Spare: 'Spare',
+};
+
+/** Matches doctype mandatory_depends_on for inspection item photos */
+function conditionNeedsPhoto(condition: string) {
+  return Boolean(condition && condition !== 'OK' && condition !== 'Not Checked');
+}
+
+function tireNeedsPhoto(condition: string) {
+  return Boolean(condition && condition !== 'OK');
+}
+
+function defaultOkConditions(keys: readonly string[]): Record<string, string> {
+  return Object.fromEntries(keys.map((key) => [key, 'OK']));
+}
 
 const steps = [
   { id: 1, name: 'Vehicle Info', icon: Car },
@@ -125,19 +247,49 @@ export default function NewInspectionPage() {
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
+  const [customerVehicle, setCustomerVehicle] = useState('');
+  const [serviceAdvisor, setServiceAdvisor] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
   const [currentOdometer, setCurrentOdometer] = useState<number>(0);
+  const [odometerUnit, setOdometerUnit] = useState<'km' | 'miles'>('km');
+  const [odometerPhoto, setOdometerPhoto] = useState<string | undefined>();
+  const [fuelLevel, setFuelLevel] = useState<FuelLevel>('1/2');
+  const [fuelPhoto, setFuelPhoto] = useState<string | undefined>();
+  const [dashboardPhoto, setDashboardPhoto] = useState<string | undefined>();
+  const [exteriorViewPhotos, setExteriorViewPhotos] = useState<Record<string, string | undefined>>({});
+  const [exteriorItemPhotos, setExteriorItemPhotos] = useState<Record<string, string | undefined>>({});
+  const [interiorItemPhotos, setInteriorItemPhotos] = useState<Record<string, string | undefined>>({});
+  const [tireItemPhotos, setTireItemPhotos] = useState<Record<string, string | undefined>>({});
+  const [tireTreadDepth, setTireTreadDepth] = useState<Record<string, number | undefined>>({});
+  const [tirePressure, setTirePressure] = useState<Record<string, number | undefined>>({});
+  const [customerSignatureUrl, setCustomerSignatureUrl] = useState<string | undefined>();
+  const [advisorSignatureUrl, setAdvisorSignatureUrl] = useState<string | undefined>();
+  const [signatureUploading, setSignatureUploading] = useState<'customer' | 'advisor' | null>(null);
+  const [scanPerformed, setScanPerformed] = useState(false);
 
   // Real data hooks
   const { data: customers } = useCustomers(customerSearch);
   const { data: vins } = useVINs(selectedCustomer || undefined, vinSearch);
+  const { data: advisors } = useServiceAdvisors();
   const { trigger: createInspection } = useCreateInspection();
   const [customerPresent, setCustomerPresent] = useState(true);
-  const [selectedWarnings, setSelectedWarnings] = useState<string[]>([]);
-  const [exteriorConditions, setExteriorConditions] = useState<Record<string, string>>({});
-  const [interiorConditions, setInteriorConditions] = useState<Record<string, string>>({});
-  const [tireConditions, setTireConditions] = useState<Record<string, string>>({});
-  const [complaints, setComplaints] = useState<string[]>(['']);
+  const [selectedWarnings, setSelectedWarnings] = useState<string[]>(['None']);
+  const [exteriorConditions, setExteriorConditions] = useState<Record<string, string>>(() =>
+    defaultOkConditions(exteriorAreas),
+  );
+  const [interiorConditions, setInteriorConditions] = useState<Record<string, string>>(() =>
+    defaultOkConditions(interiorAreas),
+  );
+  const [tireConditions, setTireConditions] = useState<Record<string, string>>(() =>
+    defaultOkConditions(tirePositions),
+  );
+  const [complaints, setComplaints] = useState<ComplaintRow[]>([{ text: '', category: 'Other' }]);
+
+  useEffect(() => {
+    inspectionsSvc.getCurrentServiceAdvisor().then((adv) => {
+      if (adv?.name) setServiceAdvisor(adv.name);
+    }).catch(() => {});
+  }, []);
 
   const progress = (currentStep / steps.length) * 100;
 
@@ -155,14 +307,34 @@ export default function NewInspectionPage() {
   };
 
   const addComplaint = () => {
-    setComplaints([...complaints, '']);
+    setComplaints([...complaints, { text: '', category: 'Other' }]);
   };
 
-  const updateComplaint = (index: number, value: string) => {
-    const newComplaints = [...complaints];
-    newComplaints[index] = value;
-    setComplaints(newComplaints);
+  const updateComplaint = (index: number, patch: Partial<ComplaintRow>) => {
+    setComplaints((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, ...patch } : row))
+    );
   };
+
+  const handleSignatureSave = async (which: 'customer' | 'advisor', file: File) => {
+    setSignatureUploading(which);
+    try {
+      const url = await uploadFile(file);
+      if (which === 'customer') setCustomerSignatureUrl(url);
+      else setAdvisorSignatureUrl(url);
+      toast.success(which === 'customer' ? 'Customer signature saved' : 'Advisor signature saved');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save signature');
+    } finally {
+      setSignatureUploading(null);
+    }
+  };
+
+  const firstExteriorViewPhoto = () =>
+    exteriorViewPhotos.front ||
+    exteriorViewPhotos.rear ||
+    exteriorViewPhotos.left ||
+    exteriorViewPhotos.right;
 
   async function handleSaveDraft() {
     setIsSaving(true);
@@ -175,19 +347,110 @@ export default function NewInspectionPage() {
   }
 
   async function handleSubmit() {
+    if (!selectedCustomer || !selectedVehicle) {
+      toast.error('Please select customer and vehicle');
+      return;
+    }
+    if (!customerVehicle) {
+      toast.error('Selected VIN has no linked vehicle model. Update the VIN in Vehicles first.');
+      return;
+    }
+    if (!serviceAdvisor) {
+      toast.error('Please select a service advisor');
+      return;
+    }
+    if (selectedWarnings.length === 0) {
+      toast.error('Please select warning lights status (tap None if none are on)');
+      return;
+    }
+    const filledComplaints = complaints.filter((c) => c.text.trim());
+    if (filledComplaints.length === 0) {
+      toast.error('Enter at least one customer complaint (exact words)');
+      return;
+    }
+    if (!currentOdometer) {
+      toast.error('Please enter odometer reading');
+      return;
+    }
+    if (!odometerPhoto) {
+      toast.error('Please take or upload an odometer photo');
+      return;
+    }
+    const hasWarningLights =
+      selectedWarnings.length > 0 && !selectedWarnings.includes('None');
+    if (hasWarningLights && !dashboardPhoto) {
+      toast.error('Please take a dashboard photo showing warning lights');
+      return;
+    }
+    if (!customerSignatureUrl || !advisorSignatureUrl) {
+      toast.error('Customer and service advisor signatures are required');
+      return;
+    }
+
+    const missingDamagePhotos: string[] = [];
+    for (const [area, condition] of Object.entries(exteriorConditions)) {
+      if (conditionNeedsPhoto(condition) && !exteriorItemPhotos[area]) {
+        missingDamagePhotos.push(`Exterior: ${area}`);
+      }
+    }
+    for (const [area, condition] of Object.entries(interiorConditions)) {
+      if (conditionNeedsPhoto(condition) && !interiorItemPhotos[area]) {
+        missingDamagePhotos.push(`Interior: ${area}`);
+      }
+    }
+    for (const [position, condition] of Object.entries(tireConditions)) {
+      if (tireNeedsPhoto(condition) && !tireItemPhotos[position]) {
+        missingDamagePhotos.push(`Tire: ${position}`);
+      }
+    }
+    if (missingDamagePhotos.length > 0) {
+      toast.error(`Photo required for damage: ${missingDamagePhotos[0]}`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const formData = {
         customer: selectedCustomer,
-        vehicle_vin: selectedVehicle,
+        vin_chassis: selectedVehicle,
+        customer_vehicle: customerVehicle,
+        service_advisor: serviceAdvisor,
         license_plate: licensePlate,
-        current_odometer: currentOdometer,
+        odometer: currentOdometer,
+        odometer_unit: odometerUnit,
+        odometer_photo: odometerPhoto,
+        fuel_level: fuelLevel,
+        fuel_photo: fuelPhoto,
+        dashboard_photo: dashboardPhoto,
+        exterior_photos: firstExteriorViewPhoto(),
+        exterior_view_photos: exteriorViewPhotos,
+        appointment: appointmentId || undefined,
         customer_present: customerPresent,
         warning_lights: selectedWarnings,
-        exterior_conditions: exteriorConditions,
-        interior_conditions: interiorConditions,
-        tire_conditions: tireConditions,
-        complaints: complaints.filter(c => c.trim()),
+        scan_performed: scanPerformed ? 1 : 0,
+        exterior_checklist: exteriorAreas.map((area) => ({
+          component: area,
+          condition: exteriorConditions[area] || 'OK',
+          photo: exteriorItemPhotos[area],
+        })),
+        interior_checklist: interiorAreas.map((area) => ({
+          component: area,
+          condition: interiorConditions[area] || 'OK',
+          photo: interiorItemPhotos[area],
+        })),
+        tires_checklist: tirePositions.map((position) => ({
+          position: TIRE_POSITION_MAP[position] || position,
+          tire_condition: tireConditions[position] || 'OK',
+          tread_depth_mm: tireTreadDepth[position],
+          tire_pressure_psi: tirePressure[position],
+          photo: tireItemPhotos[position],
+        })),
+        customer_complaints: filledComplaints.map((c) => ({
+          customer_exact_words: c.text.trim(),
+          symptom_category: c.category,
+        })),
+        customer_signature: customerSignatureUrl,
+        advisor_signature: advisorSignatureUrl,
       };
       await createInspection(formData);
       toast.success('Inspection submitted successfully', {
@@ -227,18 +490,22 @@ export default function NewInspectionPage() {
 
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Customer</Label>
+                  <RequiredLabel>Customer</RequiredLabel>
                   <SearchableSelect
                     options={(customers || []).map(c => ({ value: c.name, label: c.customer_name, description: c.mobile_no }))}
                     value={selectedCustomer}
-                    onValueChange={(val) => setSelectedCustomer(val)}
+                    onValueChange={(val) => {
+                      setSelectedCustomer(val);
+                      setSelectedVehicle('');
+                      setCustomerVehicle('');
+                    }}
                     onSearchChange={setCustomerSearch}
                     placeholder="Search customer..."
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Vehicle (VIN)</Label>
+                  <RequiredLabel>Vehicle (VIN)</RequiredLabel>
                   <SearchableSelect
                     options={(vins || []).map(v => ({ value: v.name, label: `${v.model_name || v.name} - ${v.plate_number || ''}`, description: v.vin_number }))}
                     value={selectedVehicle}
@@ -248,12 +515,34 @@ export default function NewInspectionPage() {
                       if (vin) {
                         setLicensePlate(vin.plate_number || '');
                         setCurrentOdometer(vin.current_odometer || 0);
+                        setCustomerVehicle(vin.linked_item || '');
                       }
                     }}
                     onSearchChange={setVinSearch}
                     placeholder="Search vehicle..."
                     disabled={!selectedCustomer}
                   />
+                  {selectedVehicle && !customerVehicle && (
+                    <p className="text-xs text-destructive">
+                      This VIN has no linked model item. Set Linked Item on the VIN record.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <RequiredLabel>Service Advisor</RequiredLabel>
+                  <Select value={serviceAdvisor} onValueChange={setServiceAdvisor}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select service advisor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(advisors || []).map((a) => (
+                        <SelectItem key={a.name} value={a.name}>
+                          {a.full_name || a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -321,10 +610,20 @@ export default function NewInspectionPage() {
             <CardContent className="space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Odometer Reading</Label>
+                  <RequiredLabel>Odometer Reading</RequiredLabel>
                   <div className="flex gap-2">
-                    <Input type="number" placeholder="Enter reading" className="flex-1" />
-                    <Select defaultValue="km">
+                    <Input
+                      type="number"
+                      placeholder="Enter reading"
+                      className="flex-1"
+                      value={currentOdometer || ''}
+                      onChange={(e) => setCurrentOdometer(parseInt(e.target.value, 10) || 0)}
+                      required
+                    />
+                    <Select
+                      value={odometerUnit}
+                      onValueChange={(v) => setOdometerUnit(v as 'km' | 'miles')}
+                    >
                       <SelectTrigger className="w-24">
                         <SelectValue />
                       </SelectTrigger>
@@ -336,13 +635,11 @@ export default function NewInspectionPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Odometer Photo</Label>
-                  <Button variant="outline" className="w-full">
-                    <Camera className="mr-2 h-4 w-4" />
-                    Take Photo
-                  </Button>
-                </div>
+                <ImageCaptureField
+                  label="Odometer Photo *"
+                  value={odometerPhoto}
+                  onChange={setOdometerPhoto}
+                />
               </div>
 
               <div className="space-y-4">
@@ -354,7 +651,12 @@ export default function NewInspectionPage() {
                       <button
                         key={level}
                         type="button"
-                        className="flex-1 rounded border px-2 py-3 text-xs font-medium transition-colors hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground"
+                        onClick={() => setFuelLevel(level)}
+                        className={`flex-1 rounded border px-2 py-3 text-xs font-medium transition-colors hover:bg-primary hover:text-primary-foreground ${
+                          fuelLevel === level
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : ''
+                        }`}
                       >
                         {level}
                       </button>
@@ -362,6 +664,12 @@ export default function NewInspectionPage() {
                   </div>
                 </div>
               </div>
+
+              <ImageCaptureField
+                label="Fuel Gauge Photo (optional)"
+                value={fuelPhoto}
+                onChange={setFuelPhoto}
+              />
 
               <div className="space-y-2">
                 <Label>Battery Voltage (V)</Label>
@@ -436,7 +744,7 @@ export default function NewInspectionPage() {
                 <AlertTriangle className="h-5 w-5 text-primary" />
                 Warning Lights
               </CardTitle>
-              <CardDescription>Select all illuminated warning lights</CardDescription>
+              <CardDescription>Select all illuminated warning lights (required — tap None if none are on)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -460,19 +768,23 @@ export default function NewInspectionPage() {
 
               {selectedWarnings.length > 0 && !selectedWarnings.includes('None') && (
                 <div className="space-y-2">
-                  <Label>Dashboard Photo</Label>
-                  <Button variant="outline" className="w-full">
-                    <Camera className="mr-2 h-4 w-4" />
-                    Take Dashboard Photo
-                  </Button>
+                  <ImageCaptureField
+                    label="Dashboard Photo"
+                    value={dashboardPhoto}
+                    onChange={setDashboardPhoto}
+                  />
                   <p className="text-xs text-muted-foreground">
-                    Required when warning lights are present
+                    Required when warning lights are illuminated
                   </p>
                 </div>
               )}
 
               <div className="flex items-center space-x-2">
-                <Checkbox id="scan_performed" />
+                <Checkbox
+                  id="scan_performed"
+                  checked={scanPerformed}
+                  onCheckedChange={(c) => setScanPerformed(c === true)}
+                />
                 <Label htmlFor="scan_performed" className="cursor-pointer">
                   Diagnostic scan performed
                 </Label>
@@ -493,40 +805,58 @@ export default function NewInspectionPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {exteriorAreas.map((area) => (
-                  <div
-                    key={area}
-                    className="flex items-center justify-between rounded-lg border p-3"
-                  >
-                    <span className="font-medium">{area}</span>
-                    <Select
-                      value={exteriorConditions[area] || ''}
-                      onValueChange={(value) =>
-                        setExteriorConditions({ ...exteriorConditions, [area]: value })
-                      }
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Condition" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {conditions.map((condition) => (
-                          <SelectItem key={condition} value={condition}>
-                            {condition}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+                {exteriorAreas.map((area) => {
+                  const condition = exteriorConditions[area] || 'OK';
+                  const needsPhoto = conditionNeedsPhoto(condition);
+                  return (
+                    <div key={area} className="space-y-3 rounded-lg border p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium">{area}</span>
+                        <Select
+                          value={condition}
+                          onValueChange={(value) => {
+                            setExteriorConditions({ ...exteriorConditions, [area]: value });
+                            if (!conditionNeedsPhoto(value)) {
+                              setExteriorItemPhotos((prev) => {
+                                const next = { ...prev };
+                                delete next[area];
+                                return next;
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Condition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {exteriorConditionsList.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {needsPhoto && (
+                        <ImageCaptureField
+                          label={`Damage photo — ${area}`}
+                          value={exteriorItemPhotos[area]}
+                          onChange={(url) =>
+                            setExteriorItemPhotos((prev) => ({ ...prev, [area]: url }))
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="mt-6 space-y-2">
-                <Label>Exterior Photos</Label>
-                <Button variant="outline" className="w-full">
-                  <Camera className="mr-2 h-4 w-4" />
-                  Take Photos (Front, Rear, Left, Right)
-                </Button>
-              </div>
+              <MultiImageCaptureField
+                label="Exterior Photos (Front, Rear, Left, Right)"
+                slots={EXTERIOR_VIEW_SLOTS}
+                value={exteriorViewPhotos}
+                onChange={setExteriorViewPhotos}
+              />
             </CardContent>
           </Card>
         );
@@ -543,31 +873,50 @@ export default function NewInspectionPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {interiorAreas.map((area) => (
-                  <div
-                    key={area}
-                    className="flex items-center justify-between rounded-lg border p-3"
-                  >
-                    <span className="font-medium">{area}</span>
-                    <Select
-                      value={interiorConditions[area] || ''}
-                      onValueChange={(value) =>
-                        setInteriorConditions({ ...interiorConditions, [area]: value })
-                      }
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Condition" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {conditions.map((condition) => (
-                          <SelectItem key={condition} value={condition}>
-                            {condition}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+                {interiorAreas.map((area) => {
+                  const condition = interiorConditions[area] || 'OK';
+                  const needsPhoto = conditionNeedsPhoto(condition);
+                  return (
+                    <div key={area} className="space-y-3 rounded-lg border p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium">{area}</span>
+                        <Select
+                          value={condition}
+                          onValueChange={(value) => {
+                            setInteriorConditions({ ...interiorConditions, [area]: value });
+                            if (!conditionNeedsPhoto(value)) {
+                              setInteriorItemPhotos((prev) => {
+                                const next = { ...prev };
+                                delete next[area];
+                                return next;
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Condition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {interiorConditionsList.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {needsPhoto && (
+                        <ImageCaptureField
+                          label={`Damage photo — ${area}`}
+                          value={interiorItemPhotos[area]}
+                          onChange={(url) =>
+                            setInteriorItemPhotos((prev) => ({ ...prev, [area]: url }))
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -585,41 +934,82 @@ export default function NewInspectionPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {tirePositions.map((position) => (
-                  <div key={position} className="rounded-lg border p-4">
-                    <h4 className="mb-3 font-medium">{position}</h4>
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label>Condition</Label>
-                        <Select
-                          value={tireConditions[position] || ''}
-                          onValueChange={(value) =>
-                            setTireConditions({ ...tireConditions, [position]: value })
+                {tirePositions.map((position) => {
+                  const condition = tireConditions[position] || 'OK';
+                  const needsPhoto = tireNeedsPhoto(condition);
+                  return (
+                    <div key={position} className="space-y-4 rounded-lg border p-4">
+                      <h4 className="font-medium">{position}</h4>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label>Condition</Label>
+                          <Select
+                            value={condition}
+                            onValueChange={(value) => {
+                              setTireConditions({ ...tireConditions, [position]: value });
+                              if (!tireNeedsPhoto(value)) {
+                                setTireItemPhotos((prev) => {
+                                  const next = { ...prev };
+                                  delete next[position];
+                                  return next;
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tireConditionsList.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Tread Depth (mm)</Label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            placeholder="mm"
+                            value={tireTreadDepth[position] ?? ''}
+                            onChange={(e) =>
+                              setTireTreadDepth({
+                                ...tireTreadDepth,
+                                [position]: parseFloat(e.target.value) || undefined,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Pressure (PSI)</Label>
+                          <Input
+                            type="number"
+                            placeholder="PSI"
+                            value={tirePressure[position] ?? ''}
+                            onChange={(e) =>
+                              setTirePressure({
+                                ...tirePressure,
+                                [position]: parseInt(e.target.value, 10) || undefined,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                      {needsPhoto && (
+                        <ImageCaptureField
+                          label={`Tire photo — ${position}`}
+                          value={tireItemPhotos[position]}
+                          onChange={(url) =>
+                            setTireItemPhotos((prev) => ({ ...prev, [position]: url }))
                           }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {conditions.map((condition) => (
-                              <SelectItem key={condition} value={condition}>
-                                {condition}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Tread Depth (mm)</Label>
-                        <Input type="number" step="0.5" placeholder="mm" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Pressure (PSI)</Label>
-                        <Input type="number" placeholder="PSI" />
-                      </div>
+                        />
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -638,13 +1028,32 @@ export default function NewInspectionPage() {
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 {complaints.map((complaint, index) => (
-                  <div key={index} className="space-y-2">
-                    <Label>Complaint {index + 1}</Label>
+                  <div key={index} className="space-y-3 rounded-lg border p-4">
+                    <RequiredLabel>Complaint {index + 1} (customer&apos;s exact words)</RequiredLabel>
                     <Textarea
-                      value={complaint}
-                      onChange={(e) => updateComplaint(index, e.target.value)}
-                      placeholder="Describe the customer's concern..."
+                      value={complaint.text}
+                      onChange={(e) => updateComplaint(index, { text: e.target.value })}
+                      placeholder="Record exactly what the customer said..."
+                      className="min-h-20"
                     />
+                    <div className="space-y-2">
+                      <RequiredLabel>Symptom category</RequiredLabel>
+                      <Select
+                        value={complaint.category}
+                        onValueChange={(val) => updateComplaint(index, { category: val })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SYMPTOM_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 ))}
                 <Button type="button" variant="outline" onClick={addComplaint}>
@@ -664,15 +1073,27 @@ export default function NewInspectionPage() {
                 <Textarea placeholder="Internal observations..." />
               </div>
 
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <h4 className="mb-4 font-medium">Signatures Required</h4>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Button variant="outline" className="h-20">
-                    Customer Signature
-                  </Button>
-                  <Button variant="outline" className="h-20">
-                    Service Advisor Signature
-                  </Button>
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                <h4 className="font-medium">Signatures Required</h4>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <RequiredLabel>Customer Signature</RequiredLabel>
+                    <SignaturePad
+                      existingUrl={customerSignatureUrl}
+                      uploading={signatureUploading === 'customer'}
+                      onSave={(file) => handleSignatureSave('customer', file)}
+                      onClear={() => setCustomerSignatureUrl(undefined)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <RequiredLabel>Service Advisor Signature</RequiredLabel>
+                    <SignaturePad
+                      existingUrl={advisorSignatureUrl}
+                      uploading={signatureUploading === 'advisor'}
+                      onSave={(file) => handleSignatureSave('advisor', file)}
+                      onClear={() => setAdvisorSignatureUrl(undefined)}
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>

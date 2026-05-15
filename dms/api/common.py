@@ -63,7 +63,7 @@ def get_vins(customer=None, search=None, limit=20):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "vin_number", "plate_number", "model_name",
+			"name", "vin_number", "plate_number", "linked_item", "model_name",
 			"model_year", "current_customer", "current_odometer",
 			"warranty_status", "warranty_end_date",
 		],
@@ -72,6 +72,29 @@ def get_vins(customer=None, search=None, limit=20):
 	)
 
 	return vins
+
+
+@frappe.whitelist()
+def get_vehicle_service_types(search=None, limit=100):
+	filters = {"is_active": 1}
+	or_filters = {}
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"service_type_name": ["like", f"%{search}%"],
+		}
+
+	return frappe.get_all(
+		"Vehicle Service Type",
+		filters=filters,
+		or_filters=or_filters if or_filters else None,
+		fields=[
+			"name", "service_type_name", "description",
+			"default_estimated_hours", "warranty_applicable", "requires_diagnostic",
+		],
+		limit=int(limit),
+		order_by="service_type_name asc",
+	)
 
 
 @frappe.whitelist()

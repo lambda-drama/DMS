@@ -221,6 +221,14 @@ export function useVINs(customer?: string, search?: string) {
   );
 }
 
+export function useVehicleServiceTypes(search?: string) {
+  return useSWR(
+    ['vehicle-service-types', search],
+    () => commonSvc.fetchVehicleServiceTypes(search),
+    { dedupingInterval: 60000 }
+  );
+}
+
 export function useServiceAdvisors() {
   return useSWR<ServiceAdvisor[]>(
     'service-advisors',

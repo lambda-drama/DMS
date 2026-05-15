@@ -32,6 +32,16 @@ export async function getInspection(name: string): Promise<VehicleInspection> {
   });
 }
 
+export async function getCurrentServiceAdvisor(): Promise<{
+  name: string;
+  full_name?: string;
+} | null> {
+  return apiRequest(`/api/method/${API}.get_current_service_advisor`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 export async function createInspection(data: Partial<VehicleInspection>): Promise<{ name: string; customer: string; customer_name: string; inspection_date: string }> {
   return apiRequest(`/api/method/${API}.create_inspection`, {
     method: 'POST',
