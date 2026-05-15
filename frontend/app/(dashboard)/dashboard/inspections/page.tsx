@@ -94,9 +94,9 @@ export default function InspectionsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <div className="rounded-lg bg-primary/10 p-3">
@@ -170,7 +170,7 @@ export default function InspectionsPage() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -183,7 +183,7 @@ export default function InspectionsPage() {
           </div>
 
           {/* Table */}
-          <div className="rounded-lg border">
+          <div className="dms-table-panel hidden md:block rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>

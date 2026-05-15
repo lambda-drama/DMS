@@ -476,7 +476,7 @@ export default function NewInspectionPage() {
               </CardTitle>
               <CardDescription>Select customer and vehicle details</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="min-w-0 space-y-4 sm:space-y-6">
               {appointmentId && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                   <p className="text-sm font-medium text-primary">
@@ -607,7 +607,7 @@ export default function NewInspectionPage() {
               </CardTitle>
               <CardDescription>Record current readings</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="min-w-0 space-y-4 sm:space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <RequiredLabel>Odometer Reading</RequiredLabel>
@@ -689,7 +689,7 @@ export default function NewInspectionPage() {
               </CardTitle>
               <CardDescription>Vehicle arrival information</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="min-w-0 space-y-4 sm:space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Arrival Method</Label>
@@ -746,7 +746,7 @@ export default function NewInspectionPage() {
               </CardTitle>
               <CardDescription>Select all illuminated warning lights (required — tap None if none are on)</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="min-w-0 space-y-4 sm:space-y-6">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 {warningLights.map((light) => (
                   <button
@@ -1025,7 +1025,7 @@ export default function NewInspectionPage() {
               </CardTitle>
               <CardDescription>Record all customer concerns</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="min-w-0 space-y-4 sm:space-y-6">
               <div className="space-y-4">
                 {complaints.map((complaint, index) => (
                   <div key={index} className="space-y-3 rounded-lg border p-4">
@@ -1129,7 +1129,7 @@ export default function NewInspectionPage() {
       {/* Progress */}
       <div className="space-y-2">
         <Progress value={progress} className="h-2" />
-        <div className="flex justify-between">
+        <div className="flex justify-between gap-1 overflow-x-auto pb-1">
           {steps.map((step) => {
             const StepIcon = step.icon;
             return (
@@ -1170,9 +1170,10 @@ export default function NewInspectionPage() {
       {renderStep()}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="dms-sticky-actions flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Button
           variant="outline"
+          className="w-full sm:w-auto"
           onClick={() => setCurrentStep(currentStep - 1)}
           disabled={currentStep === 1}
         >
@@ -1181,12 +1182,12 @@ export default function NewInspectionPage() {
         </Button>
 
         {currentStep < steps.length ? (
-          <Button onClick={() => setCurrentStep(currentStep + 1)}>
+          <Button className="w-full sm:w-auto" onClick={() => setCurrentStep(currentStep + 1)}>
             Next
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button className="w-full sm:w-auto" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

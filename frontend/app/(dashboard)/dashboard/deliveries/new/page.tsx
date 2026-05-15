@@ -220,7 +220,7 @@ export default function NewDeliveryPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("deliveries")}>
           <ArrowLeft className="h-5 w-5" />
@@ -231,7 +231,7 @@ export default function NewDeliveryPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
         <Card className={jobCard ? "border-primary/30 bg-primary/5" : ""}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -519,7 +519,7 @@ export default function NewDeliveryPage() {
               Customer confirms receipt; staff confirms handover (required on desk checkout).
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="min-w-0 space-y-4 sm:space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Customer signature *</Label>

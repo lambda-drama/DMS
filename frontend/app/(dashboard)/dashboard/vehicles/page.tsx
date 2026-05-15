@@ -113,7 +113,7 @@ export default function VehiclesPage() {
   }, [vehicles]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -131,7 +131,7 @@ export default function VehiclesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -251,7 +251,7 @@ export default function VehiclesPage() {
               Failed to load vehicles
             </div>
           ) : vehicles && vehicles.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="dms-table-panel">
               <Table>
                 <TableHeader>
                   <TableRow>

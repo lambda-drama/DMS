@@ -391,7 +391,7 @@ export default function NewJobCardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -409,7 +409,7 @@ export default function NewJobCardPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="min-w-0 space-y-4 sm:space-y-6">
         {/* 1. Service Details */}
         <Card>
           <CardHeader>

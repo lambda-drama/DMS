@@ -85,7 +85,7 @@ export default function InvoicesPage() {
   const defaultCurrency = invoices?.[0]?.currency;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -99,7 +99,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -200,7 +200,7 @@ export default function InvoicesPage() {
               Failed to load invoices
             </div>
           ) : invoices && invoices.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="dms-table-panel">
               <Table>
                 <TableHeader>
                   <TableRow>

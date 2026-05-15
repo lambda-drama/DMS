@@ -199,7 +199,7 @@ export default function TechnicianDetailPage() {
     .toUpperCase() || "?";
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Back button */}
       <Button variant="ghost" size="sm" onClick={() => navigate("technicians")}>
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Technicians

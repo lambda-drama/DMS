@@ -131,9 +131,9 @@ export default function AppointmentsPage() {
   const pendingCount = (appointments || []).filter((apt) => apt.appointment_status === 'Booked').length;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <div className="rounded-lg bg-primary/10 p-3">
@@ -206,9 +206,9 @@ export default function AppointmentsPage() {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -223,7 +223,7 @@ export default function AppointmentsPage() {
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-36">
+                <SelectTrigger className="w-full sm:w-36">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -236,8 +236,55 @@ export default function AppointmentsPage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="rounded-lg border">
+          {/* Mobile list */}
+          <div className="space-y-3 md:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+            ) : filteredAppointments.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No appointments found</p>
+            ) : (
+              filteredAppointments.map((apt) => {
+                const statusConfig = getStatusConfig(apt.appointment_status);
+                const priorityConfig = getPriorityConfig(apt.priority);
+                const StatusIcon = statusConfig.icon;
+                const { date: aptDate, time: aptTime } = formatAppointmentDateTime(apt.appointment_date_time);
+                const serviceTypes = (apt.service_type_requested || [])
+                  .map((s) => s.service_type)
+                  .filter(Boolean)
+                  .join(', ');
+                return (
+                  <button
+                    key={apt.name}
+                    type="button"
+                    onClick={() => setSelectedId(apt.name)}
+                    className="w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium">{apt.customer_name}</p>
+                        <p className="truncate text-sm text-muted-foreground">{apt.name}</p>
+                      </div>
+                      <Badge variant="outline" className={statusConfig.color}>
+                        <StatusIcon className="mr-1 h-3 w-3" />
+                        {apt.appointment_status}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      <p>{apt.vehicle} · {apt.license_plate}</p>
+                      <p>{aptDate}{aptTime ? ` · ${aptTime}` : ''}</p>
+                      {serviceTypes ? <p className="truncate">{serviceTypes}</p> : null}
+                    </div>
+                    <Badge variant="outline" className={`mt-2 ${priorityConfig.color}`}>
+                      {priorityConfig.label}
+                    </Badge>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Table — tablet/desktop */}
+          <div className="dms-table-panel hidden md:block rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
