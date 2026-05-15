@@ -52,6 +52,7 @@ import {
   Settings2,
   Truck,
   DollarSign,
+  CreditCard,
   Play,
   Pause,
   ChevronRight,
@@ -74,6 +75,10 @@ import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { uploadFile } from "@/services/common";
 import { SearchableSelect } from "@/components/searchable-select";
+import { CreateInvoiceDialog } from "@/components/invoices/create-invoice-dialog";
+import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
+import * as invoicesSvc from "@/services/invoices";
+import type { SalesInvoiceDetail } from "@/types/dms";
 function toDatetimeLocal(value?: string) {
   if (!value) return "";
   const d = new Date(value);
@@ -106,6 +111,9 @@ export default function JobCardDetailPage() {
   const [roadTestPassNotes, setRoadTestPassNotes] = useState("");
   const [showQCFailDialog, setShowQCFailDialog] = useState(false);
   const [qcFailReason, setQcFailReason] = useState("");
+  const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
   const [signatureUploading, setSignatureUploading] = useState(false);
   const [savedSignatureUrl, setSavedSignatureUrl] = useState<string | null>(null);
   const [scheduleStart, setScheduleStart] = useState("");
@@ -178,6 +186,23 @@ export default function JobCardDetailPage() {
     },
     [mutate]
   );
+
+  const refreshInvoiceDetail = useCallback(async (invoiceName: string) => {
+    try {
+      const detail = await invoicesSvc.getSalesInvoiceDetail(invoiceName);
+      setInvoiceDetail(detail);
+    } catch {
+      setInvoiceDetail(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (jobCard?.invoice) {
+      refreshInvoiceDetail(jobCard.invoice);
+    } else {
+      setInvoiceDetail(null);
+    }
+  }, [jobCard?.invoice, refreshInvoiceDetail]);
 
   if (!id) {
     return (
@@ -431,8 +456,15 @@ export default function JobCardDetailPage() {
   const handleReworkCompleted = () =>
     runAction("Rework Completed", () => jobCardsSvc.reworkCompleted(id));
 
-  const handleCreateInvoice = () =>
-    runAction("Sales Invoice Created", () => jobCardsSvc.makeSalesInvoice(id));
+  const handleInvoiceCreated = async (invoiceName: string) => {
+    await mutate();
+    await refreshInvoiceDetail(invoiceName);
+  };
+
+  const canCollectPayment =
+    invoiceDetail &&
+    invoiceDetail.docstatus === 1 &&
+    (invoiceDetail.outstanding_amount || 0) > 0;
 
   // ─── Cost calculations ─────────────────────────────────────
 
@@ -765,18 +797,26 @@ export default function JobCardDetailPage() {
             {(status === "Completed" || status === "Delivered") && (
               <>
                 {!jobCard.invoice && (
-                  <Button onClick={handleCreateInvoice} disabled={busy}>
+                  <Button onClick={() => setShowCreateInvoiceDialog(true)} disabled={busy}>
                     <DollarSign className="h-4 w-4 mr-2" />
                     Create Sales Invoice
                   </Button>
                 )}
                 {jobCard.invoice && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/app/sales-invoice/${jobCard.invoice}`} target="_blank" rel="noreferrer">
-                      <FileText className="h-4 w-4 mr-2" />
-                      View Invoice
-                    </a>
-                  </Button>
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`/app/sales-invoice/${jobCard.invoice}`} target="_blank" rel="noreferrer">
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Invoice
+                      </a>
+                    </Button>
+                    {canCollectPayment && (
+                      <Button size="sm" onClick={() => setShowPaymentDialog(true)} disabled={busy}>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Pay
+                      </Button>
+                    )}
+                  </>
                 )}
                 {status === "Completed" && (
                   <Button
@@ -793,6 +833,85 @@ export default function JobCardDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {jobCard.invoice && invoiceDetail && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">Sales Invoice</CardTitle>
+              <div className="flex flex-wrap gap-2">
+                {canCollectPayment && (
+                  <Button size="sm" onClick={() => setShowPaymentDialog(true)}>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Collect Payment
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" asChild>
+                  <a href={`/app/sales-invoice/${jobCard.invoice}`} target="_blank" rel="noreferrer">
+                    Open in Desk
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-4 text-sm">
+              <span>
+                <span className="text-muted-foreground">Invoice: </span>
+                <span className="font-medium">{invoiceDetail.name}</span>
+              </span>
+              {invoiceDetail.due_date && (
+                <span>
+                  <span className="text-muted-foreground">Due: </span>
+                  {new Date(invoiceDetail.due_date).toLocaleDateString()}
+                </span>
+              )}
+              <span>
+                <span className="text-muted-foreground">Total: </span>
+                {(invoiceDetail.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+              {(invoiceDetail.outstanding_amount || 0) > 0 && (
+                <span className="font-medium text-amber-600 dark:text-amber-400">
+                  Outstanding: {(invoiceDetail.outstanding_amount || 0).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+              )}
+            </div>
+            {invoiceDetail.items?.length > 0 && (
+              <div className="dms-table-panel rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoiceDetail.items.map((line, idx) => (
+                      <TableRow key={`${line.item_code}-${idx}`}>
+                        <TableCell className="max-w-[240px] truncate">
+                          {line.description || line.item_code}
+                        </TableCell>
+                        <TableCell className="text-right">{line.qty}</TableCell>
+                        <TableCell className="text-right">
+                          {(line.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            {invoiceDetail.docstatus !== 1 && (
+              <p className="text-sm text-muted-foreground">
+                Invoice is a draft — submit in ERPNext to collect payment.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -1635,6 +1754,25 @@ export default function JobCardDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CreateInvoiceDialog
+        open={showCreateInvoiceDialog}
+        onOpenChange={setShowCreateInvoiceDialog}
+        jobCardId={id}
+        onCreated={handleInvoiceCreated}
+      />
+
+      {jobCard.invoice && (
+        <CollectPaymentDialog
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          salesInvoice={jobCard.invoice}
+          onPaid={() => {
+            mutate();
+            refreshInvoiceDetail(jobCard.invoice!);
+          }}
+        />
+      )}
     </div>
   );
 }

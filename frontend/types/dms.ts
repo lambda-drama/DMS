@@ -977,6 +977,48 @@ export interface SalesInvoiceListItem {
   modified?: string;
 }
 
+export interface InvoicePreviewLine {
+  line_type: 'Labour' | 'Parts';
+  item_code: string;
+  description: string;
+  qty: number;
+  rate: number;
+  amount: number;
+}
+
+export interface InvoicePreview {
+  job_card: string;
+  customer: string;
+  customer_name: string;
+  company: string;
+  lines: InvoicePreviewLine[];
+  has_labour: boolean;
+  labour_total: number;
+  parts_total: number;
+  subtotal: number;
+  discount_amount: number;
+  estimated_total: number;
+  currency?: string;
+  existing_invoice?: string;
+}
+
+export interface SalesInvoiceDetail extends SalesInvoiceListItem {
+  company?: string;
+  remarks?: string;
+  items: {
+    item_code: string;
+    description?: string;
+    qty: number;
+    rate: number;
+    amount: number;
+  }[];
+}
+
+export interface ModeOfPayment {
+  name: string;
+  type?: string;
+}
+
 // ============ API RESPONSE TYPES ============
 
 export interface PaginatedResponse<T> {

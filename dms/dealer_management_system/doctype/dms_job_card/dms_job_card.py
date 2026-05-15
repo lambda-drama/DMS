@@ -129,7 +129,7 @@ class DMSJobCard(Document):
 
 
 @frappe.whitelist()
-def make_sales_invoice_from_job_card(job_card):
+def make_sales_invoice_from_job_card(job_card, due_date=None, submit=0):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
 	)
@@ -141,7 +141,11 @@ def make_sales_invoice_from_job_card(job_card):
 	frappe.has_permission("Sales Invoice", "create", throw=True)
 	frappe.has_permission("DMS Job Card", "read", job_card_name, throw=True)
 
-	return create_sales_invoice_from_dms_job_card(job_card_name)
+	return create_sales_invoice_from_dms_job_card(
+		job_card_name,
+		due_date=due_date or None,
+		submit=bool(int(submit or 0)),
+	)
 
 
 @frappe.whitelist()

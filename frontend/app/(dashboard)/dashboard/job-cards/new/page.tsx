@@ -102,6 +102,8 @@ export default function NewJobCardPage() {
   const [sparePartSearch, setSparePartSearch] = useState("");
   const [warehouseSearch, setWarehouseSearch] = useState("");
   const [companySearch, setCompanySearch] = useState("");
+  const [company, setCompany] = useState("");
+  const [warehouse, setWarehouse] = useState("");
 
   // Lookup hooks
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
@@ -110,7 +112,10 @@ export default function NewJobCardPage() {
   const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
   const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(serviceItemSearch);
   const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
-  const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(warehouseSearch);
+  const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
+    warehouseSearch,
+    company || undefined
+  );
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
 
   // Main form state
@@ -129,8 +134,6 @@ export default function NewJobCardPage() {
   const [leadTechnician, setLeadTechnician] = useState("");
   const [assignedBay, setAssignedBay] = useState("");
   const [workshop, setWorkshop] = useState("");
-  const [warehouse, setWarehouse] = useState("");
-  const [company, setCompany] = useState("");
 
   const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
@@ -700,7 +703,26 @@ export default function NewJobCardPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <motion.div className="space-y-2">
+                <Label htmlFor="company">Company *</Label>
+                <SearchableSelect
+                  value={company}
+                  onValueChange={(val) => {
+                    setCompany(val);
+                    setWarehouse("");
+                    setWarehouseSearch("");
+                  }}
+                  onSearchChange={setCompanySearch}
+                  placeholder="Select company..."
+                  isLoading={companiesLoading}
+                  options={(companies || []).map((c) => ({
+                    value: c.name,
+                    label: c.company_name || c.name,
+                  }))}
+                />
+              </motion.div>
+
+              <motion.div className="space-y-2">
                 <Label>Warehouse</Label>
                 <SearchableSelect
                   options={
@@ -712,25 +734,11 @@ export default function NewJobCardPage() {
                   value={warehouse}
                   onValueChange={setWarehouse}
                   onSearchChange={setWarehouseSearch}
-                  placeholder="Search warehouses..."
+                  placeholder={company ? "Search warehouses..." : "Select company first"}
                   isLoading={warehousesLoading}
+                  disabled={!company}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="company">Company</Label>
-                <SearchableSelect
-                  value={company}
-                  onValueChange={setCompany}
-                  onSearchChange={setCompanySearch}
-                  placeholder="Select company..."
-                  isLoading={companiesLoading}
-                  options={(companies || []).map((c) => ({
-                    value: c.name,
-                    label: c.company_name || c.name,
-                  }))}
-                />
-              </div>
+              </motion.div>
             </div>
           </CardContent>
         </Card>

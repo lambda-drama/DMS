@@ -21,6 +21,7 @@ interface DetailSheetProps {
   badge?: { label: string; variant?: "default" | "secondary" | "destructive" | "outline" };
   isLoading?: boolean;
   onOpenInDesk?: () => void;
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -32,6 +33,7 @@ export function DetailSheet({
   badge,
   isLoading,
   onOpenInDesk,
+  footer,
   children,
 }: DetailSheetProps) {
   return (
@@ -77,7 +79,12 @@ export function DetailSheet({
             <Loader2 className="h-6 w-6 animate-spin text-dms-green" />
           </div>
         ) : (
-          <div className="px-4 pb-6 space-y-4">{children}</div>
+          <>
+            <div className="flex-1 px-4 pb-4 space-y-4 overflow-y-auto">{children}</div>
+            {footer && (
+              <div className="shrink-0 border-t bg-background px-4 py-3">{footer}</div>
+            )}
+          </>
         )}
       </SheetContent>
     </Sheet>

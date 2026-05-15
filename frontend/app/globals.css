@@ -157,6 +157,44 @@
   body {
     @apply bg-background text-foreground overflow-x-hidden;
   }
+
+  /* Pointer on interactive controls so hover clearly signals clickability */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']):not(:disabled),
+  a[href],
+  summary,
+  label[for],
+  [data-slot='button']:not(:disabled),
+  [data-slot='tabs-trigger']:not(:disabled),
+  [data-slot='toggle']:not(:disabled),
+  [data-slot='toggle-group-item']:not(:disabled),
+  [data-slot='switch']:not(:disabled),
+  [data-slot='checkbox']:not(:disabled),
+  [data-slot='radio-group-item']:not(:disabled),
+  [data-slot='select-trigger']:not(:disabled),
+  [data-slot='sidebar-trigger'],
+  [data-slot='sidebar-menu-button']:not([aria-disabled='true']),
+  [data-slot='sidebar-menu-sub-button']:not([aria-disabled='true']),
+  [data-slot='sidebar-menu-action'],
+  [data-slot='sidebar-group-action'],
+  [data-slot='accordion-trigger']:not(:disabled),
+  [data-slot='dropdown-menu-item']:not([data-disabled]),
+  [data-slot='dropdown-menu-sub-trigger']:not([data-disabled]),
+  [data-slot='dropdown-menu-checkbox-item']:not([data-disabled]),
+  [data-slot='dropdown-menu-radio-item']:not([data-disabled]),
+  [data-slot='command-item']:not([data-disabled='true']),
+  [data-slot='select-item']:not([data-disabled]),
+  [type='button']:not(:disabled),
+  [type='submit']:not(:disabled),
+  [type='reset']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :disabled,
+  [aria-disabled='true'],
+  [data-disabled='true'] {
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {
@@ -179,5 +217,8 @@
   /* Bottom padding so scrollable form content clears the fixed action bar */
   .dms-form-page {
     @apply min-w-0 pb-24;
+  }
+  .dms-clickable {
+    @apply cursor-pointer;
   }
 }
