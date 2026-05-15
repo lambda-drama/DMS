@@ -74,7 +74,13 @@ const ACTIVE_STATUSES = [
   "Rework",
 ];
 
-function WorkflowProgress({ status }: { status: JobCardStatus }) {
+function WorkflowProgress({
+  status,
+  onOpen,
+}: {
+  status: JobCardStatus;
+  onOpen?: () => void;
+}) {
   const stages = ["Draft", "Estimate", "Repair", "Road Test", "QC", "Done"];
   const stageMap: Record<string, number> = {
     Draft: 0,
@@ -96,10 +102,21 @@ function WorkflowProgress({ status }: { status: JobCardStatus }) {
   };
   const currentIndex = stageMap[status] ?? -1;
 
-  if (currentIndex < 0 || status === "Cancelled") return null;
+  if (currentIndex < 0 || status === "Cancelled") {
+    if (!onOpen) return <span className="text-sm text-muted-foreground">—</span>;
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className="text-sm text-muted-foreground hover:text-primary hover:underline"
+      >
+        {status}
+      </button>
+    );
+  }
 
-  return (
-    <div className="flex items-center gap-0.5" title={status}>
+  const bar = (
+    <div className="flex items-center gap-0.5 min-w-[200px]" title={status}>
       {stages.map((label, index) => (
         <div key={index} className="flex flex-col items-center">
           <div
@@ -125,6 +142,19 @@ function WorkflowProgress({ status }: { status: JobCardStatus }) {
         </div>
       ))}
     </div>
+  );
+
+  if (!onOpen) return bar;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="rounded-md p-1 -m-1 text-left transition-colors hover:bg-muted/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+      title="Open job card to continue workflow"
+    >
+      {bar}
+    </button>
   );
 }
 
@@ -293,11 +323,14 @@ export default function JobCardsPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((jc) => (
-                    <TableRow key={jc.name} className="cursor-pointer hover:bg-muted/50">
+                    <TableRow key={jc.name} className="hover:bg-muted/50">
                       <TableCell>
                         <button
                           type="button"
-                          onClick={() => setSelectedId(jc.name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedId(jc.name);
+                          }}
                           className="font-medium text-primary hover:underline"
                         >
                           {jc.name}
@@ -319,7 +352,10 @@ export default function JobCardsPage() {
                         <StatusBadge status={jc.status} />
                       </TableCell>
                       <TableCell>
-                        <WorkflowProgress status={jc.status} />
+                        <WorkflowProgress
+                          status={jc.status}
+                          onOpen={() => navigate("job-card-detail", { id: jc.name })}
+                        />
                       </TableCell>
                       <TableCell>
                         {jc.promised_delivery_date_time

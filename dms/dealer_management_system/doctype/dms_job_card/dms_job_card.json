@@ -42,7 +42,7 @@
   "estimated_duration_hours",
   "actual_duration_hours",
   "total_labor_hours",
-  "total_sold_hours",
+  "total_hours",
   "section_break_cdii",
   "lead_technician",
   "assistant_technicians",
@@ -628,12 +628,9 @@
   {
    "fieldname": "total_labor_hours",
    "fieldtype": "Float",
-   "label": "total_labor_hours"
-  },
-  {
-   "fieldname": "total_sold_hours",
-   "fieldtype": "Date",
-   "label": "total_sold_hours"
+   "label": "Total Labor Hours",
+   "precision": "1",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_pwum",
@@ -756,13 +753,20 @@
    "fieldtype": "Select",
    "label": "Warranty Application Type",
    "options": "\nAll Invoice\nLabour\nSpare Part\nDiscount"
+  },
+  {
+   "fieldname": "total_hours",
+   "fieldtype": "Float",
+   "label": "Total Hours",
+   "precision": "1",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-13 02:26:33.891935",
+ "modified": "2026-05-15 14:53:30.907038",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

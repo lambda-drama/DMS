@@ -210,33 +210,97 @@ from frappe import _
 from frappe.utils import now_datetime, flt
 
 
+def _repair_technicians(doc):
+	technicians = []
+	if doc.lead_technician:
+		technicians.append(doc.lead_technician)
+	for row in doc.assistant_technicians or []:
+		tech = (row.technician or "").strip()
+		if tech and tech not in technicians:
+			technicians.append(tech)
+	return technicians
+
+
+def _insert_repair_time_logs(job_card, technicians, start_time=None):
+	start_time = start_time or now_datetime()
+	existing = frappe.get_all(
+		"DMS Job Card Time Log",
+		filters={"parent": job_card},
+		fields=["name"],
+	)
+	base_idx = len(existing)
+	for offset, technician in enumerate(technicians, start=1):
+		child = frappe.new_doc("DMS Job Card Time Log")
+		child.update({
+			"parent": job_card,
+			"parenttype": "DMS Job Card",
+			"parentfield": "time_logs",
+			"idx": base_idx + offset,
+			"technician": technician,
+			"start_time": start_time,
+		})
+		child.db_insert()
+
+
 @frappe.whitelist()
 def start_repair(job_card, time_logs=None):
-    doc = frappe.get_doc("DMS Job Card", job_card)
-    if doc.docstatus != 1:
-        frappe.throw(_("Job Card must be submitted before starting repair."))
+	doc = frappe.get_doc("DMS Job Card", job_card)
+	if doc.docstatus != 1:
+		frappe.throw(_("Job Card must be submitted before starting repair."))
 
-    # Wipe old logs and insert fresh ones directly — bypasses docstatus check
-    frappe.db.delete("DMS Job Card Time Log", {"parent": job_card})
+	frappe.db.delete("DMS Job Card Time Log", {"parent": job_card})
 
-    if time_logs:
-        if isinstance(time_logs, str):
-            time_logs = json.loads(time_logs)
-        for idx, log in enumerate(time_logs, start=1):
-            child = frappe.new_doc("DMS Job Card Time Log")
-            child.update({
-                "parent": job_card,
-                "parenttype": "DMS Job Card",
-                "parentfield": "time_logs",
-                "idx": idx,
-                "technician": log.get("technician"),
-                "start_time": log.get("start_time") or now_datetime(),
-            })
-            child.db_insert()
+	if isinstance(time_logs, str):
+		time_logs = json.loads(time_logs) if time_logs else []
 
-    frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
-    frappe.db.commit()
-    return "ok"
+	if not time_logs:
+		technicians = _repair_technicians(doc)
+		if not technicians:
+			frappe.throw(_("Assign a lead technician before starting repair."))
+		time_logs = [{"technician": tech, "start_time": now_datetime()} for tech in technicians]
+
+	for idx, log in enumerate(time_logs, start=1):
+		child = frappe.new_doc("DMS Job Card Time Log")
+		child.update({
+			"parent": job_card,
+			"parenttype": "DMS Job Card",
+			"parentfield": "time_logs",
+			"idx": idx,
+			"technician": log.get("technician"),
+			"start_time": log.get("start_time") or now_datetime(),
+		})
+		child.db_insert()
+
+	frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
+	frappe.db.commit()
+	return "ok"
+
+
+@frappe.whitelist()
+def resume_repair(job_card):
+	"""Resume repair after pause — append new open time logs without deleting history."""
+	doc = frappe.get_doc("DMS Job Card", job_card)
+	if doc.docstatus != 1:
+		frappe.throw(_("Job Card must be submitted before resuming repair."))
+
+	technicians = _repair_technicians(doc)
+	if not technicians:
+		frappe.throw(_("Assign a lead technician before resuming repair."))
+
+	open_logs = frappe.get_all(
+		"DMS Job Card Time Log",
+		filters={"parent": job_card, "end_time": ["is", "not set"]},
+		pluck="name",
+	)
+	if open_logs:
+		frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
+		frappe.db.commit()
+		return "ok"
+
+	_insert_repair_time_logs(job_card, technicians)
+	frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
+	frappe.db.commit()
+	return "ok"
 
 
 @frappe.whitelist()
@@ -286,7 +350,7 @@ def stop_repair(job_card, open_logs=None, completed_date_time=None):
     frappe.db.set_value("DMS Job Card", job_card, {
         "status": "Repair Completed",
         "actual_duration_hours": total_hours,
-        "total_sold_hours": total_hours,
+        "total_hours": total_hours,
         "completed_date_time": completed_date_time or now_datetime(),
     }, update_modified=True)
 

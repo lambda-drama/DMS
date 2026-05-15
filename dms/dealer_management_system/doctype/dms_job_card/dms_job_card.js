@@ -987,7 +987,7 @@ function stop_repair(frm) {
                 fieldname: {
                     status: "Repair Completed",
                     actual_duration_hours: total_actual,
-                    total_sold_hours: total_actual,
+                    total_hours: total_actual,
                     completed_date_time: now
                 }
             },

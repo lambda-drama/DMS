@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import cint
 
 
 @frappe.whitelist()
@@ -281,3 +282,221 @@ def approve_and_submit_job_card(
 		"status": doc.status,
 		"docstatus": doc.docstatus,
 	}
+
+
+@frappe.whitelist()
+def get_road_test_templates():
+	"""List active road test templates for the frontend picker."""
+	return frappe.get_all(
+		"Road Test Template",
+		filters={"is_active": 1},
+		fields=["name", "template_name", "template_type"],
+		order_by="template_name asc",
+	)
+
+
+@frappe.whitelist()
+def apply_road_test_template(name, template, force=0):
+	"""Populate road_test_results from a Road Test Template (matches desk behaviour)."""
+	if isinstance(force, str):
+		force = force in ("1", "true", "True")
+
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+	if not template:
+		frappe.throw(_("Road Test Template is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	existing = doc.road_test_results or []
+	if existing and not force:
+		frappe.throw(
+			_("This job card already has road test results. Set force to replace them.")
+		)
+
+	template_doc = frappe.get_doc("Road Test Template", template)
+	items = template_doc.test_items or []
+	if not items:
+		frappe.throw(_("This Road Test Template has no test items."))
+
+	doc.road_test_template = template
+	doc.set("road_test_results", [])
+	for item in items:
+		doc.append(
+			"road_test_results",
+			{
+				"test_item": item.test_item,
+				"test_description": item.test_item,
+				"category": item.category,
+				"test_condition": item.test_condition,
+				"is_critical": item.is_critical,
+				"result": "Pass",
+				"tested_by": frappe.session.user,
+				"tested_on": frappe.utils.now_datetime(),
+			},
+		)
+
+	doc.save()
+	frappe.db.commit()
+
+	return {"road_test_template": doc.road_test_template, "road_test_results": doc.road_test_results}
+
+
+def _resolve_qc_check_item_text(check_item_link):
+	if not check_item_link:
+		return ""
+	return (
+		frappe.db.get_value("QC Checklist Item Master", check_item_link, "qc_checklist_item")
+		or check_item_link
+	)
+
+
+@frappe.whitelist()
+def get_qc_checklist_templates():
+	"""List active QC checklist templates for the frontend picker."""
+	return frappe.get_all(
+		"QC Checklist Template",
+		filters={"is_active": 1},
+		fields=["name", "checklist_name", "checklist_type"],
+		order_by="checklist_name asc",
+	)
+
+
+@frappe.whitelist()
+def apply_qc_checklist_template(name, template, force=0):
+	"""Populate qc_results from a QC Checklist Template (matches desk behaviour)."""
+	if isinstance(force, str):
+		force = force in ("1", "true", "True")
+
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+	if not template:
+		frappe.throw(_("QC Checklist Template is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	existing = doc.qc_results or []
+	if existing and not force:
+		frappe.throw(_("This job card already has QC results. Set force to replace them."))
+
+	template_doc = frappe.get_doc("QC Checklist Template", template)
+	items = template_doc.checklist_items or []
+	if not items:
+		frappe.throw(_("This QC Checklist Template has no lines in Checklist Items."))
+
+	doc.qc_checklist_template = template
+	doc.set("qc_results", [])
+	for item in items:
+		req_m = cint(item.requires_measurement)
+		doc.append(
+			"qc_results",
+			{
+				"check_item_text": _resolve_qc_check_item_text(item.check_item),
+				"category": item.category,
+				"is_mandatory": item.is_mandatory,
+				"requires_photo": item.requires_photo,
+				"requires_measurement": item.requires_measurement,
+				"min_value": item.min_value if req_m else None,
+				"max_value": item.max_value if req_m else None,
+				"result": "Pass",
+			},
+		)
+
+	doc.save()
+	frappe.db.commit()
+
+	return {
+		"qc_checklist_template": doc.qc_checklist_template,
+		"qc_results": doc.qc_results,
+	}
+
+
+@frappe.whitelist()
+def save_qc_results(name, qc_checklist_template=None, results=None):
+	"""Save QC template and result rows on a submitted job card."""
+	if isinstance(results, str):
+		import json
+		results = json.loads(results) if results else []
+
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	if qc_checklist_template:
+		doc.qc_checklist_template = qc_checklist_template
+
+	doc.set("qc_results", [])
+	for row in results or []:
+		if isinstance(row, str):
+			import json
+			row = json.loads(row)
+		doc.append(
+			"qc_results",
+			{
+				"check_item_text": row.get("check_item_text") or "",
+				"category": row.get("category"),
+				"is_mandatory": row.get("is_mandatory"),
+				"requires_photo": row.get("requires_photo"),
+				"requires_measurement": row.get("requires_measurement"),
+				"min_value": row.get("min_value"),
+				"max_value": row.get("max_value"),
+				"result": row.get("result") or "Pass",
+				"measurement_value": row.get("measurement_value"),
+				"photo": row.get("photo"),
+				"notes": row.get("notes") or "",
+			},
+		)
+
+	doc.save()
+	frappe.db.commit()
+
+	return {
+		"qc_checklist_template": doc.qc_checklist_template,
+		"qc_results": doc.qc_results,
+	}
+
+
+@frappe.whitelist()
+def save_road_test_results(name, road_test_template=None, results=None):
+	"""Save road test template and result rows on a submitted job card."""
+	if isinstance(results, str):
+		import json
+		results = json.loads(results) if results else []
+
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	if road_test_template:
+		doc.road_test_template = road_test_template
+
+	doc.set("road_test_results", [])
+	for row in results or []:
+		if isinstance(row, str):
+			import json
+			row = json.loads(row)
+		doc.append(
+			"road_test_results",
+			{
+				"test_item": row.get("test_item"),
+				"test_description": row.get("test_description") or row.get("test_item"),
+				"category": row.get("category"),
+				"test_condition": row.get("test_condition"),
+				"is_critical": row.get("is_critical"),
+				"result": row.get("result") or "Pass",
+				"observations": row.get("observations") or "",
+				"tested_by": row.get("tested_by") or frappe.session.user,
+				"tested_on": row.get("tested_on") or frappe.utils.now_datetime(),
+			},
+		)
+
+	doc.save()
+	frappe.db.commit()
+
+	return {"road_test_template": doc.road_test_template, "road_test_results": doc.road_test_results}

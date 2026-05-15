@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useJobCard, useCreateDelivery } from "@/hooks/use-dms";
+import { useJobCard, useJobCards, useCreateDelivery } from "@/hooks/use-dms";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,102 +11,218 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Truck, Car, User, FileText, CheckCircle2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SignaturePad } from "@/components/signature-pad";
+import { uploadFile } from "@/services/common";
+import { ArrowLeft, Truck, Car, User, FileText, CheckCircle2, PenLine } from "lucide-react";
 import { toast } from "sonner";
-import type { Delivery } from "@/types/dms";
 
-const deliveryChecklist = [
-  "Vehicle cleaned inside and out",
-  "All personal belongings returned",
-  "Service documents provided",
-  "Invoice explained to customer",
-  "Warranty information explained",
-  "Next service date advised",
-  "Customer signature obtained",
-  "Keys handed over",
+const DELIVERY_CHECKLIST_ITEMS = [
+  "Vehicle interior cleaned",
+  "Vehicle exterior washed/wiped",
+  "No tools/parts left inside vehicle",
+  "Personal items returned to customer",
+  "All keys returned (quantity checked)",
+  "Remote/key fob working",
+  "Owner manual/service booklet in glovebox",
+  "Warranty booklet stamped/updated",
+  "Service reminder sticker applied",
+  "Invoice explained and copy given",
+  "Next service due communicated",
+  "Vehicle damage explained (if any)",
+  "Fuel level confirmed",
+  "Any warning lights on?",
+  "Test drive completed with customer (if requested)",
+  "Customer satisfied with repair",
 ];
+
+const FUEL_LEVELS = ["Empty", "1/8", "1/4", "3/8", "1/2", "5/8", "3/4", "7/8", "Full"];
+const VEHICLE_CONDITIONS = ["Excellent", "Good", "Fair", "Customer Reported New Damage"];
+const SATISFACTION_OPTIONS = ["Happy", "Neutral", "Unhappy"];
+const PAYMENT_METHODS = [
+  "Cash",
+  "Card",
+  "Bank Transfer",
+  "Credit Account",
+  "Warranty",
+  "Insurance",
+  "Fleet Account",
+];
+
+function toFrappeDatetime(date: string, time: string) {
+  if (!date) return "";
+  const t = time || "00:00";
+  return `${date} ${t}:00`;
+}
+
+function jobCardIdFromParams(params: URLSearchParams) {
+  return (
+    params.get("jobcard") ||
+    params.get("job_card") ||
+    params.get("id") ||
+    ""
+  );
+}
 
 export default function NewDeliveryPage() {
   const { navigate, viewParams } = useNavigation();
-  const jobCardId = viewParams.get("jobcard");
-  
-  const { data: jobCard } = useJobCard(jobCardId || "");
+  const urlJobCardId = jobCardIdFromParams(viewParams);
+  const [selectedJobCardId, setSelectedJobCardId] = useState(urlJobCardId);
+
+  useEffect(() => {
+    setSelectedJobCardId(urlJobCardId);
+  }, [urlJobCardId]);
+
+  const effectiveJobCardId = selectedJobCardId || urlJobCardId;
+
+  const { data: jobCard, isLoading: jobCardLoading } = useJobCard(effectiveJobCardId || null);
+  const { data: completedJobCardsResult, isLoading: jobCardsListLoading } = useJobCards({
+    status: "Completed",
+    limit: 100,
+  });
   const { trigger: createDelivery, isMutating } = useCreateDelivery();
 
-  const [formData, setFormData] = useState<Partial<Delivery>>({
-    job_card: "",
-    vehicle_registration: "",
-    customer_name: "",
-    contact_number: "",
-    delivery_date: new Date().toISOString().split("T")[0],
-    delivery_time: "",
-    delivered_by: "",
-    received_by: "",
-    odometer_at_delivery: 0,
-    fuel_level_at_delivery: "",
-    delivery_notes: "",
-    checklist_completed: false,
-  });
+  const completedJobCards = completedJobCardsResult?.data ?? [];
+  const jobCardOptions = completedJobCards.map((jc) => ({
+    value: jc.name,
+    label: jc.name,
+    description: [jc.license_plate, jc.customer_name || jc.customer].filter(Boolean).join(" · "),
+  }));
 
-  const [checklistItems, setChecklistItems] = useState<Record<string, boolean>>(
-    Object.fromEntries(deliveryChecklist.map((item) => [item, false]))
+  const [deliveryDate, setDeliveryDate] = useState(
+    () => new Date().toISOString().split("T")[0]
+  );
+  const [deliveryTime, setDeliveryTime] = useState(
+    () => new Date().toTimeString().slice(0, 5)
+  );
+  const [receivedBy, setReceivedBy] = useState("");
+  const [customerMobileOverride, setCustomerMobileOverride] = useState("");
+  const [finalOdometerKm, setFinalOdometerKm] = useState("");
+  const [finalFuelLevel, setFinalFuelLevel] = useState("1/2");
+  const [vehicleCondition, setVehicleCondition] = useState("Good");
+  const [newDamageNotes, setNewDamageNotes] = useState("");
+  const [invoiceExplained, setInvoiceExplained] = useState(true);
+  const [invoiceCopyGiven, setInvoiceCopyGiven] = useState(true);
+  const [paymentCleared, setPaymentCleared] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [customerSatisfaction, setCustomerSatisfaction] = useState("Happy");
+  const [customerComments, setCustomerComments] = useState("");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [customerSignatureUrl, setCustomerSignatureUrl] = useState("");
+  const [deliveredBySignatureUrl, setDeliveredBySignatureUrl] = useState("");
+  const [signatureUploading, setSignatureUploading] = useState<"customer" | "staff" | null>(null);
+
+  const [checklistItems, setChecklistItems] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(DELIVERY_CHECKLIST_ITEMS.map((item) => [item, false]))
   );
 
-  // Prefill from job card
+  const customerDisplayName = jobCard?.customer_name || jobCard?.customer || "";
+  const customerMobile =
+    jobCard?.customer_mobile?.trim() || customerMobileOverride.trim() || "";
+  const showMobileField = Boolean(jobCard && !jobCard.customer_mobile?.trim());
+
   useEffect(() => {
-    if (jobCard) {
-      setFormData((prev) => ({
-        ...prev,
-        job_card: jobCard.name,
-        vehicle_registration: jobCard.vehicle_registration,
-        vehicle_model: jobCard.vehicle_model,
-        customer_name: jobCard.customer_name,
-        contact_number: jobCard.contact_number || "",
-        odometer_at_delivery: jobCard.odometer_reading || 0,
-      }));
+    if (jobCard?.current_odometer) {
+      setFinalOdometerKm(String(jobCard.current_odometer));
     }
-  }, [jobCard]);
+  }, [jobCard?.name, jobCard?.current_odometer]);
 
-  const handleInputChange = (field: keyof Delivery, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const allChecklistCompleted = useMemo(
+    () => Object.values(checklistItems).every(Boolean),
+    [checklistItems]
+  );
+
+  const canSubmit =
+    // Boolean(effectiveJobCardId && jobCard) &&
+    allChecklistCompleted &&
+    Boolean(customerSignatureUrl) &&
+    Boolean(deliveredBySignatureUrl) &&
+    Boolean(customerSatisfaction) &&
+    Boolean(finalOdometerKm) &&
+    invoiceExplained &&
+    paymentCleared;
+
+  const handleSignatureSave = async (which: "customer" | "staff", file: File) => {
+    setSignatureUploading(which);
+    try {
+      const url = await uploadFile(file);
+      if (which === "customer") setCustomerSignatureUrl(url);
+      else setDeliveredBySignatureUrl(url);
+      toast.success(which === "customer" ? "Customer signature saved" : "Staff signature saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save signature");
+    } finally {
+      setSignatureUploading(null);
+    }
   };
-
-  const handleChecklistChange = (item: string, checked: boolean) => {
-    setChecklistItems((prev) => ({ ...prev, [item]: checked }));
-  };
-
-  const allChecklistCompleted = Object.values(checklistItems).every(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.job_card) {
-      toast.error("Please select a job card");
+
+    if (!jobCard) {
+      toast.error("Job card is required");
       return;
     }
     if (!allChecklistCompleted) {
       toast.error("Please complete all checklist items");
       return;
     }
+    if (!customerSignatureUrl || !deliveredBySignatureUrl) {
+      toast.error("Customer and staff signatures are required");
+      return;
+    }
 
     try {
-      const result = await createDelivery({
-        ...formData,
-        checklist_completed: true,
-        status: "Delivered",
+      await createDelivery({
+        job_card: jobCard.name,
+        customer: jobCard.customer,
+        vehicle_vin: jobCard.vehicle_vin,
+        delivery_date_time: toFrappeDatetime(deliveryDate, deliveryTime),
+        delivered_by: undefined,
+        received_by: receivedBy.trim() || undefined,
+        customer_mobile: showMobileField ? customerMobileOverride.trim() : undefined,
+        final_odometer_km: parseInt(finalOdometerKm, 10) || 0,
+        final_fuel_level: finalFuelLevel,
+        vehicle_condition: vehicleCondition,
+        new_damage_notes:
+          vehicleCondition === "Customer Reported New Damage" ? newDamageNotes : undefined,
+        invoice_explained: invoiceExplained,
+        invoice_copy_given: invoiceCopyGiven,
+        payment_cleared: paymentCleared,
+        payment_method: paymentCleared ? paymentMethod : undefined,
+        customer_satisfaction_initial: customerSatisfaction,
+        customer_comments: customerComments || undefined,
+        customer_signature: customerSignatureUrl,
+        delivered_by_signature: deliveredBySignatureUrl,
+        delivery_notes: deliveryNotes || undefined,
+        checklist_completed: checklistItems,
+        submit: true,
       });
-      toast.success("Delivery recorded successfully");
-      navigate('deliveries');
-    } catch {
-      toast.error("Failed to record delivery");
+      toast.success("Vehicle delivery recorded");
+      navigate("deliveries");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to record delivery");
     }
   };
 
+  if (effectiveJobCardId && jobCardLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('deliveries')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("deliveries")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -115,58 +232,124 @@ export default function NewDeliveryPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Job Card Link */}
-        {jobCard && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-primary">
-                <FileText className="h-5 w-5" />
-                <span className="font-medium">Job Card: {jobCard.name}</span>
-                <span className="text-muted-foreground">|</span>
-                <span className="text-muted-foreground">{jobCard.service_type}</span>
+        <Card className={jobCard ? "border-primary/30 bg-primary/5" : ""}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Job card *
+            </CardTitle>
+            <CardDescription>
+              Link this delivery to a completed job card. Opening from a job card pre-fills this field.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2 max-w-lg">
+              <Label htmlFor="job_card">Job card ID</Label>
+              {urlJobCardId && jobCard ? (
+                <Input
+                  id="job_card"
+                  value={jobCard.name}
+                  readOnly
+                  className="bg-muted font-medium"
+                />
+              ) : (
+                <SearchableSelect
+                  value={selectedJobCardId}
+                  onValueChange={setSelectedJobCardId}
+                  options={jobCardOptions}
+                  placeholder="Search completed job cards…"
+                  isLoading={jobCardsListLoading}
+                />
+              )}
+            </div>
+            {effectiveJobCardId && !jobCard && !jobCardLoading && (
+              <p className="text-sm text-destructive">
+                Job card &quot;{effectiveJobCardId}&quot; was not found.
+              </p>
+            )}
+            {!effectiveJobCardId && (
+              <p className="text-sm text-muted-foreground">
+                Select a job card to enable Record delivery.
+              </p>
+            )}
+            {jobCard && (
+              <div className="grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground pt-1">
+                <span>
+                  {jobCard.license_plate} · {jobCard.vehicle_model}
+                </span>
+                {jobCard.net_amount != null && (
+                  <span>Amount: {Number(jobCard.net_amount).toLocaleString()}</span>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Vehicle & Customer Info */}
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Car className="h-5 w-5" />
-                Vehicle Information
+                Vehicle
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="vehicle_registration">Registration Number</Label>
-                <Input
-                  id="vehicle_registration"
-                  value={formData.vehicle_registration}
-                  onChange={(e) => handleInputChange("vehicle_registration", e.target.value)}
-                  readOnly={!!jobCard}
-                  className={jobCard ? "bg-muted" : ""}
-                />
+                <Label>License plate</Label>
+                <Input value={jobCard?.license_plate || ""} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="odometer_at_delivery">Odometer at Delivery (km)</Label>
+                <Label htmlFor="final_odometer_km">Final odometer (km) *</Label>
                 <Input
-                  id="odometer_at_delivery"
+                  id="final_odometer_km"
                   type="number"
-                  value={formData.odometer_at_delivery || ""}
-                  onChange={(e) => handleInputChange("odometer_at_delivery", parseInt(e.target.value) || 0)}
+                  min={0}
+                  value={finalOdometerKm}
+                  onChange={(e) => setFinalOdometerKm(e.target.value)}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fuel_level_at_delivery">Fuel Level</Label>
-                <Input
-                  id="fuel_level_at_delivery"
-                  placeholder="e.g., 1/2 tank, Full"
-                  value={formData.fuel_level_at_delivery}
-                  onChange={(e) => handleInputChange("fuel_level_at_delivery", e.target.value)}
-                />
+                <Label>Final fuel level *</Label>
+                <Select value={finalFuelLevel} onValueChange={setFinalFuelLevel}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FUEL_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Condition at delivery</Label>
+                <Select value={vehicleCondition} onValueChange={setVehicleCondition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VEHICLE_CONDITIONS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {vehicleCondition === "Customer Reported New Damage" && (
+                <div className="space-y-2">
+                  <Label htmlFor="new_damage_notes">New damage notes</Label>
+                  <Textarea
+                    id="new_damage_notes"
+                    rows={2}
+                    value={newDamageNotes}
+                    onChange={(e) => setNewDamageNotes(e.target.value)}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -174,158 +357,241 @@ export default function NewDeliveryPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Customer Information
+                Customer
               </CardTitle>
+              <CardDescription>
+                Name and contact come from the customer record linked to the job card.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="customer_name">Customer Name</Label>
-                <Input
-                  id="customer_name"
-                  value={formData.customer_name}
-                  onChange={(e) => handleInputChange("customer_name", e.target.value)}
-                  readOnly={!!jobCard}
-                  className={jobCard ? "bg-muted" : ""}
-                />
+                <Label>Customer name</Label>
+                <Input value={customerDisplayName} readOnly className="bg-muted" />
               </div>
+              {showMobileField ? (
+                <div className="space-y-2">
+                  <Label htmlFor="customer_mobile">Contact number</Label>
+                  <Input
+                    id="customer_mobile"
+                    type="tel"
+                    placeholder="Customer has no mobile on file — add one"
+                    value={customerMobileOverride}
+                    onChange={(e) => setCustomerMobileOverride(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Saved to the customer record if missing.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Contact number</Label>
+                  <Input value={customerMobile} readOnly className="bg-muted" />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="contact_number">Contact Number</Label>
-                <Input
-                  id="contact_number"
-                  value={formData.contact_number}
-                  onChange={(e) => handleInputChange("contact_number", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="received_by">Received By (Customer/Representative)</Label>
+                <Label htmlFor="received_by">Received by (customer / representative)</Label>
                 <Input
                   id="received_by"
-                  placeholder="Name of person receiving vehicle"
-                  value={formData.received_by}
-                  onChange={(e) => handleInputChange("received_by", e.target.value)}
+                  placeholder="Name of person receiving the vehicle"
+                  value={receivedBy}
+                  onChange={(e) => setReceivedBy(e.target.value)}
                 />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Delivery Details */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="h-5 w-5" />
-              Delivery Details
+              Delivery details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="delivery_date">Delivery Date</Label>
+                <Label htmlFor="delivery_date">Delivery date *</Label>
                 <Input
                   id="delivery_date"
                   type="date"
-                  value={formData.delivery_date}
-                  onChange={(e) => handleInputChange("delivery_date", e.target.value)}
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="delivery_time">Delivery Time</Label>
+                <Label htmlFor="delivery_time">Delivery time *</Label>
                 <Input
                   id="delivery_time"
                   type="time"
-                  value={formData.delivery_time}
-                  onChange={(e) => handleInputChange("delivery_time", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="delivered_by">Delivered By (Staff)</Label>
-                <Input
-                  id="delivered_by"
-                  placeholder="Staff member name"
-                  value={formData.delivered_by}
-                  onChange={(e) => handleInputChange("delivered_by", e.target.value)}
+                  value={deliveryTime}
+                  onChange={(e) => setDeliveryTime(e.target.value)}
+                  required
                 />
               </div>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Delivered by is recorded as the logged-in user when the delivery is submitted.
+            </p>
           </CardContent>
         </Card>
 
-        {/* Delivery Checklist */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Billing confirmation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={invoiceExplained} onCheckedChange={(v) => setInvoiceExplained(!!v)} />
+                <span className="text-sm">Invoice explained to customer *</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={invoiceCopyGiven} onCheckedChange={(v) => setInvoiceCopyGiven(!!v)} />
+                <span className="text-sm">Invoice copy given</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={paymentCleared} onCheckedChange={(v) => setPaymentCleared(!!v)} />
+                <span className="text-sm">Payment cleared *</span>
+              </label>
+            </div>
+            {paymentCleared && (
+              <div className="space-y-2 max-w-xs">
+                <Label>Payment method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHODS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5" />
-              Delivery Checklist
+              Delivery checklist
             </CardTitle>
-            <CardDescription>
-              Complete all items before handing over the vehicle
-            </CardDescription>
+            <CardDescription>Complete all items before handing over the vehicle</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              {deliveryChecklist.map((item) => (
-                <div key={item} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+            <div className="grid md:grid-cols-2 gap-3">
+              {DELIVERY_CHECKLIST_ITEMS.map((item) => (
+                <label
+                  key={item}
+                  className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
+                >
                   <Checkbox
-                    id={item}
                     checked={checklistItems[item]}
-                    onCheckedChange={(checked) => handleChecklistChange(item, !!checked)}
+                    onCheckedChange={(checked) =>
+                      setChecklistItems((prev) => ({ ...prev, [item]: !!checked }))
+                    }
                   />
-                  <Label htmlFor={item} className="cursor-pointer flex-1">
-                    {item}
-                  </Label>
-                </div>
+                  <span className="text-sm leading-snug">{item}</span>
+                </label>
               ))}
             </div>
             <Separator className="my-4" />
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">
-                {Object.values(checklistItems).filter(Boolean).length} of {deliveryChecklist.length} completed
-              </span>
-              {allChecklistCompleted && (
-                <Badge className="bg-[#2E7D32]/10 text-[#2E7D32]">
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                  All Complete
-                </Badge>
-              )}
+            <p className="text-sm text-muted-foreground">
+              {Object.values(checklistItems).filter(Boolean).length} of{" "}
+              {DELIVERY_CHECKLIST_ITEMS.length} completed
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PenLine className="h-5 w-5" />
+              Signatures
+            </CardTitle>
+            <CardDescription>
+              Customer confirms receipt; staff confirms handover (required on desk checkout).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Customer signature *</Label>
+                <SignaturePad
+                  existingUrl={customerSignatureUrl || undefined}
+                  uploading={signatureUploading === "customer"}
+                  onSave={(file) => handleSignatureSave("customer", file)}
+                  onClear={() => setCustomerSignatureUrl("")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Delivered by signature (staff) *</Label>
+                <SignaturePad
+                  existingUrl={deliveredBySignatureUrl || undefined}
+                  uploading={signatureUploading === "staff"}
+                  onSave={(file) => handleSignatureSave("staff", file)}
+                  onClear={() => setDeliveredBySignatureUrl("")}
+                />
+              </div>
+            </div>
+            <div className="space-y-2 max-w-md">
+              <Label>Customer satisfaction *</Label>
+              <Select value={customerSatisfaction} onValueChange={setCustomerSatisfaction}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SATISFACTION_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customer_comments">Customer comments</Label>
+              <Textarea
+                id="customer_comments"
+                rows={2}
+                placeholder="Optional feedback at delivery"
+                value={customerComments}
+                onChange={(e) => setCustomerComments(e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Delivery Notes */}
         <Card>
           <CardHeader>
-            <CardTitle>Delivery Notes</CardTitle>
-            <CardDescription>Any additional notes about the delivery</CardDescription>
+            <CardTitle>Delivery notes</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
-              placeholder="Enter any notes about the delivery..."
-              rows={4}
-              value={formData.delivery_notes}
-              onChange={(e) => handleInputChange("delivery_notes", e.target.value)}
+              rows={3}
+              placeholder="Special instructions or notes…"
+              value={deliveryNotes}
+              onChange={(e) => setDeliveryNotes(e.target.value)}
             />
           </CardContent>
         </Card>
 
-        {/* Actions */}
         <div className="flex items-center justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('deliveries')}>
+          <Button type="button" variant="outline" onClick={() => navigate("deliveries")}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isMutating || !allChecklistCompleted}>
+          <Button type="submit" disabled={isMutating || !canSubmit}>
             <Truck className="h-4 w-4 mr-2" />
-            {isMutating ? "Recording..." : "Record Delivery"}
+            {isMutating ? "Recording…" : "Record delivery"}
           </Button>
         </div>
       </form>
     </div>
-  );
-}
-
-function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
-      {children}
-    </span>
   );
 }

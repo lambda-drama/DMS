@@ -63,7 +63,7 @@ class Technician(Document):
 				"docstatus": 1,
 				"status": "Completed"
 			},
-			fields=["name", "total_labor_hours", "total_sold_hours", "creation", "customer_satisfaction"]
+			fields=["name", "total_labor_hours", "total_hours", "creation", "customer_satisfaction"]
 		)
 		
 		if job_cards:
@@ -74,7 +74,7 @@ class Technician(Document):
 			self.total_labor_hours = sum([jc.get("total_labor_hours", 0) or 0 for jc in job_cards])
 			
 			# Total sold hours
-			self.total_sold_hours = sum([jc.get("total_sold_hours", 0) or 0 for jc in job_cards])
+			self.total_sold_hours = sum([jc.get("total_hours", 0) or 0 for jc in job_cards])
 			
 			# Calculate efficiency (sold hours / labor hours)
 			if self.total_labor_hours > 0:

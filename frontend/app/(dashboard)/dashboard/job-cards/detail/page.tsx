@@ -64,10 +64,12 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { JobCardStatus, DMSJobCard } from "@/types/dms";
+import type { JobCardStatus, DMSJobCard, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
 import { StatusBadge } from "@/components/job-card/status-badge";
 import { WorkflowStepper } from "@/components/job-card/workflow-stepper";
 import { RepairTimer } from "@/components/job-card/repair-timer";
+import { RoadTestSection } from "@/components/job-card/road-test-section";
+import { QCSection } from "@/components/job-card/qc-section";
 import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { uploadFile } from "@/services/common";
@@ -110,8 +112,38 @@ export default function JobCardDetailPage() {
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [leadTechnician, setLeadTechnician] = useState("");
   const [assistantRows, setAssistantRows] = useState<Array<{ technician: string }>>([]);
+  const [roadTestState, setRoadTestState] = useState<{
+    rows: RoadTestItemResult[];
+    complete: boolean;
+    hasCriticalFails: boolean;
+  }>({ rows: [], complete: false, hasCriticalFails: false });
+  const [qcState, setQcState] = useState<{
+    rows: JobCardQCResult[];
+    complete: boolean;
+    hasMandatoryFails: boolean;
+  }>({ rows: [], complete: false, hasMandatoryFails: false });
 
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+
+  const handleRoadTestChecklistState = useCallback(
+    (
+      rows: RoadTestItemResult[],
+      meta: { complete: boolean; hasCriticalFails: boolean }
+    ) => {
+      setRoadTestState({ rows, ...meta });
+    },
+    []
+  );
+
+  const handleQCChecklistState = useCallback(
+    (
+      rows: JobCardQCResult[],
+      meta: { complete: boolean; hasMandatoryFails: boolean }
+    ) => {
+      setQcState({ rows, ...meta });
+    },
+    []
+  );
 
   useEffect(() => {
     if (!jobCard) return;
@@ -246,14 +278,17 @@ export default function JobCardDetailPage() {
 
   const handleStartRepair = () =>
     runAction("Repair Started", async () => {
-      const timeLogs = [];
-      if (jobCard.lead_technician) {
-        timeLogs.push({
-          technician: jobCard.lead_technician,
-          technician_name: jobCard.lead_technician_name || jobCard.lead_technician,
-          start_time: new Date().toISOString().replace("T", " ").slice(0, 19),
-        });
-      }
+      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+      const technicians = new Set<string>();
+      if (jobCard.lead_technician) technicians.add(jobCard.lead_technician);
+      (jobCard.assistant_technicians || []).forEach((row) => {
+        if (row.technician) technicians.add(row.technician);
+      });
+      const timeLogs = Array.from(technicians).map((technician) => ({
+        technician,
+        technician_name: technician,
+        start_time: now,
+      }));
       await jobCardsSvc.startRepair(id, timeLogs.length > 0 ? timeLogs : undefined);
     });
 
@@ -294,10 +329,32 @@ export default function JobCardDetailPage() {
   const handleStartRoadTest = () =>
     runAction("Road Test Started", () => jobCardsSvc.startRoadTest(id));
 
+  const persistRoadTestResults = async () => {
+    const payload = roadTestState.rows.map((row) => ({
+      test_item: row.test_item,
+      test_description: row.test_description,
+      category: row.category,
+      test_condition: row.test_condition,
+      is_critical: row.is_critical,
+      result: row.result,
+      observations: row.observations,
+    }));
+    await jobCardsSvc.saveRoadTestResults(id, jobCard.road_test_template, payload);
+  };
+
   const handlePassRoadTest = () => {
-    runAction("Road Test Passed", () =>
-      jobCardsSvc.passRoadTest(id, roadTestPassNotes || undefined)
-    );
+    if (!roadTestState.complete) {
+      toast.error("Complete all road test checklist items before passing");
+      return;
+    }
+    if (roadTestState.hasCriticalFails) {
+      toast.error("Critical item(s) failed — cannot pass road test");
+      return;
+    }
+    runAction("Road Test Passed", async () => {
+      await persistRoadTestResults();
+      await jobCardsSvc.passRoadTest(id, roadTestPassNotes || undefined);
+    });
     setShowRoadTestPassDialog(false);
     setRoadTestPassNotes("");
   };
@@ -307,27 +364,66 @@ export default function JobCardDetailPage() {
       toast.error("Fail reason is required");
       return;
     }
-    runAction("Road Test Failed – Rework Required", () =>
-      jobCardsSvc.failRoadTest(id, roadTestFailReason)
-    );
+    if (!roadTestState.complete) {
+      toast.error("Complete all road test checklist items before failing");
+      return;
+    }
+    runAction("Road Test Failed – Rework Required", async () => {
+      await persistRoadTestResults();
+      await jobCardsSvc.failRoadTest(id, roadTestFailReason);
+    });
     setShowRoadTestFailDialog(false);
     setRoadTestFailReason("");
+  };
+
+  const persistQCResults = async () => {
+    const payload = qcState.rows.map((row) => ({
+      check_item_text: row.check_item_text,
+      category: row.category,
+      is_mandatory: row.is_mandatory,
+      requires_photo: row.requires_photo,
+      requires_measurement: row.requires_measurement,
+      min_value: row.min_value,
+      max_value: row.max_value,
+      result: row.result,
+      measurement_value: row.measurement_value,
+      photo: row.photo,
+      notes: row.notes,
+    }));
+    await jobCardsSvc.saveQCResults(id, jobCard.qc_checklist_template, payload);
   };
 
   const handleStartQC = () =>
     runAction("QC Check Started", () => jobCardsSvc.startQC(id));
 
-  const handlePassQC = () =>
-    runAction("QC Passed – Completed", () => jobCardsSvc.passQC(id));
+  const handlePassQC = () => {
+    if (!qcState.complete) {
+      toast.error("Complete all QC checklist items before passing");
+      return;
+    }
+    if (qcState.hasMandatoryFails) {
+      toast.error("Mandatory item(s) failed — cannot pass QC");
+      return;
+    }
+    runAction("QC Passed – Completed", async () => {
+      await persistQCResults();
+      await jobCardsSvc.passQC(id);
+    });
+  };
 
   const handleFailQC = () => {
     if (!qcFailReason.trim()) {
       toast.error("Fail reason is required");
       return;
     }
-    runAction("QC Failed – Rework Required", () =>
-      jobCardsSvc.failQC(id, qcFailReason)
-    );
+    if (!qcState.complete) {
+      toast.error("Complete all QC checklist items before failing");
+      return;
+    }
+    runAction("QC Failed – Rework Required", async () => {
+      await persistQCResults();
+      await jobCardsSvc.failQC(id, qcFailReason);
+    });
     setShowQCFailDialog(false);
     setQcFailReason("");
   };
@@ -400,6 +496,22 @@ export default function JobCardDetailPage() {
 
       {/* Repair Timer */}
       <RepairTimer jobCard={jobCard} />
+
+      {status === "Road Test In Progress" && (
+        <RoadTestSection
+          jobCard={jobCard}
+          onSaved={mutate}
+          onChecklistState={handleRoadTestChecklistState}
+        />
+      )}
+
+      {status === "QC In Progress" && (
+        <QCSection
+          jobCard={jobCard}
+          onSaved={mutate}
+          onChecklistState={handleQCChecklistState}
+        />
+      )}
 
       {showApprovalSignature && (
         <Card>
@@ -578,11 +690,26 @@ export default function JobCardDetailPage() {
             {/* Road Test In Progress → Pass / Fail */}
             {status === "Road Test In Progress" && (
               <>
-                <Button onClick={() => setShowRoadTestPassDialog(true)} disabled={busy}>
+                <Button
+                  onClick={() => setShowRoadTestPassDialog(true)}
+                  disabled={busy || !roadTestState.complete || roadTestState.hasCriticalFails}
+                  title={
+                    !roadTestState.complete
+                      ? "Complete all checklist items first"
+                      : roadTestState.hasCriticalFails
+                        ? "Critical items failed"
+                        : undefined
+                  }
+                >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Pass Road Test
                 </Button>
-                <Button variant="destructive" onClick={() => setShowRoadTestFailDialog(true)} disabled={busy}>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRoadTestFailDialog(true)}
+                  disabled={busy || !roadTestState.complete}
+                  title={!roadTestState.complete ? "Complete all checklist items first" : undefined}
+                >
                   <XCircle className="h-4 w-4 mr-2" />
                   Fail Road Test
                 </Button>
@@ -600,11 +727,26 @@ export default function JobCardDetailPage() {
             {/* QC In Progress → Pass / Fail */}
             {status === "QC In Progress" && (
               <>
-                <Button onClick={handlePassQC} disabled={busy}>
+                <Button
+                  onClick={handlePassQC}
+                  disabled={busy || !qcState.complete || qcState.hasMandatoryFails}
+                  title={
+                    !qcState.complete
+                      ? "Complete all checklist items first"
+                      : qcState.hasMandatoryFails
+                        ? "Mandatory items failed"
+                        : undefined
+                  }
+                >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Pass QC
                 </Button>
-                <Button variant="destructive" onClick={() => setShowQCFailDialog(true)} disabled={busy}>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowQCFailDialog(true)}
+                  disabled={busy || !qcState.complete}
+                  title={!qcState.complete ? "Complete all checklist items first" : undefined}
+                >
                   <XCircle className="h-4 w-4 mr-2" />
                   Fail QC
                 </Button>
@@ -639,7 +781,7 @@ export default function JobCardDetailPage() {
                 {status === "Completed" && (
                   <Button
                     variant="outline"
-                    onClick={() => navigate("delivery-new", { job_card: id })}
+                    onClick={() => navigate("delivery-new", { jobcard: id })}
                     disabled={busy}
                   >
                     <Truck className="h-4 w-4 mr-2" />
@@ -1229,19 +1371,21 @@ export default function JobCardDetailPage() {
                       <TableRow>
                         <TableHead>Test Item</TableHead>
                         <TableHead>Result</TableHead>
-                        <TableHead>Notes</TableHead>
+                        <TableHead>Observations</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {jobCard.road_test_results.map((rt, idx) => (
                         <TableRow key={rt.name || idx}>
-                          <TableCell className="font-medium">{rt.test_item}</TableCell>
+                          <TableCell className="font-medium">
+                            {rt.test_description || rt.test_item}
+                          </TableCell>
                           <TableCell>
                             <Badge variant={rt.result === "Pass" ? "default" : rt.result === "Fail" ? "destructive" : "secondary"}>
                               {rt.result}
                             </Badge>
                           </TableCell>
-                          <TableCell>{rt.notes || "–"}</TableCell>
+                          <TableCell>{rt.observations || "–"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1292,7 +1436,7 @@ export default function JobCardDetailPage() {
                     <TableBody>
                       {jobCard.qc_results.map((qc, idx) => (
                         <TableRow key={qc.name || idx}>
-                          <TableCell className="font-medium">{qc.check_item}</TableCell>
+                          <TableCell className="font-medium">{qc.check_item_text || "–"}</TableCell>
                           <TableCell>
                             <Badge
                               variant={qc.result === "Pass" ? "default" : qc.result === "Fail" ? "destructive" : "secondary"}

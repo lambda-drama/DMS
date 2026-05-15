@@ -3,7 +3,7 @@
  * and dms_job_card.py for workflow actions.
  */
 import { apiRequest, ensureCSRF } from './apiClient';
-import type { DMSJobCard, PaginatedResponse } from '@/types/dms';
+import type { DMSJobCard, JobCardQCResult, PaginatedResponse, RoadTestItemResult } from '@/types/dms';
 
 const API = 'dms.api.job_cards';
 const DT_PATH = 'dms.dealer_management_system.doctype.dms_job_card.dms_job_card';
@@ -187,16 +187,62 @@ export async function completeRepair(
   });
 }
 
+export async function resumeRepair(name: string): Promise<string> {
+  return apiRequest<string>(`/api/method/${DT_PATH}.resume_repair`, {
+    method: 'POST',
+    body: JSON.stringify({ job_card: name }),
+  });
+}
+
 export async function partsArrived(name: string): Promise<void> {
-  await setFieldValue(name, 'status', 'Repair In Progress');
+  await resumeRepair(name);
 }
 
 export async function customerApprovedDuringRepair(name: string): Promise<void> {
-  await setFieldValue(name, 'status', 'Repair In Progress');
+  await resumeRepair(name);
 }
 
 export async function startRoadTest(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'Road Test In Progress');
+}
+
+export interface RoadTestTemplateOption {
+  name: string;
+  template_name: string;
+  template_type?: string;
+}
+
+export async function fetchRoadTestTemplates(): Promise<RoadTestTemplateOption[]> {
+  return apiRequest<RoadTestTemplateOption[]>(`/api/method/${API}.get_road_test_templates`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export async function applyRoadTestTemplate(
+  name: string,
+  template: string,
+  force = false
+): Promise<{ road_test_template?: string; road_test_results?: RoadTestItemResult[] }> {
+  return apiRequest(`/api/method/${API}.apply_road_test_template`, {
+    method: 'POST',
+    body: JSON.stringify({ name, template, force: force ? 1 : 0 }),
+  });
+}
+
+export async function saveRoadTestResults(
+  name: string,
+  roadTestTemplate: string | undefined,
+  results: Array<Partial<RoadTestItemResult>>
+): Promise<{ road_test_template?: string; road_test_results?: RoadTestItemResult[] }> {
+  return apiRequest(`/api/method/${API}.save_road_test_results`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      road_test_template: roadTestTemplate || null,
+      results: JSON.stringify(results),
+    }),
+  });
 }
 
 export async function passRoadTest(name: string, notes?: string): Promise<void> {
@@ -218,6 +264,48 @@ export async function failRoadTest(name: string, reason: string): Promise<void> 
 
 export async function startQC(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'QC In Progress');
+}
+
+export interface QCChecklistTemplateOption {
+  name: string;
+  checklist_name: string;
+  checklist_type?: string;
+}
+
+export async function fetchQCChecklistTemplates(): Promise<QCChecklistTemplateOption[]> {
+  return apiRequest<QCChecklistTemplateOption[]>(
+    `/api/method/${API}.get_qc_checklist_templates`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }
+  );
+}
+
+export async function applyQCChecklistTemplate(
+  name: string,
+  template: string,
+  force = false
+): Promise<{ qc_checklist_template?: string; qc_results?: JobCardQCResult[] }> {
+  return apiRequest(`/api/method/${API}.apply_qc_checklist_template`, {
+    method: 'POST',
+    body: JSON.stringify({ name, template, force: force ? 1 : 0 }),
+  });
+}
+
+export async function saveQCResults(
+  name: string,
+  qcChecklistTemplate: string | undefined,
+  results: Array<Partial<JobCardQCResult>>
+): Promise<{ qc_checklist_template?: string; qc_results?: JobCardQCResult[] }> {
+  return apiRequest(`/api/method/${API}.save_qc_results`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      qc_checklist_template: qcChecklistTemplate || null,
+      results: JSON.stringify(results),
+    }),
+  });
 }
 
 export async function passQC(name: string): Promise<void> {

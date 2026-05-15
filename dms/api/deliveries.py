@@ -2,6 +2,32 @@ import frappe
 from frappe import _
 
 
+DEFAULT_DELIVERY_CHECKLIST_ITEMS = [
+	"Vehicle interior cleaned",
+	"Vehicle exterior washed/wiped",
+	"No tools/parts left inside vehicle",
+	"Personal items returned to customer",
+	"All keys returned (quantity checked)",
+	"Remote/key fob working",
+	"Owner manual/service booklet in glovebox",
+	"Warranty booklet stamped/updated",
+	"Service reminder sticker applied",
+	"Invoice explained and copy given",
+	"Next service due communicated",
+	"Vehicle damage explained (if any)",
+	"Fuel level confirmed",
+	"Any warning lights on?",
+	"Test drive completed with customer (if requested)",
+	"Customer satisfied with repair",
+]
+
+
+@frappe.whitelist()
+def get_delivery_checklist_items():
+	"""Default delivery checklist rows (matches Vehicle Delivery Checklist Item options)."""
+	return DEFAULT_DELIVERY_CHECKLIST_ITEMS
+
+
 @frappe.whitelist()
 def get_deliveries(limit=50, offset=0, search=None):
 	filters = {}
@@ -21,7 +47,7 @@ def get_deliveries(limit=50, offset=0, search=None):
 		fields=[
 			"name", "job_card", "customer",
 			"vehicle_vin", "vehicle_model", "license_plate",
-			"delivered_by", "delivery_date_time",
+			"delivered_by", "delivery_date_time", "status",
 			"final_odometer_km", "next_service_due_km",
 			"next_service_due_date",
 			"docstatus", "creation", "modified",
@@ -45,42 +71,111 @@ def get_delivery(name):
 	return doc.as_dict()
 
 
+def _build_customer_comments(received_by, comments):
+	parts = []
+	if (received_by or "").strip():
+		parts.append(_("Received by: {0}").format(received_by.strip()))
+	if (comments or "").strip():
+		parts.append(comments.strip())
+	return "\n\n".join(parts) if parts else ""
+
+
 @frappe.whitelist()
 def create_delivery(data):
 	if isinstance(data, str):
 		import json
 		data = json.loads(data)
 
+	if not data.get("job_card"):
+		frappe.throw(_("Job Card is required"))
+
+	job_card = frappe.get_doc("DMS Job Card", data["job_card"])
+	job_card.check_permission("read")
+
+	customer = data.get("customer") or job_card.customer
+	if data.get("customer_mobile") and customer:
+		existing_mobile = frappe.db.get_value("Customer", customer, "mobile_no")
+		if not existing_mobile:
+			frappe.db.set_value("Customer", customer, "mobile_no", data["customer_mobile"])
+
+	delivery_dt = data.get("delivery_date_time")
+	if not delivery_dt and data.get("delivery_date"):
+		time_part = (data.get("delivery_time") or "00:00").strip()
+		delivery_dt = f"{data['delivery_date']} {time_part}:00"
+
 	doc = frappe.get_doc({
 		"doctype": "Vehicle Delivery Note",
-		"job_card": data.get("job_card"),
-		"customer": data.get("customer"),
-		"vehicle_vin": data.get("vehicle_vin"),
-		"license_plate": data.get("license_plate"),
-		"delivery_date": data.get("delivery_date"),
-		"delivered_by": data.get("delivered_by"),
-		"received_by": data.get("received_by"),
-		"received_by_phone": data.get("received_by_phone"),
-		"final_odometer_km": data.get("final_odometer_km"),
+		"job_card": job_card.name,
+		"customer": customer,
+		"vehicle_vin": data.get("vehicle_vin") or job_card.vehicle_vin,
+		"delivered_by": data.get("delivered_by") or frappe.session.user,
+		"delivery_date_time": delivery_dt or frappe.utils.now_datetime(),
+		"status": data.get("status") or "Completed",
+		"final_odometer_km": data.get("final_odometer_km") or data.get("final_odometer"),
+		"final_fuel_level": data.get("final_fuel_level") or "1/2",
+		"vehicle_condition": data.get("vehicle_condition") or "Good",
+		"new_damage_notes": data.get("new_damage_notes"),
+		"invoice_explained": 1 if data.get("invoice_explained") else 0,
+		"invoice_copy_given": 1 if data.get("invoice_copy_given", 1) else 0,
+		"payment_cleared": 1 if data.get("payment_cleared") else 0,
+		"payment_method": data.get("payment_method"),
+		"payment_receipt_no": data.get("payment_receipt_no"),
 		"next_service_due_km": data.get("next_service_due_km"),
 		"next_service_due_date": data.get("next_service_due_date"),
+		"service_reminder_sticker_given": 1 if data.get("service_reminder_sticker_given", 1) else 0,
+		"service_booklet_updated": 1 if data.get("service_booklet_updated", 1) else 0,
+		"customer_signature": data.get("customer_signature"),
+		"delivered_by_signature": data.get("delivered_by_signature"),
+		"customer_satisfaction_initial": data.get("customer_satisfaction_initial"),
+		"customer_comments": _build_customer_comments(
+			data.get("received_by"), data.get("customer_comments")
+		),
 		"delivery_notes": data.get("delivery_notes"),
-		"company": data.get("company"),
 	})
 
-	if data.get("checklist_items"):
-		for item in data["checklist_items"]:
-			doc.append("checklist_items", item)
+	checklist = data.get("delivery_checklist")
+	if isinstance(checklist, str):
+		import json
+		checklist = json.loads(checklist) if checklist else []
+
+	if checklist:
+		for row in checklist:
+			doc.append("delivery_checklist", {
+				"check_item": row.get("check_item"),
+				"is_completed": 1 if row.get("is_completed") else 0,
+				"notes": row.get("notes") or "",
+			})
+	else:
+		completed = data.get("checklist_completed") or {}
+		if isinstance(completed, str):
+			import json
+			completed = json.loads(completed)
+		for item in DEFAULT_DELIVERY_CHECKLIST_ITEMS:
+			doc.append("delivery_checklist", {
+				"check_item": item,
+				"is_completed": 1 if completed.get(item) else 0,
+			})
+
+	if not doc.customer_signature:
+		frappe.throw(_("Customer signature is required"))
+	if not doc.delivered_by_signature:
+		frappe.throw(_("Delivered by signature is required"))
+	if not doc.customer_satisfaction_initial:
+		frappe.throw(_("Customer satisfaction is required"))
 
 	doc.insert()
+
+	if data.get("submit", True):
+		doc.submit()
+
 	frappe.db.commit()
 
 	return {
 		"name": doc.name,
 		"job_card": doc.job_card,
 		"customer": doc.customer,
-		"customer_name": doc.customer_name,
 		"status": doc.status,
+		"docstatus": doc.docstatus,
 	}
 
 
@@ -94,15 +189,23 @@ def update_delivery(name, data):
 	doc.check_permission("write")
 
 	updatable = [
-		"delivery_date", "delivered_by", "received_by",
-		"received_by_phone", "final_odometer_km",
+		"delivery_date_time", "delivered_by", "final_odometer_km",
+		"final_fuel_level", "vehicle_condition", "new_damage_notes",
 		"next_service_due_km", "next_service_due_date",
-		"delivery_notes",
+		"customer_signature", "delivered_by_signature",
+		"customer_satisfaction_initial", "customer_comments",
+		"delivery_notes", "invoice_explained", "invoice_copy_given",
+		"payment_cleared", "payment_method", "payment_receipt_no",
 	]
 
 	for field in updatable:
 		if field in data:
 			doc.set(field, data[field])
+
+	if "received_by" in data or "customer_comments" in data:
+		doc.customer_comments = _build_customer_comments(
+			data.get("received_by"), data.get("customer_comments", doc.customer_comments)
+		)
 
 	doc.save()
 	frappe.db.commit()

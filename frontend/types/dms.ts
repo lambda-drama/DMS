@@ -440,16 +440,30 @@ export interface DMSJobCardTimeLog {
 }
 
 export interface RoadTestItemResult {
-  name: string;
+  name?: string;
   test_item: string;
-  result: 'Pass' | 'Fail' | 'N/A';
-  notes?: string;
+  test_description?: string;
+  category?: string;
+  test_condition?: string;
+  is_critical?: number | boolean;
+  result: 'Pass' | 'Fail' | 'N/A' | '';
+  observations?: string;
+  tested_by?: string;
+  tested_on?: string;
 }
 
 export interface JobCardQCResult {
-  name: string;
-  check_item: string;
-  result: 'Pass' | 'Fail' | 'N/A';
+  name?: string;
+  check_item_text?: string;
+  category?: string;
+  is_mandatory?: number | boolean;
+  requires_photo?: number | boolean;
+  requires_measurement?: number | boolean;
+  min_value?: number;
+  max_value?: number;
+  result: 'Pass' | 'Fail' | 'N/A' | '';
+  measurement_value?: number;
+  photo?: string;
   notes?: string;
 }
 
@@ -489,7 +503,7 @@ export interface DMSJobCard {
   estimated_duration_hours?: number;
   actual_duration_hours?: number;
   total_labor_hours?: number;
-  total_sold_hours?: string;
+  total_hours?: number;
   lead_technician?: string;
   lead_technician_name?: string;
   assistant_technicians?: JobCardTechnicianAssignment[];
@@ -872,10 +886,28 @@ export interface Delivery {
   license_plate?: string;
   delivered_by?: string;
   delivery_date_time?: string;
+  delivery_date?: string;
+  delivery_time?: string;
   final_odometer_km?: number;
+  final_fuel_level?: string;
+  vehicle_condition?: string;
+  new_damage_notes?: string;
+  received_by?: string;
+  customer_mobile?: string;
+  invoice_explained?: boolean;
+  invoice_copy_given?: boolean;
+  payment_cleared?: boolean;
+  payment_method?: string;
+  customer_satisfaction_initial?: string;
+  customer_comments?: string;
+  customer_signature?: string;
+  delivered_by_signature?: string;
+  delivery_notes?: string;
+  checklist_completed?: Record<string, boolean>;
+  submit?: boolean;
   next_service_due_km?: number;
   next_service_due_date?: string;
-  docstatus: number;
+  docstatus?: number;
   creation?: string;
   modified?: string;
 }
