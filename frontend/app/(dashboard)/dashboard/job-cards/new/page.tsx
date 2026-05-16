@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import {
   useCreateJobCard,
@@ -23,6 +23,7 @@ import {
   fetchLabourRate,
   fetchServiceBayDetail,
 } from "@/services/common";
+import * as vehiclesSvc from "@/services/vehicles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +45,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Plus, Trash2, Car, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import type { DMSJobCard, JobCardType, Priority } from "@/types/dms";
+import type { DMSJobCard, JobCardType, Priority, VINNo } from "@/types/dms";
 
 const jobCardTypes: JobCardType[] = [
   "Customer Paid",
@@ -90,6 +91,7 @@ interface PartRow {
   item_name: string;
   quantity_requested: number;
   unit_price: number;
+  warehouse?: string;
 }
 
 export default function NewJobCardPage() {
@@ -127,6 +129,14 @@ export default function NewJobCardPage() {
 
   const [customer, setCustomer] = useState("");
   const [vehicleVin, setVehicleVin] = useState("");
+  /** Keeps VIN label/details when customer changes and search results no longer include this VIN */
+  const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
+  /** Owner from VIN — pinned in customer dropdown when not in search results */
+  const [selectedCustomer, setSelectedCustomer] = useState<{
+    name: string;
+    customer_name: string;
+    mobile_no?: string;
+  } | null>(null);
   const [licensePlate, setLicensePlate] = useState("");
   const [currentOdometer, setCurrentOdometer] = useState<number>(0);
   const [warrantyStatus, setWarrantyStatus] = useState("");
@@ -138,6 +148,19 @@ export default function NewJobCardPage() {
 
   const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const customerVehicleSectionRef = useRef<HTMLDivElement>(null);
+
+  const handleWarrantyApplicationChange = (value: string) => {
+    setWarrantyApplicationType(value);
+    if (value && value !== "none") {
+      requestAnimationFrame(() => {
+        customerVehicleSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  };
 
   const [customerComplaintSummary, setCustomerComplaintSummary] = useState("");
   const [serviceAdvisorNotes, setServiceAdvisorNotes] = useState("");
@@ -149,8 +172,8 @@ export default function NewJobCardPage() {
   // Inspections filtered by selected customer
   const { data: inspectionsData } = useInspections({ customer: customer || undefined });
 
-  // VINs filtered by selected customer
-  const { data: vins, isLoading: vinsLoading } = useVINs(customer || undefined, vinSearch);
+  // VIN search is independent of customer — VIN drives customer, not the other way around
+  const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
 
   // Child table: Job Items
   const [jobItems, setJobItems] = useState<JobItemRow[]>([]);
@@ -182,20 +205,143 @@ export default function NewJobCardPage() {
     unit_price: 0,
   });
 
+  // Keep spare-part line warehouses in sync with the job card warehouse (per-line field on backend).
+  useEffect(() => {
+    if (!warehouse) return;
+    setPartRows((prev) =>
+      prev.map((row) => ({ ...row, warehouse }))
+    );
+    setNewPart((prev) => ({ ...prev, warehouse }));
+  }, [warehouse]);
+
   // --- Auto-fill handlers ---
 
-  const handleVinSelect = (vinName: string) => {
+  const applyVinToForm = (vin: VINNo) => {
+    setSelectedVin(vin);
+    setLicensePlate(vin.plate_number || "");
+    setCurrentOdometer(vin.current_odometer || 0);
+    setWarrantyStatus(vin.warranty_status || "");
+    if (vin.current_customer) {
+      setCustomer(vin.current_customer);
+      setSelectedCustomer({
+        name: vin.current_customer,
+        customer_name: vin.customer_name || vin.current_customer,
+      });
+    }
+  };
+
+  const handleVinSelect = async (vinName: string) => {
     setVehicleVin(vinName);
-    const vin = vins?.find((v) => v.name === vinName);
-    if (vin) {
-      setLicensePlate(vin.plate_number || "");
-      setCurrentOdometer(vin.current_odometer || 0);
-      setWarrantyStatus(vin.warranty_status || "");
-      if (vin.current_customer) {
-        setCustomer(vin.current_customer);
+    if (!vinName) {
+      setSelectedVin(null);
+      return;
+    }
+
+    const fromList = vins?.find((v) => v.name === vinName);
+    if (fromList) {
+      applyVinToForm(fromList);
+    }
+
+    try {
+      const full = await vehiclesSvc.getVehicle(vinName);
+      applyVinToForm({
+        name: full.name,
+        vin_number: full.vin_number,
+        plate_number: full.plate_number,
+        model_name: full.model_name,
+        current_customer: full.current_customer,
+        customer_name: full.customer_name,
+        current_odometer: full.current_odometer,
+        warranty_status: full.warranty_status,
+        linked_item: full.linked_item,
+        model_year: full.model_year,
+        warranty_end_date: full.warranty_end_date,
+      });
+    } catch {
+      if (!fromList) {
+        toast.error("Could not load vehicle details for the selected VIN");
       }
     }
   };
+
+  const handleCustomerChange = (customerId: string) => {
+    setCustomer(customerId);
+    if (!customerId) {
+      setSelectedCustomer(null);
+      return;
+    }
+    const match = customers?.find((c) => c.name === customerId);
+    if (match) {
+      setSelectedCustomer({
+        name: match.name,
+        customer_name: match.customer_name,
+        mobile_no: match.mobile_no,
+      });
+    }
+    // Never clear VIN — user may override owner for this visit
+  };
+
+  const handleCustomerCreated = (name: string, label?: string) => {
+    setCustomer(name);
+    setSelectedCustomer({
+      name,
+      customer_name: label || name,
+    });
+  };
+
+  const customerSelectOptions = useMemo(() => {
+    const mapped =
+      customers?.map((c) => ({
+        value: c.name,
+        label: c.customer_name,
+        description: c.mobile_no || undefined,
+      })) || [];
+
+    if (
+      customer &&
+      selectedCustomer &&
+      !mapped.some((o) => o.value === customer)
+    ) {
+      return [
+        {
+          value: selectedCustomer.name,
+          label: selectedCustomer.customer_name,
+          description: selectedCustomer.mobile_no,
+        },
+        ...mapped,
+      ];
+    }
+    return mapped;
+  }, [customers, customer, selectedCustomer]);
+
+  const vinSelectOptions = useMemo(() => {
+    const mapped =
+      vins?.map((v) => ({
+        value: v.name,
+        label: v.vin_number,
+        description: [v.model_name, v.plate_number, v.customer_name]
+          .filter(Boolean)
+          .join(" · "),
+      })) || [];
+
+    if (
+      vehicleVin &&
+      selectedVin &&
+      !mapped.some((o) => o.value === vehicleVin)
+    ) {
+      return [
+        {
+          value: selectedVin.name,
+          label: selectedVin.vin_number,
+          description: [selectedVin.model_name, selectedVin.plate_number]
+            .filter(Boolean)
+            .join(" · "),
+        },
+        ...mapped,
+      ];
+    }
+    return mapped;
+  }, [vins, vehicleVin, selectedVin]);
 
   const handleBaySelect = async (bayName: string) => {
     setAssignedBay(bayName);
@@ -230,17 +376,31 @@ export default function NewJobCardPage() {
 
   const handleSparePartSelect = async (partName: string) => {
     const part = spareParts?.find((p) => p.name === partName);
-    let price = 0;
-    if (partName) {
-      try {
-        price = await fetchSparePartPrice(partName);
-      } catch { /* ignore */ }
+    if (!partName) {
+      setNewPart((prev) => ({
+        ...prev,
+        item_code: "",
+        item_name: "",
+        unit_price: 0,
+      }));
+      return;
     }
+
+    let unitPrice = 0;
+    try {
+      unitPrice = await fetchSparePartPrice(partName);
+    } catch (err) {
+      console.error("[DMS] fetchSparePartPrice failed", { sparePart: partName, err });
+      toast.error(
+        err instanceof Error ? err.message : "Could not load spare part unit price"
+      );
+    }
+
     setNewPart((prev) => ({
       ...prev,
       item_code: partName,
       item_name: part?.item_name || partName,
-      unit_price: price || prev.unit_price,
+      unit_price: unitPrice,
     }));
   };
 
@@ -285,8 +445,17 @@ export default function NewJobCardPage() {
       toast.error("Please select a spare part");
       return;
     }
-    setPartRows((prev) => [...prev, { ...newPart }]);
-    setNewPart({ item_code: "", item_name: "", quantity_requested: 1, unit_price: 0 });
+    setPartRows((prev) => [
+      ...prev,
+      { ...newPart, warehouse: newPart.warehouse || warehouse || undefined },
+    ]);
+    setNewPart({
+      item_code: "",
+      item_name: "",
+      quantity_requested: 1,
+      unit_price: 0,
+      warehouse: warehouse || undefined,
+    });
   };
 
   const removePartRow = (idx: number) => {
@@ -386,6 +555,7 @@ export default function NewJobCardPage() {
         item_code: pr.item_code,
         quantity_requested: pr.quantity_requested,
         unit_price: pr.unit_price,
+        warehouse: pr.warehouse || warehouse || undefined,
       })),
     } as Partial<DMSJobCard>;
 
@@ -493,7 +663,10 @@ export default function NewJobCardPage() {
                 <Label htmlFor="warranty_application_type">
                   Warranty Application Type
                 </Label>
-                <Select value={warrantyApplicationType} onValueChange={setWarrantyApplicationType}>
+                <Select
+                  value={warrantyApplicationType}
+                  onValueChange={handleWarrantyApplicationChange}
+                >
                   <SelectTrigger id="warranty_application_type">
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
@@ -525,7 +698,7 @@ export default function NewJobCardPage() {
         </Card>
 
         {/* 2. Customer & Vehicle */}
-        <Card>
+        <Card ref={customerVehicleSectionRef}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Car className="h-5 w-5" />
@@ -548,15 +721,7 @@ export default function NewJobCardPage() {
                   </Button>
                 </div>
                 <SearchableSelect
-                  options={
-                    vins?.map((v) => ({
-                      value: v.name,
-                      label: v.vin_number,
-                      description: [v.model_name, v.plate_number, v.current_customer]
-                        .filter(Boolean)
-                        .join(" · "),
-                    })) || []
-                  }
+                  options={vinSelectOptions}
                   value={vehicleVin}
                   onValueChange={handleVinSelect}
                   onSearchChange={setVinSearch}
@@ -564,24 +729,19 @@ export default function NewJobCardPage() {
                   isLoading={vinsLoading}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Registered VINs appear after 3+ characters. Pick one to load the owner customer
-                  (you can change customer if needed). Use Register new vehicle if not in the system.
+                  Search and select the vehicle first. The registered owner fills in as customer when
+                  available; you can change or create a customer without clearing the VIN.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label>Customer *</Label>
-                <LinkWithCreate doctype="Customer" onCreated={setCustomer}>
+                <LinkWithCreate doctype="Customer" onCreated={handleCustomerCreated}>
                   <SearchableSelect
-                    options={
-                      customers?.map((c) => ({
-                        value: c.name,
-                        label: c.customer_name,
-                        description: c.mobile_no || undefined,
-                      })) || []
-                    }
+                    options={customerSelectOptions}
                     value={customer}
-                    onValueChange={setCustomer}
+                    valueLabel={selectedCustomer?.customer_name}
+                    onValueChange={handleCustomerChange}
                     onSearchChange={setCustomerSearch}
                     placeholder="Search customers..."
                     isLoading={customersLoading}

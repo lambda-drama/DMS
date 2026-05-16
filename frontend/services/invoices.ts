@@ -28,20 +28,33 @@ export async function listInvoices(options?: {
 }
 
 export async function getInvoicePreviewFromJobCard(
-  jobCard: string
+  jobCard: string,
+  options?: {
+    warrantyApplicationType?: string;
+    discountAmount?: number;
+  }
 ): Promise<InvoicePreview> {
   return apiRequest<InvoicePreview>(
     `/api/method/${API}.get_invoice_preview_from_job_card`,
     {
       method: 'POST',
-      body: JSON.stringify({ job_card: jobCard }),
+      body: JSON.stringify({
+        job_card: jobCard,
+        warranty_application_type: options?.warrantyApplicationType ?? null,
+        discount_amount: options?.discountAmount ?? null,
+      }),
     }
   );
 }
 
 export async function createInvoiceFromJobCard(
   jobCard: string,
-  options?: { dueDate?: string; submit?: boolean }
+  options?: {
+    dueDate?: string;
+    submit?: boolean;
+    warrantyApplicationType?: string;
+    discountAmount?: number;
+  }
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${JC_API}.make_sales_invoice_from_job_card`, {
     method: 'POST',
@@ -49,6 +62,8 @@ export async function createInvoiceFromJobCard(
       job_card: jobCard,
       due_date: options?.dueDate || null,
       submit: options?.submit ? 1 : 0,
+      warranty_application_type: options?.warrantyApplicationType ?? null,
+      discount_amount: options?.discountAmount ?? null,
     }),
   });
 }

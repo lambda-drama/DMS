@@ -17,9 +17,20 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 
 class DMSJobCard(Document):
 	def validate(self):
+		self.apply_job_card_warehouse_to_parts()
 		self.ensure_qc_results_from_template()
 		self.validate_qc_measurements()
 		self.calculate_costing_and_totals()
+
+	def apply_job_card_warehouse_to_parts(self):
+		"""Default each spare-part line warehouse from the job card header when not set."""
+		if not self.warehouse:
+			return
+		for row in self.parts or []:
+			if not row.item_code:
+				continue
+			if not (row.warehouse or "").strip():
+				row.warehouse = self.warehouse
 
 	def before_submit(self):
 		if not self.company:
@@ -129,7 +140,13 @@ class DMSJobCard(Document):
 
 
 @frappe.whitelist()
-def make_sales_invoice_from_job_card(job_card, due_date=None, submit=0):
+def make_sales_invoice_from_job_card(
+	job_card,
+	due_date=None,
+	submit=0,
+	warranty_application_type=None,
+	discount_amount=None,
+):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
 	)
@@ -145,6 +162,8 @@ def make_sales_invoice_from_job_card(job_card, due_date=None, submit=0):
 		job_card_name,
 		due_date=due_date or None,
 		submit=bool(int(submit or 0)),
+		warranty_application_type=warranty_application_type,
+		discount_amount=discount_amount,
 	)
 
 
@@ -190,13 +209,11 @@ def get_job_card_part_stock_available(spare_part: str | None = None, warehouse: 
 
 @frappe.whitelist()
 def get_job_card_part_unit_price(spare_part: str | None = None):
-	"""Default unit price for a Job Card part row."""
+	"""Default unit price for a Job Card part row (same logic as dms.api.common.get_spare_part_price)."""
 	spare_part = (spare_part or "").strip()
-	if not spare_part:
-		return None
-	if not frappe.db.exists("Spare Part", spare_part):
-		return None
-
+	if not spare_part or not frappe.db.exists("Spare Part", spare_part):
+		return 0
+	
 	return spare_part_default_selling_price(spare_part)
 
 

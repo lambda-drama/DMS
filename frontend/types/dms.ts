@@ -625,6 +625,7 @@ export interface VINNo {
   model_name?: string;
   model_year?: number;
   current_customer?: string;
+  customer_name?: string;
   current_odometer?: number;
   warranty_status?: string;
   warranty_end_date?: string;
@@ -984,6 +985,9 @@ export interface InvoicePreviewLine {
   qty: number;
   rate: number;
   amount: number;
+  base_rate?: number;
+  discount_percentage?: number;
+  is_warranty_covered?: boolean;
 }
 
 export interface InvoicePreview {
@@ -991,6 +995,8 @@ export interface InvoicePreview {
   customer: string;
   customer_name: string;
   company: string;
+  warranty_application_type?: WarrantyApplicationType | '' | null;
+  job_card_warranty_application_type?: WarrantyApplicationType | '' | null;
   lines: InvoicePreviewLine[];
   has_labour: boolean;
   labour_total: number;
@@ -1000,6 +1006,7 @@ export interface InvoicePreview {
   estimated_total: number;
   currency?: string;
   existing_invoice?: string;
+  add_full_warranty_item_on_invoice?: boolean;
 }
 
 export interface SalesInvoiceDetail extends SalesInvoiceListItem {
