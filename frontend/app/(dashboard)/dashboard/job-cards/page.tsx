@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/job-card/status-badge";
 import { PaginationControls } from "@/components/pagination-controls";
+import { ListRowActions } from "@/components/list-row-actions";
 import type { JobCardStatus } from "@/types/dms";
 
 const statusFilterOptions: { value: string; label: string }[] = [
@@ -363,23 +364,25 @@ export default function JobCardsPage() {
                           : "–"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate("job-card-detail", { id: jc.name })}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <ListRowActions doctype="DMS Job Card" docName={jc.name}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate("job-card-detail", { id: jc.name })}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </ListRowActions>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -40,11 +40,12 @@ import {
   Clock,
   AlertCircle,
   DollarSign,
-  Printer,
   Send,
   CreditCard,
 } from "lucide-react";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
+import { PrintFormatDropdown } from "@/components/print-format-dropdown";
+import { ListRowActions } from "@/components/list-row-actions";
 import * as invoicesSvc from "@/services/invoices";
 import type { SalesInvoiceDetail } from "@/types/dms";
 
@@ -286,23 +287,21 @@ export default function InvoicesPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Printer className="h-4 w-4 mr-2" />
-                                Print
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <ListRowActions doctype="Sales Invoice" docName={invoice.name}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setSelectedId(invoice.name)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </ListRowActions>
                         </TableCell>
                       </TableRow>
                     );
@@ -331,11 +330,16 @@ export default function InvoicesPage() {
         badge={selectedInvoice?.status ? { label: selectedInvoice.status } : undefined}
         onOpenInDesk={() => window.open(`/app/sales-invoice/${selectedId}`, "_blank")}
         footer={
-          canCollectPayment && selectedId ? (
-            <Button className="w-full" onClick={() => setShowPaymentDialog(true)}>
-              <CreditCard className="h-4 w-4 mr-2" />
-              Collect Payment
-            </Button>
+          selectedId ? (
+            <div className="flex flex-col gap-2 w-full">
+              <PrintFormatDropdown doctype="Sales Invoice" docName={selectedId} className="w-full" />
+              {canCollectPayment ? (
+                <Button className="w-full" onClick={() => setShowPaymentDialog(true)}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Collect Payment
+                </Button>
+              ) : null}
+            </div>
           ) : undefined
         }
       >

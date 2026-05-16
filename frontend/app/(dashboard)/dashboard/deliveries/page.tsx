@@ -37,6 +37,7 @@ import {
   FileText,
   ExternalLink,
 } from "lucide-react";
+import { ListRowActions } from "@/components/list-row-actions";
 
 const docstatusMap: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   0: { label: "Draft", variant: "secondary" },
@@ -202,27 +203,29 @@ export default function DeliveriesPage() {
                             : "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedId(delivery.name)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  window.open(`/app/vehicle-delivery-note/${delivery.name}`, "_blank")
-                                }
-                              >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Open in Desk
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <ListRowActions doctype="Vehicle Delivery Note" docName={delivery.name}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setSelectedId(delivery.name)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    window.open(`/app/vehicle-delivery-note/${delivery.name}`, "_blank")
+                                  }
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  Open in Desk
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </ListRowActions>
                         </TableCell>
                       </TableRow>
                     );

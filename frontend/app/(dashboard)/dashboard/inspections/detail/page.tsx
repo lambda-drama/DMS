@@ -25,6 +25,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   Draft: { label: "Draft", variant: "secondary" },
@@ -137,10 +138,9 @@ export default function InspectionDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
+          {id && (
+            <PrintFormatDropdown doctype="Vehicle Inspection" docName={id} />
+          )}
           {inspection.status === "Draft" && (
             <>
               <Button variant="outline" size="sm" onClick={() => navigate('inspection-detail', { id, mode: 'edit' })}>

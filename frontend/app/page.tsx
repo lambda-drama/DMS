@@ -27,6 +27,7 @@ const TechnicianDetailPage = dynamic(() => import('./(dashboard)/dashboard/techn
 const CustomersPage = dynamic(() => import('./(dashboard)/dashboard/customers/page'));
 const VehiclesPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/page'));
 const VehicleNewPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/new/page'));
+const ReportsPage = dynamic(() => import('./(dashboard)/dashboard/reports/page'));
 
 function LoadingScreen() {
   return (
@@ -68,6 +69,7 @@ function AppContent() {
       case 'customers':          return <CustomersPage />;
       case 'vehicles':           return <VehiclesPage />;
       case 'vehicle-new':        return <VehicleNewPage />;
+      case 'reports':            return <ReportsPage />;
       default:                   return <DashboardMain />;
     }
   };

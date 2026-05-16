@@ -12,6 +12,7 @@ const ALL_VIEWS = [
   'technicians', 'technician-detail',
   'customers',
   'vehicles', 'vehicle-new',
+  'reports',
 ];
 
 const VIEW_GROUPS: Record<string, string> = {
@@ -34,6 +35,7 @@ const VIEW_GROUPS: Record<string, string> = {
   'customers': 'customers',
   'vehicles': 'vehicles',
   'vehicle-new': 'vehicles',
+  'reports': 'reports',
 };
 
 interface NavigationContextType {

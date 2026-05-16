@@ -45,6 +45,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
+import { ListRowActions } from '@/components/list-row-actions';
 
 export default function InspectionsPage() {
   const { navigate } = useNavigation();
@@ -282,30 +283,31 @@ export default function InspectionsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name })}>
-                            View Details
-                          </DropdownMenuItem>
-                          {insp.docstatus === 0 && (
-                            <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name, mode: 'edit' })}>
-                              Continue Editing
+                      <ListRowActions doctype="Vehicle Inspection" docName={insp.name}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name })}>
+                              View Details
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          {insp.docstatus === 1 && !insp.job_card && (
-                            <DropdownMenuItem className="text-primary">
-                              Create Job Card
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem>Print Report</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            {insp.docstatus === 0 && (
+                              <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name, mode: 'edit' })}>
+                                Continue Editing
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {insp.docstatus === 1 && !insp.job_card && (
+                              <DropdownMenuItem className="text-primary">
+                                Create Job Card
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </ListRowActions>
                     </TableCell>
                   </TableRow>
                 ))}

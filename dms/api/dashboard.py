@@ -250,7 +250,18 @@ def get_dashboard_summary():
 			"progress": progress,
 		})
 
+	brd_kpis = {}
+	try:
+		from dms.api.reports import get_brd_dashboard_kpis
+		brd_kpis = get_brd_dashboard_kpis({
+			"from_date": add_days(today, -30),
+			"to_date": today,
+		})
+	except Exception:
+		frappe.log_error(title="DMS BRD dashboard KPIs")
+
 	return {
+		"brd_kpis": brd_kpis,
 		"stats": {
 			"today_appointments": today_appointments,
 			"yesterday_appointments": yesterday_appointments,

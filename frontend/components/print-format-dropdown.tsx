@@ -6,12 +6,30 @@ import { Printer } from "lucide-react";
 import { fetchPrintFormats } from "@/services/common";
 import { Button } from "@/components/ui/button";
 
+export function openDocumentPrintView(
+  doctype: string,
+  docName: string,
+  format = "Standard",
+  options?: { noLetterhead?: number; triggerPrint?: number }
+) {
+  const params = new URLSearchParams();
+  params.set("doctype", doctype);
+  params.set("name", docName);
+  params.set("format", format);
+  params.set("trigger_print", String(options?.triggerPrint ?? 1));
+  params.set("no_letterhead", String(options?.noLetterhead ?? 0));
+  const base = typeof window !== "undefined" ? window.location.origin : "";
+  window.open(`${base}/printview?${params.toString()}`, "_blank", "noopener,noreferrer");
+}
+
 interface PrintFormatDropdownProps {
   doctype: string;
   docName: string;
   noLetterhead?: number;
   triggerPrint?: number;
   className?: string;
+  /** `icon` — compact printer icon for list rows (after ⋯ menu) */
+  variant?: "default" | "icon";
 }
 
 export function PrintFormatDropdown({
@@ -20,6 +38,7 @@ export function PrintFormatDropdown({
   noLetterhead = 0,
   triggerPrint = 1,
   className,
+  variant = "default",
 }: PrintFormatDropdownProps) {
   const [open, setOpen] = useState(false);
   const [formats, setFormats] = useState<string[]>(["Standard"]);
@@ -74,15 +93,7 @@ export function PrintFormatDropdown({
   }, [open]);
 
   const handleSelectFormat = (format: string) => {
-    const params = new URLSearchParams();
-    params.set("doctype", doctype);
-    params.set("name", docName);
-    params.set("format", format);
-    params.set("trigger_print", String(triggerPrint));
-    params.set("no_letterhead", String(noLetterhead));
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${base}/printview?${params.toString()}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    openDocumentPrintView(doctype, docName, format, { noLetterhead, triggerPrint });
     setOpen(false);
   };
 
@@ -113,20 +124,26 @@ export function PrintFormatDropdown({
       </div>
     ) : null;
 
+  const isIcon = variant === "icon";
+
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div
+      className="relative inline-block"
+      ref={containerRef}
+      onClick={(e) => e.stopPropagation()}
+    >
       <Button
         ref={buttonRef}
         type="button"
-        variant="outline"
-        size="sm"
+        variant={isIcon ? "ghost" : "outline"}
+        size={isIcon ? "icon" : "sm"}
         onClick={() => setOpen((prev) => !prev)}
         className={className}
         aria-label="Print"
         title="Print"
       >
-        <Printer className="h-4 w-4 mr-2" />
-        Print
+        <Printer className={isIcon ? "h-4 w-4" : "h-4 w-4 mr-2"} />
+        {!isIcon && "Print"}
       </Button>
       {typeof document !== "undefined" && menuEl && createPortal(menuEl, document.body)}
     </div>
