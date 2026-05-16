@@ -128,6 +128,8 @@ class VINNo(Document):
     
     def create_serial_no(self):
         """Create Serial No using ALL existing fields from VIN No"""
+        if not self.company:
+            frappe.throw(_("Company is required on the vehicle to create ERPNext Serial No."))
         # Calculate warranty period in days (not months)
         warranty_days = 0
         if self.warranty_start_date and self.warranty_end_date:

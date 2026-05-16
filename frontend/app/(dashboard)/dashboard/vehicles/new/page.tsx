@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useCustomers, useVehicleItems } from "@/hooks/use-dms";
+import { useCustomers, useVehicleItems, useColors, useCompanies } from "@/hooks/use-dms";
 import * as vehiclesSvc from "@/services/vehicles";
+import { SearchableSelect } from "@/components/searchable-select";
+import { LinkWithCreate } from "@/components/link-with-create";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,11 +39,18 @@ export default function NewVehiclePage() {
   const [saving, setSaving] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
+  const [exteriorColorSearch, setExteriorColorSearch] = useState("");
+  const [interiorColorSearch, setInteriorColorSearch] = useState("");
+  const [companySearch, setCompanySearch] = useState("");
 
   const { data: vehicleItems } = useVehicleItems(itemSearch);
   const { data: customers } = useCustomers(customerSearch);
+  const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const { data: exteriorColors, isLoading: exteriorColorsLoading } = useColors(exteriorColorSearch);
+  const { data: interiorColors, isLoading: interiorColorsLoading } = useColors(interiorColorSearch);
 
   const [form, setForm] = useState({
+    company: "",
     vin_number: "",
     engine_number: "",
     plate_number: "",
@@ -53,6 +62,7 @@ export default function NewVehiclePage() {
     transmission: "Automatic (AT)",
     drive_type: "FWD",
     exterior_color: "",
+    interior_color: "",
     current_customer: "",
     current_odometer: "",
     odometer_unit: "km",
@@ -72,10 +82,15 @@ export default function NewVehiclePage() {
       toast({ title: "Vehicle model (Item) is required", variant: "destructive" });
       return;
     }
+    if (!form.company) {
+      toast({ title: "Company is required", variant: "destructive" });
+      return;
+    }
 
     setSaving(true);
     try {
       const result = await vehiclesSvc.createVehicle({
+        company: form.company,
         vin_number: form.vin_number.trim(),
         engine_number: form.engine_number || undefined,
         plate_number: form.plate_number || undefined,
@@ -87,6 +102,7 @@ export default function NewVehiclePage() {
         transmission: form.transmission || undefined,
         drive_type: form.drive_type || undefined,
         exterior_color: form.exterior_color || undefined,
+        interior_color: form.interior_color || undefined,
         current_customer: form.current_customer || undefined,
         current_odometer: form.current_odometer ? parseInt(form.current_odometer) : undefined,
         odometer_unit: form.odometer_unit,
@@ -121,6 +137,27 @@ export default function NewVehiclePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2">
+              <Label>
+                Company <span className="text-destructive">*</span>
+              </Label>
+              <SearchableSelect
+                value={form.company}
+                onValueChange={(v) => update("company", v)}
+                onSearchChange={setCompanySearch}
+                placeholder="Search companies (from DMS Settings)..."
+                isLoading={companiesLoading}
+                options={(companies || []).map((c) => ({
+                  value: c.name,
+                  label: c.company_name || c.name,
+                }))}
+              />
+              {companies && companies.length === 0 && !companiesLoading ? (
+                <p className="text-xs text-muted-foreground">
+                  No companies available. Add companies under DMS Settings → Company (table).
+                </p>
+              ) : null}
+            </div>
             <div className="space-y-2">
               <Label>
                 VIN / Chassis Number <span className="text-destructive">*</span>
@@ -173,14 +210,16 @@ export default function NewVehiclePage() {
                       className="mb-2"
                     />
                   </div>
-                  {vehicleItems?.map((item) => (
-                    <SelectItem key={item.name} value={item.name}>
-                      {item.item_name} {item.brand ? `(${item.brand})` : ""}
-                    </SelectItem>
-                  )) || (
-                    <SelectItem value="" disabled>
-                      No vehicle models found
-                    </SelectItem>
+                  {vehicleItems && vehicleItems.length > 0 ? (
+                    vehicleItems.map((item) => (
+                      <SelectItem key={item.name} value={item.name}>
+                        {item.item_name} {item.brand ? `(${item.brand})` : ""}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                      No vehicle models found — adjust search or add Items in ERPNext
+                    </div>
                   )}
                 </SelectContent>
               </Select>
@@ -214,12 +253,40 @@ export default function NewVehiclePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Exterior Color</Label>
-              <Input
-                placeholder="e.g. Pearl White"
-                value={form.exterior_color}
-                onChange={(e) => update("exterior_color", e.target.value)}
-              />
+              <Label>Exterior color</Label>
+              <LinkWithCreate doctype="Color" onCreated={(name) => update("exterior_color", name)}>
+                <SearchableSelect
+                  options={
+                    exteriorColors?.map((c) => ({
+                      value: c.name,
+                      label: c.label || c.name,
+                    })) || []
+                  }
+                  value={form.exterior_color}
+                  onValueChange={(v) => update("exterior_color", v)}
+                  onSearchChange={setExteriorColorSearch}
+                  placeholder="Search Color..."
+                  isLoading={exteriorColorsLoading}
+                />
+              </LinkWithCreate>
+            </div>
+            <div className="space-y-2">
+              <Label>Interior color</Label>
+              <LinkWithCreate doctype="Color" onCreated={(name) => update("interior_color", name)}>
+                <SearchableSelect
+                  options={
+                    interiorColors?.map((c) => ({
+                      value: c.name,
+                      label: c.label || c.name,
+                    })) || []
+                  }
+                  value={form.interior_color}
+                  onValueChange={(v) => update("interior_color", v)}
+                  onSearchChange={setInteriorColorSearch}
+                  placeholder="Search Color..."
+                  isLoading={interiorColorsLoading}
+                />
+              </LinkWithCreate>
             </div>
             <div className="space-y-2">
               <Label>Fuel Type</Label>
@@ -273,33 +340,24 @@ export default function NewVehiclePage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Current Customer / Owner</Label>
-              <Select
-                value={form.current_customer}
-                onValueChange={(v) => update("current_customer", v)}
+              <LinkWithCreate
+                doctype="Customer"
+                onCreated={(name) => update("current_customer", name)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="p-2">
-                    <Input
-                      placeholder="Search customers..."
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      className="mb-2"
-                    />
-                  </div>
-                  {customers?.map((c) => (
-                    <SelectItem key={c.name} value={c.name}>
-                      {c.customer_name} ({c.name})
-                    </SelectItem>
-                  )) || (
-                    <SelectItem value="" disabled>
-                      No customers found
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                <SearchableSelect
+                  options={
+                    customers?.map((c) => ({
+                      value: c.name,
+                      label: `${c.customer_name} (${c.name})`,
+                      description: c.mobile_no,
+                    })) || []
+                  }
+                  value={form.current_customer}
+                  onValueChange={(v) => update("current_customer", v)}
+                  onSearchChange={setCustomerSearch}
+                  placeholder="Search customers (optional)..."
+                />
+              </LinkWithCreate>
             </div>
             <div className="space-y-2">
               <Label>Vehicle Status</Label>

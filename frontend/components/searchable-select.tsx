@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, X, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, X, Loader2, Plus } from "lucide-react";
 
 export interface SearchableSelectOption {
   value: string;
@@ -11,7 +11,7 @@ export interface SearchableSelectOption {
   description?: string;
 }
 
-interface SearchableSelectProps {
+export interface SearchableSelectProps {
   options: SearchableSelectOption[];
   value: string;
   onValueChange: (value: string) => void;
@@ -21,6 +21,10 @@ interface SearchableSelectProps {
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
+  /** Opens create-new flow (e.g. from LinkWithCreate); shows + inside the field */
+  onCreateNew?: () => void;
+  /** Accessible label for the create button */
+  createNewLabel?: string;
 }
 
 export function SearchableSelect({
@@ -33,6 +37,8 @@ export function SearchableSelect({
   isLoading = false,
   disabled = false,
   className,
+  onCreateNew,
+  createNewLabel = "Create new",
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -116,6 +122,15 @@ export function SearchableSelect({
     }
   }, [highlightedIndex]);
 
+  const showCreate = Boolean(onCreateNew) && !disabled;
+  const inputPadRight = showCreate
+    ? value
+      ? "pr-[5.25rem]"
+      : "pr-20"
+    : value
+      ? "pr-16"
+      : "pr-10";
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <div className="relative">
@@ -134,7 +149,8 @@ export function SearchableSelect({
           onKeyDown={handleKeyDown}
           disabled={disabled}
           className={cn(
-            "pr-16 transition-colors",
+            inputPadRight,
+            "transition-colors",
             !open && selectedOption && "text-foreground",
             open && "border-dms-green ring-1 ring-dms-green"
           )}
@@ -151,6 +167,22 @@ export function SearchableSelect({
               tabIndex={-1}
             >
               <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {showCreate && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                onCreateNew?.();
+              }}
+              className="p-1 rounded hover:bg-muted text-dms-green hover:text-dms-green"
+              tabIndex={-1}
+              aria-label={createNewLabel}
+              title={createNewLabel}
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
             </button>
           )}
           <button

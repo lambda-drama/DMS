@@ -1,6 +1,8 @@
 import frappe
 from frappe import _
 
+from dms.api.utils import get_dms_companies
+
 
 @frappe.whitelist()
 def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=None, warranty_status=None):
@@ -71,12 +73,23 @@ def create_vehicle(data):
 		import json
 		data = json.loads(data)
 
+	company = (data.get("company") or "").strip()
+	allowed = get_dms_companies()
+	if not allowed:
+		frappe.throw(
+			_("Add at least one company in DMS Settings (Company table) before registering vehicles.")
+		)
+	if not company:
+		frappe.throw(_("Company is required"))
+	if company not in allowed:
+		frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
+
 	doc = frappe.get_doc({
 		"doctype": "VIN No",
 		"vin_number": data.get("vin_number"),
 		"engine_number": data.get("engine_number"),
 		"plate_number": data.get("plate_number"),
-		"company": data.get("company"),
+		"company": company,
 		"linked_item": data.get("linked_item"),
 		"brand": data.get("brand"),
 		"model_variant": data.get("model_variant"),
