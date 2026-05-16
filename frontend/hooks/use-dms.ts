@@ -6,6 +6,7 @@ import * as jobCardsSvc from '@/services/jobCards';
 import * as deliveriesSvc from '@/services/deliveries';
 import * as invoicesSvc from '@/services/invoices';
 import * as commonSvc from '@/services/common';
+import type { ColorOption } from '@/services/common';
 import * as techniciansSvc from '@/services/technicians';
 import * as vehiclesSvc from '@/services/vehicles';
 import * as dashboardSvc from '@/services/dashboard';
@@ -226,9 +227,19 @@ export function useCustomersPaginated(options?: {
 }
 
 export function useVINs(customer?: string, search?: string) {
+  const trimmed = (search ?? '').trim();
+  const shouldFetch = Boolean(customer || trimmed.length >= 3);
   return useSWR<VINNo[]>(
-    ['vins', customer, search],
-    () => commonSvc.fetchVINs(customer, search),
+    shouldFetch ? ['vins', customer ?? '', trimmed] : null,
+    () => commonSvc.fetchVINs(customer || undefined, trimmed || undefined),
+    { dedupingInterval: 5000 }
+  );
+}
+
+export function useColors(search?: string) {
+  return useSWR<ColorOption[]>(
+    ['colors', search],
+    () => commonSvc.fetchColors(search),
     { dedupingInterval: 5000 }
   );
 }

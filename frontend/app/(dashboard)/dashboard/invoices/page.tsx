@@ -114,7 +114,9 @@ export default function InvoicesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
-          <p className="text-muted-foreground mt-1">Manage service invoices and payments</p>
+          <p className="text-muted-foreground mt-1">
+            Aftersales invoices linked to a job card (DMS)
+          </p>
         </div>
         <Button onClick={() => navigate('invoice-new')}>
           <Plus className="h-4 w-4 mr-2" />

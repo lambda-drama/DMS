@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/searchable-select';
+import { LinkWithCreate } from '@/components/link-with-create';
 import { ImageCaptureField } from '@/components/image-capture-field';
 import { MultiImageCaptureField } from '@/components/multi-image-capture-field';
 import { SignaturePad } from '@/components/signature-pad';
@@ -492,17 +493,26 @@ export default function NewInspectionPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <RequiredLabel>Customer</RequiredLabel>
-                  <SearchableSelect
-                    options={(customers || []).map(c => ({ value: c.name, label: c.customer_name, description: c.mobile_no }))}
-                    value={selectedCustomer}
-                    onValueChange={(val) => {
-                      setSelectedCustomer(val);
+                  <LinkWithCreate
+                    doctype="Customer"
+                    onCreated={(name) => {
+                      setSelectedCustomer(name);
                       setSelectedVehicle('');
                       setCustomerVehicle('');
                     }}
-                    onSearchChange={setCustomerSearch}
-                    placeholder="Search customer..."
-                  />
+                  >
+                    <SearchableSelect
+                      options={(customers || []).map(c => ({ value: c.name, label: c.customer_name, description: c.mobile_no }))}
+                      value={selectedCustomer}
+                      onValueChange={(val) => {
+                        setSelectedCustomer(val);
+                        setSelectedVehicle('');
+                        setCustomerVehicle('');
+                      }}
+                      onSearchChange={setCustomerSearch}
+                      placeholder="Search customer..."
+                    />
+                  </LinkWithCreate>
                 </div>
 
                 <div className="space-y-2">
@@ -532,18 +542,20 @@ export default function NewInspectionPage() {
 
                 <div className="space-y-2">
                   <RequiredLabel>Service Advisor</RequiredLabel>
-                  <Select value={serviceAdvisor} onValueChange={setServiceAdvisor}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select service advisor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(advisors || []).map((a) => (
-                        <SelectItem key={a.name} value={a.name}>
-                          {a.full_name || a.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <LinkWithCreate
+                    doctype="Service Advisor"
+                    onCreated={(name) => setServiceAdvisor(name)}
+                  >
+                    <SearchableSelect
+                      options={(advisors || []).map((a) => ({
+                        value: a.name,
+                        label: a.full_name || a.name,
+                      }))}
+                      value={serviceAdvisor}
+                      onValueChange={setServiceAdvisor}
+                      placeholder="Select service advisor"
+                    />
+                  </LinkWithCreate>
                 </div>
 
                 <div className="space-y-2">

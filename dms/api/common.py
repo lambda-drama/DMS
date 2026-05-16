@@ -1,6 +1,17 @@
+import re
+
 import frappe
 from frappe import _
-from dms.api.utils import get_vehicle_customer_groups
+from frappe.utils import strip_html
+from dms.api.utils import get_dms_companies, get_vehicle_customer_groups
+
+_COLOR_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
+
+
+@frappe.whitelist()
+def get_vehicle_customer_group_options():
+	"""Customer Groups marked as vehicle customers (for quick-create / forms)."""
+	return get_vehicle_customer_groups()
 
 
 @frappe.whitelist()
@@ -72,6 +83,59 @@ def get_vins(customer=None, search=None, limit=20):
 	)
 
 	return vins
+
+
+def get_color_display_label(row: dict) -> str:
+	"""
+	Human-readable label for Color rows (dropdowns / search).
+	Prefers name fields over swatch hex (`color`) and encoded `name` IDs.
+	"""
+	for key in ("color_name", "colour_name"):
+		v = row.get(key)
+		if v and str(v).strip():
+			return str(v).strip()
+	desc = row.get("description")
+	if desc and str(desc).strip():
+		return strip_html(str(desc)).strip()[:120]
+	c = row.get("color")
+	if c and str(c).strip():
+		cs = str(c).strip()
+		if not _COLOR_HEX_RE.match(cs):
+			return cs
+	return str(row.get("name") or "").strip()
+
+
+@frappe.whitelist()
+def get_colors(search=None, limit=40):
+	"""Search Color doctype for VIN appearance link fields."""
+	if not frappe.db.exists("DocType", "Color"):
+		return []
+
+	meta = frappe.get_meta("Color")
+	fields = ["name"]
+	for fn in ("color", "color_name", "colour_name", "description"):
+		if meta.has_field(fn):
+			fields.append(fn)
+
+	or_filters = None
+	if search:
+		search = (search or "").strip()
+	if search:
+		or_filters = {}
+		for f in fields:
+			or_filters[f] = ["like", f"%{search}%"]
+
+	rows = frappe.get_all(
+		"Color",
+		or_filters=or_filters,
+		fields=fields,
+		limit=int(limit),
+		order_by="name asc",
+	)
+	out = []
+	for r in rows:
+		out.append({"name": r["name"], "label": get_color_display_label(r)})
+	return out
 
 
 @frappe.whitelist()
@@ -256,8 +320,7 @@ def get_warehouses(search=None, company=None, limit=20):
 
 @frappe.whitelist()
 def get_companies(search=None, limit=20):
-	settings = frappe.get_single("DMS Settings")
-	allowed = [row.company for row in (settings.company or []) if row.company]
+	allowed = get_dms_companies()
 
 	if not allowed:
 		return []

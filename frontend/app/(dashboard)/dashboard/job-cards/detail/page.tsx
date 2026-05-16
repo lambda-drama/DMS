@@ -75,6 +75,7 @@ import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { uploadFile } from "@/services/common";
 import { SearchableSelect } from "@/components/searchable-select";
+import { LinkWithCreate } from "@/components/link-with-create";
 import { CreateInvoiceDialog } from "@/components/invoices/create-invoice-dialog";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
 import * as invoicesSvc from "@/services/invoices";
@@ -579,13 +580,15 @@ export default function JobCardDetailPage() {
             </div>
             <div className="space-y-2">
               <Label>Lead technician *</Label>
-              <SearchableSelect
-                options={technicianOptions}
-                value={leadTechnician}
-                onValueChange={setLeadTechnician}
-                placeholder="Search technicians..."
-                isLoading={techniciansLoading}
-              />
+              <LinkWithCreate doctype="Technician" onCreated={setLeadTechnician}>
+                <SearchableSelect
+                  options={technicianOptions}
+                  value={leadTechnician}
+                  onValueChange={setLeadTechnician}
+                  placeholder="Search technicians..."
+                  isLoading={techniciansLoading}
+                />
+              </LinkWithCreate>
             </div>
             <div className="space-y-2">
               <Label>Assistant technicians</Label>
@@ -593,17 +596,26 @@ export default function JobCardDetailPage() {
                 {assistantRows.map((row, index) => (
                   <div key={index} className="flex gap-2 items-end">
                     <div className="flex-1">
-                      <SearchableSelect
-                        options={technicianOptions}
-                        value={row.technician}
-                        onValueChange={(value) => {
+                      <LinkWithCreate
+                        doctype="Technician"
+                        onCreated={(name) => {
                           const next = [...assistantRows];
-                          next[index] = { technician: value };
+                          next[index] = { technician: name };
                           setAssistantRows(next);
                         }}
-                        placeholder="Search technicians..."
-                        isLoading={techniciansLoading}
-                      />
+                      >
+                        <SearchableSelect
+                          options={technicianOptions}
+                          value={row.technician}
+                          onValueChange={(value) => {
+                            const next = [...assistantRows];
+                            next[index] = { technician: value };
+                            setAssistantRows(next);
+                          }}
+                          placeholder="Search technicians..."
+                          isLoading={techniciansLoading}
+                        />
+                      </LinkWithCreate>
                     </div>
                     <Button
                       type="button"

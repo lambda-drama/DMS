@@ -20,7 +20,11 @@ def get_invoices(limit=50, offset=0, status=None, search=None):
 
 	add_company_filter(filters)
 
-	or_filters = {}
+	# Aftersales / DMS only: invoice created from job card
+	if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
+		filters["custom_dms_job_card"] = ["!=", ""]
+
+	or_filters = None
 	if search:
 		or_filters = {
 			"name": ["like", f"%{search}%"],

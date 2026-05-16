@@ -47,6 +47,13 @@ export async function fetchCustomers(search?: string, limit?: number, offset?: n
   });
 }
 
+export async function fetchVehicleCustomerGroups(): Promise<string[]> {
+  return apiRequest<string[]>(`/api/method/${API}.get_vehicle_customer_group_options`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 export async function fetchVINs(customer?: string, search?: string): Promise<VINNo[]> {
   return apiRequest<VINNo[]>(`/api/method/${API}.get_vins`, {
     method: 'POST',
@@ -54,6 +61,18 @@ export async function fetchVINs(customer?: string, search?: string): Promise<VIN
       customer: customer || null,
       search: search || null,
     }),
+  });
+}
+
+export interface ColorOption {
+  name: string;
+  label?: string;
+}
+
+export async function fetchColors(search?: string, limit?: number): Promise<ColorOption[]> {
+  return apiRequest<ColorOption[]>(`/api/method/${API}.get_colors`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, limit: limit ?? 40 }),
   });
 }
 

@@ -16,6 +16,7 @@ import {
   useCompanies,
 } from "@/hooks/use-dms";
 import { SearchableSelect } from "@/components/searchable-select";
+import { LinkWithCreate } from "@/components/link-with-create";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import {
   fetchSparePartPrice,
@@ -190,6 +191,9 @@ export default function NewJobCardPage() {
       setLicensePlate(vin.plate_number || "");
       setCurrentOdometer(vin.current_odometer || 0);
       setWarrantyStatus(vin.warranty_status || "");
+      if (vin.current_customer) {
+        setCustomer(vin.current_customer);
+      }
     }
   };
 
@@ -530,38 +534,25 @@ export default function NewJobCardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Customer *</Label>
-                <SearchableSelect
-                  options={
-                    customers?.map((c) => ({
-                      value: c.name,
-                      label: c.customer_name,
-                      description: c.mobile_no || undefined,
-                    })) || []
-                  }
-                  value={customer}
-                  onValueChange={(val) => {
-                    setCustomer(val);
-                    setVehicleVin("");
-                    setLicensePlate("");
-                    setCurrentOdometer(0);
-                    setWarrantyStatus("");
-                  }}
-                  onSearchChange={setCustomerSearch}
-                  placeholder="Search customers..."
-                  isLoading={customersLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Vehicle VIN *</Label>
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label>Vehicle (VIN) *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("vehicle-new")}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    Register new vehicle
+                  </Button>
+                </div>
                 <SearchableSelect
                   options={
                     vins?.map((v) => ({
                       value: v.name,
                       label: v.vin_number,
-                      description: [v.model_name, v.model_year, v.plate_number]
+                      description: [v.model_name, v.plate_number, v.current_customer]
                         .filter(Boolean)
                         .join(" · "),
                     })) || []
@@ -569,22 +560,42 @@ export default function NewJobCardPage() {
                   value={vehicleVin}
                   onValueChange={handleVinSelect}
                   onSearchChange={setVinSearch}
-                  placeholder={
-                    customer ? "Search VINs..." : "Select customer first"
-                  }
+                  placeholder="Type at least 3 characters of VIN, chassis, or plate..."
                   isLoading={vinsLoading}
-                  disabled={!customer}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Registered VINs appear after 3+ characters. Pick one to load the owner customer
+                  (you can change customer if needed). Use Register new vehicle if not in the system.
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="license_plate">License Plate</Label>
+                <Label>Customer *</Label>
+                <LinkWithCreate doctype="Customer" onCreated={setCustomer}>
+                  <SearchableSelect
+                    options={
+                      customers?.map((c) => ({
+                        value: c.name,
+                        label: c.customer_name,
+                        description: c.mobile_no || undefined,
+                      })) || []
+                    }
+                    value={customer}
+                    onValueChange={setCustomer}
+                    onSearchChange={setCustomerSearch}
+                    placeholder="Search customers..."
+                    isLoading={customersLoading}
+                  />
+                </LinkWithCreate>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="license_plate">License plate</Label>
                 <Input
                   id="license_plate"
                   value={licensePlate}
-                  readOnly
-                  className="bg-muted"
-                  placeholder="Auto-filled from VIN"
+                  onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+                  placeholder="Editable — confirm or update for this visit"
                 />
               </div>
 
@@ -646,34 +657,38 @@ export default function NewJobCardPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Service Advisor</Label>
-                <SearchableSelect
-                  options={
-                    serviceAdvisors?.map((sa) => ({
-                      value: sa.name,
-                      label: sa.full_name,
-                    })) || []
-                  }
-                  value={serviceAdvisor}
-                  onValueChange={setServiceAdvisor}
-                  placeholder="Search advisors..."
-                  isLoading={advisorsLoading}
-                />
+                <LinkWithCreate doctype="Service Advisor" onCreated={setServiceAdvisor}>
+                  <SearchableSelect
+                    options={
+                      serviceAdvisors?.map((sa) => ({
+                        value: sa.name,
+                        label: sa.full_name,
+                      })) || []
+                    }
+                    value={serviceAdvisor}
+                    onValueChange={setServiceAdvisor}
+                    placeholder="Search advisors..."
+                    isLoading={advisorsLoading}
+                  />
+                </LinkWithCreate>
               </div>
 
               <div className="space-y-2">
                 <Label>Lead Technician</Label>
-                <SearchableSelect
-                  options={
-                    technicians?.map((t) => ({
-                      value: t.name,
-                      label: t.full_name,
-                    })) || []
-                  }
-                  value={leadTechnician}
-                  onValueChange={setLeadTechnician}
-                  placeholder="Search technicians..."
-                  isLoading={techniciansLoading}
-                />
+                <LinkWithCreate doctype="Technician" onCreated={setLeadTechnician}>
+                  <SearchableSelect
+                    options={
+                      technicians?.map((t) => ({
+                        value: t.name,
+                        label: t.full_name,
+                      })) || []
+                    }
+                    value={leadTechnician}
+                    onValueChange={setLeadTechnician}
+                    placeholder="Search technicians..."
+                    isLoading={techniciansLoading}
+                  />
+                </LinkWithCreate>
               </div>
 
               <div className="space-y-2">
@@ -703,7 +718,7 @@ export default function NewJobCardPage() {
                 />
               </div>
 
-              <motion.div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="company">Company *</Label>
                 <SearchableSelect
                   value={company}
@@ -720,9 +735,9 @@ export default function NewJobCardPage() {
                     label: c.company_name || c.name,
                   }))}
                 />
-              </motion.div>
+              </div>
 
-              <motion.div className="space-y-2">
+              <div className="space-y-2">
                 <Label>Warehouse</Label>
                 <SearchableSelect
                   options={
@@ -738,7 +753,7 @@ export default function NewJobCardPage() {
                   isLoading={warehousesLoading}
                   disabled={!company}
                 />
-              </motion.div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -937,25 +952,36 @@ export default function NewJobCardPage() {
               </div>
               <div className="col-span-3 space-y-1">
                 <Label className="text-xs">Technician</Label>
-                <SearchableSelect
-                  options={
-                    technicians?.map((t) => ({
-                      value: t.name,
-                      label: t.full_name,
-                    })) || []
-                  }
-                  value={newLabour.technician}
-                  onValueChange={(val) => {
-                    const tech = technicians?.find((t) => t.name === val);
+                <LinkWithCreate
+                  doctype="Technician"
+                  onCreated={(name, label) => {
                     setNewLabour((prev) => ({
                       ...prev,
-                      technician: val,
-                      technician_name: tech?.full_name || val,
+                      technician: name,
+                      technician_name: label || name,
                     }));
                   }}
-                  placeholder="Search technicians..."
-                  isLoading={techniciansLoading}
-                />
+                >
+                  <SearchableSelect
+                    options={
+                      technicians?.map((t) => ({
+                        value: t.name,
+                        label: t.full_name,
+                      })) || []
+                    }
+                    value={newLabour.technician}
+                    onValueChange={(val) => {
+                      const tech = technicians?.find((t) => t.name === val);
+                      setNewLabour((prev) => ({
+                        ...prev,
+                        technician: val,
+                        technician_name: tech?.full_name || val,
+                      }));
+                    }}
+                    placeholder="Search technicians..."
+                    isLoading={techniciansLoading}
+                  />
+                </LinkWithCreate>
               </div>
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Hours</Label>

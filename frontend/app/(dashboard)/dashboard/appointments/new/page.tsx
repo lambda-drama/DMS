@@ -31,6 +31,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { SearchableSelect } from '@/components/searchable-select';
+import { LinkWithCreate } from '@/components/link-with-create';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import {
   useCustomers,
@@ -307,26 +308,40 @@ export default function NewAppointmentPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="customer">Customer</Label>
-                <SearchableSelect
-                  options={(customers || []).map((c) => ({
-                    value: c.name,
-                    label: c.customer_name,
-                    description: c.mobile_no,
-                  }))}
-                  value={form.customer}
-                  onValueChange={(val) => {
+                <LinkWithCreate
+                  doctype="Customer"
+                  onCreated={(name) => {
                     setForm((prev) => ({
                       ...prev,
-                      customer: val,
+                      customer: name,
                       vehicle: '',
                       vin_chassis: '',
                       license_plate: '',
                       current_odometer: 0,
                     }));
                   }}
-                  onSearchChange={setCustomerSearch}
-                  placeholder="Search customer..."
-                />
+                >
+                  <SearchableSelect
+                    options={(customers || []).map((c) => ({
+                      value: c.name,
+                      label: c.customer_name,
+                      description: c.mobile_no,
+                    }))}
+                    value={form.customer}
+                    onValueChange={(val) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        customer: val,
+                        vehicle: '',
+                        vin_chassis: '',
+                        license_plate: '',
+                        current_odometer: 0,
+                      }));
+                    }}
+                    onSearchChange={setCustomerSearch}
+                    placeholder="Search customer..."
+                  />
+                </LinkWithCreate>
               </div>
 
               <div className="space-y-2">
@@ -480,15 +495,20 @@ export default function NewAppointmentPage() {
           <CardContent className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="advisor">Preferred Service Advisor</Label>
-              <SearchableSelect
-                options={(advisors || []).map((a) => ({
-                  value: a.name,
-                  label: a.full_name,
-                }))}
-                value={form.preferred_advisor}
-                onValueChange={(val) => setForm((prev) => ({ ...prev, preferred_advisor: val }))}
-                placeholder="Select advisor..."
-              />
+              <LinkWithCreate
+                doctype="Service Advisor"
+                onCreated={(name) => setForm((prev) => ({ ...prev, preferred_advisor: name }))}
+              >
+                <SearchableSelect
+                  options={(advisors || []).map((a) => ({
+                    value: a.name,
+                    label: a.full_name,
+                  }))}
+                  value={form.preferred_advisor}
+                  onValueChange={(val) => setForm((prev) => ({ ...prev, preferred_advisor: val }))}
+                  placeholder="Select advisor..."
+                />
+              </LinkWithCreate>
             </div>
 
             <div className="space-y-2">
