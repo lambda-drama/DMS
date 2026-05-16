@@ -18,6 +18,8 @@ import {
   ArrowRight,
   Timer,
   Loader2,
+  BarChart3,
+  DollarSign,
 } from 'lucide-react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { useDashboard } from '@/hooks/use-dms';
@@ -57,6 +59,7 @@ export default function DashboardPage() {
   const { data, isLoading, error } = useDashboard();
 
   const stats = data?.stats;
+  const brd = data?.brd_kpis;
   const activeJobs = data?.active_job_cards ?? [];
   const todayAppointments = data?.today_appointments ?? [];
   const serviceBays = data?.service_bays ?? [];
@@ -154,6 +157,44 @@ export default function DashboardPage() {
               </Card>
             ))}
       </div>
+
+      {brd && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg">Management KPIs (last 30 days)</CardTitle>
+              <CardDescription>BRD dashboard highlights — full detail in Reports</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate('reports')}>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              All reports
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Open WIP</p>
+                <p className="text-2xl font-bold">{brd.open_job_cards ?? 0}</p>
+                <p className="text-xs text-muted-foreground">{brd.overdue_promised ?? 0} overdue</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" /> Net revenue</p>
+                <p className="text-2xl font-bold">{(brd.net_revenue ?? 0).toLocaleString()}</p>
+              </div>
+                            <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Appointment arrival</p>
+                <p className="text-2xl font-bold">{brd.appointment_arrival_rate ?? 0}%</p>
+                <p className="text-xs text-muted-foreground">{brd.warranty_jobs ?? 0} warranty jobs</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">QC fail rate</p>
+                <p className="text-2xl font-bold">{brd.qc_fail_rate_pct ?? 0}%</p>
+                <p className="text-xs text-muted-foreground">Parts fill {brd.parts_fill_rate_pct ?? 0}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">

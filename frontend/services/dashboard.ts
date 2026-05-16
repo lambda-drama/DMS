@@ -44,8 +44,23 @@ export interface DashboardServiceBay {
   progress: number;
 }
 
+export interface BrdDashboardKpis {
+  from_date?: string;
+  to_date?: string;
+  open_job_cards?: number;
+  overdue_promised?: number;
+  net_revenue?: number;
+  labour_revenue?: number;
+  parts_revenue?: number;
+  appointment_arrival_rate?: number;
+  qc_fail_rate_pct?: number;
+  parts_fill_rate_pct?: number;
+  warranty_jobs?: number;
+}
+
 export interface DashboardSummary {
   stats: DashboardStats;
+  brd_kpis?: BrdDashboardKpis;
   active_job_cards: DashboardJobCard[];
   today_appointments: DashboardAppointment[];
   service_bays: DashboardServiceBay[];

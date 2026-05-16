@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import {
+  BarChart3,
   Calendar,
   Car,
   ClipboardCheck,
@@ -43,6 +44,7 @@ const navigation = [
       { name: 'Customers', view: 'customers', icon: Users },
       { name: 'Vehicles', view: 'vehicles', icon: Car },
       { name: 'Invoices', view: 'invoices', icon: FileText },
+      { name: 'Reports', view: 'reports', icon: BarChart3 },
     ],
   },
 ];

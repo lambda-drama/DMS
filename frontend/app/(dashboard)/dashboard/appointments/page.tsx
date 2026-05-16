@@ -44,6 +44,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
+import { ListRowActions } from '@/components/list-row-actions';
 import { useAppointments, useAppointment } from '@/hooks/use-dms';
 import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
 import type { AppointmentStatus, Priority } from '@/types/dms';
@@ -376,36 +377,38 @@ export default function AppointmentsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setSelectedId(apt.name)}>
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate('appointment-detail', { id: apt.name, mode: 'edit' })}>
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {apt.appointment_status === 'Booked' && (
-                              <DropdownMenuItem className="text-chart-3">
-                                Mark as Arrived
+                        <ListRowActions doctype="Service Appointment" docName={apt.name}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setSelectedId(apt.name)}>
+                                View Details
                               </DropdownMenuItem>
-                            )}
-                            {apt.appointment_status === 'Arrived' && (
-                              <DropdownMenuItem className="text-primary">
-                                Start Inspection
+                              <DropdownMenuItem onClick={() => navigate('appointment-detail', { id: apt.name, mode: 'edit' })}>
+                                Edit
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                              Cancel Appointment
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuSeparator />
+                              {apt.appointment_status === 'Booked' && (
+                                <DropdownMenuItem className="text-chart-3">
+                                  Mark as Arrived
+                                </DropdownMenuItem>
+                              )}
+                              {apt.appointment_status === 'Arrived' && (
+                                <DropdownMenuItem className="text-primary">
+                                  Start Inspection
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive">
+                                Cancel Appointment
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </ListRowActions>
                       </TableCell>
                     </TableRow>
                   );
