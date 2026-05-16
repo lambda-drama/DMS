@@ -11,14 +11,119 @@ from frappe.model.naming import make_autoname
 from datetime import datetime
 
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
-	is_labour_row_billable,
-	is_part_row_billable,
 	labour_row_hours,
 	part_issue_qty,
 	resolve_vehicle_service_item_to_item_code,
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
 )
+
+WARRANTY_APPLICATION_TYPES = frozenset(
+	{"All Invoice", "Labour", "Spare Part", "Discount"}
+)
+
+
+def normalize_warranty_application_type(value) -> str:
+	v = (value or "").strip()
+	return v if v in WARRANTY_APPLICATION_TYPES else ""
+
+
+def add_full_warranty_item_on_invoice() -> bool:
+	"""DMS Settings: bill warranty-covered lines at full rate with 100% line discount."""
+	return cint(
+		frappe.db.get_single_value("DMS Settings", "add_full_warranty_item_on_invoice")
+	)
+
+
+def is_line_warranty_covered(line_type: str, warranty_application_type: str) -> bool:
+	w = normalize_warranty_application_type(warranty_application_type)
+	if w == "All Invoice":
+		return True
+	if w == "Labour" and line_type == "Labour":
+		return True
+	if w == "Spare Part" and line_type == "Parts":
+		return True
+	return False
+
+
+def resolve_invoice_line_pricing(
+	line_type: str,
+	base_rate: float,
+	qty: float,
+	warranty_application_type: str,
+) -> dict:
+	"""
+	How a job card line is represented on Sales Invoice / preview.
+
+	When warranty covers a line:
+	• add_full_warranty_item_on_invoice: include at full rate + 100% line discount (ERPNext-safe).
+	• otherwise: omit the line from the invoice.
+	"""
+	base = flt(base_rate)
+	qty = flt(qty)
+	covered = is_line_warranty_covered(line_type, warranty_application_type)
+
+	if covered and not add_full_warranty_item_on_invoice():
+		return {
+			"include": False,
+			"rate": 0.0,
+			"discount_percentage": 0.0,
+			"amount": 0.0,
+			"is_warranty_covered": True,
+		}
+
+	if covered and add_full_warranty_item_on_invoice():
+		return {
+			"include": True,
+			"rate": base,
+			"discount_percentage": 100.0,
+			"amount": 0.0,
+			"is_warranty_covered": True,
+		}
+
+	rate = base
+	return {
+		"include": True,
+		"rate": rate,
+		"discount_percentage": 0.0,
+		"amount": round(qty * rate, 2),
+		"is_warranty_covered": False,
+	}
+
+
+def invoice_rate_for_line(line_type: str, base_rate: float, warranty_application_type: str) -> float:
+	"""Effective line rate after warranty (0 when covered and omitted from invoice preview)."""
+	pricing = resolve_invoice_line_pricing(
+		line_type, base_rate, qty=1, warranty_application_type=warranty_application_type
+	)
+	if not pricing["include"]:
+		return 0.0
+	if pricing["discount_percentage"] >= 100:
+		return 0.0
+	return flt(pricing["rate"])
+
+
+def invoice_estimated_total(
+	labour_total: float,
+	parts_total: float,
+	warranty_application_type: str,
+	discount_amount: float,
+) -> float:
+	"""Match DMS Job Card net_amount rules using warranty-adjusted line totals."""
+	w = normalize_warranty_application_type(warranty_application_type)
+	labour_total = flt(labour_total)
+	parts_total = flt(parts_total)
+	discount_amount = flt(discount_amount)
+
+	if w == "All Invoice":
+		return 0.0
+	if w == "Spare Part":
+		return round(labour_total, 2)
+	if w == "Labour":
+		return round(parts_total, 2)
+	if w == "Discount":
+		return round(max(labour_total + parts_total - discount_amount, 0), 2)
+	return round(max(labour_total + parts_total - discount_amount, 0), 2)
 
 
 def _ensure_erpnext():
@@ -159,7 +264,33 @@ def assert_single_invoice_allowed(job_card_name: str):
 			)
 
 
-def build_invoice_preview_from_job_card(job_card_name: str) -> dict:
+def _sync_job_card_warranty_for_invoice(
+	job_card_name: str,
+	warranty_application_type: str | None = None,
+	discount_amount: float | None = None,
+):
+	"""Optional overrides from invoice UI — persisted on the job card before invoicing."""
+	jc = frappe.get_doc("DMS Job Card", job_card_name)
+	changed = False
+	if warranty_application_type is not None:
+		jc.warranty_application_type = normalize_warranty_application_type(
+			warranty_application_type
+		) or None
+		changed = True
+	if discount_amount is not None:
+		jc.discount_amount = flt(discount_amount)
+		changed = True
+	if changed:
+		jc.calculate_costing_and_totals()
+		jc.db_update()
+	return jc
+
+
+def build_invoice_preview_from_job_card(
+	job_card_name: str,
+	warranty_application_type: str | None = None,
+	discount_amount: float | None = None,
+) -> dict:
 	"""Return billable lines and totals for UI preview before creating a Sales Invoice."""
 	_ensure_erpnext()
 
@@ -167,13 +298,24 @@ def build_invoice_preview_from_job_card(job_card_name: str) -> dict:
 		frappe.throw(_("DMS Job Card not found."))
 
 	jc = frappe.get_doc("DMS Job Card", job_card_name)
-	lines = _build_preview_lines(jc)
+	warranty_type = normalize_warranty_application_type(
+		warranty_application_type
+		if warranty_application_type is not None
+		else jc.warranty_application_type
+	)
+	discount = (
+		flt(discount_amount)
+		if discount_amount is not None
+		else flt(jc.discount_amount)
+	)
+
+	lines = _build_preview_lines(jc, warranty_type)
 
 	if not lines:
 		frappe.throw(
 			_(
-				"Nothing to invoice: add billable Labour lines (Vehicle Service Item) "
-				"and/or Parts (non-warranty) with quantity."
+				"Nothing to invoice: add Labour lines (Vehicle Service Item) "
+				"and/or Parts with quantity on the job card."
 			)
 		)
 
@@ -181,7 +323,6 @@ def build_invoice_preview_from_job_card(job_card_name: str) -> dict:
 	parts_total = sum(flt(l["amount"]) for l in lines if l["line_type"] == "Parts")
 	subtotal = labour_total + parts_total
 	has_labour = any(l["line_type"] == "Labour" for l in lines)
-	discount_amount = flt(jc.discount_amount)
 
 	customer_name = jc.customer
 	if jc.customer:
@@ -194,20 +335,29 @@ def build_invoice_preview_from_job_card(job_card_name: str) -> dict:
 		"customer": jc.customer,
 		"customer_name": customer_name,
 		"company": jc.company,
+		"warranty_application_type": warranty_type or None,
+		"job_card_warranty_application_type": jc.warranty_application_type or None,
 		"lines": lines,
 		"has_labour": has_labour,
 		"labour_total": labour_total,
 		"parts_total": parts_total,
 		"subtotal": subtotal,
-		"discount_amount": discount_amount,
-		"estimated_total": max(subtotal - discount_amount, 0),
+		"discount_amount": discount,
+		"estimated_total": invoice_estimated_total(
+			labour_total, parts_total, warranty_type, discount
+		),
 		"currency": _currency_from_job_card(jc),
 		"existing_invoice": frappe.db.get_value("DMS Job Card", jc.name, "invoice"),
+		"add_full_warranty_item_on_invoice": add_full_warranty_item_on_invoice(),
 	}
 
 
 def create_sales_invoice_from_dms_job_card(
-	job_card_name: str, due_date: str | None = None, submit: bool = False
+	job_card_name: str,
+	due_date: str | None = None,
+	submit: bool = False,
+	warranty_application_type: str | None = None,
+	discount_amount: float | None = None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -216,10 +366,15 @@ def create_sales_invoice_from_dms_job_card(
 		frappe.throw(_("DMS Job Card not found."))
 
 	assert_single_invoice_allowed(job_card_name)
-	jc = frappe.get_doc("DMS Job Card", job_card_name)
 
-	if jc.docstatus != 1:
+	if frappe.db.get_value("DMS Job Card", job_card_name, "docstatus") != 1:
 		frappe.throw(_("Submit the Job Card before creating a Sales Invoice."))
+
+	jc = _sync_job_card_warranty_for_invoice(
+		job_card_name,
+		warranty_application_type=warranty_application_type,
+		discount_amount=discount_amount,
+	)
 
 	if not jc.customer:
 		frappe.throw(_("Customer is required on the Job Card to create an invoice."))
@@ -227,11 +382,17 @@ def create_sales_invoice_from_dms_job_card(
 	if not jc.company:
 		frappe.throw(_("Set Company on the Job Card before creating a Sales Invoice."))
 
+	warranty_type = normalize_warranty_application_type(jc.warranty_application_type)
 	preview = build_invoice_preview_from_job_card(job_card_name)
 	has_labour = preview.get("has_labour")
 
 	if has_labour and not due_date:
 		frappe.throw(_("Due date is required when the invoice includes labour items."))
+
+	if warranty_type == "Discount" and flt(jc.discount_amount) < 1:
+		frappe.throw(
+			_("Discount Amount must be at least 1 when Warranty Application Type is Discount.")
+		)
 
 	si = frappe.new_doc("Sales Invoice")
 	si.custom_invoice_no = _generate_invoice_no(jc.company)
@@ -243,12 +404,12 @@ def create_sales_invoice_from_dms_job_card(
 	_set_sales_invoice_job_card_link(si, jc.name)
 	_apply_sales_invoice_currency_from_job_card(si, jc)
 
-	append_si_items(si, jc)
+	append_si_items(si, jc, warranty_type)
 	if not si.get("items"):
 		frappe.throw(
 			_(
-				"Nothing to invoice: add billable Labour lines (Vehicle Labour Item) "
-				"and/or Parts (non-warranty) with quantity."
+				"Nothing to invoice: add Labour lines (Vehicle Service Item) "
+				"and/or Parts with quantity on the job card."
 			)
 		)
 
@@ -258,7 +419,7 @@ def create_sales_invoice_from_dms_job_card(
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
 	si.run_method("calculate_taxes_and_totals")
 
-	if flt(jc.discount_amount) > 0:
+	if warranty_type == "Discount" and flt(jc.discount_amount) > 0:
 		si.discount_amount = flt(jc.discount_amount)
 		si.apply_discount_on = "Grand Total"
 		si.run_method("calculate_taxes_and_totals")
@@ -292,8 +453,39 @@ def _generate_invoice_no(company):
 	return f"{base_name}-{current_year}"
 
 
-def _build_preview_lines(jc) -> list[dict]:
-	"""Build preview line dicts using the same rules as append_si_items."""
+def _append_preview_line(
+	lines: list[dict],
+	*,
+	line_type: str,
+	item_code: str,
+	description: str,
+	qty: float,
+	base_rate: float,
+	warranty_application_type: str,
+) -> None:
+	pricing = resolve_invoice_line_pricing(
+		line_type, base_rate, qty, warranty_application_type
+	)
+	if not pricing["include"]:
+		return
+
+	lines.append(
+		{
+			"line_type": line_type,
+			"item_code": item_code,
+			"description": description[:4096],
+			"qty": qty,
+			"rate": pricing["rate"],
+			"amount": pricing["amount"],
+			"base_rate": round(flt(base_rate), 2),
+			"discount_percentage": pricing["discount_percentage"],
+			"is_warranty_covered": pricing["is_warranty_covered"],
+		}
+	)
+
+
+def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
+	"""Build preview line dicts; include all labour/parts with qty, apply warranty rates."""
 	lines: list[dict] = []
 	has_labour = bool(jc.get("labour"))
 
@@ -303,8 +495,6 @@ def _build_preview_lines(jc) -> list[dict]:
 				_("DocType Vehicle Service Item is missing. Cannot bill labour breakdown lines.")
 			)
 		for row in jc.labour:
-			if not is_labour_row_billable(row):
-				continue
 			if not row.vehicle_service_item:
 				continue
 
@@ -316,9 +506,9 @@ def _build_preview_lines(jc) -> list[dict]:
 			if qty <= 0:
 				continue
 
-			rate = flt(row.rate_per_hour or 0)
-			if rate <= 0:
-				rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+			base_rate = flt(row.rate_per_hour or 0)
+			if base_rate <= 0:
+				base_rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
 
 			desc_parts = []
 			for attr in ("complaint", "diagnosis", "correction"):
@@ -327,38 +517,34 @@ def _build_preview_lines(jc) -> list[dict]:
 					desc_parts.append((text or "")[:1200])
 			description = "\n".join(desc_parts) or row.vehicle_service_item
 
-			lines.append(
-				{
-					"line_type": "Labour",
-					"item_code": item_code,
-					"description": description[:4096],
-					"qty": qty,
-					"rate": rate,
-					"amount": round(qty * rate, 2),
-				}
+			_append_preview_line(
+				lines,
+				line_type="Labour",
+				item_code=item_code,
+				description=description,
+				qty=qty,
+				base_rate=base_rate,
+				warranty_application_type=warranty_application_type,
 			)
 	else:
 		for ji in jc.get("job_items") or []:
 			if not ji.labor_operation:
 				continue
-			rate = flt(
+			base_rate = flt(
 				frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0
 			)
 			desc = getattr(ji, "complaint_description", None) or ji.labor_operation
-			lines.append(
-				{
-					"line_type": "Labour",
-					"item_code": ji.labor_operation,
-					"description": (desc or "")[:4096],
-					"qty": 1,
-					"rate": rate,
-					"amount": rate,
-				}
+			_append_preview_line(
+				lines,
+				line_type="Labour",
+				item_code=ji.labor_operation,
+				description=(desc or ""),
+				qty=1,
+				base_rate=base_rate,
+				warranty_application_type=warranty_application_type,
 			)
 
 	for part in jc.get("parts") or []:
-		if not is_part_row_billable(part):
-			continue
 		if not part.item_code:
 			continue
 
@@ -370,27 +556,30 @@ def _build_preview_lines(jc) -> list[dict]:
 		if not erp_item:
 			continue
 
-		rate = flt(part.unit_price or 0)
-		if rate <= 0:
-			rate = spare_part_default_selling_price(part.item_code)
+		base_rate = flt(part.unit_price or 0)
+		if base_rate <= 0:
+			base_rate = spare_part_default_selling_price(part.item_code)
 
 		item_name = frappe.db.get_value("Item", erp_item, "item_name") or erp_item
-		lines.append(
-			{
-				"line_type": "Parts",
-				"item_code": erp_item,
-				"description": item_name,
-				"qty": qty,
-				"rate": rate,
-				"amount": round(qty * rate, 2),
-			}
+		_append_preview_line(
+			lines,
+			line_type="Parts",
+			item_code=erp_item,
+			description=item_name,
+			qty=qty,
+			base_rate=base_rate,
+			warranty_application_type=warranty_application_type,
 		)
 
 	return lines
 
 
-def append_si_items(si, jc):
-	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items. Exclude warranty."""
+def append_si_items(si, jc, warranty_application_type: str = ""):
+	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items; warranty-aware rates."""
+
+	warranty_application_type = normalize_warranty_application_type(
+		warranty_application_type or jc.warranty_application_type
+	)
 
 	has_labour = bool(jc.get("labour"))
 	if has_labour:
@@ -399,12 +588,8 @@ def append_si_items(si, jc):
 				_("DocType Vehicle Service Item is missing. Cannot bill labour breakdown lines.")
 			)
 		for row in jc.labour:
-			if not is_labour_row_billable(row):
-				continue
 			if not row.vehicle_service_item:
-				frappe.throw(
-					_("Each billable Labour line must reference a Vehicle Service Item.")
-				)
+				continue
 
 			item_code = resolve_vehicle_service_item_to_item_code(row.vehicle_service_item)
 			if not item_code:
@@ -419,11 +604,25 @@ def append_si_items(si, jc):
 			if qty <= 0:
 				continue
 
-			rate = flt(row.rate_per_hour or 0)
-			if rate <= 0:
-				rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+			base_rate = flt(row.rate_per_hour or 0)
+			if base_rate <= 0:
+				base_rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
 
-			child = si.append("items", {"item_code": item_code, "qty": qty, "rate": rate})
+			pricing = resolve_invoice_line_pricing(
+				"Labour", base_rate, qty, warranty_application_type
+			)
+			if not pricing["include"]:
+				continue
+
+			child = si.append(
+				"items",
+				{
+					"item_code": item_code,
+					"qty": qty,
+					"rate": pricing["rate"],
+					"discount_percentage": pricing["discount_percentage"],
+				},
+			)
 			desc_parts = []
 			for attr in ("complaint", "diagnosis", "correction"):
 				text = getattr(row, attr, None)
@@ -436,20 +635,28 @@ def append_si_items(si, jc):
 			if not ji.labor_operation:
 				continue
 
+			base_rate = flt(
+				frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0
+			)
+			pricing = resolve_invoice_line_pricing(
+				"Labour", base_rate, 1, warranty_application_type
+			)
+			if not pricing["include"]:
+				continue
+
 			child = si.append(
 				"items",
 				{
 					"item_code": ji.labor_operation,
 					"qty": 1,
-					"rate": flt(frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0),
+					"rate": pricing["rate"],
+					"discount_percentage": pricing["discount_percentage"],
 				},
 			)
 			desc = getattr(ji, "complaint_description", None)
 			child.description = (desc or "")[:4096]
 
 	for part in jc.get("parts") or []:
-		if not is_part_row_billable(part):
-			continue
 		if not part.item_code:
 			continue
 
@@ -463,9 +670,23 @@ def append_si_items(si, jc):
 				_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(part.item_code)),
 			)
 
-		rate = flt(part.unit_price or 0)
-		if rate <= 0:
-			rate = spare_part_default_selling_price(part.item_code)
+		base_rate = flt(part.unit_price or 0)
+		if base_rate <= 0:
+			base_rate = spare_part_default_selling_price(part.item_code)
 
-		row = si.append("items", {"item_code": erp_item, "qty": qty, "rate": rate})
+		pricing = resolve_invoice_line_pricing(
+			"Parts", base_rate, qty, warranty_application_type
+		)
+		if not pricing["include"]:
+			continue
+
+		row = si.append(
+			"items",
+			{
+				"item_code": erp_item,
+				"qty": qty,
+				"rate": pricing["rate"],
+				"discount_percentage": pricing["discount_percentage"],
+			},
+		)
 		_apply_stock_item_warehouse(row, erp_item, part, jc)

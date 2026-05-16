@@ -25,6 +25,8 @@ export interface SearchableSelectProps {
   onCreateNew?: () => void;
   /** Accessible label for the create button */
   createNewLabel?: string;
+  /** Shown when `value` is set but not found in `options` (e.g. programmatic selection) */
+  valueLabel?: string;
 }
 
 export function SearchableSelect({
@@ -39,6 +41,7 @@ export function SearchableSelect({
   className,
   onCreateNew,
   createNewLabel = "Create new",
+  valueLabel,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -48,6 +51,8 @@ export function SearchableSelect({
   const listRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((o) => o.value === value);
+  const closedDisplayLabel =
+    selectedOption?.label || (value && valueLabel ? valueLabel : "");
 
   const filtered = search
     ? options.filter(
@@ -136,8 +141,8 @@ export function SearchableSelect({
       <div className="relative">
         <Input
           ref={inputRef}
-          placeholder={selectedOption ? selectedOption.label : placeholder}
-          value={open ? search : selectedOption ? selectedOption.label : ""}
+          placeholder={closedDisplayLabel || placeholder}
+          value={open ? search : closedDisplayLabel}
           onChange={(e) => {
             handleSearchChange(e.target.value);
             if (!open) setOpen(true);

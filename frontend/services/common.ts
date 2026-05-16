@@ -139,14 +139,16 @@ export async function fetchCompanies(search?: string): Promise<CompanyOption[]> 
   });
 }
 
+/** Same pricing as ERPNext Job Card form — `dms.api.common.get_spare_part_price` → `spare_part_default_selling_price`. */
 export async function fetchSparePartPrice(sparePart: string): Promise<number> {
-  return apiRequest<number>(
-    `/api/method/dms.dealer_management_system.doctype.dms_job_card.dms_job_card.get_job_card_part_unit_price`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ spare_part: sparePart }),
-    }
-  );
+  const raw = await apiRequest<unknown>(`/api/method/${API}.get_spare_part_price`, {
+    method: 'POST',
+    body: JSON.stringify({ spare_part: sparePart }),
+  });
+
+  console.log('Fetched price for', sparePart, ':', raw);
+  const n = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
+  return Number.isFinite(n) ? n : 0;
 }
 
 export async function fetchLabourRate(vehicleServiceItem: string): Promise<number> {

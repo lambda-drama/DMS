@@ -11,7 +11,9 @@
   "auto_create_vin_from_serial",
   "company",
   "defaults_section",
-  "company_defaults"
+  "company_defaults",
+  "section_break_nwax",
+  "add_full_warranty_item_on_invoice"
  ],
  "fields": [
   {
@@ -54,13 +56,23 @@
    "fieldtype": "Table",
    "label": "Company Defaults",
    "options": "DMS Company Defaults"
+  },
+  {
+   "fieldname": "section_break_nwax",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "add_full_warranty_item_on_invoice",
+   "fieldtype": "Check",
+   "label": "Add Full Warranty Item on Invoice"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-16 02:17:11.737241",
+ "modified": "2026-05-16 17:44:05.912133",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

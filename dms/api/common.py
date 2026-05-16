@@ -75,7 +75,7 @@ def get_vins(customer=None, search=None, limit=20):
 		or_filters=or_filters if or_filters else None,
 		fields=[
 			"name", "vin_number", "plate_number", "linked_item", "model_name",
-			"model_year", "current_customer", "current_odometer",
+			"model_year", "current_customer", "customer_name", "current_odometer",
 			"warranty_status", "warranty_end_date",
 		],
 		limit=int(limit),

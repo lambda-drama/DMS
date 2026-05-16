@@ -118,11 +118,14 @@ def create_job_card(data):
 			})
 
 	if data.get("parts"):
+		job_warehouse = (data.get("warehouse") or "").strip() or None
 		for part in data["parts"]:
+			part_warehouse = (part.get("warehouse") or "").strip() or job_warehouse
 			doc.append("parts", {
 				"item_code": part.get("item_code"),
 				"quantity_requested": part.get("quantity_requested", 1),
 				"unit_price": part.get("unit_price"),
+				"warehouse": part_warehouse,
 			})
 
 	doc.insert()
@@ -159,6 +162,10 @@ def update_job_card(name, data):
 	for field in updatable_fields:
 		if field in data:
 			doc.set(field, data[field])
+
+	if "warehouse" in data and data.get("warehouse"):
+		for row in doc.parts or []:
+			row.warehouse = data["warehouse"]
 
 	if "assistant_technicians" in data:
 		rows = data["assistant_technicians"]
