@@ -19,10 +19,9 @@ class VINNo(Document):
     
     def on_update(self):
         """After document is saved - create Serial No if needed"""
-        # Only create if document is submitted (docstatus = 1)
-        # AND no serial exists yet
         if not self.linked_serial:
             self.create_serial_no()
+        if not frappe.flags.get("skip_vin_serial_sync"):
             self.sync_to_serial_no()
             
     def before_save(self):
