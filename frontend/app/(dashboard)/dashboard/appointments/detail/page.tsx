@@ -59,7 +59,7 @@ const getAppointmentData = (id: string) => ({
   customer_complaint_summary:
     'Oil change and tire rotation needed. Customer mentioned slight vibration at high speeds.',
   special_instructions: 'Customer prefers to wait. Has a meeting at 2 PM.',
-  appointment_status: 'Arrived' as AppointmentStatus,
+  status: 'Arrived' as AppointmentStatus,
   priority: 'Normal' as Priority,
   booking_source: 'Phone Call',
   assigned_service_advisor: 'John Smith',
@@ -109,7 +109,7 @@ export default function AppointmentDetailPage() {
   }
 
   const appointment = getAppointmentData(id);
-  const statusConfig = getStatusConfig(appointment.appointment_status);
+  const statusConfig = getStatusConfig(appointment.status);
 
   async function handleStartInspection() {
     setIsStartingInspection(true);
@@ -141,7 +141,7 @@ export default function AppointmentDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{appointment.name}</h1>
               <Badge variant="outline" className={statusConfig.bgColor}>
-                {appointment.appointment_status}
+                {appointment.status}
               </Badge>
               {appointment.priority !== 'Normal' && (
                 <Badge variant="outline" className="bg-chart-4/10 text-chart-4 border-chart-4/20">
@@ -160,13 +160,13 @@ export default function AppointmentDetailPage() {
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
-          {appointment.appointment_status === 'Booked' && (
+          {appointment.status === 'Booked' && (
             <Button size="sm" onClick={handleMarkArrived}>
               <CheckCircle2 className="mr-2 h-4 w-4" />
               Mark Arrived
             </Button>
           )}
-          {appointment.appointment_status === 'Arrived' && !appointment.inspection && (
+          {appointment.status === 'Arrived' && !appointment.inspection && (
             <Button size="sm" onClick={handleStartInspection} disabled={isStartingInspection}>
               {isStartingInspection ? (
                 <>

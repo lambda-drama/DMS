@@ -187,13 +187,11 @@ fixtures = [
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Serial No": {
+		"after_insert": "dms.dealer_management_system.doctype.dms_settings.dms_settings.auto_create_vin_on_serial_insert",
+	},
+}
 
 # Scheduled Tasks
 # ---------------

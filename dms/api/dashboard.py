@@ -66,7 +66,7 @@ def _count_appointments_for_day(day):
 		"Service Appointment",
 		{
 			"appointment_date_time": ["between", [start, end]],
-			"appointment_status": ["not in", ["Cancelled", "No-Show"]],
+			"status": ["not in", ["Cancelled", "No-Show"]],
 		},
 	)
 
@@ -161,11 +161,11 @@ def get_dashboard_summary():
 		"Service Appointment",
 		filters={
 			"appointment_date_time": ["between", [today_start, today_end]],
-			"appointment_status": ["not in", ["Cancelled", "No-Show"]],
+			"status": ["not in", ["Cancelled", "No-Show"]],
 		},
 		fields=[
 			"name", "appointment_date_time", "customer_name",
-			"license_plate", "vehicle", "appointment_status",
+			"license_plate", "vehicle", "status",
 			"customer_complaint_summary",
 		],
 		order_by="appointment_date_time asc",
@@ -197,7 +197,7 @@ def get_dashboard_summary():
 			"customer": apt.customer_name or "",
 			"vehicle": _vehicle_label(apt.license_plate, apt.vehicle),
 			"service": service_label[:80],
-			"status": apt.appointment_status or "Booked",
+			"status": apt.status or "Booked",
 		})
 
 	bays_raw = frappe.get_all(

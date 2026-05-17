@@ -184,6 +184,10 @@ export interface ServiceAppointment {
   customer: string;
   customer_name?: string;
   primary_phone?: string;
+  /** Editable on appointment when customer has no mobile (label: Mobile No 2). */
+  mobile_no?: string;
+  /** Resolved phone for UI/reminders: primary_phone → mobile_no → customer. */
+  contact_phone?: string;
   customer_email?: string;
   vehicle: string;
   vin_chassis?: string;
@@ -220,7 +224,7 @@ export interface ServiceAppointment {
   customer_confirmed?: CustomerConfirmationStatus;
   
   // Status
-  appointment_status: AppointmentStatus;
+  status: AppointmentStatus;
   arrived_date_time?: string;
   status_history?: string;
   no_show_reason?: string;

@@ -20,6 +20,7 @@
   "customer_name",
   "primary_phone",
   "customer_email",
+  "mobile_no",
   "column_break_customer",
   "vehicle",
   "vin_chassis",
@@ -57,7 +58,7 @@
   "confirmation_sent_datetime",
   "customer_confirmed",
   "section_status_flow",
-  "appointment_status",
+  "status",
   "arrived_date_time",
   "column_break_status",
   "status_history",
@@ -146,7 +147,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Priority Level",
-   "options": "Normal\nVIP\nComeback/Repeat Repair\nSafety Critical\nImmobilized\nFleet Priority\nEmergency",
+   "options": "Normal\nVIP\nComeback/Repeat Repair\nSafety Critical\nImmobilized\nFleet Priority\nEmergency\nUrgent",
    "reqd": 1
   },
   {
@@ -171,6 +172,7 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "customer.mobile_no",
    "fieldname": "primary_phone",
    "fieldtype": "Read Only",
@@ -421,17 +423,6 @@
    "label": "Appointment Status"
   },
   {
-   "default": "Booked",
-   "fieldname": "appointment_status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Appointment Status",
-   "options": "Booked\nReminder Sent\nArrived\nIn Inspection\nIn Workshop\nReady for Pickup\nCompleted\nNo-Show\nCancelled\nRescheduled",
-   "read_only_depends_on": "eval:doc.arrived_date_time",
-   "reqd": 1
-  },
-  {
    "fieldname": "arrived_date_time",
    "fieldtype": "Datetime",
    "label": "Arrived Date & Time",
@@ -564,13 +555,30 @@
    "fieldtype": "Link",
    "label": "Lead Technician",
    "options": "Technician"
+  },
+  {
+   "default": "Booked",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Appointment Status",
+   "options": "Booked\nReminder Sent\nArrived\nIn Inspection\nIn Workshop\nReady for Pickup\nCompleted\nNo-Show\nCancelled\nRescheduled",
+   "read_only_depends_on": "eval:doc.arrived_date_time",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile No 2"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-10 23:02:56.069644",
+ "modified": "2026-05-18 02:45:17.127723",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Appointment",
@@ -606,5 +614,46 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Booked"
+  },
+  {
+   "color": "Green",
+   "title": "Reminder Sent"
+  },
+  {
+   "color": "Green",
+   "title": "Arrived"
+  },
+  {
+   "color": "Blue",
+   "title": "In Inspection"
+  },
+  {
+   "color": "Blue",
+   "title": "In Workshop"
+  },
+  {
+   "color": "Blue",
+   "title": "Ready for Pickup"
+  },
+  {
+   "color": "Blue",
+   "title": "Completed"
+  },
+  {
+   "color": "Blue",
+   "title": "No-Show"
+  },
+  {
+   "color": "Blue",
+   "title": "Cancelled"
+  },
+  {
+   "color": "Blue",
+   "title": "Rescheduled"
+  }
+ ]
 }
