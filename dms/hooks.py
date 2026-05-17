@@ -190,7 +190,15 @@ fixtures = [
 doc_events = {
 	"Serial No": {
 		"after_insert": "dms.dealer_management_system.doctype.dms_settings.dms_settings.auto_create_vin_on_serial_insert",
+		"on_update": "dms.utils.serial_vin_sync.sync_vin_on_serial_update",
 	},
+	# Inward bundle: auto VIN (purchase). Outward sales: SLE hook (serial updated via SQL, not on_update).
+	"Serial and Batch Bundle": {
+		"on_submit": "dms.dealer_management_system.doctype.dms_settings.dms_settings.auto_create_vin_on_bundle_submit",
+	},
+	# "Stock Ledger Entry": {
+	# 	"after_insert": "dms.utils.serial_vin_sync.sync_vin_on_stock_ledger_entry",
+	# },
 }
 
 # Scheduled Tasks

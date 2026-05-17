@@ -8,25 +8,68 @@ from frappe.utils import cint, getdate
 
 
 class DMSSettings(Document):
-	pass
+	def on_update(self):
+		frappe.clear_document_cache("DMS Settings", "DMS Settings")
+
+
+def get_auto_vin_company_list():
+	"""Companies selected on DMS Settings (Table MultiSelect → Company TB)."""
+	companies = frappe.get_all(
+		"Company TB",
+		filters={
+			"parent": "DMS Settings",
+			"parenttype": "DMS Settings",
+			"parentfield": "company",
+		},
+		pluck="company",
+	)
+	if companies:
+		return [c for c in companies if c]
+
+	settings = frappe.get_single("DMS Settings")
+	return [row.company for row in (settings.get("company") or []) if row.company]
 
 
 def get_auto_vin_from_serial_settings():
 	"""Return (enabled, list of company names) from DMS Settings."""
-	settings = frappe.get_cached_doc("DMS Settings", "DMS Settings")
+	settings = frappe.get_single("DMS Settings")
 	enabled = cint(settings.auto_create_vin_from_serial)
-	companies = [row.company for row in (settings.get("company") or []) if row.company]
-	return enabled, companies
+	return enabled, get_auto_vin_company_list()
 
 
-def should_auto_create_vin_for_serial(serial):
+def _company_allowed_for_auto_vin(company, allowed_companies, enabled):
+	if not enabled:
+		return False
+	if not company:
+		return False
+	if not allowed_companies:
+		return True
+	return company in allowed_companies
+
+
+def _prepare_serial_for_auto_vin(serial, voucher_company=None):
+	"""Ensure company is set on serial (bulk_insert often omits it until later)."""
+	company = (_serial_value(serial, "company") or voucher_company or "").strip()
+	if voucher_company and not _serial_value(serial, "company"):
+		frappe.db.set_value(
+			"Serial No",
+			serial.name if isinstance(serial, Document) else serial,
+			"company",
+			voucher_company,
+			update_modified=False,
+		)
+		if isinstance(serial, Document):
+			serial.company = voucher_company
+		company = voucher_company
+	return company
+
+
+def should_auto_create_vin_for_serial(serial, voucher_company=None):
 	"""Whether a new Serial No should trigger automatic VIN No creation."""
 	enabled, companies = get_auto_vin_from_serial_settings()
-	if not enabled or not companies:
-		return False
+	company = _prepare_serial_for_auto_vin(serial, voucher_company)
 
-	company = _serial_value(serial, "company")
-	if not company or company not in companies:
+	if not _company_allowed_for_auto_vin(company, companies, enabled):
 		return False
 
 	if not _serial_value(serial, "item_code"):
@@ -42,28 +85,40 @@ def should_auto_create_vin_for_serial(serial):
 	return True
 
 
-def auto_create_vin_on_serial_insert(doc, method=None):
-	"""Desk hook: create VIN No when Serial No is inserted for configured companies."""
+def try_auto_create_vin_for_serial_no(serial_name, voucher_company=None, show_message=False):
+	"""
+	Create VIN No for a serial if DMS Settings allows it.
+	Used after_insert (manual), stock vouchers, and Serial and Batch Bundle.
+	"""
 	if frappe.flags.get("skip_auto_vin_from_serial"):
-		return
-	if not should_auto_create_vin_for_serial(doc):
-		return
+		return None
+
+	serial = frappe.get_doc("Serial No", serial_name)
+	if not should_auto_create_vin_for_serial(serial, voucher_company=voucher_company):
+		return None
 
 	try:
-		result = create_vin_from_serial_document(doc)
-		if result == "created":
+		result = create_vin_from_serial_document(serial)
+		if show_message and result == "created":
 			frappe.msgprint(
 				_("VIN No {0} was created automatically.").format(
-					frappe.bold(_serial_value(doc, "serial_no") or doc.name)
+					frappe.bold(serial.serial_no or serial.name)
 				),
 				alert=True,
 				indicator="green",
 			)
+		return result
 	except Exception:
 		frappe.log_error(
 			title="Auto-create VIN from Serial No",
-			message=frappe.get_traceback(),
+			message=f"Serial: {serial_name}\nCompany: {serial.company}\n{frappe.get_traceback()}",
 		)
+		return "error"
+
+
+def auto_create_vin_on_serial_insert(doc, method=None):
+	"""Desk hook: create VIN No when Serial No is inserted via doc.insert()."""
+	try_auto_create_vin_for_serial_no(doc.name, show_message=True)
 
 
 def _serial_value(serial, fieldname, default=None):
@@ -142,11 +197,35 @@ def create_vin_from_serial_document(serial, force_recreate=0):
 	vin_doc = frappe.get_doc(vin_data)
 	frappe.flags.skip_auto_vin_from_serial = True
 	try:
+		vin_doc.flags.ignore_validate = True
 		vin_doc.insert(ignore_permissions=True)
 	finally:
 		frappe.flags.skip_auto_vin_from_serial = False
 
 	return "created"
+
+
+def auto_create_vin_on_bundle_submit(doc, method=None):
+	"""
+	Create VIN Nos when an inward Serial and Batch Bundle is submitted.
+	Covers Purchase Receipt, Purchase Invoice, and other inward stock (not manual Serial No insert).
+	"""
+	if doc.docstatus != 1 or doc.is_cancelled or doc.type_of_transaction != "Inward":
+		return
+
+	created = 0
+	for row in doc.entries or []:
+		if not row.serial_no:
+			continue
+		if try_auto_create_vin_for_serial_no(row.serial_no, voucher_company=doc.company) == "created":
+			created += 1
+
+	if created:
+		frappe.msgprint(
+			_("Created {0} VIN record(s) from serial numbers.").format(created),
+			alert=True,
+			indicator="green",
+		)
 
 
 @frappe.whitelist()
