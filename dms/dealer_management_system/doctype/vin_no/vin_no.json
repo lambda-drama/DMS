@@ -210,7 +210,7 @@
    "fieldname": "transmission",
    "fieldtype": "Select",
    "label": "Transmission",
-   "options": "\nManual (MT)\nAutomatic (AT)\nCVT\nDCT\nAMT\nEV Single Speed"
+   "options": "\nManual (MT)\nAutomatic (AT)\nCVT\nDCT\nAMT\nEV Single Speed\n6 DCT ( Dual-Clutch Transmission) Wet, 6 Gear/Speed"
   },
   {
    "default": "FWD",
@@ -639,7 +639,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-13 00:26:21.669225",
+ "modified": "2026-05-18 02:54:33.741446",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "VIN No",

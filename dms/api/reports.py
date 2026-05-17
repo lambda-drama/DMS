@@ -802,7 +802,7 @@ def get_customer_retention_report(filters=None):
 				datetime.datetime.combine(f["from_date"], datetime.time.min),
 				datetime.datetime.combine(f["to_date"], datetime.time.max),
 			]],
-			"appointment_status": ["in", ["Completed", "In Workshop", "Ready for Pickup"]],
+			"status": ["in", ["Completed", "In Workshop", "Ready for Pickup"]],
 		},
 	)
 
@@ -842,7 +842,7 @@ def get_appointment_conversion_report(filters=None):
 	apts = frappe.get_all(
 		"Service Appointment",
 		filters=apt_filters,
-		fields=["name", "appointment_status", "booking_source", "customer_name", "vin_chassis"],
+		fields=["name", "status", "booking_source", "customer_name", "vin_chassis"],
 		limit=5000,
 	)
 	_apply_vin_numbers(apts, link_field="vin_chassis")
@@ -850,7 +850,7 @@ def get_appointment_conversion_report(filters=None):
 	by_status = {}
 	walk_in = 0
 	for a in apts:
-		st = a.appointment_status or "Booked"
+		st = a.status or "Booked"
 		by_status[st] = by_status.get(st, 0) + 1
 		if (a.booking_source or "").lower() in ("walk-in", "walk in", "walkin"):
 			walk_in += 1
@@ -882,7 +882,7 @@ def get_appointment_conversion_report(filters=None):
 		"columns": [
 			{"key": "name", "label": "Appointment"},
 			{"key": "vin_number", "label": "VIN"},
-			{"key": "appointment_status", "label": "Status"},
+			{"key": "status", "label": "Status"},
 			{"key": "booking_source", "label": "Source"},
 			{"key": "customer_name", "label": "Customer"},
 		],

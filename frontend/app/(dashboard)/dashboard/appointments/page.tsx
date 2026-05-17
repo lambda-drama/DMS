@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { format } from 'date-fns';
+import { mutate } from 'swr';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,12 +44,58 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  CalendarClock,
+  Ban,
+  MessageCircle,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ListRowActions } from '@/components/list-row-actions';
+import {
+  CancelAppointmentDialog,
+  ConfirmAppointmentDialog,
+  RescheduleAppointmentDialog,
+  SendReminderDialog,
+} from '@/components/appointments/appointment-action-dialogs';
 import { useAppointments, useAppointment } from '@/hooks/use-dms';
 import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
-import type { AppointmentStatus, Priority } from '@/types/dms';
+import * as appointmentsSvc from '@/services/appointments';
+import type { AppointmentStatus, Priority, ServiceAppointment } from '@/types/dms';
+import {
+  ARRIVED_STATUSES,
+  TERMINAL_STATUSES,
+  normalizeDocstatus,
+  sendReminderBlockReason,
+  shouldShowSendReminderAction,
+  getAppointmentPhone,
+} from '@/lib/appointment-workflow';
+
+
+function canConfirmAppointment(apt: ServiceAppointment) {
+  return (
+    normalizeDocstatus(apt.docstatus) === 0 &&
+    !TERMINAL_STATUSES.has(apt.status) &&
+    !ARRIVED_STATUSES.has(apt.status)
+  );
+}
+
+function canMarkArrived(apt: ServiceAppointment) {
+  return (
+    normalizeDocstatus(apt.docstatus) === 1 &&
+    ['Booked', 'Reminder Sent', 'Rescheduled'].includes(apt.status)
+  );
+}
+
+function canReschedule(apt: ServiceAppointment) {
+  return (
+    apt.docstatus < 2 &&
+    !TERMINAL_STATUSES.has(apt.status) &&
+    !ARRIVED_STATUSES.has(apt.status)
+  );
+}
+
+function canCancel(apt: ServiceAppointment) {
+  return normalizeDocstatus(apt.docstatus) < 2 && apt.status !== 'Completed';
+}
 
 function getStatusConfig(status: AppointmentStatus | string | undefined) {
   const configs: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
@@ -94,8 +142,21 @@ export default function AppointmentsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [actionTarget, setActionTarget] = useState<ServiceAppointment | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const { data: selectedAppointment, isLoading: detailLoading } = useAppointment(selectedId);
+
+  const refreshAppointments = useCallback(async () => {
+    await mutate((key) => Array.isArray(key) && key[0] === 'appointments');
+    if (selectedId) {
+      await mutate(['appointment', selectedId]);
+    }
+  }, [selectedId]);
 
   const { data: result, isLoading, error } = useAppointments({
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -128,8 +189,88 @@ export default function AppointmentsPage() {
     return !Number.isNaN(d.getTime()) && format(d, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
   }).length;
 
-  const arrivedCount = (appointments || []).filter((apt) => apt.appointment_status === 'Arrived').length;
-  const pendingCount = (appointments || []).filter((apt) => apt.appointment_status === 'Booked').length;
+  const arrivedCount = (appointments || []).filter((apt) =>
+    ARRIVED_STATUSES.has(apt.status)
+  ).length;
+  const pendingCount = (appointments || []).filter(
+    (apt) => normalizeDocstatus(apt.docstatus) === 0 && apt.status === 'Booked'
+  ).length;
+
+  const handleConfirm = async () => {
+    if (!actionTarget) return;
+    setActionLoading(true);
+    try {
+      await appointmentsSvc.confirmAppointment(actionTarget.name);
+      toast.success('Appointment confirmed');
+      setConfirmOpen(false);
+      await refreshAppointments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to confirm appointment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkArrived = async (apt: ServiceAppointment) => {
+    setActionLoading(true);
+    try {
+      await appointmentsSvc.markArrived(apt.name);
+      toast.success('Marked as arrived');
+      await refreshAppointments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to mark as arrived');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async (payload: { reason?: string; notes?: string }) => {
+    if (!actionTarget) return;
+    setActionLoading(true);
+    try {
+      await appointmentsSvc.cancelAppointment(actionTarget.name, payload);
+      toast.success('Appointment cancelled');
+      setCancelOpen(false);
+      await refreshAppointments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel appointment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReschedule = async (payload: {
+    appointment_date_time: string;
+    promised_delivery_date_time?: string;
+  }) => {
+    if (!actionTarget) return;
+    setActionLoading(true);
+    try {
+      await appointmentsSvc.rescheduleAppointment(actionTarget.name, payload);
+      toast.success('Appointment rescheduled');
+      setRescheduleOpen(false);
+      await refreshAppointments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to reschedule appointment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSendReminder = async () => {
+    if (!actionTarget) return;
+    setActionLoading(true);
+    try {
+      await appointmentsSvc.sendAppointmentReminder(actionTarget.name);
+      toast.success('WhatsApp reminder sent');
+      setReminderOpen(false);
+      await refreshAppointments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send reminder');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
@@ -245,7 +386,7 @@ export default function AppointmentsPage() {
               <p className="py-8 text-center text-sm text-muted-foreground">No appointments found</p>
             ) : (
               filteredAppointments.map((apt) => {
-                const statusConfig = getStatusConfig(apt.appointment_status);
+                const statusConfig = getStatusConfig(apt.status);
                 const priorityConfig = getPriorityConfig(apt.priority);
                 const StatusIcon = statusConfig.icon;
                 const { date: aptDate, time: aptTime } = formatAppointmentDateTime(apt.appointment_date_time);
@@ -254,31 +395,83 @@ export default function AppointmentsPage() {
                   .filter(Boolean)
                   .join(', ');
                 return (
-                  <button
+                  <div
                     key={apt.name}
-                    type="button"
-                    onClick={() => setSelectedId(apt.name)}
-                    className="w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50"
+                    className="flex gap-1 rounded-lg border border-border bg-card p-4"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium">{apt.customer_name}</p>
-                        <p className="truncate text-sm text-muted-foreground">{apt.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(apt.name)}
+                      className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium">{apt.customer_name}</p>
+                          <p className="truncate text-sm text-muted-foreground">{apt.name}</p>
+                        </div>
+                        <Badge variant="outline" className={statusConfig.color}>
+                          <StatusIcon className="mr-1 h-3 w-3" />
+                          {apt.status}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className={statusConfig.color}>
-                        <StatusIcon className="mr-1 h-3 w-3" />
-                        {apt.appointment_status}
+                      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                        <p>{apt.vehicle} · {apt.license_plate}</p>
+                        <p>{aptDate}{aptTime ? ` · ${aptTime}` : ''}</p>
+                        {serviceTypes ? <p className="truncate">{serviceTypes}</p> : null}
+                      </div>
+                      <Badge variant="outline" className={`mt-2 ${priorityConfig.color}`}>
+                        {priorityConfig.label}
                       </Badge>
-                    </div>
-                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      <p>{apt.vehicle} · {apt.license_plate}</p>
-                      <p>{aptDate}{aptTime ? ` · ${aptTime}` : ''}</p>
-                      {serviceTypes ? <p className="truncate">{serviceTypes}</p> : null}
-                    </div>
-                    <Badge variant="outline" className={`mt-2 ${priorityConfig.color}`}>
-                      {priorityConfig.label}
-                    </Badge>
-                  </button>
+                    </button>
+                    <ListRowActions doctype="Service Appointment" docName={apt.name}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="shrink-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelectedId(apt.name)}>
+                            View Details
+                          </DropdownMenuItem>
+                          {canConfirmAppointment(apt) && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setActionTarget(apt);
+                                setConfirmOpen(true);
+                              }}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Confirm appointment
+                            </DropdownMenuItem>
+                          )}
+                          {shouldShowSendReminderAction(apt) && (
+                            <DropdownMenuItem
+                              disabled={Boolean(sendReminderBlockReason(apt)) || actionLoading}
+                              title={sendReminderBlockReason(apt) || undefined}
+                              onClick={() => {
+                                if (sendReminderBlockReason(apt)) return;
+                                setActionTarget(apt);
+                                setReminderOpen(true);
+                              }}
+                            >
+                              <MessageCircle className="h-4 w-4 mr-2" />
+                              Send reminder
+                            </DropdownMenuItem>
+                          )}
+                          {canMarkArrived(apt) && (
+                            <DropdownMenuItem
+                              disabled={actionLoading}
+                              onClick={() => void handleMarkArrived(apt)}
+                            >
+                              <Car className="h-4 w-4 mr-2" />
+                              Mark as arrived
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </ListRowActions>
+                  </div>
                 );
               })
             )}
@@ -300,7 +493,7 @@ export default function AppointmentsPage() {
               </TableHeader>
               <TableBody>
                 {filteredAppointments.map((apt) => {
-                  const statusConfig = getStatusConfig(apt.appointment_status);
+                  const statusConfig = getStatusConfig(apt.status);
                   const priorityConfig = getPriorityConfig(apt.priority);
                   const StatusIcon = statusConfig.icon;
                   const { date: aptDate, time: aptTime } = formatAppointmentDateTime(apt.appointment_date_time);
@@ -341,7 +534,7 @@ export default function AppointmentsPage() {
                           <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Phone className="h-3 w-3" />
-                              {apt.primary_phone}
+                              {getAppointmentPhone(apt) || '—'}
                             </span>
                           </div>
                         </div>
@@ -373,7 +566,7 @@ export default function AppointmentsPage() {
                       <TableCell>
                         <Badge variant="outline" className={statusConfig.color}>
                           <StatusIcon className="mr-1 h-3 w-3" />
-                          {apt.appointment_status}
+                          {apt.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -392,20 +585,84 @@ export default function AppointmentsPage() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {apt.appointment_status === 'Booked' && (
-                                <DropdownMenuItem className="text-chart-3">
-                                  Mark as Arrived
+                              {canConfirmAppointment(apt) && (
+                                <DropdownMenuItem
+                                  className="text-primary"
+                                  onClick={() => {
+                                    setActionTarget(apt);
+                                    setConfirmOpen(true);
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Confirm appointment
                                 </DropdownMenuItem>
                               )}
-                              {apt.appointment_status === 'Arrived' && (
-                                <DropdownMenuItem className="text-primary">
-                                  Start Inspection
+                              {shouldShowSendReminderAction(apt) && (
+                                <DropdownMenuItem
+                                  disabled={Boolean(sendReminderBlockReason(apt)) || actionLoading}
+                                  title={sendReminderBlockReason(apt) || undefined}
+                                  onClick={() => {
+                                    if (sendReminderBlockReason(apt)) return;
+                                    setActionTarget(apt);
+                                    setReminderOpen(true);
+                                  }}
+                                >
+                                  <MessageCircle className="h-4 w-4 mr-2" />
+                                  Send reminder
+                                  {sendReminderBlockReason(apt) ? (
+                                    <span className="ml-1 text-xs text-muted-foreground">
+                                      ({sendReminderBlockReason(apt)})
+                                    </span>
+                                  ) : null}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
-                                Cancel Appointment
-                              </DropdownMenuItem>
+                              {canMarkArrived(apt) && (
+                                <DropdownMenuItem
+                                  className="text-chart-3"
+                                  disabled={actionLoading}
+                                  onClick={() => void handleMarkArrived(apt)}
+                                >
+                                  <Car className="h-4 w-4 mr-2" />
+                                  Mark as arrived
+                                </DropdownMenuItem>
+                              )}
+                              {apt.status === 'Arrived' && (
+                                <DropdownMenuItem
+                                  className="text-primary"
+                                  onClick={() =>
+                                    navigate('inspection-new', { appointment: apt.name })
+                                  }
+                                >
+                                  <Car className="h-4 w-4 mr-2" />
+                                  Start inspection
+                                </DropdownMenuItem>
+                              )}
+                              {canReschedule(apt) && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setActionTarget(apt);
+                                    setRescheduleOpen(true);
+                                  }}
+                                >
+                                  <CalendarClock className="h-4 w-4 mr-2" />
+                                  Reschedule
+                                </DropdownMenuItem>
+                              )}
+                              {canCancel(apt) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      setActionTarget(apt);
+                                      setCancelOpen(true);
+                                    }}
+                                  >
+                                    <Ban className="h-4 w-4 mr-2" />
+                                    Cancel appointment
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </ListRowActions>
@@ -442,14 +699,14 @@ export default function AppointmentsPage() {
         onOpenChange={(open) => { if (!open) setSelectedId(null); }}
         title={selectedId || ""}
         subtitle={selectedAppointment?.customer_name}
-        badge={selectedAppointment ? { label: selectedAppointment.appointment_status } : undefined}
+        badge={selectedAppointment ? { label: selectedAppointment.status } : undefined}
         isLoading={detailLoading}
         onOpenInDesk={() => window.open(`/app/service-appointment/${selectedId}`, '_blank')}
       >
         {selectedAppointment && (
           <>
             <DetailSection title="Appointment Info">
-              <DetailRow label="Status" value={selectedAppointment.appointment_status} />
+              <DetailRow label="Status" value={selectedAppointment.status} />
               <DetailRow label="Booking Source" value={selectedAppointment.booking_source} />
               <DetailRow label="Priority" value={selectedAppointment.priority} />
               <DetailRow label="Date & Time" value={selectedAppointment.appointment_date_time ? new Date(selectedAppointment.appointment_date_time).toLocaleString() : undefined} />
@@ -458,7 +715,11 @@ export default function AppointmentsPage() {
             </DetailSection>
             <DetailSection title="Customer">
               <DetailRow label="Name" value={selectedAppointment.customer_name} />
-              <DetailRow label="Phone" value={selectedAppointment.primary_phone} />
+              <DetailRow label="Phone" value={getAppointmentPhone(selectedAppointment) || undefined} />
+              {selectedAppointment.mobile_no &&
+                selectedAppointment.mobile_no !== selectedAppointment.primary_phone ? (
+                <DetailRow label="Mobile No" value={selectedAppointment.mobile_no} />
+              ) : null}
               <DetailRow label="Email" value={selectedAppointment.customer_email} />
             </DetailSection>
             <DetailSection title="Vehicle">
@@ -477,14 +738,91 @@ export default function AppointmentsPage() {
                 <p className="text-sm">{selectedAppointment.customer_complaint_summary}</p>
               </DetailSection>
             )}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => { setSelectedId(null); navigate('appointment-detail', { id: selectedId! }); }}>
+            <div className="flex flex-wrap justify-end gap-2 pt-2">
+              {selectedAppointment && canConfirmAppointment(selectedAppointment) && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setActionTarget(selectedAppointment);
+                    setConfirmOpen(true);
+                  }}
+                >
+                  Confirm
+                </Button>
+              )}
+              {selectedAppointment && shouldShowSendReminderAction(selectedAppointment) && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={Boolean(sendReminderBlockReason(selectedAppointment))}
+                  title={sendReminderBlockReason(selectedAppointment) || undefined}
+                  onClick={() => {
+                    if (sendReminderBlockReason(selectedAppointment)) return;
+                    setActionTarget(selectedAppointment);
+                    setReminderOpen(true);
+                  }}
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Send reminder
+                </Button>
+              )}
+              {selectedAppointment && canMarkArrived(selectedAppointment) && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={actionLoading}
+                  onClick={() => void handleMarkArrived(selectedAppointment)}
+                >
+                  Mark arrived
+                </Button>
+              )}
+              {selectedAppointment?.status === 'Arrived' && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    navigate('inspection-new', { appointment: selectedAppointment.name })
+                  }
+                >
+                  Start inspection
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => { setSelectedId(null); navigate('appointment-detail', { id: selectedId! }); }}>
                 Open Full Details
               </Button>
             </div>
           </>
         )}
       </DetailSheet>
+
+      <ConfirmAppointmentDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleConfirm}
+        loading={actionLoading}
+      />
+      <CancelAppointmentDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        onCancel={handleCancel}
+        loading={actionLoading}
+      />
+      <RescheduleAppointmentDialog
+        open={rescheduleOpen}
+        onOpenChange={setRescheduleOpen}
+        initialAppointmentDateTime={actionTarget?.appointment_date_time}
+        initialPromisedDateTime={actionTarget?.promised_delivery_date_time}
+        onReschedule={handleReschedule}
+        loading={actionLoading}
+      />
+      <SendReminderDialog
+        open={reminderOpen}
+        onOpenChange={setReminderOpen}
+        onSend={handleSendReminder}
+        loading={actionLoading}
+        customerName={actionTarget?.customer_name}
+        phone={actionTarget ? getAppointmentPhone(actionTarget) : undefined}
+      />
     </div>
   );
 }

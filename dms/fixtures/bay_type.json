@@ -1,0 +1,114 @@
+[
+ {
+  "bay_type": "General Service",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.672937",
+  "name": "General Service"
+ },
+ {
+  "bay_type": "Diagnostic",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.711393",
+  "name": "Diagnostic"
+ },
+ {
+  "bay_type": "Quick Service",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.718267",
+  "name": "Quick Service"
+ },
+ {
+  "bay_type": "EV/PHEV High Voltage",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.725980",
+  "name": "EV/PHEV High Voltage"
+ },
+ {
+  "bay_type": "Body Repair",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.733345",
+  "name": "Body Repair"
+ },
+ {
+  "bay_type": "Paint Booth",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.739236",
+  "name": "Paint Booth"
+ },
+ {
+  "bay_type": "Alignment",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.746044",
+  "name": "Alignment"
+ },
+ {
+  "bay_type": "AC Service",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.751760",
+  "name": "AC Service"
+ },
+ {
+  "bay_type": "Transmission",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.756606",
+  "name": "Transmission"
+ },
+ {
+  "bay_type": "PDI Bay",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.760824",
+  "name": "PDI Bay"
+ },
+ {
+  "bay_type": "Engine Repair",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.765324",
+  "name": "Engine Repair"
+ },
+ {
+  "bay_type": "Tire/Battery Bay",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.770877",
+  "name": "Tire/Battery Bay"
+ },
+ {
+  "bay_type": "Washing/Detailing",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.775091",
+  "name": "Washing/Detailing"
+ },
+ {
+  "bay_type": "Warranty Bay",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.779212",
+  "name": "Warranty Bay"
+ },
+ {
+  "bay_type": "Fleet Service Bay",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.782894",
+  "name": "Fleet Service Bay"
+ },
+ {
+  "bay_type": "Express Service",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-18 02:05:08.786676",
+  "name": "Express Service"
+ }
+]

@@ -119,7 +119,7 @@ def global_search(query="", limit=DEFAULT_LIMIT):
 
 	appointments = _search_doctype(
 		"Service Appointment",
-		["name", "customer_name", "license_plate", "vin_chassis", "primary_phone", "appointment_status"],
+		["name", "customer_name", "license_plate", "vin_chassis", "primary_phone", "status"],
 		lambda r: (
 			r.name,
 			" · ".join(
@@ -127,7 +127,7 @@ def global_search(query="", limit=DEFAULT_LIMIT):
 				for p in [
 					r.customer_name,
 					r.license_plate,
-					r.appointment_status,
+					r.status,
 				]
 				if p
 			),
