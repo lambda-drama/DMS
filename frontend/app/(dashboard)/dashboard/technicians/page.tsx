@@ -4,9 +4,10 @@ import { useState, useMemo } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useTechniciansAvailability, useTechnicianDetail } from "@/hooks/use-dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
+import { TechnicianAvailabilityPanel } from "@/components/technicians/technician-availability-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -20,18 +21,24 @@ import {
   Search,
   Users,
   Clock,
-  CheckCircle2,
-  AlertCircle,
   Wrench,
   Phone,
   MapPin,
   TrendingUp,
-  Eye,
   Loader2,
   UserCheck,
   UserX,
   Activity,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import {
+  addDaysISO,
+  formatDisplayDate,
+  getAvailabilityInfo,
+  getTodayISO,
+} from "@/lib/technician-availability";
 import type { TechnicianAvailability } from "@/types/dms";
 
 const skillLevelOptions = [
@@ -49,7 +56,7 @@ const availabilityFilterOptions = [
   { value: "all", label: "All" },
   { value: "available", label: "Available" },
   { value: "busy", label: "Busy" },
-  { value: "unavailable", label: "Unavailable" },
+  { value: "unavailable", label: "Not Available" },
 ];
 
 function getSkillBadgeColor(level: string) {
@@ -65,27 +72,15 @@ function getSkillBadgeColor(level: string) {
   return m[level] || "bg-muted text-muted-foreground";
 }
 
-function getAvailabilityInfo(tech: TechnicianAvailability) {
-  if (tech.attendance_today === "Absent" || tech.attendance_today === "On Leave") {
-    return { label: "Unavailable", color: "text-destructive", bg: "bg-destructive/10", icon: UserX };
-  }
-  if (tech.currently_working) {
-    return { label: "Busy", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30", icon: Wrench };
-  }
-  if (tech.is_available) {
-    return { label: "Available", color: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30", icon: UserCheck };
-  }
-  return { label: "At Capacity", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30", icon: AlertCircle };
-}
-
 export default function TechniciansPage() {
   const { navigate } = useNavigation();
   const [search, setSearch] = useState("");
   const [skillFilter, setSkillFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
+  const [viewDate, setViewDate] = useState(getTodayISO);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: technicians, isLoading, error } = useTechniciansAvailability();
+  const { data: technicians, isLoading, error } = useTechniciansAvailability(viewDate);
   const { data: selectedTechnician, isLoading: detailLoading } = useTechnicianDetail(selectedId);
 
   const filtered = useMemo(() => {
@@ -106,7 +101,7 @@ export default function TechniciansPage() {
         const info = getAvailabilityInfo(t);
         if (availabilityFilter === "available" && info.label !== "Available") return false;
         if (availabilityFilter === "busy" && info.label !== "Busy") return false;
-        if (availabilityFilter === "unavailable" && info.label !== "Unavailable" && info.label !== "At Capacity") return false;
+        if (availabilityFilter === "unavailable" && info.label !== "Not Available") return false;
       }
       return true;
     });
@@ -124,19 +119,20 @@ export default function TechniciansPage() {
     return { total: technicians.length, available, busy, unavailable };
   }, [technicians]);
 
+  const isViewingToday = viewDate === getTodayISO();
+
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Technicians</h1>
           <p className="text-muted-foreground">
-            View technician availability & schedules
+            Availability for {formatDisplayDate(viewDate)}
+            {!isViewingToday && " (not today)"}
           </p>
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
@@ -185,16 +181,53 @@ export default function TechniciansPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.unavailable}</p>
-                <p className="text-xs text-muted-foreground">Unavailable</p>
+                <p className="text-xs text-muted-foreground">Not Available</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">View date</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewDate((d) => addDaysISO(d, -1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Input
+              type="date"
+              className="h-8 w-[150px]"
+              value={viewDate}
+              onChange={(e) => e.target.value && setViewDate(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewDate((d) => addDaysISO(d, 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => setViewDate(getTodayISO())}
+              disabled={isViewingToday}
+            >
+              Today
+            </Button>
+          </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -233,7 +266,6 @@ export default function TechniciansPage() {
         </CardContent>
       </Card>
 
-      {/* Technician Grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -254,133 +286,39 @@ export default function TechniciansPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((tech) => {
-            const avail = getAvailabilityInfo(tech);
-            const AvailIcon = avail.icon;
-            return (
-              <Card
-                key={tech.name}
-                className="cursor-pointer transition-shadow hover:shadow-md"
-                onClick={() => setSelectedId(tech.name)}
-              >
-                <CardContent className="p-5">
-                  {/* Top row: avatar + name + availability */}
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-12 w-12">
-                      {tech.profile_photo && (
-                        <AvatarImage src={tech.profile_photo} alt={tech.full_name} />
-                      )}
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                        {tech.full_name
-                          ?.split(" ")
-                          .map((w) => w[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase() || "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-semibold truncate">{tech.full_name}</h3>
-                        <Badge
-                          variant="outline"
-                          className={`shrink-0 gap-1 ${avail.bg} ${avail.color} border-0`}
-                        >
-                          <AvailIcon className="h-3 w-3" />
-                          {avail.label}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{tech.name}</p>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        <Badge variant="outline" className={getSkillBadgeColor(tech.skill_level)}>
-                          {tech.skill_level}
-                        </Badge>
-                        {tech.branch && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            {tech.branch}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Active Jobs */}
-                  {tech.active_jobs.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Active Jobs ({tech.active_job_count})
-                      </p>
-                      {tech.active_jobs.slice(0, 2).map((job) => (
-                        <div
-                          key={job.name}
-                          className="flex items-center justify-between rounded-md border px-3 py-2 text-xs"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <span className="font-medium">{job.name}</span>
-                            {job.customer_name && (
-                              <span className="text-muted-foreground ml-1.5">
-                                — {job.customer_name}
-                              </span>
-                            )}
-                          </div>
-                          <Badge variant="outline" className="ml-2 shrink-0 text-[10px]">
-                            {job.status}
-                          </Badge>
-                        </div>
-                      ))}
-                      {tech.active_jobs.length > 2 && (
-                        <p className="text-xs text-muted-foreground text-center">
-                          +{tech.active_jobs.length - 2} more
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Stats row */}
-                  <div className="mt-4 flex items-center justify-between border-t pt-3">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      {tech.work_shift || "—"}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {tech.efficiency_rating != null && tech.efficiency_rating > 0 && (
-                        <span className="flex items-center gap-1" title="Efficiency">
-                          <TrendingUp className="h-3.5 w-3.5" />
-                          {Math.round(tech.efficiency_rating)}%
-                        </span>
-                      )}
-                      {tech.total_jobs_completed != null && tech.total_jobs_completed > 0 && (
-                        <span className="flex items-center gap-1" title="Jobs completed">
-                          <Activity className="h-3.5 w-3.5" />
-                          {tech.total_jobs_completed}
-                        </span>
-                      )}
-                      {tech.personal_phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3.5 w-3.5" />
-                          {tech.personal_phone}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {filtered.map((tech) => (
+            <TechnicianCard
+              key={tech.name}
+              tech={tech}
+              onSelect={() => setSelectedId(tech.name)}
+            />
+          ))}
         </div>
       )}
+
       <DetailSheet
         open={!!selectedId}
-        onOpenChange={(open) => { if (!open) setSelectedId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
         title={selectedTechnician?.full_name || selectedId || ""}
         subtitle={selectedTechnician?.status}
-        badge={selectedTechnician ? { label: selectedTechnician.skill_level || "—" } : undefined}
+        badge={
+          selectedTechnician
+            ? { label: selectedTechnician.skill_level || "—" }
+            : undefined
+        }
         isLoading={detailLoading}
-        onOpenInDesk={() => window.open(`/app/technician/${selectedId}`, '_blank')}
+        onOpenInDesk={() => window.open(`/app/technician/${selectedId}`, "_blank")}
       >
-        {selectedTechnician && (
+        {selectedTechnician && selectedId && (
           <>
+            <DetailSection title="Schedule & availability">
+              <TechnicianAvailabilityPanel
+                technicianId={selectedId}
+                initialDate={viewDate}
+              />
+            </DetailSection>
             <DetailSection title="Personal Info">
               <DetailRow label="Full Name" value={selectedTechnician.full_name} />
               <DetailRow label="Employee Code" value={selectedTechnician.employee_code} />
@@ -389,20 +327,36 @@ export default function TechniciansPage() {
             </DetailSection>
             <DetailSection title="Employment">
               <DetailRow label="Skill Level" value={selectedTechnician.skill_level} />
-              <DetailRow label="Date of Joining" value={selectedTechnician.date_of_joining ? new Date(selectedTechnician.date_of_joining).toLocaleDateString() : undefined} />
+              <DetailRow
+                label="Date of Joining"
+                value={
+                  selectedTechnician.date_of_joining
+                    ? new Date(selectedTechnician.date_of_joining).toLocaleDateString()
+                    : undefined
+                }
+              />
               <DetailRow label="Branch" value={selectedTechnician.branch} />
             </DetailSection>
-            {selectedTechnician.specializations && selectedTechnician.specializations.length > 0 && (
-              <DetailSection title="Specializations">
-                <div className="flex flex-wrap gap-1">
-                  {selectedTechnician.specializations.map((s: any, i: number) => (
-                    <span key={i} className="text-xs bg-muted px-2 py-1 rounded">{s.specialization || s.name}</span>
-                  ))}
-                </div>
-              </DetailSection>
-            )}
+            {selectedTechnician.specializations &&
+              selectedTechnician.specializations.length > 0 && (
+                <DetailSection title="Specializations">
+                  <div className="flex flex-wrap gap-1">
+                    {selectedTechnician.specializations.map((s: { specialization?: string; name?: string }, i: number) => (
+                      <span key={i} className="text-xs bg-muted px-2 py-1 rounded">
+                        {s.specialization || s.name}
+                      </span>
+                    ))}
+                  </div>
+                </DetailSection>
+              )}
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => { setSelectedId(null); navigate('technician-detail', { id: selectedId! }); }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedId(null);
+                  navigate("technician-detail", { id: selectedId });
+                }}
+              >
                 View Full Profile
               </Button>
             </div>
@@ -410,5 +364,123 @@ export default function TechniciansPage() {
         )}
       </DetailSheet>
     </div>
+  );
+}
+
+function TechnicianCard({
+  tech,
+  onSelect,
+}: {
+  tech: TechnicianAvailability;
+  onSelect: () => void;
+}) {
+  const avail = getAvailabilityInfo(tech);
+  const AvailIcon = avail.icon;
+
+  return (
+    <Card
+      className="cursor-pointer transition-shadow hover:shadow-md"
+      onClick={onSelect}
+    >
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
+          <Avatar className="h-12 w-12">
+            {tech.profile_photo && (
+              <AvatarImage src={tech.profile_photo} alt={tech.full_name} />
+            )}
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {tech.full_name
+                ?.split(" ")
+                .map((w) => w[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase() || "?"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-semibold truncate">{tech.full_name}</h3>
+              <Badge
+                variant="outline"
+                className={`shrink-0 gap-1 ${avail.bg} ${avail.color} border-0`}
+              >
+                <AvailIcon className="h-3 w-3" />
+                {avail.label}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">{tech.name}</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <Badge variant="outline" className={getSkillBadgeColor(tech.skill_level)}>
+                {tech.skill_level}
+              </Badge>
+              {tech.branch && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  {tech.branch}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {tech.active_jobs.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Jobs ({tech.active_job_count})
+            </p>
+            {tech.active_jobs.slice(0, 2).map((job) => (
+              <div
+                key={job.name}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-xs"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium">{job.name}</span>
+                  {job.customer_name && (
+                    <span className="text-muted-foreground ml-1.5">
+                      — {job.customer_name}
+                    </span>
+                  )}
+                </div>
+                <Badge variant="outline" className="ml-2 shrink-0 text-[10px]">
+                  {job.status}
+                </Badge>
+              </div>
+            ))}
+            {tech.active_jobs.length > 2 && (
+              <p className="text-xs text-muted-foreground text-center">
+                +{tech.active_jobs.length - 2} more
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 flex items-center justify-between border-t pt-3">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            {tech.work_shift || "—"}
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {tech.efficiency_rating != null && tech.efficiency_rating > 0 && (
+              <span className="flex items-center gap-1" title="Efficiency">
+                <TrendingUp className="h-3.5 w-3.5" />
+                {Math.round(tech.efficiency_rating)}%
+              </span>
+            )}
+            {tech.total_jobs_completed != null && tech.total_jobs_completed > 0 && (
+              <span className="flex items-center gap-1" title="Jobs completed">
+                <Activity className="h-3.5 w-3.5" />
+                {tech.total_jobs_completed}
+              </span>
+            )}
+            {tech.personal_phone && (
+              <span className="flex items-center gap-1">
+                <Phone className="h-3.5 w-3.5" />
+                {tech.personal_phone}
+              </span>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -362,6 +362,25 @@ export function useTechniciansAvailability(date?: string) {
   );
 }
 
+export function useTechnicianAvailabilityCalendar(
+  technicianId: string | null,
+  startDate?: string,
+  view: 'week' | 'month' = 'week'
+) {
+  return useSWR(
+    technicianId
+      ? ['technician-availability-calendar', technicianId, startDate, view]
+      : null,
+    () =>
+      techniciansSvc.getTechnicianAvailabilityCalendar(
+        technicianId!,
+        startDate,
+        view
+      ),
+    { refreshInterval: 30000 }
+  );
+}
+
 // ============ VEHICLES (VIN No) ============
 
 export function useVehicles(options?: {

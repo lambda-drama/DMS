@@ -6,6 +6,7 @@ import type {
   TechnicianListItem,
   TechnicianFull,
   TechnicianAvailability,
+  TechnicianAvailabilityCalendar,
   TechnicianScheduleJob,
 } from '@/types/dms';
 
@@ -66,6 +67,47 @@ export async function getAllTechniciansAvailability(
       body: JSON.stringify({ date: date || null }),
     }
   );
+}
+
+export async function getTechnicianAvailabilityCalendar(
+  technician: string,
+  startDate?: string,
+  view: 'week' | 'month' = 'week'
+): Promise<TechnicianAvailabilityCalendar> {
+  return apiRequest<TechnicianAvailabilityCalendar>(
+    `/api/method/${API}.get_technician_availability_calendar`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        technician,
+        start_date: startDate || null,
+        view,
+      }),
+    }
+  );
+}
+
+export async function checkTechnicianSchedule(options: {
+  technician: string;
+  posting_date?: string;
+  schedule_start_time?: string;
+  schedule_end_time?: string;
+  exclude_job_card?: string;
+}): Promise<{
+  available: boolean;
+  availability_status: string;
+  conflicts: Array<{ type: string; message: string; job_card?: string }>;
+}> {
+  return apiRequest(`/api/method/${API}.check_technician_schedule`, {
+    method: 'POST',
+    body: JSON.stringify({
+      technician: options.technician,
+      posting_date: options.posting_date || null,
+      schedule_start_time: options.schedule_start_time || null,
+      schedule_end_time: options.schedule_end_time || null,
+      exclude_job_card: options.exclude_job_card || null,
+    }),
+  });
 }
 
 export async function clockIn(name: string): Promise<{ clock_in_time: string }> {

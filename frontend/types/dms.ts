@@ -816,6 +816,54 @@ export interface TechnicianListItem {
   years_of_experience?: number;
 }
 
+export type TechnicianAvailabilityStatus = 'available' | 'busy' | 'not_available';
+
+export interface TechnicianDayCalendarBlock {
+  job_card: string;
+  status: string;
+  role: string;
+  customer_name?: string;
+  vehicle_model?: string;
+  start?: string | null;
+  end?: string | null;
+  kind: 'scheduled' | 'in_progress';
+}
+
+export interface TechnicianDayCalendar {
+  blocks: TechnicianDayCalendarBlock[];
+  free_slots: Array<{ start: string; end: string }>;
+}
+
+export interface TechnicianDayAvailability {
+  date: string;
+  in_month?: boolean;
+  availability_status: TechnicianAvailabilityStatus;
+  unavailable_reason?: string | null;
+  currently_working?: boolean;
+  is_available?: boolean;
+  has_schedule_conflict?: boolean;
+  active_job_count: number;
+  active_jobs?: Array<{
+    name: string;
+    status: string;
+    customer_name?: string;
+    vehicle_model?: string;
+    schedule_start_time?: string;
+    schedule_end_time?: string;
+    role?: string;
+  }>;
+  day_calendar?: TechnicianDayCalendar;
+}
+
+export interface TechnicianAvailabilityCalendar {
+  technician: string;
+  view: 'week' | 'month';
+  start_date: string;
+  end_date: string;
+  anchor_date: string;
+  days: Record<string, TechnicianDayAvailability>;
+}
+
 export interface TechnicianAvailability extends TechnicianListItem {
   active_jobs: Array<{
     name: string;
@@ -825,10 +873,15 @@ export interface TechnicianAvailability extends TechnicianListItem {
     schedule_start_time?: string;
     schedule_end_time?: string;
     priority?: string;
+    role?: string;
   }>;
   active_job_count: number;
   currently_working: boolean;
   is_available: boolean;
+  availability_status: TechnicianAvailabilityStatus;
+  unavailable_reason?: string | null;
+  has_schedule_conflict?: boolean;
+  day_calendar?: TechnicianDayCalendar;
 }
 
 export interface TechnicianScheduleJob {
