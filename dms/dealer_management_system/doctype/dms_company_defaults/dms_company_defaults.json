@@ -14,7 +14,9 @@
   "cost_center",
   "column_break_pymk",
   "marka",
-  "project"
+  "project",
+  "additions_section",
+  "work_in_progress"
  ],
  "fields": [
   {
@@ -77,13 +79,24 @@
    "in_standard_filter": 1,
    "label": "Project",
    "options": "Project"
+  },
+  {
+   "fieldname": "work_in_progress",
+   "fieldtype": "Link",
+   "label": "Work In Progress",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "additions_section",
+   "fieldtype": "Section Break",
+   "label": "Additions"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-16 02:16:06.256267",
+ "modified": "2026-05-19 02:43:50.955385",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Company Defaults",

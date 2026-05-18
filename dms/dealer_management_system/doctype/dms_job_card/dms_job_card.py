@@ -292,6 +292,12 @@ def start_repair(job_card, time_logs=None):
 		})
 		child.db_insert()
 
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+		transfer_job_card_parts_to_wip,
+	)
+
+	transfer_job_card_parts_to_wip(doc)
+
 	frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
 	frappe.db.commit()
 	return "ok"

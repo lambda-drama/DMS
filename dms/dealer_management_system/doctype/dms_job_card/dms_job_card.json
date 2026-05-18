@@ -108,7 +108,9 @@
   "column_break_qc",
   "rework_required",
   "rework_job_item",
-  "qc_checked_date"
+  "qc_checked_date",
+  "more_information_tab",
+  "wip_material_transfer"
  ],
  "fields": [
   {
@@ -325,6 +327,7 @@
    "allow_on_submit": 1,
    "fieldname": "assigned_bay",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Assigned Service Bay",
    "options": "Service Bay",
    "reqd": 1
@@ -337,6 +340,7 @@
    "allow_on_submit": 1,
    "fieldname": "lead_technician",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Lead Technician",
    "options": "Technician"
   },
@@ -741,9 +745,11 @@
    "options": "\nPass\nFail"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "assigned_bay.branch",
    "fieldname": "workshop",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Workshop",
    "options": "WorkShop"
   },
@@ -773,13 +779,26 @@
    "fieldtype": "Link",
    "label": "Currency",
    "options": "Currency"
+  },
+  {
+   "fieldname": "more_information_tab",
+   "fieldtype": "Tab Break",
+   "label": "More Information"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "wip_material_transfer",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "WIP Material Transfer",
+   "options": "Stock Entry"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-16 02:08:24.960379",
+ "modified": "2026-05-19 03:00:41.786260",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

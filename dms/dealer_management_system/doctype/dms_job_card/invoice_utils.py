@@ -17,6 +17,10 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
 )
+from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+	get_wip_warehouse,
+	resolve_workshop_warehouse,
+)
 
 WARRANTY_APPLICATION_TYPES = frozenset(
 	{"All Invoice", "Labour", "Spare Part", "Discount"}
@@ -195,7 +199,16 @@ def _apply_dms_settings_dimensions_to_sales_invoice(si, company: str):
 
 
 def _resolve_part_warehouse(part, jc) -> str | None:
-	"""Warehouse for a stock item line: part row → job card → workshop → company default."""
+	"""
+	Warehouse for Sales Invoice stock consumption.
+
+	After repair start, parts are in the WIP warehouse (DMS Settings → Company Defaults).
+	Fallback: part line → job card / workshop warehouse.
+	"""
+	wip_wh = get_wip_warehouse(getattr(jc, "company", None))
+	if wip_wh:
+		return wip_wh
+
 	for candidate in (
 		getattr(part, "warehouse", None),
 		getattr(jc, "warehouse", None),
@@ -204,19 +217,7 @@ def _resolve_part_warehouse(part, jc) -> str | None:
 		if wh:
 			return wh
 
-	workshop = getattr(jc, "workshop", None)
-	if workshop:
-		wh = frappe.db.get_value("Workshop", workshop, "warehouse")
-		if wh:
-			return wh
-
-	company = getattr(jc, "company", None)
-	if company:
-		wh = frappe.db.get_value("Company", company, "default_warehouse")
-		if wh:
-			return wh
-
-	return None
+	return resolve_workshop_warehouse(jc)
 
 
 def _apply_stock_item_warehouse(si_row, erp_item: str, part, jc):
@@ -227,11 +228,12 @@ def _apply_stock_item_warehouse(si_row, erp_item: str, part, jc):
 	warehouse = _resolve_part_warehouse(part, jc)
 	if not warehouse:
 		spare_label = getattr(part, "item_code", None) or getattr(part, "name", None) or erp_item
+		company = getattr(jc, "company", None) or _("(company)")
 		frappe.throw(
 			_(
-				"Warehouse is required for stock item {0}. Set warehouse on spare part line "
-				"{1}, on the Job Card, or on the linked Workshop / Company."
-			).format(frappe.bold(erp_item), frappe.bold(spare_label)),
+				"Warehouse is required for stock item {0}. Set Work In Progress on DMS Settings "
+				"for company {2}, or set warehouse on spare part line {1} / Job Card."
+			).format(frappe.bold(erp_item), frappe.bold(spare_label), frappe.bold(company)),
 			title=_("Warehouse required"),
 		)
 

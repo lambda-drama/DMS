@@ -2,6 +2,20 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
+ASSIGNMENT_LOCKED_STATUSES = frozenset({
+	"Repair In Progress",
+	"Repair Completed",
+	"Waiting Parts",
+	"Road Test In Progress",
+	"Road Test Completed",
+	"QC In Progress",
+	"QC Failed",
+	"Rework",
+	"Completed",
+	"Delivered",
+	"Cancelled",
+})
+
 
 @frappe.whitelist()
 def get_job_cards(limit=50, offset=0, status=None, customer=None, search=None):
@@ -150,6 +164,10 @@ def update_job_card(name, data):
 
 	doc = frappe.get_doc("DMS Job Card", name)
 	doc.check_permission("write")
+
+	assignment_fields = {"lead_technician", "assigned_bay", "assistant_technicians"}
+	if doc.status in ASSIGNMENT_LOCKED_STATUSES and assignment_fields.intersection(data.keys()):
+		frappe.throw(_("Cannot change technician or bay assignment after repair has started."))
 
 	updatable_fields = [
 		"priority", "service_advisor", "lead_technician", "assigned_bay",

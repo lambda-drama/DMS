@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useJobCard, useTechnicians } from "@/hooks/use-dms";
+import { useJobCard, useServiceBays, useTechnicians } from "@/hooks/use-dms";
+import { canEditJobCardAssignment } from "@/lib/job-card-workflow";
 import * as jobCardsSvc from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,6 +121,7 @@ export default function JobCardDetailPage() {
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [leadTechnician, setLeadTechnician] = useState("");
+  const [assignedBay, setAssignedBay] = useState("");
   const [assistantRows, setAssistantRows] = useState<Array<{ technician: string }>>([]);
   const [roadTestState, setRoadTestState] = useState<{
     rows: RoadTestItemResult[];
@@ -133,6 +135,7 @@ export default function JobCardDetailPage() {
   }>({ rows: [], complete: false, hasMandatoryFails: false });
 
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+  const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
 
   const handleRoadTestChecklistState = useCallback(
     (
@@ -159,6 +162,7 @@ export default function JobCardDetailPage() {
     setScheduleStart(toDatetimeLocal(jobCard.schedule_start_time));
     setScheduleEnd(toDatetimeLocal(jobCard.schedule_end_time));
     setLeadTechnician(jobCard.lead_technician || "");
+    setAssignedBay(jobCard.assigned_bay || "");
     setAssistantRows(
       (jobCard.assistant_technicians || [])
         .filter((r) => r.technician)
@@ -169,6 +173,7 @@ export default function JobCardDetailPage() {
     jobCard?.schedule_start_time,
     jobCard?.schedule_end_time,
     jobCard?.lead_technician,
+    jobCard?.assigned_bay,
     jobCard?.assistant_technicians,
   ]);
 
@@ -239,6 +244,28 @@ export default function JobCardDetailPage() {
 
   const status = jobCard.status;
   const docstatus = jobCard.docstatus ?? 0;
+  const assignmentEditable = canEditJobCardAssignment(status);
+
+  const assignmentDirty =
+    leadTechnician !== (jobCard.lead_technician || "") ||
+    assignedBay !== (jobCard.assigned_bay || "");
+
+  const handleSaveAssignment = () => {
+    if (!leadTechnician) {
+      toast.error("Lead technician is required");
+      return;
+    }
+    if (!assignedBay) {
+      toast.error("Assigned service bay is required");
+      return;
+    }
+    runAction("Assignment updated", () =>
+      jobCardsSvc.updateJobCard(id, {
+        lead_technician: leadTechnician,
+        assigned_bay: assignedBay,
+      })
+    );
+  };
 
   // ─── Workflow Action Handlers ───────────────────────────────
 
@@ -485,6 +512,13 @@ export default function JobCardDetailPage() {
     technicians?.map((t) => ({
       value: t.name,
       label: t.full_name,
+    })) || [];
+
+  const bayOptions =
+    serviceBays?.map((b) => ({
+      value: b.name,
+      label: b.bay_name || b.bay_number || b.name,
+      description: b.branch || undefined,
     })) || [];
 
   const signaturePreviewUrl = customerSignatureUrl
@@ -1104,33 +1138,65 @@ export default function JobCardDetailPage() {
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <Wrench className="h-5 w-5" />
                   Assignment
                 </CardTitle>
+                {assignmentEditable && assignmentDirty && (
+                  <Button size="sm" onClick={handleSaveAssignment} disabled={busy}>
+                    Save assignment
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
+                {assignmentEditable && (
+                  <p className="text-sm text-muted-foreground">
+                    Lead technician and service bay can be changed until repair starts.
+                  </p>
+                )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-muted-foreground">Service Advisor</p>
                     <p className="font-medium">{jobCard.service_advisor || "N/A"}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Lead Technician</p>
-                    <p className="font-medium">
-                      {jobCard.lead_technician_name || jobCard.lead_technician || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Assigned Bay</p>
-                    <p className="font-medium">{jobCard.assigned_bay || "N/A"}</p>
-                  </div>
-                  <div>
                     <p className="text-sm text-muted-foreground">Priority</p>
                     <Badge variant={jobCard.priority === "Urgent" ? "destructive" : "outline"}>
                       {jobCard.priority}
                     </Badge>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Lead technician {assignmentEditable ? "*" : ""}</Label>
+                    {assignmentEditable ? (
+                      <LinkWithCreate doctype="Technician" onCreated={setLeadTechnician}>
+                        <SearchableSelect
+                          options={technicianOptions}
+                          value={leadTechnician}
+                          onValueChange={setLeadTechnician}
+                          placeholder="Search technicians..."
+                          isLoading={techniciansLoading}
+                        />
+                      </LinkWithCreate>
+                    ) : (
+                      <p className="font-medium">
+                        {jobCard.lead_technician_name || jobCard.lead_technician || "N/A"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Assigned service bay {assignmentEditable ? "*" : ""}</Label>
+                    {assignmentEditable ? (
+                      <SearchableSelect
+                        options={bayOptions}
+                        value={assignedBay}
+                        onValueChange={setAssignedBay}
+                        placeholder="Search bays..."
+                        isLoading={baysLoading}
+                      />
+                    ) : (
+                      <p className="font-medium">{jobCard.assigned_bay || "N/A"}</p>
+                    )}
                   </div>
                 </div>
                 {jobCard.assistant_technicians && jobCard.assistant_technicians.length > 0 && (
