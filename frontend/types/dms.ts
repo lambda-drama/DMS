@@ -661,6 +661,20 @@ export interface VINNoListItem {
   modified?: string;
 }
 
+export interface VINCustomerHistoryRow {
+  name?: string;
+  customer: string;
+  customer_name?: string;
+  mobile_no?: string;
+  email_id?: string;
+  tax_id?: string;
+  relationship?: string;
+  from_date?: string;
+  to_date?: string;
+  is_current?: number;
+  notes?: string;
+}
+
 export interface VINNoFull {
   name: string;
   vin_number: string;
@@ -684,6 +698,10 @@ export interface VINNoFull {
   interior_material?: string;
   current_customer?: string;
   customer_name?: string;
+  owner_mobile?: string;
+  owner_email?: string;
+  owner_tax_id?: string;
+  customer_history?: VINCustomerHistoryRow[];
   delivery_date?: string;
   warranty_start_date?: string;
   warranty_end_date?: string;

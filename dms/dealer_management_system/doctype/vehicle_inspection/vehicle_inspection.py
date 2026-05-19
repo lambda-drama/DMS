@@ -44,27 +44,29 @@ class VehicleInspection(Document):
 		)
   
 	def update_odometer(self):
-	
-		"""When inspection is submitted, update VIN current odometer"""
-		if self.vin_chassis and self.odometer:
-			vin = frappe.get_doc("VIN No", self.vin_chassis)
-			
-			# Store old odometer before updating
-			old_odometer = vin.current_odometer
-			
-			# Update current odometer
+		"""When inspection is submitted, update VIN owner and odometer in one save."""
+		if not self.vin_chassis or not frappe.db.exists("VIN No", self.vin_chassis):
+			return
+
+		vin = frappe.get_doc("VIN No", self.vin_chassis)
+		old_odometer = vin.current_odometer
+
+		if self.customer and vin.current_customer != self.customer:
+			vin.current_customer = self.customer
+
+		if self.odometer:
 			vin.last_service_odometer = vin.current_odometer
 			vin.current_odometer = self.odometer
 			vin.odometer_last_updated = now_datetime()
-			
-			# Do NOT update last_service_odometer here
-			# That only happens when service is completed
-			
-			vin.save()
-			
-			frappe.msgprint(_("Vehicle odometer updated from {0} to {1} km").format(
-				old_odometer, self.odometer
-			))
+
+		vin.save(ignore_permissions=True)
+
+		if self.odometer and old_odometer != self.odometer:
+			frappe.msgprint(
+				_("Vehicle odometer updated from {0} to {1} km").format(
+					old_odometer, self.odometer
+				)
+			)
 
 
 @frappe.whitelist()

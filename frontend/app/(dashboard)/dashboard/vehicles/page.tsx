@@ -414,6 +414,29 @@ export default function VehiclesPage() {
             <DetailSection title="Ownership">
               <DetailRow label="Customer ID" value={selectedVehicle.current_customer} />
               <DetailRow label="Customer Name" value={selectedVehicle.customer_name} />
+              <DetailRow label="Mobile" value={selectedVehicle.owner_mobile} />
+              <DetailRow label="Email" value={selectedVehicle.owner_email} />
+              <DetailRow label="TIN No" value={selectedVehicle.owner_tax_id} />
+              {(selectedVehicle.customer_history?.length ?? 0) > 0 && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Previous customers</p>
+                  {selectedVehicle.customer_history
+                    ?.filter((r) => !r.is_current)
+                    .map((r) => (
+                      <div
+                        key={r.name || `${r.customer}-${r.from_date}`}
+                        className="rounded-md border px-3 py-2 text-sm"
+                      >
+                        <p className="font-medium">{r.customer_name || r.customer}</p>
+                        <p className="text-muted-foreground">
+                          {[r.mobile_no, r.from_date && `from ${r.from_date}`, r.to_date && `to ${r.to_date}`]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              )}
             </DetailSection>
             <DetailSection title="Status">
               <DetailRow label="Odometer" value={selectedVehicle.current_odometer != null ? `${selectedVehicle.current_odometer.toLocaleString()} km` : undefined} />

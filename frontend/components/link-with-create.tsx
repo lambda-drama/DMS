@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { fetchVehicleCustomerGroups } from '@/services/common';
 import { quickCreateDoc, type QuickCreateDocType } from '@/services/quickCreate';
@@ -96,6 +97,8 @@ export function LinkWithCreate({
   const [customerGroups, setCustomerGroups] = useState<string[]>([]);
   const [customerMobile, setCustomerMobile] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [customerTaxId, setCustomerTaxId] = useState('');
+  const [customerTab, setCustomerTab] = useState('details');
 
   const [colorName, setColorName] = useState('');
 
@@ -124,6 +127,8 @@ export function LinkWithCreate({
       setCustomerType('Individual');
       setCustomerMobile('');
       setCustomerEmail('');
+      setCustomerTaxId('');
+      setCustomerTab('details');
       let cancelled = false;
       (async () => {
         try {
@@ -176,6 +181,7 @@ export function LinkWithCreate({
           customer_group: customerGroup || customerGroups[0] || '',
           mobile_no: customerMobile || undefined,
           email_id: customerEmail || undefined,
+          tax_id: customerTaxId || undefined,
         };
         if (!customerName.trim()) {
           toast.error('Customer name is required');
@@ -296,57 +302,77 @@ export function LinkWithCreate({
           </DialogHeader>
 
           {doctype === 'Customer' && (
-            <div className="grid gap-3 py-2">
-              <div className="space-y-1">
-                <Label>Customer name *</Label>
-                <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+            <Tabs value={customerTab} onValueChange={setCustomerTab} className="py-2">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="tax">TIN No</TabsTrigger>
+              </TabsList>
+              <TabsContent value="details" className="mt-3 grid gap-3">
                 <div className="space-y-1">
-                  <Label>Type</Label>
-                  <Select value={customerType} onValueChange={setCustomerType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Individual">Individual</SelectItem>
-                      <SelectItem value="Company">Company</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Customer name *</Label>
+                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label>Type</Label>
+                    <Select value={customerType} onValueChange={setCustomerType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Individual">Individual</SelectItem>
+                        <SelectItem value="Company">Company</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Customer group *</Label>
+                    <Select
+                      value={customerGroup || customerGroups[0] || ''}
+                      onValueChange={setCustomerGroup}
+                      disabled={!customerGroups.length}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customerGroups.map((g) => (
+                          <SelectItem key={g} value={g}>
+                            {g}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <Label>Customer group *</Label>
-                  <Select
-                    value={customerGroup || customerGroups[0] || ''}
-                    onValueChange={setCustomerGroup}
-                    disabled={!customerGroups.length}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customerGroups.map((g) => (
-                        <SelectItem key={g} value={g}>
-                          {g}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Mobile</Label>
+                  <Input value={customerMobile} onChange={(e) => setCustomerMobile(e.target.value)} />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <Label>Mobile</Label>
-                <Input value={customerMobile} onChange={(e) => setCustomerMobile(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                />
-              </div>
-            </div>
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                  />
+                </div>
+              </TabsContent>
+              <TabsContent value="tax" className="mt-3 grid gap-3">
+                <div className="space-y-1">
+                  <Label>TIN No</Label>
+                  <Input
+                    value={customerTaxId}
+                    onChange={(e) => setCustomerTaxId(e.target.value)}
+                    placeholder="e.g. XAXX010101000"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Optional. Used for invoicing and fiscal documents. You can add or update this later
+                  on the Customer record in ERPNext.
+                </p>
+              </TabsContent>
+            </Tabs>
           )}
 
           {doctype === 'Color' && (

@@ -45,6 +45,7 @@ fixtures = [
                     "Item Group-custom_is_vehicle",
                     "Customer Group-custom_is_vehicle_customer",
                     "Warehouse-custom_is_dms_warehouse",
+                    "Sales Invoice-custom_dms_job_card"
                 ]
             ]
         ]

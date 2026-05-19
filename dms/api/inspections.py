@@ -248,10 +248,12 @@ def create_inspection(data):
 	_append_warning_lights(doc, data.get("warning_lights"))
 
 	doc.insert()
+	doc.submit()
 	frappe.db.commit()
 
 	return {
 		"name": doc.name,
+		"docstatus": doc.docstatus,
 		"customer": doc.customer,
 		"customer_name": _customer_display_name(doc.customer),
 		"inspection_date": str(doc.inspection_date),

@@ -36,8 +36,12 @@
   "section_customer",
   "current_customer",
   "customer_name",
+  "owner_mobile",
+  "owner_email",
+  "owner_tax_id",
   "delivery_date",
   "column_break_customer",
+  "customer_history",
   "assigned_driver",
   "driver_license_number",
   "driver_phone",
@@ -276,6 +280,26 @@
    "label": "Customer Name"
   },
   {
+   "fetch_from": "current_customer.mobile_no",
+   "fieldname": "owner_mobile",
+   "fieldtype": "Data",
+   "label": "Owner Mobile"
+  },
+  {
+   "fetch_from": "current_customer.email_id",
+   "fieldname": "owner_email",
+   "fieldtype": "Data",
+   "label": "Owner Email",
+   "options": "Email"
+  },
+  {
+   "fetch_from": "current_customer.tax_id",
+   "fieldname": "owner_tax_id",
+   "fieldtype": "Data",
+   "label": "Owner Tax ID",
+   "read_only": 1
+  },
+  {
    "description": "Date when vehicle was delivered to customer",
    "fieldname": "delivery_date",
    "fieldtype": "Date",
@@ -284,6 +308,13 @@
   {
    "fieldname": "column_break_customer",
    "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "customer_history",
+   "fieldtype": "Table",
+   "label": "Customer History",
+   "options": "VIN Customer History"
   },
   {
    "description": "For fleet vehicles",
@@ -639,7 +670,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-18 02:54:33.741446",
+ "modified": "2026-05-20 00:58:56.487039",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "VIN No",

@@ -83,12 +83,11 @@ def build_vin_updates_from_serial(serial, bundle=None):
 			updates["current_customer"] = customer
 		if delivery_date:
 			updates["delivery_date"] = delivery_date
-		if not serial.warranty_start_date and delivery_date:
-			updates["warranty_start_date"] = delivery_date
 	elif serial.customer:
 		updates["current_customer"] = serial.customer
 
-	if serial.warranty_expiry_date:
+	# Serial No has warranty_expiry_date / warranty_period only (no warranty_start_date).
+	if serial.get("warranty_expiry_date"):
 		updates["warranty_end_date"] = serial.warranty_expiry_date
 
 	return updates
@@ -129,7 +128,13 @@ def sync_vin_on_serial_update(doc, method=None):
 		return
 
 	def _run():
-		sync_vin_from_serial_no(doc.name)
+		try:
+			sync_vin_from_serial_no(doc.name)
+		except Exception:
+			frappe.log_error(
+				title="VIN sync from Serial No failed",
+				message=frappe.get_traceback(),
+			)
 
 	frappe.db.after_commit.add(_run)
 
@@ -144,9 +149,15 @@ def sync_vin_on_stock_ledger_entry(doc, method=None):
 		return
 
 	def _run():
-		bundle = frappe.get_doc("Serial and Batch Bundle", bundle_name)
-		for row in bundle.entries:
-			if row.serial_no:
-				sync_vin_from_serial_no(row.serial_no, bundle=bundle)
+		try:
+			bundle = frappe.get_doc("Serial and Batch Bundle", bundle_name)
+			for row in bundle.entries:
+				if row.serial_no:
+					sync_vin_from_serial_no(row.serial_no, bundle=bundle)
+		except Exception:
+			frappe.log_error(
+				title="VIN sync from Stock Ledger Entry failed",
+				message=frappe.get_traceback(),
+			)
 
 	frappe.db.after_commit.add(_run)

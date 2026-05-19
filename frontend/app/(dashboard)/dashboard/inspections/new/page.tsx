@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/searchable-select';
@@ -44,7 +44,8 @@ import {
   User,
   Wrench,
 } from 'lucide-react';
-import type { FuelLevel, ArrivalMethod } from '@/types/dms';
+import type { FuelLevel, ArrivalMethod, VINNo } from '@/types/dms';
+import * as vehiclesSvc from '@/services/vehicles';
 
 const fuelLevels: FuelLevel[] = ['Empty', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8', 'Full'];
 
@@ -248,7 +249,13 @@ export default function NewInspectionPage() {
 
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [selectedCustomerMeta, setSelectedCustomerMeta] = useState<{
+    name: string;
+    customer_name: string;
+    mobile_no?: string;
+  } | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState('');
+  const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
   const [customerVehicle, setCustomerVehicle] = useState('');
   const [serviceAdvisor, setServiceAdvisor] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
@@ -270,8 +277,8 @@ export default function NewInspectionPage() {
   const [scanPerformed, setScanPerformed] = useState(false);
 
   // Real data hooks
-  const { data: customers } = useCustomers(customerSearch);
-  const { data: vins } = useVINs(selectedCustomer || undefined, vinSearch);
+  const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
+  const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
   const { data: advisors } = useServiceAdvisors();
   const { trigger: createInspection } = useCreateInspection();
   const [customerPresent, setCustomerPresent] = useState(true);
@@ -292,6 +299,131 @@ export default function NewInspectionPage() {
       if (adv?.name) setServiceAdvisor(adv.name);
     }).catch(() => {});
   }, []);
+
+  const applyVinToForm = (vin: VINNo) => {
+    setSelectedVin(vin);
+    setLicensePlate(vin.plate_number || '');
+    setCurrentOdometer(vin.current_odometer || 0);
+    setCustomerVehicle(vin.linked_item || '');
+    if (vin.current_customer) {
+      setSelectedCustomer(vin.current_customer);
+      setSelectedCustomerMeta({
+        name: vin.current_customer,
+        customer_name: vin.customer_name || vin.current_customer,
+      });
+    }
+  };
+
+  const handleVinSelect = async (vinName: string) => {
+    setSelectedVehicle(vinName);
+    if (!vinName) {
+      setSelectedVin(null);
+      setCustomerVehicle('');
+      return;
+    }
+
+    const fromList = vins?.find((v) => v.name === vinName);
+    if (fromList) {
+      applyVinToForm(fromList);
+    }
+
+    try {
+      const full = await vehiclesSvc.getVehicle(vinName);
+      applyVinToForm({
+        name: full.name,
+        vin_number: full.vin_number,
+        plate_number: full.plate_number,
+        model_name: full.model_name,
+        linked_item: full.linked_item,
+        current_customer: full.current_customer,
+        customer_name: full.customer_name,
+        current_odometer: full.current_odometer,
+        model_year: full.model_year,
+      });
+    } catch {
+      if (!fromList) {
+        toast.error('Could not load vehicle details for the selected VIN');
+      }
+    }
+  };
+
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    if (!customerId) {
+      setSelectedCustomerMeta(null);
+      return;
+    }
+    const match = customers?.find((c) => c.name === customerId);
+    if (match) {
+      setSelectedCustomerMeta({
+        name: match.name,
+        customer_name: match.customer_name,
+        mobile_no: match.mobile_no,
+      });
+    }
+  };
+
+  const handleCustomerCreated = (name: string, label?: string) => {
+    setSelectedCustomer(name);
+    setSelectedCustomerMeta({
+      name,
+      customer_name: label || name,
+    });
+  };
+
+  const customerSelectOptions = useMemo(() => {
+    const mapped =
+      customers?.map((c) => ({
+        value: c.name,
+        label: c.customer_name,
+        description: c.mobile_no || undefined,
+      })) || [];
+
+    if (
+      selectedCustomer &&
+      selectedCustomerMeta &&
+      !mapped.some((o) => o.value === selectedCustomer)
+    ) {
+      return [
+        {
+          value: selectedCustomerMeta.name,
+          label: selectedCustomerMeta.customer_name,
+          description: selectedCustomerMeta.mobile_no,
+        },
+        ...mapped,
+      ];
+    }
+    return mapped;
+  }, [customers, selectedCustomer, selectedCustomerMeta]);
+
+  const vinSelectOptions = useMemo(() => {
+    const mapped =
+      vins?.map((v) => ({
+        value: v.name,
+        label: v.vin_number,
+        description: [v.model_name, v.plate_number, v.customer_name]
+          .filter(Boolean)
+          .join(' · '),
+      })) || [];
+
+    if (
+      selectedVehicle &&
+      selectedVin &&
+      !mapped.some((o) => o.value === selectedVehicle)
+    ) {
+      return [
+        {
+          value: selectedVin.name,
+          label: selectedVin.vin_number,
+          description: [selectedVin.model_name, selectedVin.plate_number]
+            .filter(Boolean)
+            .join(' · '),
+        },
+        ...mapped,
+      ];
+    }
+    return mapped;
+  }, [vins, selectedVehicle, selectedVin]);
 
   const progress = (currentStep / steps.length) * 100;
 
@@ -476,7 +608,7 @@ export default function NewInspectionPage() {
                 <Car className="h-5 w-5 text-primary" />
                 Vehicle Information
               </CardTitle>
-              <CardDescription>Select customer and vehicle details</CardDescription>
+              <CardDescription>Select the vehicle first; the registered owner fills in as customer when available</CardDescription>
             </CardHeader>
             <CardContent className="min-w-0 space-y-4 sm:space-y-6">
               {appointmentId && (
@@ -491,53 +623,40 @@ export default function NewInspectionPage() {
               )}
 
               <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <RequiredLabel>Customer</RequiredLabel>
-                  <LinkWithCreate
-                    doctype="Customer"
-                    onCreated={(name) => {
-                      setSelectedCustomer(name);
-                      setSelectedVehicle('');
-                      setCustomerVehicle('');
-                    }}
-                  >
-                    <SearchableSelect
-                      options={(customers || []).map(c => ({ value: c.name, label: c.customer_name, description: c.mobile_no }))}
-                      value={selectedCustomer}
-                      onValueChange={(val) => {
-                        setSelectedCustomer(val);
-                        setSelectedVehicle('');
-                        setCustomerVehicle('');
-                      }}
-                      onSearchChange={setCustomerSearch}
-                      placeholder="Search customer..."
-                    />
-                  </LinkWithCreate>
-                </div>
-
-                <div className="space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <RequiredLabel>Vehicle (VIN)</RequiredLabel>
                   <SearchableSelect
-                    options={(vins || []).map(v => ({ value: v.name, label: `${v.model_name || v.name} - ${v.plate_number || ''}`, description: v.vin_number }))}
+                    options={vinSelectOptions}
                     value={selectedVehicle}
-                    onValueChange={(val) => {
-                      setSelectedVehicle(val);
-                      const vin = vins?.find(v => v.name === val);
-                      if (vin) {
-                        setLicensePlate(vin.plate_number || '');
-                        setCurrentOdometer(vin.current_odometer || 0);
-                        setCustomerVehicle(vin.linked_item || '');
-                      }
-                    }}
+                    onValueChange={handleVinSelect}
                     onSearchChange={setVinSearch}
-                    placeholder="Search vehicle..."
-                    disabled={!selectedCustomer}
+                    placeholder="Type at least 3 characters of VIN, chassis, or plate..."
+                    isLoading={vinsLoading}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Search and select the vehicle first. The registered owner fills in as customer when
+                    available; you can change or create a customer without clearing the VIN.
+                  </p>
                   {selectedVehicle && !customerVehicle && (
                     <p className="text-xs text-destructive">
                       This VIN has no linked model item. Set Linked Item on the VIN record.
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <RequiredLabel>Customer</RequiredLabel>
+                  <LinkWithCreate doctype="Customer" onCreated={handleCustomerCreated}>
+                    <SearchableSelect
+                      options={customerSelectOptions}
+                      value={selectedCustomer}
+                      valueLabel={selectedCustomerMeta?.customer_name}
+                      onValueChange={handleCustomerChange}
+                      onSearchChange={setCustomerSearch}
+                      placeholder="Search customer..."
+                      isLoading={customersLoading}
+                    />
+                  </LinkWithCreate>
                 </div>
 
                 <div className="space-y-2">

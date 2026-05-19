@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useInspection, useUpdateInspection } from "@/hooks/use-dms";
+import { useInspection, useSubmitInspection } from "@/hooks/use-dms";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +67,7 @@ export default function InspectionDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
   const { data: inspection, isLoading, error, mutate } = useInspection(id);
-  const { trigger: updateInspection, isMutating } = useUpdateInspection(id);
+  const { trigger: submitInspection, isMutating } = useSubmitInspection(id);
   const [activeTab, setActiveTab] = useState("overview");
 
   if (!id) {
@@ -84,7 +84,7 @@ export default function InspectionDetailPage() {
 
   const handleSubmit = async () => {
     try {
-      await updateInspection({ docstatus: 1 });
+      await submitInspection();
       toast.success("Inspection submitted successfully");
       mutate();
     } catch {

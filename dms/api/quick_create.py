@@ -86,10 +86,13 @@ def _quick_create_customer(values):
 	}
 	mobile = (values.get("mobile_no") or "").strip()
 	email = (values.get("email_id") or "").strip()
+	tax_id = (values.get("tax_id") or "").strip()
 	if mobile:
 		doc["mobile_no"] = mobile
 	if email:
 		doc["email_id"] = email
+	if tax_id and frappe.get_meta("Customer").has_field("tax_id"):
+		doc["tax_id"] = tax_id
 	return doc
 
 
