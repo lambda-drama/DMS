@@ -1,6 +1,7 @@
 /**
  * Common lookup service — calls whitelisted methods in dms.api.common
  */
+import { compressImageForUpload } from '@/lib/compress-image';
 import { apiRequest, ensureCSRF } from './apiClient';
 import type { Customer, VINNo, VehicleServiceType, ServiceAdvisor, Technician, ServiceBay, PaginatedResponse } from '@/types/dms';
 
@@ -44,6 +45,29 @@ export async function fetchCustomers(search?: string, limit?: number, offset?: n
   return apiRequest<PaginatedResponse<Customer>>(`/api/method/${API}.get_customers`, {
     method: 'POST',
     body: JSON.stringify({ search: search || null, limit: limit || 50, offset: offset || 0 }),
+  });
+}
+
+export interface CustomerContact {
+  name: string;
+  mobile_no: string;
+  email_id: string;
+}
+
+export async function fetchCustomerContact(customer: string): Promise<CustomerContact> {
+  return apiRequest<CustomerContact>(`/api/method/${API}.get_customer_contact`, {
+    method: 'POST',
+    body: JSON.stringify({ customer }),
+  });
+}
+
+export async function updateCustomerContact(
+  customer: string,
+  data: { mobile_no?: string; email_id?: string }
+): Promise<CustomerContact> {
+  return apiRequest<CustomerContact>(`/api/method/${API}.update_customer_contact`, {
+    method: 'POST',
+    body: JSON.stringify({ customer, data }),
   });
 }
 
@@ -183,10 +207,12 @@ export async function fetchPrintFormats(doctype: string): Promise<string[]> {
 
 /** Upload a file to Frappe (returns file_url for Attach / Attach Image fields). */
 export async function uploadFile(file: File): Promise<string> {
+  const fileToUpload = await compressImageForUpload(file);
+
   await ensureCSRF();
   const csrf = (typeof window !== 'undefined' && (window as Record<string, unknown>).csrf_token) as string | undefined;
   const form = new FormData();
-  form.append('file', file);
+  form.append('file', fileToUpload);
   form.append('is_private', '0');
   form.append('folder', 'Home/Attachments');
   if (csrf) form.append('csrf_token', csrf);

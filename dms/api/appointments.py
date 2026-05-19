@@ -198,12 +198,11 @@ def create_appointment(data):
 	if vin_chassis and not vehicle:
 		frappe.throw(_("Selected vehicle has no linked model item. Update the VIN record first."))
 
-	doc = frappe.get_doc({
+	doc_data = {
 		"doctype": "Service Appointment",
 		"booking_source": data.get("booking_source", "Walk-in"),
 		"booking_reference": data.get("booking_reference"),
 		"appointment_date_time": data.get("appointment_date_time"),
-		"promised_delivery_date_time": data.get("promised_delivery_date_time"),
 		"estimated_duration_hours": data.get("estimated_duration_hours"),
 		"priority": data.get("priority", "Normal"),
 		"customer": data.get("customer"),
@@ -216,7 +215,13 @@ def create_appointment(data):
 		"preferred_technician": data.get("preferred_technician"),
 		"special_instructions": data.get("special_instructions"),
 		"mobile_no": data.get("mobile_no"),
-	})
+		"customer_email": data.get("customer_email"),
+	}
+	promised = (data.get("promised_delivery_date_time") or "").strip()
+	if promised:
+		doc_data["promised_delivery_date_time"] = promised
+
+	doc = frappe.get_doc(doc_data)
 
 	service_types = data.get("service_type_requested") or []
 	if not service_types:

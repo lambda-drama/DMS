@@ -176,7 +176,7 @@ export interface ServiceAppointment {
   booking_source: BookingSource;
   booking_reference?: string;
   appointment_date_time: string;
-  promised_delivery_date_time: string;
+  promised_delivery_date_time?: string;
   estimated_duration_hours?: number;
   priority: Priority;
   

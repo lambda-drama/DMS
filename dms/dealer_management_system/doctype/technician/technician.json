@@ -31,6 +31,9 @@
   "reports_to",
   "column_break_employment",
   "work_shift",
+  "custom_lunch_start",
+  "custom_lunch_end",
+  "work_shift_desscription",
   "weekly_off_days",
   "hourly_base_rate",
   "section_skills",
@@ -216,11 +219,22 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "Morning (8AM-4PM)",
+   "description": "Weekly working hours template (days, times, lunch). Create templates under Working Time.",
    "fieldname": "work_shift",
-   "fieldtype": "Select",
-   "label": "Work Shift",
-   "options": "Morning (8AM-4PM)\nAfternoon (4PM-12AM)\nNight (12AM-8AM)\nRotating\nCustom"
+   "fieldtype": "Link",
+   "label": "Working Schedule",
+   "options": "Working Time"
+  },
+  {
+   "description": "Optional. Use when this technician's lunch is at a different time than the schedule template (e.g. rotation).",
+   "fieldname": "custom_lunch_start",
+   "fieldtype": "Time",
+   "label": "Custom Lunch From"
+  },
+  {
+   "fieldname": "custom_lunch_end",
+   "fieldtype": "Time",
+   "label": "Custom Lunch To"
   },
   {
    "fieldname": "weekly_off_days",
@@ -473,12 +487,17 @@
   {
    "fieldname": "column_break_fktu",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "work_shift_desscription",
+   "fieldtype": "Small Text",
+   "label": "Schedule Notes"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-18 02:01:47.107811",
+ "modified": "2026-05-20 02:33:39.681045",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Technician",

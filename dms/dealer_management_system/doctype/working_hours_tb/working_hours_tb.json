@@ -1,0 +1,34 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-20 02:31:45.079335",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "working_hours"
+ ],
+ "fields": [
+  {
+   "fieldname": "working_hours",
+   "fieldtype": "Link",
+   "label": "Working Hours",
+   "options": "Working Time"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-20 02:32:09.968882",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Working Hours TB",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

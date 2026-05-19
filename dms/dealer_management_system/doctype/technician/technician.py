@@ -14,8 +14,22 @@ class Technician(Document):
 		"""Validate before saving"""
 		self.calculate_experience()
 		self.validate_certifications()
+		self.validate_custom_lunch()
 		self.update_performance_metrics()
 		self.full_name = self.get_full_name()
+
+	def validate_custom_lunch(self):
+		start, end = self.custom_lunch_start, self.custom_lunch_end
+		if start and not end:
+			frappe.throw(_("Set Custom Lunch To when Custom Lunch From is set."))
+		if end and not start:
+			frappe.throw(_("Set Custom Lunch From when Custom Lunch To is set."))
+		if start and end:
+			from frappe.utils import get_time
+
+			s, e = get_time(start), get_time(end)
+			if s and e and (e.hour, e.minute, e.second) <= (s.hour, s.minute, s.second):
+				frappe.throw(_("Custom lunch end must be after custom lunch start."))
 		# self.full_name()
 	
 	def on_update(self):

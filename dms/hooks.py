@@ -74,6 +74,9 @@ fixtures = [
     },
     {
         "doctype": "Bay Type"
+    },
+    {
+        "doctype":"Working Time"
     }
 ]
 

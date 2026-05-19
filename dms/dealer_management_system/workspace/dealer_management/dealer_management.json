@@ -18,7 +18,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Master",
-   "link_count": 9,
+   "link_count": 10,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -79,6 +79,16 @@
    "label": "Technician",
    "link_count": 0,
    "link_to": "Technician",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Advisor",
+   "link_count": 0,
+   "link_to": "Service Advisor",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"

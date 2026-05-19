@@ -347,6 +347,20 @@ export default function NewInspectionPage() {
     }
   };
 
+  const vinFromReturn = viewParams.get('vin');
+
+  useEffect(() => {
+    if (!vinFromReturn || vinFromReturn === selectedVehicle) return;
+    void handleVinSelect(vinFromReturn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once when returning from vehicle-new
+  }, [vinFromReturn]);
+
+  const goToNewVehicle = () => {
+    const params: Record<string, string> = { returnTo: 'inspection-new' };
+    if (appointmentId) params.appointment = appointmentId;
+    navigate('vehicle-new', params);
+  };
+
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomer(customerId);
     if (!customerId) {
@@ -632,10 +646,13 @@ export default function NewInspectionPage() {
                     onSearchChange={setVinSearch}
                     placeholder="Type at least 3 characters of VIN, chassis, or plate..."
                     isLoading={vinsLoading}
+                    onCreateNew={goToNewVehicle}
+                    createNewLabel="Register new vehicle"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Search and select the vehicle first. The registered owner fills in as customer when
-                    available; you can change or create a customer without clearing the VIN.
+                    Search and select the vehicle first, or use + to register a new VIN. The registered
+                    owner fills in as customer when available; you can change or create a customer without
+                    clearing the VIN.
                   </p>
                   {selectedVehicle && !customerVehicle && (
                     <p className="text-xs text-destructive">
