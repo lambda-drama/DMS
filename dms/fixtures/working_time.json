@@ -3,10 +3,21 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Working Time",
-  "modified": "2026-05-20 02:30:11.578915",
+  "modified": "2026-05-20 03:26:05.220212",
   "name": "Custom",
   "schedule": "Custom",
-  "weekly_schedule": []
+  "weekly_schedule": [
+   {
+    "day_of_week": "Monday",
+    "end_time": "19:49:00",
+    "has_lunch_break": 1,
+    "is_half_day": 0,
+    "lunch_end": "11:25:00",
+    "lunch_start": "9:25:00",
+    "notes": null,
+    "start_time": "7:25:00"
+   }
+  ]
  },
  {
   "description": "Monday to Friday 8:30am–5:30pm with 12:30–1:30pm lunch",

@@ -24,6 +24,7 @@ export function SignaturePad({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
+  const canvasReady = useRef(false);
   const [hasStrokes, setHasStrokes] = useState(false);
   const [mode, setMode] = useState<"idle" | "drawing" | "done">(
     existingUrl ? "done" : "idle"
@@ -33,7 +34,8 @@ export function SignaturePad({
     if (existingUrl) setMode("done");
   }, [existingUrl]);
 
-  const setupCanvas = useCallback(() => {
+  /** Size backing store to match displayed size; ctx works in CSS pixels. */
+  const setupCanvas = useCallback((clear = false) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
 
@@ -41,8 +43,11 @@ export function SignaturePad({
     if (rect.width < 1 || rect.height < 1) return null;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
+    const cssW = rect.width;
+    const cssH = rect.height;
+
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
@@ -54,69 +59,125 @@ export function SignaturePad({
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
+    if (clear) {
+      ctx.clearRect(0, 0, cssW, cssH);
+    }
+
+    canvasReady.current = true;
     return ctx;
   }, []);
 
-  /** Pointer position in CSS pixels (matches ctx after scale(dpr)). */
-  const getPos = (
-    e: React.MouseEvent | React.TouchEvent,
-    canvas: HTMLCanvasElement
-  ) => {
+  /**
+   * Map pointer to CSS-pixel coords on the canvas (same space as ctx after scale(dpr)).
+   * Prefer offsetX/offsetY when the event target is the canvas.
+   */
+  const getPos = useCallback((e: PointerEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
-    let clientX: number;
-    let clientY: number;
-
-    if ("touches" in e) {
-      const t = e.touches[0] ?? e.changedTouches?.[0];
-      if (!t) return { x: 0, y: 0 };
-      clientX = t.clientX;
-      clientY = t.clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
+    if (rect.width < 1 || rect.height < 1) {
+      return { x: 0, y: 0 };
     }
 
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+    if (e.target === canvas && Number.isFinite(e.offsetX) && Number.isFinite(e.offsetY)) {
+      return {
+        x: e.offsetX,
+        y: e.offsetY,
+      };
+    }
+
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+
+    return { x, y };
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "drawing") {
+      canvasReady.current = false;
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    setHasStrokes(false);
+
+    const runSetup = () => {
+      setupCanvas(true);
     };
-  };
 
-  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (disabled || uploading) return;
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    isDrawing.current = true;
-    const pos = getPos(e, canvas);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  };
+    runSetup();
+    const ro = new ResizeObserver(() => {
+      if (!isDrawing.current) {
+        setupCanvas(true);
+      }
+    });
+    ro.observe(container);
 
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    if (!isDrawing.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const pos = getPos(e, canvas);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    setHasStrokes(true);
-  };
+    const onPointerDown = (e: PointerEvent) => {
+      if (disabled || uploading) return;
+      if (e.pointerType === "touch" || e.pointerType === "pen") {
+        e.preventDefault();
+      }
 
-  const endDraw = () => {
-    isDrawing.current = false;
-  };
+      if (!canvasReady.current) {
+        setupCanvas(true);
+      }
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.setPointerCapture(e.pointerId);
+      isDrawing.current = true;
+
+      const pos = getPos(e, canvas);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDrawing.current) return;
+      if (e.pointerType === "touch" || e.pointerType === "pen") {
+        e.preventDefault();
+      }
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const pos = getPos(e, canvas);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      setHasStrokes(true);
+    };
+
+    const endStroke = (e: PointerEvent) => {
+      if (!isDrawing.current) return;
+      isDrawing.current = false;
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {
+        /* already released */
+      }
+    };
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", endStroke);
+    canvas.addEventListener("pointercancel", endStroke);
+    canvas.addEventListener("pointerleave", endStroke);
+
+    return () => {
+      ro.disconnect();
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", endStroke);
+      canvas.removeEventListener("pointercancel", endStroke);
+      canvas.removeEventListener("pointerleave", endStroke);
+    };
+  }, [mode, disabled, uploading, setupCanvas, getPos]);
 
   const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = setupCanvas();
-    if (!ctx) return;
+    setupCanvas(true);
     setHasStrokes(false);
     onClear?.();
   };
@@ -133,28 +194,6 @@ export function SignaturePad({
       setMode("done");
     }, "image/png");
   };
-
-  useEffect(() => {
-    if (mode !== "drawing") return;
-
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    const runSetup = () => {
-      requestAnimationFrame(() => {
-        setupCanvas();
-      });
-    };
-
-    setHasStrokes(false);
-    runSetup();
-
-    const ro = new ResizeObserver(runSetup);
-    ro.observe(container);
-
-    return () => ro.disconnect();
-  }, [mode, setupCanvas]);
 
   const resolveUrl = (url: string) => {
     if (url.startsWith("http") || url.startsWith("data:")) return url;
@@ -265,16 +304,8 @@ export function SignaturePad({
       </div>
       <canvas
         ref={canvasRef}
-        className="block h-36 w-full touch-none cursor-crosshair bg-white"
+        className="block h-36 w-full cursor-crosshair bg-white"
         style={{ touchAction: "none" }}
-        onMouseDown={startDraw}
-        onMouseMove={draw}
-        onMouseUp={endDraw}
-        onMouseLeave={endDraw}
-        onTouchStart={startDraw}
-        onTouchMove={draw}
-        onTouchEnd={endDraw}
-        onTouchCancel={endDraw}
       />
     </div>
   );
