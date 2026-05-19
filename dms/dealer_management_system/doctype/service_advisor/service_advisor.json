@@ -21,6 +21,9 @@
   "section_employment",
   "date_of_joining",
   "workshop",
+  "work_shift",
+  "custom_lunch_start",
+  "custom_lunch_end",
   "amended_from"
  ],
  "fields": [
@@ -112,6 +115,24 @@
    "fieldtype": "Link",
    "label": "Workshop",
    "options": "WorkShop"
+  },
+  {
+   "description": "Weekly working hours template (days, times, lunch). Create templates under Working Time.",
+   "fieldname": "work_shift",
+   "fieldtype": "Link",
+   "label": "Working Schedule",
+   "options": "Working Time"
+  },
+  {
+   "description": "Optional. Use when this advisor's lunch is at a different time than the schedule template.",
+   "fieldname": "custom_lunch_start",
+   "fieldtype": "Time",
+   "label": "Custom Lunch From"
+  },
+  {
+   "fieldname": "custom_lunch_end",
+   "fieldtype": "Time",
+   "label": "Custom Lunch To"
   },
   {
    "fieldname": "amended_from",

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import * as commonSvc from '@/services/common';
 import { useNavigation } from '@/contexts/navigation-context';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -100,6 +101,11 @@ export default function NewAppointmentPage() {
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [vinSearch, setVinSearch] = useState('');
+  const [customerContact, setCustomerContact] = useState({
+    mobile_no: '',
+    email_id: '',
+  });
+  const [loadingContact, setLoadingContact] = useState(false);
 
   const { data: customers } = useCustomers(customerSearch);
   const { data: vins } = useVINs(form.customer || undefined, vinSearch);
@@ -110,6 +116,40 @@ export default function NewAppointmentPage() {
 
   const selectedCustomer = customers?.find((c) => c.name === form.customer);
   const selectedVin = vins?.find((v) => v.name === form.vin_chassis);
+
+  useEffect(() => {
+    if (!form.customer) {
+      setCustomerContact({ mobile_no: '', email_id: '' });
+      return;
+    }
+    let cancelled = false;
+    setLoadingContact(true);
+    commonSvc
+      .fetchCustomerContact(form.customer)
+      .then((contact) => {
+        if (!cancelled) {
+          setCustomerContact({
+            mobile_no: contact.mobile_no || '',
+            email_id: contact.email_id || '',
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          const fallback = customers?.find((c) => c.name === form.customer);
+          setCustomerContact({
+            mobile_no: fallback?.mobile_no || '',
+            email_id: fallback?.email_id || '',
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingContact(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.customer, customers]);
 
   const handleAddService = (service: string) => {
     if (!selectedServices.includes(service)) {
@@ -142,11 +182,16 @@ export default function NewAppointmentPage() {
     }
 
     try {
+      await commonSvc.updateCustomerContact(form.customer, {
+        mobile_no: customerContact.mobile_no,
+        email_id: customerContact.email_id,
+      });
+
       await createAppointment({
         booking_source: form.booking_source,
         priority: form.priority,
         appointment_date_time: form.appointment_date_time,
-        promised_delivery_date_time: form.promised_delivery_date_time,
+        promised_delivery_date_time: form.promised_delivery_date_time || undefined,
         estimated_duration_hours: form.estimated_duration_hours,
         customer: form.customer,
         vehicle: form.vehicle,
@@ -156,6 +201,8 @@ export default function NewAppointmentPage() {
         customer_complaint_summary: form.customer_complaint_summary,
         preferred_advisor: form.preferred_advisor,
         special_instructions: form.special_instructions,
+        mobile_no: customerContact.mobile_no,
+        customer_email: customerContact.email_id,
         service_type_requested: selectedServices.map((s) => {
           const st = serviceTypes?.find((t) => t.name === s);
           return {
@@ -252,14 +299,16 @@ export default function NewAppointmentPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="promised_delivery">Promised Delivery Date & Time</Label>
+              <Label htmlFor="promised_delivery">Promised Delivery Date & Time (optional)</Label>
               <Input
                 id="promised_delivery"
                 type="datetime-local"
                 value={form.promised_delivery_date_time}
                 onChange={(e) => setForm((prev) => ({ ...prev, promised_delivery_date_time: e.target.value }))}
-                required
               />
+              <p className="text-xs text-muted-foreground">
+                Leave blank if delivery time is unknown until after diagnosis.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -370,21 +419,60 @@ export default function NewAppointmentPage() {
               </div>
             </div>
 
-            {/* Customer Info Display */}
-            {selectedCustomer && (
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="flex items-center gap-2 text-sm">
+            {form.customer && (
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{selectedCustomer.customer_name}</span>
+                    {selectedCustomer?.customer_name || form.customer}
+                  </p>
+                  {loadingContact && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Update contact details for this booking. Changes are saved to the customer record.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_mobile">Phone</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="customer_mobile"
+                        className="pl-9"
+                        type="tel"
+                        placeholder="Mobile number"
+                        value={customerContact.mobile_no}
+                        onChange={(e) =>
+                          setCustomerContact((prev) => ({
+                            ...prev,
+                            mobile_no: e.target.value,
+                          }))
+                        }
+                        disabled={loadingContact}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedCustomer.mobile_no || '—'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedCustomer.email_id || '—'}</span>
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="customer_email"
+                        className="pl-9"
+                        type="email"
+                        placeholder="Email address"
+                        value={customerContact.email_id}
+                        onChange={(e) =>
+                          setCustomerContact((prev) => ({
+                            ...prev,
+                            email_id: e.target.value,
+                          }))
+                        }
+                        disabled={loadingContact}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

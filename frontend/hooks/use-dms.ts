@@ -260,6 +260,28 @@ export function useServiceAdvisors() {
   );
 }
 
+export function useServiceAdvisorsList(search?: string, status?: string) {
+  return useSWR(
+    ['service-advisors-list', search, status],
+    () =>
+      import('@/services/serviceAdvisors').then((m) =>
+        m.listServiceAdvisors({ search, status: status ?? 'Active' })
+      ),
+    { dedupingInterval: 30000 }
+  );
+}
+
+export function useServiceAdvisorDetail(name: string | null) {
+  return useSWR(
+    name ? ['service-advisor', name] : null,
+    () =>
+      name
+        ? import('@/services/serviceAdvisors').then((m) => m.getServiceAdvisor(name))
+        : null,
+    { dedupingInterval: 30000 }
+  );
+}
+
 export function useTechnicians() {
   return useSWR<Technician[]>(
     'technicians',
@@ -314,6 +336,12 @@ export function useCompanies(search?: string) {
     () => commonSvc.fetchCompanies(search),
     { dedupingInterval: 30000 }
   );
+}
+
+export function useCurrencies() {
+  return useSWR<string[]>(['currencies'], () => commonSvc.fetchCurrencies(), {
+    dedupingInterval: 60000,
+  });
 }
 
 // ============ TECHNICIANS ============

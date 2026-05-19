@@ -32,6 +32,7 @@ const viewTitles: Record<string, string> = {
   'invoice-new': 'New Invoice',
   technicians: 'Technicians',
   'technician-detail': 'Technician Details',
+  'service-advisors': 'Service Advisors',
   customers: 'Customers',
   vehicles: 'Vehicles',
   'vehicle-new': 'New Vehicle',

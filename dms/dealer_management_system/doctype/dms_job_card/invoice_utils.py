@@ -692,3 +692,159 @@ def append_si_items(si, jc, warranty_application_type: str = ""):
 			},
 		)
 		_apply_stock_item_warehouse(row, erp_item, part, jc)
+
+
+def mark_sales_invoice_as_dms_ui_transaction(si) -> None:
+	"""Flag invoices created from the DMS frontend (standalone)."""
+	if frappe.get_meta("Sales Invoice").has_field("custom_is_dms_transaction"):
+		si.custom_is_dms_transaction = 1
+
+
+def _apply_standalone_stock_warehouse(si_row, erp_item: str, warehouse: str, company: str) -> None:
+	"""Set warehouse on Sales Invoice item row for stock spare parts."""
+	if not cint(frappe.db.get_value("Item", erp_item, "is_stock_item")):
+		return
+
+	wh = (warehouse or "").strip()
+	if not wh:
+		frappe.throw(
+			_("Warehouse is required for stock spare parts on standalone invoices."),
+			title=_("Warehouse required"),
+		)
+	if not frappe.db.exists("Warehouse", wh):
+		frappe.throw(_("Warehouse {0} not found.").format(frappe.bold(wh)))
+	if frappe.db.get_value("Warehouse", wh, "company") != company:
+		frappe.throw(
+			_("Warehouse {0} must belong to company {1}.").format(
+				frappe.bold(wh), frappe.bold(company)
+			)
+		)
+
+	si_row.warehouse = wh
+
+
+def create_standalone_dms_sales_invoice(
+	customer: str,
+	company: str,
+	labour_lines=None,
+	parts_lines=None,
+	warehouse: str | None = None,
+	currency: str | None = "ETB",
+	due_date: str | None = None,
+	posting_date: str | None = None,
+	remarks: str | None = None,
+	submit: bool = False,
+) -> str:
+	"""Create a Sales Invoice from DMS UI labour + parts (no job card)."""
+	_ensure_erpnext()
+
+	customer = (customer or "").strip()
+	company = (company or "").strip()
+	if not customer:
+		frappe.throw(_("Customer is required."))
+	if not company:
+		frappe.throw(_("Company is required."))
+	if not frappe.db.exists("Customer", customer):
+		frappe.throw(_("Customer {0} not found.").format(customer))
+
+	labour_lines = labour_lines or []
+	parts_lines = parts_lines or []
+	warehouse = (warehouse or "").strip()
+
+	needs_stock_warehouse = False
+	for row in parts_lines:
+		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+		if not spare_part:
+			continue
+		erp_item = spare_part_erp_item_code(spare_part)
+		if erp_item and cint(frappe.db.get_value("Item", erp_item, "is_stock_item")):
+			needs_stock_warehouse = True
+			break
+
+	if needs_stock_warehouse and not warehouse:
+		frappe.throw(
+			_("Select a warehouse for spare parts on this invoice."),
+			title=_("Warehouse required"),
+		)
+
+	si = frappe.new_doc("Sales Invoice")
+	if frappe.get_meta("Sales Invoice").has_field("custom_invoice_no"):
+		si.custom_invoice_no = _generate_invoice_no(company)
+	si.company = company
+	si.customer = customer
+	si.posting_date = posting_date or today()
+	si.due_date = due_date or si.posting_date
+	if remarks:
+		si.remarks = remarks
+	mark_sales_invoice_as_dms_ui_transaction(si)
+
+	invoice_currency = (currency or "ETB").strip() or "ETB"
+	if not frappe.db.exists("Currency", invoice_currency):
+		frappe.throw(_("Currency {0} is not defined in ERPNext.").format(frappe.bold(invoice_currency)))
+	si.currency = invoice_currency
+
+	for row in labour_lines:
+		vsi = (row.get("vehicle_service_item") or "").strip()
+		if not vsi:
+			continue
+		qty = flt(row.get("hours") or row.get("estimated_hours") or row.get("qty") or 0)
+		if qty <= 0:
+			continue
+		item_code = resolve_vehicle_service_item_to_item_code(vsi)
+		if not item_code:
+			frappe.throw(
+				_(
+					"Vehicle Service Item {0}: link to an ERP Item before invoicing."
+				).format(frappe.bold(vsi))
+			)
+		base_rate = flt(row.get("rate_per_hour") or row.get("rate") or 0)
+		if base_rate <= 0:
+			base_rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+		si.append(
+			"items",
+			{
+				"item_code": item_code,
+				"qty": qty,
+				"rate": base_rate,
+				"description": (row.get("description") or "")[:4096] or None,
+			},
+		)
+
+	for row in parts_lines:
+		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+		if not spare_part:
+			continue
+		qty = flt(row.get("qty") or row.get("quantity") or 0)
+		if qty <= 0:
+			continue
+		erp_item = spare_part_erp_item_code(spare_part)
+		if not erp_item:
+			frappe.throw(
+				_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part))
+			)
+		base_rate = flt(row.get("unit_price") or row.get("rate") or 0)
+		if base_rate <= 0:
+			base_rate = spare_part_default_selling_price(spare_part)
+		child = si.append(
+			"items",
+			{
+				"item_code": erp_item,
+				"qty": qty,
+				"rate": base_rate,
+			},
+		)
+		_apply_standalone_stock_warehouse(child, erp_item, warehouse, company)
+
+	if not si.get("items"):
+		frappe.throw(_("Add at least one labour or parts line to create an invoice."))
+
+	si.set_missing_values()
+	si.currency = invoice_currency
+	_apply_dms_settings_dimensions_to_sales_invoice(si, company)
+	si.run_method("calculate_taxes_and_totals")
+	si.insert()
+
+	if submit:
+		si.submit()
+
+	return si.name

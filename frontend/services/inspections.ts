@@ -42,7 +42,13 @@ export async function getCurrentServiceAdvisor(): Promise<{
   });
 }
 
-export async function createInspection(data: Partial<VehicleInspection>): Promise<{ name: string; customer: string; customer_name: string; inspection_date: string }> {
+export async function createInspection(data: Partial<VehicleInspection>): Promise<{
+  name: string;
+  docstatus: number;
+  customer: string;
+  customer_name: string;
+  inspection_date: string;
+}> {
   return apiRequest(`/api/method/${API}.create_inspection`, {
     method: 'POST',
     body: JSON.stringify({ data }),

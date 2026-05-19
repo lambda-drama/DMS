@@ -47,6 +47,45 @@ export async function getInvoicePreviewFromJobCard(
   );
 }
 
+export type StandaloneInvoiceLabourLine = {
+  vehicle_service_item: string;
+  hours?: number;
+  estimated_hours?: number;
+  rate_per_hour?: number;
+  description?: string;
+};
+
+export type StandaloneInvoicePartLine = {
+  spare_part: string;
+  qty?: number;
+  quantity?: number;
+  unit_price?: number;
+};
+
+export async function createStandaloneInvoice(data: {
+  customer: string;
+  company: string;
+  warehouse?: string;
+  currency?: string;
+  labour?: StandaloneInvoiceLabourLine[];
+  parts?: StandaloneInvoicePartLine[];
+  due_date?: string;
+  posting_date?: string;
+  remarks?: string;
+  submit?: boolean;
+}): Promise<{
+  name: string;
+  docstatus: number;
+  customer: string;
+  customer_name: string;
+  grand_total: number;
+}> {
+  return apiRequest(`/api/method/${API}.create_standalone_invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
 export async function createInvoiceFromJobCard(
   jobCard: string,
   options?: {

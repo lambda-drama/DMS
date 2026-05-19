@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useCustomers, useVehicleItems, useColors, useCompanies } from "@/hooks/use-dms";
 import * as vehiclesSvc from "@/services/vehicles";
@@ -34,8 +34,34 @@ const vehicleStatusOptions = [
 ];
 
 export default function NewVehiclePage() {
-  const { navigate } = useNavigation();
+  const { navigate, viewParams } = useNavigation();
   const { toast } = useToast();
+  const returnTo = viewParams.get("returnTo");
+  const returnAppointment = viewParams.get("appointment");
+
+  const returnTarget = useMemo(() => {
+    if (returnTo === "inspection-new") {
+      return {
+        view: "inspection-new" as const,
+        label: "Back to New Inspection",
+      };
+    }
+    return {
+      view: "vehicles" as const,
+      label: "Back to Vehicles",
+    };
+  }, [returnTo]);
+
+  const navigateAfterVehicle = (vinDocName?: string) => {
+    if (returnTarget.view === "inspection-new") {
+      const params: Record<string, string> = {};
+      if (returnAppointment) params.appointment = returnAppointment;
+      if (vinDocName) params.vin = vinDocName;
+      navigate("inspection-new", params);
+      return;
+    }
+    navigate("vehicles");
+  };
   const [saving, setSaving] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -110,7 +136,7 @@ export default function NewVehiclePage() {
         special_notes: form.special_notes || undefined,
       });
       toast({ title: `Vehicle ${result.name} created successfully` });
-      navigate("vehicles");
+      navigateAfterVehicle(result.name);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create vehicle";
       toast({ title: message, variant: "destructive" });
@@ -121,8 +147,8 @@ export default function NewVehiclePage() {
 
   return (
     <div className="dms-form-page space-y-6 max-w-4xl">
-      <Button variant="ghost" size="sm" onClick={() => navigate("vehicles")}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Vehicles
+      <Button variant="ghost" size="sm" onClick={() => navigateAfterVehicle()}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> {returnTarget.label}
       </Button>
 
       <div>

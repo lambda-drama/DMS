@@ -16,6 +16,7 @@ class VINNo(Document):
         self.calculate_warranty_status()
         self.calculate_next_service()
         self.validate_odometer()
+        self.sync_customer_history()
     
     def on_update(self):
         """After document is saved - create Serial No if needed"""
@@ -122,7 +123,135 @@ class VINNo(Document):
                     alert=True,
                     indicator="orange"
                 )
-    
+
+    # ========== CUSTOMER HISTORY ==========
+
+    def sync_customer_history(self):
+        """Keep customer_history in sync when current_customer changes."""
+        if frappe.flags.get("skip_vin_customer_history_sync"):
+            return
+        if not self.current_customer and not self.get("customer_history"):
+            return
+
+        if self.is_new():
+            if self.current_customer:
+                self._ensure_current_customer_history_row(self.current_customer)
+            return
+
+        before = self.get_doc_before_save()
+        previous_customer = (
+            before.current_customer
+            if before
+            else frappe.db.get_value("VIN No", self.name, "current_customer")
+        )
+        current_customer = self.current_customer
+
+        if previous_customer == current_customer:
+            if current_customer:
+                self._ensure_current_customer_history_row(current_customer)
+            return
+
+        # Archive former owner first (even if they only lived on current_customer).
+        if previous_customer and previous_customer != current_customer:
+            self._archive_customer_in_history(previous_customer)
+
+        if current_customer:
+            self._ensure_current_customer_history_row(current_customer)
+
+    def _customer_snapshot(self, customer):
+        if not customer:
+            return {}
+        return (
+            frappe.db.get_value(
+                "Customer",
+                customer,
+                ["customer_name", "mobile_no", "email_id", "tax_id"],
+                as_dict=True,
+            )
+            or {}
+        )
+
+    def _archive_customer_in_history(self, customer):
+        """Move a former owner into customer_history as a closed row."""
+        if not customer:
+            return
+
+        today = getdate(nowdate())
+        had_row = False
+        for row in self.customer_history or []:
+            if row.customer != customer:
+                continue
+            had_row = True
+            row.is_current = 0
+            if not row.to_date:
+                row.to_date = today
+
+        if had_row:
+            return
+
+        snap = self._customer_snapshot(customer)
+        self.append(
+            "customer_history",
+            {
+                "customer": customer,
+                "customer_name": snap.get("customer_name"),
+                "mobile_no": snap.get("mobile_no"),
+                "email_id": snap.get("email_id"),
+                "tax_id": snap.get("tax_id"),
+                "relationship": "Owner",
+                "from_date": self.delivery_date or today,
+                "to_date": today,
+                "is_current": 0,
+            },
+        )
+
+    def _ensure_current_customer_history_row(self, customer):
+        """One open history row for the active owner; demote all others."""
+        if not customer:
+            return
+
+        today = getdate(nowdate())
+        snap = self._customer_snapshot(customer)
+        matched = None
+
+        for row in self.customer_history or []:
+            if row.customer == customer:
+                matched = row
+                continue
+            if row.is_current:
+                row.is_current = 0
+                if not row.to_date:
+                    row.to_date = today
+
+        if matched:
+            matched.is_current = 1
+            matched.to_date = None
+            if snap.get("customer_name"):
+                matched.customer_name = snap.get("customer_name")
+            if snap.get("mobile_no"):
+                matched.mobile_no = snap.get("mobile_no")
+            if snap.get("email_id"):
+                matched.email_id = snap.get("email_id")
+            if snap.get("tax_id"):
+                matched.tax_id = snap.get("tax_id")
+            if not matched.from_date:
+                matched.from_date = today
+            return
+
+        self.append(
+            "customer_history",
+            {
+                "customer": customer,
+                "customer_name": snap.get("customer_name"),
+                "mobile_no": snap.get("mobile_no"),
+                "email_id": snap.get("email_id"),
+                "tax_id": snap.get("tax_id"),
+                "relationship": "Owner",
+                "from_date": today,
+                "is_current": 1,
+            },
+        )
+
     # ========== SERIAL NO METHODS ==========
     
     def create_serial_no(self):
@@ -305,7 +434,12 @@ class VINNo(Document):
                     serial_no.db_set(field, value)
         
         if needs_update:
-            serial_no.save(ignore_permissions=True)
+            # Avoid Serial No on_update syncing back and overwriting VIN (e.g. inspection owner change).
+            frappe.flags.skip_auto_vin_from_serial = True
+            try:
+                serial_no.save(ignore_permissions=True)
+            finally:
+                frappe.flags.skip_auto_vin_from_serial = False
     
     def _get_serial_status(self):
         """Map VIN status to Serial No status"""
@@ -357,16 +491,9 @@ class VINNo(Document):
     
     def transfer_ownership(self, new_customer_name, transfer_date):
         """Transfer vehicle to new owner"""
-        old_customer = self.current_customer
         self.current_customer = new_customer_name
-        
-        # Add to ownership history (requires child table)
-        self.append("ownership_history", {
-            "previous_owner": old_customer,
-            "new_owner": new_customer_name,
-            "transfer_date": transfer_date
-        })
-        
+        if transfer_date and not self.delivery_date:
+            self.delivery_date = transfer_date
         self.save(ignore_permissions=True)
         
         # Update Serial No

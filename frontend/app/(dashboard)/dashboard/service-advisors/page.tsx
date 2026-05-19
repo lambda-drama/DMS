@@ -1,0 +1,271 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useServiceAdvisorsList, useServiceAdvisorDetail } from "@/hooks/use-dms";
+import { CreateServiceAdvisorDialog } from "@/components/service-advisors/create-service-advisor-dialog";
+import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Search,
+  Plus,
+  Users,
+  Phone,
+  Mail,
+  Loader2,
+  UserCircle,
+} from "lucide-react";
+import type { ServiceAdvisorListItem } from "@/services/serviceAdvisors";
+
+const statusOptions = [
+  { value: "all", label: "All statuses" },
+  { value: "Active", label: "Active" },
+  { value: "On Leave", label: "On Leave" },
+  { value: "Inactive", label: "Inactive" },
+];
+
+function statusBadgeClass(status?: string) {
+  switch (status) {
+    case "Active":
+      return "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300";
+    case "On Leave":
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300";
+    case "Inactive":
+      return "bg-muted text-muted-foreground";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
+export default function ServiceAdvisorsPage() {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Active");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const { data: advisors, isLoading, error } = useServiceAdvisorsList(search, statusFilter);
+  const { data: selected, isLoading: detailLoading } = useServiceAdvisorDetail(selectedId);
+
+  const filtered = useMemo(() => {
+    if (!advisors) return [];
+    const s = search.trim().toLowerCase();
+    if (!s) return advisors;
+    return advisors.filter(
+      (a) =>
+        a.full_name?.toLowerCase().includes(s) ||
+        a.name?.toLowerCase().includes(s) ||
+        a.phone?.toLowerCase().includes(s) ||
+        a.email?.toLowerCase().includes(s)
+    );
+  }, [advisors, search]);
+
+  const activeCount = advisors?.filter((a) => a.status === "Active").length ?? 0;
+
+  return (
+    <div className="min-w-0 space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Service Advisors</h1>
+          <p className="text-muted-foreground">
+            Manage advisors assigned to appointments and job cards
+          </p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          New advisor
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2.5">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{advisors?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">
+                {activeCount} active
+                {statusFilter !== "all" ? ` · filter: ${statusFilter}` : ""}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, phone, or email..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading && (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-center text-sm text-destructive py-8">
+              Failed to load service advisors
+            </p>
+          )}
+
+          {!isLoading && !error && filtered.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <UserCircle className="h-12 w-12 mx-auto mb-3 opacity-40" />
+              <p>No service advisors found</p>
+              <Button variant="link" className="mt-2" onClick={() => setCreateOpen(true)}>
+                Create your first advisor
+              </Button>
+            </div>
+          )}
+
+          {!isLoading && filtered.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((advisor) => (
+                <AdvisorCard
+                  key={advisor.name}
+                  advisor={advisor}
+                  onSelect={() => setSelectedId(advisor.name)}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <CreateServiceAdvisorDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={() => setCreateOpen(false)}
+      />
+
+      <DetailSheet
+        open={Boolean(selectedId)}
+        onOpenChange={(open) => !open && setSelectedId(null)}
+        title={selected?.full_name || selectedId || "Service Advisor"}
+        description={selectedId || undefined}
+      >
+        {detailLoading && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {selected && !detailLoading && (
+          <>
+            <DetailSection title="Contact">
+              <DetailRow label="Phone" value={selected.phone} />
+              <DetailRow label="Email" value={selected.email} />
+            </DetailSection>
+            <DetailSection title="Employment">
+              <DetailRow label="Status" value={selected.status} />
+              <DetailRow label="Advisor code" value={selected.advisor_code} />
+              <DetailRow label="Workshop" value={selected.workshop} />
+              <DetailRow label="Working schedule" value={selected.work_shift} />
+              <DetailRow
+                label="Date of joining"
+                value={
+                  selected.date_of_joining
+                    ? new Date(selected.date_of_joining).toLocaleDateString()
+                    : undefined
+                }
+              />
+            </DetailSection>
+          </>
+        )}
+      </DetailSheet>
+    </div>
+  );
+}
+
+function AdvisorCard({
+  advisor,
+  onSelect,
+}: {
+  advisor: ServiceAdvisorListItem;
+  onSelect: () => void;
+}) {
+  const initials =
+    advisor.full_name
+      ?.split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?";
+
+  return (
+    <Card className="cursor-pointer transition-shadow hover:shadow-md" onClick={onSelect}>
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
+          <Avatar className="h-11 w-11">
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-semibold truncate">{advisor.full_name}</h3>
+              <Badge
+                variant="outline"
+                className={`shrink-0 ${statusBadgeClass(advisor.status)} border-0`}
+              >
+                {advisor.status || "—"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">{advisor.name}</p>
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+              {advisor.phone && (
+                <span className="flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" />
+                  {advisor.phone}
+                </span>
+              )}
+              {advisor.email && (
+                <span className="flex items-center gap-1.5 truncate">
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                  {advisor.email}
+                </span>
+              )}
+            </div>
+            {advisor.work_shift && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Schedule: {advisor.work_shift}
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

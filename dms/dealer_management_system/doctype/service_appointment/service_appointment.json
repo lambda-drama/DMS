@@ -129,8 +129,7 @@
    "description": "When customer expects vehicle back",
    "fieldname": "promised_delivery_date_time",
    "fieldtype": "Datetime",
-   "label": "Promised Delivery Date & Time",
-   "reqd": 1
+   "label": "Promised Delivery Date & Time"
   },
   {
    "default": "2.0",
@@ -578,7 +577,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-18 02:45:17.127723",
+ "modified": "2026-05-20 02:59:21.248444",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Appointment",

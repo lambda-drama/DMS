@@ -22,6 +22,7 @@ export function SignaturePad({
   className = "",
 }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
   const [hasStrokes, setHasStrokes] = useState(false);
   const [mode, setMode] = useState<"idle" | "drawing" | "done">(
@@ -32,32 +33,52 @@ export function SignaturePad({
     if (existingUrl) setMode("done");
   }, [existingUrl]);
 
-  const initCtx = useCallback(() => {
+  const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return null;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
     ctx.strokeStyle = "#1e293b";
     ctx.lineWidth = 2.2;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+
     return ctx;
   }, []);
 
-  const getPos = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
+  /** Pointer position in CSS pixels (matches ctx after scale(dpr)). */
+  const getPos = (
+    e: React.MouseEvent | React.TouchEvent,
+    canvas: HTMLCanvasElement
+  ) => {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    let clientX: number;
+    let clientY: number;
+
     if ("touches" in e) {
-      const t = e.touches[0];
-      return {
-        x: (t.clientX - rect.left) * scaleX,
-        y: (t.clientY - rect.top) * scaleY,
-      };
+      const t = e.touches[0] ?? e.changedTouches?.[0];
+      if (!t) return { x: 0, y: 0 };
+      clientX = t.clientX;
+      clientY = t.clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
     }
+
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: clientX - rect.left,
+      y: clientY - rect.top,
     };
   };
 
@@ -66,7 +87,7 @@ export function SignaturePad({
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = initCtx();
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
     isDrawing.current = true;
     const pos = getPos(e, canvas);
@@ -79,7 +100,7 @@ export function SignaturePad({
     if (!isDrawing.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = initCtx();
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const pos = getPos(e, canvas);
     ctx.lineTo(pos.x, pos.y);
@@ -94,9 +115,8 @@ export function SignaturePad({
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = setupCanvas();
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasStrokes(false);
     onClear?.();
   };
@@ -116,15 +136,25 @@ export function SignaturePad({
 
   useEffect(() => {
     if (mode !== "drawing") return;
+
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const runSetup = () => {
+      requestAnimationFrame(() => {
+        setupCanvas();
+      });
+    };
+
     setHasStrokes(false);
-  }, [mode]);
+    runSetup();
+
+    const ro = new ResizeObserver(runSetup);
+    ro.observe(container);
+
+    return () => ro.disconnect();
+  }, [mode, setupCanvas]);
 
   const resolveUrl = (url: string) => {
     if (url.startsWith("http") || url.startsWith("data:")) return url;
@@ -134,7 +164,9 @@ export function SignaturePad({
 
   if (uploading) {
     return (
-      <div className={`flex min-h-[120px] items-center justify-center rounded-lg border border-dashed bg-muted/30 ${className}`}>
+      <div
+        className={`flex min-h-[120px] items-center justify-center rounded-lg border border-dashed bg-muted/30 ${className}`}
+      >
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         <span className="ml-2 text-sm text-muted-foreground">Saving signature…</span>
       </div>
@@ -158,7 +190,9 @@ export function SignaturePad({
 
   if (mode === "done" && existingUrl) {
     return (
-      <div className={`flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-lg border border-[var(--dms-green)]/40 bg-[var(--dms-green-light)]/20 p-3 ${className}`}>
+      <div
+        className={`flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-lg border border-[var(--dms-green)]/40 bg-[var(--dms-green-light)]/20 p-3 ${className}`}
+      >
         <img
           src={resolveUrl(existingUrl)}
           alt="Customer signature"
@@ -184,7 +218,10 @@ export function SignaturePad({
   }
 
   return (
-    <div className={`flex w-full flex-col overflow-hidden rounded-lg border bg-card ${className}`}>
+    <div
+      ref={containerRef}
+      className={`flex w-full flex-col overflow-hidden rounded-lg border bg-card ${className}`}
+    >
       <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2">
         <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
           <PenLine className="h-3 w-3" />
@@ -228,7 +265,8 @@ export function SignaturePad({
       </div>
       <canvas
         ref={canvasRef}
-        className="h-28 w-full touch-none cursor-crosshair bg-white"
+        className="block h-36 w-full touch-none cursor-crosshair bg-white"
+        style={{ touchAction: "none" }}
         onMouseDown={startDraw}
         onMouseMove={draw}
         onMouseUp={endDraw}
@@ -236,6 +274,7 @@ export function SignaturePad({
         onTouchStart={startDraw}
         onTouchMove={draw}
         onTouchEnd={endDraw}
+        onTouchCancel={endDraw}
       />
     </div>
   );

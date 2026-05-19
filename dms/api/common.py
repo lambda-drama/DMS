@@ -56,6 +56,55 @@ def get_customers(search=None, limit=50, offset=0):
 
 
 @frappe.whitelist()
+def get_customer_contact(customer):
+	"""Phone and email for appointment / job card forms."""
+	if not customer:
+		frappe.throw(_("Customer is required"))
+	frappe.has_permission("Customer", "read", throw=True)
+	if not frappe.db.exists("Customer", customer):
+		frappe.throw(_("Customer {0} not found").format(customer))
+
+	row = frappe.db.get_value(
+		"Customer",
+		customer,
+		["mobile_no", "email_id"],
+		as_dict=True,
+	)
+	return {
+		"name": customer,
+		"mobile_no": (row.mobile_no or "").strip() if row else "",
+		"email_id": (row.email_id or "").strip() if row else "",
+	}
+
+
+@frappe.whitelist()
+def update_customer_contact(customer, data=None):
+	"""Update customer phone and email from DMS UI."""
+	import json
+
+	if isinstance(data, str):
+		data = json.loads(data) if data else {}
+	data = data or {}
+
+	if not customer:
+		frappe.throw(_("Customer is required"))
+	frappe.has_permission("Customer", "write", throw=True)
+	if not frappe.db.exists("Customer", customer):
+		frappe.throw(_("Customer {0} not found").format(customer))
+
+	updates = {}
+	if "mobile_no" in data:
+		updates["mobile_no"] = (data.get("mobile_no") or "").strip()
+	if "email_id" in data:
+		updates["email_id"] = (data.get("email_id") or "").strip()
+	if updates:
+		frappe.db.set_value("Customer", customer, updates, update_modified=True)
+
+	frappe.db.commit()
+	return get_customer_contact(customer)
+
+
+@frappe.whitelist()
 def get_vins(customer=None, search=None, limit=20):
 	filters = {}
 	if customer:
@@ -316,6 +365,61 @@ def get_warehouses(search=None, company=None, limit=20):
 	)
 
 	return warehouses
+
+
+@frappe.whitelist()
+def get_currencies():
+	"""Enabled ERPNext currencies for invoice / job card forms."""
+	rows = frappe.get_all(
+		"Currency",
+		filters={"enabled": 1},
+		fields=["name"],
+		order_by="name asc",
+	)
+	names = [r.name for r in rows]
+	if "ETB" in names:
+		names = ["ETB"] + [n for n in names if n != "ETB"]
+	elif not names:
+		names = ["ETB"]
+	return names
+
+
+@frappe.whitelist()
+def get_working_times():
+	"""Working Time schedule templates for technician / advisor assignment."""
+	rows = frappe.get_all(
+		"Working Time",
+		fields=["name", "schedule", "description"],
+		order_by="schedule asc",
+	)
+	out = []
+	for row in rows:
+		doc = frappe.get_doc("Working Time", row.name)
+		from dms.dealer_management_system.doctype.working_time.working_time import (
+			format_day_summary,
+		)
+
+		out.append(
+			{
+				"name": doc.name,
+				"schedule": doc.schedule,
+				"description": doc.description,
+				"days": [
+					{
+						"day_of_week": d.day_of_week,
+						"start_time": d.start_time,
+						"end_time": d.end_time,
+						"has_lunch_break": d.has_lunch_break,
+						"lunch_start": d.lunch_start,
+						"lunch_end": d.lunch_end,
+						"is_half_day": d.is_half_day,
+						"summary": format_day_summary(d),
+					}
+					for d in doc.weekly_schedule
+				],
+			}
+		)
+	return out
 
 
 @frappe.whitelist()
