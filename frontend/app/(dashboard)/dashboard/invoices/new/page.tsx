@@ -1,15 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useJobCard } from "@/hooks/use-dms";
-import * as jobCardsSvc from "@/services/jobCards";
+import {
+  useCompanies,
+  useCustomers,
+  useJobCard,
+  useSpareParts,
+  useVehicleServiceItems,
+  useWarehouses,
+  useCurrencies,
+} from "@/hooks/use-dms";
+import { SearchableSelect } from "@/components/searchable-select";
+import { LinkWithCreate } from "@/components/link-with-create";
+import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -17,205 +28,292 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Receipt, Car, User, FileText, Plus, Trash2 } from "lucide-react";
-import { FormActionsBar } from "@/components/layout/form-actions-bar";
+import { ArrowLeft, FileText, Plus, Receipt, Trash2, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import type { Invoice, InvoiceLine } from "@/types/dms";
+import { fetchLabourRate, fetchSparePartPrice } from "@/services/common";
+import * as invoicesSvc from "@/services/invoices";
 
-const paymentTerms = [
-  "Due on Receipt",
-  "Net 7",
-  "Net 14",
-  "Net 30",
-  "Net 60",
-];
+interface LabourRow {
+  vehicle_service_item: string;
+  vehicle_service_item_name: string;
+  estimated_hours: number;
+  rate_per_hour: number;
+}
+
+interface PartRow {
+  item_code: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+function defaultDueDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().split("T")[0];
+}
 
 export default function NewInvoicePage() {
   const { navigate, viewParams } = useNavigation();
   const jobCardId = viewParams.get("jobcard");
-  
+
   const { data: jobCard } = useJobCard(jobCardId || "");
   const [isMutating, setIsMutating] = useState(false);
 
-  const [formData, setFormData] = useState<Partial<Invoice>>({
-    job_card: "",
-    vehicle_registration: "",
-    customer_name: "",
-    customer_address: "",
-    contact_number: "",
-    email: "",
-    invoice_date: new Date().toISOString().split("T")[0],
-    due_date: "",
-    payment_terms: "Due on Receipt",
-    lines: [],
-    labour_total: 0,
-    parts_total: 0,
-    subtotal: 0,
-    tax_rate: 16,
-    tax_amount: 0,
-    discount_amount: 0,
-    total_amount: 0,
-    notes: "",
-  });
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [companySearch, setCompanySearch] = useState("");
+  const [warehouseSearch, setWarehouseSearch] = useState("");
+  const [serviceItemSearch, setServiceItemSearch] = useState("");
+  const [sparePartSearch, setSparePartSearch] = useState("");
 
-  const [newLine, setNewLine] = useState<Partial<InvoiceLine>>({
-    description: "",
-    line_type: "Labour",
+  const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
+  const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const [company, setCompany] = useState("");
+  const [warehouse, setWarehouse] = useState("");
+  const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
+    warehouseSearch,
+    company || undefined
+  );
+  const { data: serviceItems, isLoading: serviceItemsLoading } =
+    useVehicleServiceItems(serviceItemSearch);
+  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
+  const { data: currencies } = useCurrencies();
+
+  const [customer, setCustomer] = useState("");
+  const [customerMeta, setCustomerMeta] = useState<{
+    name: string;
+    customer_name: string;
+    mobile_no?: string;
+  } | null>(null);
+  const [currency, setCurrency] = useState("ETB");
+  const [postingDate, setPostingDate] = useState(new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState(defaultDueDate());
+  const [remarks, setRemarks] = useState("");
+  const [submitInvoice, setSubmitInvoice] = useState(true);
+
+  const [labourRows, setLabourRows] = useState<LabourRow[]>([]);
+  const [partRows, setPartRows] = useState<PartRow[]>([]);
+  const [newLabour, setNewLabour] = useState<LabourRow>({
+    vehicle_service_item: "",
+    vehicle_service_item_name: "",
+    estimated_hours: 0,
+    rate_per_hour: 0,
+  });
+  const [newPart, setNewPart] = useState<PartRow>({
+    item_code: "",
+    item_name: "",
     quantity: 1,
     unit_price: 0,
-    amount: 0,
   });
 
-  // Prefill from job card
   useEffect(() => {
-    if (jobCard) {
-      const labourLines: InvoiceLine[] = (jobCard.service_lines || []).map((sl, idx) => ({
-        idx: idx + 1,
-        description: sl.service_description,
-        line_type: "Labour" as const,
-        quantity: sl.actual_hours || sl.estimated_hours || 1,
-        unit_price: sl.labour_rate || 0,
-        amount: sl.actual_amount || sl.estimated_amount || 0,
-      }));
-
-      const partsLines: InvoiceLine[] = (jobCard.part_lines || []).map((pl, idx) => ({
-        idx: labourLines.length + idx + 1,
-        description: pl.part_name,
-        line_type: "Parts" as const,
-        quantity: pl.quantity || 1,
-        unit_price: pl.unit_price || 0,
-        amount: pl.amount || 0,
-        part_number: pl.part_number,
-      }));
-
-      const allLines = [...labourLines, ...partsLines];
-      const labourTotal = labourLines.reduce((sum, l) => sum + (l.amount || 0), 0);
-      const partsTotal = partsLines.reduce((sum, l) => sum + (l.amount || 0), 0);
-      const subtotal = labourTotal + partsTotal;
-      const taxAmount = subtotal * 0.16;
-      const totalAmount = subtotal + taxAmount;
-
-      setFormData((prev) => ({
-        ...prev,
-        job_card: jobCard.name,
-        vehicle_registration: jobCard.vehicle_registration,
-        vehicle_model: jobCard.vehicle_model,
-        customer_name: jobCard.customer_name,
-        contact_number: jobCard.contact_number || "",
-        email: jobCard.email || "",
-        lines: allLines,
-        labour_total: labourTotal,
-        parts_total: partsTotal,
-        subtotal,
-        tax_amount: taxAmount,
-        total_amount: totalAmount,
-      }));
+    if (!jobCard) return;
+    if (jobCard.customer) {
+      setCustomer(jobCard.customer);
+      setCustomerMeta({
+        name: jobCard.customer,
+        customer_name: jobCard.customer_name || jobCard.customer,
+      });
     }
+    if (jobCard.company) setCompany(jobCard.company);
+    const labour: LabourRow[] = (jobCard.service_lines || []).map((sl) => ({
+      vehicle_service_item: sl.vehicle_service_item || "",
+      vehicle_service_item_name: sl.service_name || sl.vehicle_service_item || "",
+      estimated_hours: sl.actual_hours || sl.estimated_hours || 1,
+      rate_per_hour: sl.labour_rate || 0,
+    }));
+    const parts: PartRow[] = (jobCard.part_lines || []).map((pl) => ({
+      item_code: pl.part_number || pl.item_code || "",
+      item_name: pl.part_name || "",
+      quantity: pl.quantity || 1,
+      unit_price: pl.unit_price || 0,
+    }));
+    setLabourRows(labour);
+    setPartRows(parts);
   }, [jobCard]);
 
-  const handleInputChange = (field: keyof Invoice, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  const customerSelectOptions = useMemo(() => {
+    const mapped =
+      customers?.map((c) => ({
+        value: c.name,
+        label: c.customer_name,
+        description: c.mobile_no || undefined,
+      })) || [];
+    if (customer && customerMeta && !mapped.some((o) => o.value === customer)) {
+      return [
+        {
+          value: customerMeta.name,
+          label: customerMeta.customer_name,
+          description: customerMeta.mobile_no,
+        },
+        ...mapped,
+      ];
+    }
+    return mapped;
+  }, [customers, customer, customerMeta]);
 
-  const addLine = () => {
-    if (!newLine.description) {
-      toast.error("Please enter a description");
+  const labourTotal = labourRows.reduce(
+    (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
+    0
+  );
+  const partsTotal = partRows.reduce((sum, r) => sum + r.quantity * r.unit_price, 0);
+  const subtotal = labourTotal + partsTotal;
+
+  const handleCustomerChange = (id: string) => {
+    setCustomer(id);
+    if (!id) {
+      setCustomerMeta(null);
       return;
     }
-    const amount = (newLine.quantity || 1) * (newLine.unit_price || 0);
-    const line: InvoiceLine = {
-      idx: (formData.lines?.length || 0) + 1,
-      description: newLine.description || "",
-      line_type: newLine.line_type || "Labour",
-      quantity: newLine.quantity || 1,
-      unit_price: newLine.unit_price || 0,
-      amount,
-    };
-    
-    const updatedLines = [...(formData.lines || []), line];
-    recalculateTotals(updatedLines);
-    
-    setNewLine({
-      description: "",
-      line_type: "Labour",
-      quantity: 1,
-      unit_price: 0,
-      amount: 0,
+    const match = customers?.find((c) => c.name === id);
+    if (match) {
+      setCustomerMeta({
+        name: match.name,
+        customer_name: match.customer_name,
+        mobile_no: match.mobile_no,
+      });
+    }
+  };
+
+  const handleCustomerCreated = (name: string, label?: string) => {
+    setCustomer(name);
+    setCustomerMeta({ name, customer_name: label || name });
+  };
+
+  const handleServiceItemSelect = async (itemName: string) => {
+    const item = serviceItems?.find((i) => i.name === itemName);
+    let rate = item?.custom_rate || 0;
+    if (!rate && itemName) {
+      try {
+        rate = await fetchLabourRate(itemName);
+      } catch {
+        /* ignore */
+      }
+    }
+    const estMinutes = parseFloat(item?.custom_estimated_timemin || "0") || 0;
+    const estHours = estMinutes > 0 ? Math.round((estMinutes / 60) * 10) / 10 : 0;
+    setNewLabour({
+      vehicle_service_item: itemName,
+      vehicle_service_item_name: item?.service_item || item?.custom_item_name || itemName,
+      estimated_hours: estHours || newLabour.estimated_hours,
+      rate_per_hour: rate || newLabour.rate_per_hour,
     });
   };
 
-  const removeLine = (idx: number) => {
-    const updatedLines = (formData.lines || []).filter((_, i) => i !== idx);
-    recalculateTotals(updatedLines);
+  const handleSparePartSelect = async (partName: string) => {
+    if (!partName) {
+      setNewPart({ item_code: "", item_name: "", quantity: 1, unit_price: 0 });
+      return;
+    }
+    const part = spareParts?.find((p) => p.name === partName);
+    let unitPrice = 0;
+    try {
+      unitPrice = await fetchSparePartPrice(partName);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not load part price");
+    }
+    setNewPart({
+      item_code: partName,
+      item_name: part?.item_name || partName,
+      quantity: 1,
+      unit_price: unitPrice,
+    });
   };
 
-  const recalculateTotals = (lines: InvoiceLine[]) => {
-    const labourTotal = lines.filter((l) => l.line_type === "Labour").reduce((sum, l) => sum + (l.amount || 0), 0);
-    const partsTotal = lines.filter((l) => l.line_type === "Parts").reduce((sum, l) => sum + (l.amount || 0), 0);
-    const subtotal = labourTotal + partsTotal;
-    const taxRate = formData.tax_rate || 16;
-    const taxAmount = subtotal * (taxRate / 100);
-    const discountAmount = formData.discount_amount || 0;
-    const totalAmount = subtotal + taxAmount - discountAmount;
-
-    setFormData((prev) => ({
-      ...prev,
-      lines,
-      labour_total: labourTotal,
-      parts_total: partsTotal,
-      subtotal,
-      tax_amount: taxAmount,
-      total_amount: totalAmount,
-    }));
+  const addLabourRow = () => {
+    if (!newLabour.vehicle_service_item) {
+      toast.error("Select a service item");
+      return;
+    }
+    if (newLabour.estimated_hours <= 0) {
+      toast.error("Enter hours");
+      return;
+    }
+    setLabourRows((prev) => [...prev, { ...newLabour }]);
+    setNewLabour({
+      vehicle_service_item: "",
+      vehicle_service_item_name: "",
+      estimated_hours: 0,
+      rate_per_hour: 0,
+    });
   };
 
-  const handleTaxChange = (rate: number) => {
-    const subtotal = formData.subtotal || 0;
-    const taxAmount = subtotal * (rate / 100);
-    const discountAmount = formData.discount_amount || 0;
-    const totalAmount = subtotal + taxAmount - discountAmount;
-
-    setFormData((prev) => ({
-      ...prev,
-      tax_rate: rate,
-      tax_amount: taxAmount,
-      total_amount: totalAmount,
-    }));
-  };
-
-  const handleDiscountChange = (discount: number) => {
-    const subtotal = formData.subtotal || 0;
-    const taxAmount = formData.tax_amount || 0;
-    const totalAmount = subtotal + taxAmount - discount;
-
-    setFormData((prev) => ({
-      ...prev,
-      discount_amount: discount,
-      total_amount: totalAmount,
-    }));
+  const addPartRow = () => {
+    if (!newPart.item_code) {
+      toast.error("Select a spare part");
+      return;
+    }
+    if (newPart.quantity <= 0) {
+      toast.error("Enter quantity");
+      return;
+    }
+    setPartRows((prev) => [...prev, { ...newPart }]);
+    setNewPart({ item_code: "", item_name: "", quantity: 1, unit_price: 0 });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.customer_name) {
-      toast.error("Please enter customer name");
+
+    if (jobCardId) {
+      setIsMutating(true);
+      try {
+        await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
+          dueDate,
+          submit: submitInvoice,
+        });
+        toast.success("Invoice created successfully");
+        navigate("invoices");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to create invoice");
+      } finally {
+        setIsMutating(false);
+      }
       return;
     }
-    if (!formData.lines || formData.lines.length === 0) {
-      toast.error("Please add at least one line item");
+
+    if (!customer) {
+      toast.error("Select a customer");
+      return;
+    }
+    if (!company) {
+      toast.error("Select a company");
+      return;
+    }
+    if (labourRows.length === 0 && partRows.length === 0) {
+      toast.error("Add at least one labour or parts line");
+      return;
+    }
+    if (partRows.length > 0 && !warehouse) {
+      toast.error("Select a warehouse for spare parts");
       return;
     }
 
     setIsMutating(true);
     try {
-      if (jobCardId) {
-        await jobCardsSvc.makeSalesInvoice(jobCardId);
-      }
+      await invoicesSvc.createStandaloneInvoice({
+        customer,
+        company,
+        warehouse: warehouse || undefined,
+        currency,
+        posting_date: postingDate,
+        due_date: dueDate,
+        remarks: remarks || undefined,
+        submit: submitInvoice,
+        labour: labourRows.map((r) => ({
+          vehicle_service_item: r.vehicle_service_item,
+          hours: r.estimated_hours,
+          rate_per_hour: r.rate_per_hour,
+        })),
+        parts: partRows.map((r) => ({
+          spare_part: r.item_code,
+          qty: r.quantity,
+          unit_price: r.unit_price,
+        })),
+      });
       toast.success("Invoice created successfully");
-      navigate('invoices');
-    } catch {
-      toast.error("Failed to create invoice");
+      navigate("invoices");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create invoice");
     } finally {
       setIsMutating(false);
     }
@@ -223,77 +321,51 @@ export default function NewInvoicePage() {
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('invoices')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("invoices")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">New Invoice</h1>
-          <p className="text-muted-foreground mt-1">Create a service invoice</p>
+          <p className="mt-1 text-muted-foreground">
+            {jobCardId ? "Create invoice from job card" : "Standalone aftersales invoice"}
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
-        {/* Job Card Link */}
         {jobCard && (
           <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-primary">
-                <FileText className="h-5 w-5" />
-                <span className="font-medium">Job Card: {jobCard.name}</span>
-                <span className="text-muted-foreground">|</span>
-                <span className="text-muted-foreground">{jobCard.service_type}</span>
-              </div>
+            <CardContent className="flex items-center gap-2 p-4 text-primary">
+              <FileText className="h-5 w-5" />
+              <span className="font-medium">Job Card: {jobCard.name}</span>
             </CardContent>
           </Card>
         )}
 
-        {/* Customer & Vehicle Info */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Customer Information
+                Customer
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="customer_name">Customer Name *</Label>
-                <Input
-                  id="customer_name"
-                  value={formData.customer_name}
-                  onChange={(e) => handleInputChange("customer_name", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customer_address">Address</Label>
-                <Textarea
-                  id="customer_address"
-                  rows={2}
-                  value={formData.customer_address}
-                  onChange={(e) => handleInputChange("customer_address", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contact_number">Phone</Label>
-                  <Input
-                    id="contact_number"
-                    value={formData.contact_number}
-                    onChange={(e) => handleInputChange("contact_number", e.target.value)}
+                <Label>Customer *</Label>
+                <LinkWithCreate doctype="Customer" onCreated={handleCustomerCreated}>
+                  <SearchableSelect
+                    options={customerSelectOptions}
+                    value={customer}
+                    valueLabel={customerMeta?.customer_name}
+                    onValueChange={handleCustomerChange}
+                    onSearchChange={setCustomerSearch}
+                    placeholder="Search customers..."
+                    isLoading={customersLoading}
+                    disabled={Boolean(jobCardId)}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                  />
-                </div>
+                </LinkWithCreate>
               </div>
             </CardContent>
           </Card>
@@ -302,107 +374,145 @@ export default function NewInvoicePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
-                Invoice Details
+                Invoice details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="invoice_date">Invoice Date</Label>
-                  <Input
-                    id="invoice_date"
-                    type="date"
-                    value={formData.invoice_date}
-                    onChange={(e) => handleInputChange("invoice_date", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="due_date">Due Date</Label>
-                  <Input
-                    id="due_date"
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => handleInputChange("due_date", e.target.value)}
-                  />
-                </div>
-              </div>
               <div className="space-y-2">
-                <Label htmlFor="payment_terms">Payment Terms</Label>
-                <Select
-                  value={formData.payment_terms}
-                  onValueChange={(v) => handleInputChange("payment_terms", v)}
-                >
-                  <SelectTrigger id="payment_terms">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentTerms.map((term) => (
-                      <SelectItem key={term} value={term}>
-                        {term}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Company *</Label>
+                <SearchableSelect
+                  options={
+                    companies?.map((c) => ({
+                      value: c.name,
+                      label: c.company_name || c.name,
+                    })) || []
+                  }
+                  value={company}
+                  onValueChange={(val) => {
+                    setCompany(val);
+                    setWarehouse("");
+                    setWarehouseSearch("");
+                  }}
+                  onSearchChange={setCompanySearch}
+                  placeholder="Select company..."
+                  isLoading={companiesLoading}
+                  disabled={Boolean(jobCardId)}
+                />
               </div>
-              {jobCard && (
+              {!jobCardId && (
                 <div className="space-y-2">
-                  <Label>Vehicle</Label>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
-                    <Car className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{formData.vehicle_registration}</span>
-                    <span className="text-muted-foreground">-</span>
-                    <span className="text-muted-foreground">{formData.vehicle_model}</span>
-                  </div>
+                  <Label>Currency *</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(currencies?.length ? currencies : ["ETB"]).map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
+              {!jobCardId && (
+                <div className="space-y-2">
+                  <Label>Warehouse{partRows.length > 0 ? " *" : ""}</Label>
+                  <SearchableSelect
+                    options={
+                      warehouses?.map((w) => ({
+                        value: w.name,
+                        label: w.warehouse_name || w.name,
+                      })) || []
+                    }
+                    value={warehouse}
+                    onValueChange={setWarehouse}
+                    onSearchChange={setWarehouseSearch}
+                    placeholder={company ? "Search warehouses..." : "Select company first"}
+                    isLoading={warehousesLoading}
+                    disabled={!company}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for spare parts on the invoice (stock items). Labour lines are not
+                    warehouse-specific.
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Posting date</Label>
+                  <Input
+                    type="date"
+                    value={postingDate}
+                    onChange={(e) => setPostingDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Due date</Label>
+                  <Input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="submit_invoice"
+                  checked={submitInvoice}
+                  onCheckedChange={(c) => setSubmitInvoice(Boolean(c))}
+                />
+                <Label htmlFor="submit_invoice" className="cursor-pointer font-normal">
+                  Submit invoice in ERPNext
+                </Label>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Invoice Lines */}
         <Card>
           <CardHeader>
-            <CardTitle>Invoice Lines</CardTitle>
-            <CardDescription>Add items to the invoice</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Labour
+            </CardTitle>
+            <CardDescription>Vehicle service items — rates load from item master</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Existing Lines */}
-            {formData.lines && formData.lines.length > 0 && (
-              <div className="border rounded-lg overflow-hidden">
+            {labourRows.length > 0 && (
+              <div className="overflow-hidden rounded-lg border">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="text-left p-3">Description</th>
-                      <th className="text-left p-3">Type</th>
-                      <th className="text-right p-3">Qty</th>
-                      <th className="text-right p-3">Unit Price</th>
-                      <th className="text-right p-3">Amount</th>
-                      <th className="p-3 w-10"></th>
+                      <th className="p-3 text-left">Service item</th>
+                      <th className="p-3 text-right">Hours</th>
+                      <th className="p-3 text-right">Rate/hr</th>
+                      <th className="p-3 text-right">Amount</th>
+                      <th className="w-10 p-3" />
                     </tr>
                   </thead>
                   <tbody>
-                    {formData.lines.map((line, idx) => (
+                    {labourRows.map((lr, idx) => (
                       <tr key={idx} className="border-t">
-                        <td className="p-3">{line.description}</td>
                         <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            line.line_type === "Labour" 
-                              ? "bg-[#1E88E5]/10 text-[#1E88E5]" 
-                              : "bg-[#2E7D32]/10 text-[#2E7D32]"
-                          }`}>
-                            {line.line_type}
-                          </span>
+                          {lr.vehicle_service_item_name || lr.vehicle_service_item}
                         </td>
-                        <td className="p-3 text-right">{line.quantity}</td>
-                        <td className="p-3 text-right">{line.unit_price?.toLocaleString()}</td>
-                        <td className="p-3 text-right font-medium">{line.amount?.toLocaleString()}</td>
+                        <td className="p-3 text-right">{lr.estimated_hours}</td>
+                        <td className="p-3 text-right">{lr.rate_per_hour.toLocaleString()}</td>
+                        <td className="p-3 text-right font-medium">
+                          {(lr.estimated_hours * lr.rate_per_hour).toLocaleString()}
+                        </td>
                         <td className="p-3">
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeLine(idx)}
                             className="h-8 w-8 text-destructive"
+                            onClick={() =>
+                              setLabourRows((prev) => prev.filter((_, i) => i !== idx))
+                            }
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -413,54 +523,56 @@ export default function NewInvoicePage() {
                 </table>
               </div>
             )}
-
-            {/* Add New Line */}
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-4 space-y-1">
-                <Label className="text-xs">Description</Label>
-                <Input
-                  placeholder="Item description"
-                  value={newLine.description}
-                  onChange={(e) => setNewLine((prev) => ({ ...prev, description: e.target.value }))}
+            <div className="grid grid-cols-12 items-end gap-2">
+              <div className="col-span-5 space-y-1">
+                <Label className="text-xs">Service item *</Label>
+                <SearchableSelect
+                  options={
+                    serviceItems?.map((si) => ({
+                      value: si.name,
+                      label: si.service_item || si.name,
+                      description: si.custom_rate ? `Rate: ${si.custom_rate}` : undefined,
+                    })) || []
+                  }
+                  value={newLabour.vehicle_service_item}
+                  onValueChange={handleServiceItemSelect}
+                  onSearchChange={setServiceItemSearch}
+                  placeholder="Search labour items..."
+                  isLoading={serviceItemsLoading}
                 />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Type</Label>
-                <Select
-                  value={newLine.line_type}
-                  onValueChange={(v) => setNewLine((prev) => ({ ...prev, line_type: v as "Labour" | "Parts" }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Labour">Labour</SelectItem>
-                    <SelectItem value="Parts">Parts</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Quantity</Label>
+                <Label className="text-xs">Hours</Label>
                 <Input
                   type="number"
                   step="0.5"
-                  placeholder="1"
-                  value={newLine.quantity || ""}
-                  onChange={(e) => setNewLine((prev) => ({ ...prev, quantity: parseFloat(e.target.value) || 1 }))}
+                  min={0}
+                  value={newLabour.estimated_hours || ""}
+                  onChange={(e) =>
+                    setNewLabour((p) => ({
+                      ...p,
+                      estimated_hours: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                 />
               </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Unit Price</Label>
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Rate/hr</Label>
                 <Input
                   type="number"
-                  placeholder="0"
-                  value={newLine.unit_price || ""}
-                  onChange={(e) => setNewLine((prev) => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))}
+                  min={0}
+                  value={newLabour.rate_per_hour || ""}
+                  onChange={(e) =>
+                    setNewLabour((p) => ({
+                      ...p,
+                      rate_per_hour: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                 />
               </div>
               <div className="col-span-2">
-                <Button type="button" onClick={addLine} className="w-full">
-                  <Plus className="h-4 w-4 mr-1" />
+                <Button type="button" onClick={addLabourRow} className="w-full">
+                  <Plus className="mr-1 h-4 w-4" />
                   Add
                 </Button>
               </div>
@@ -468,79 +580,156 @@ export default function NewInvoicePage() {
           </CardContent>
         </Card>
 
-        {/* Totals */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex justify-end">
-              <div className="w-full max-w-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Labour Total:</span>
-                  <span className="font-medium">{formData.labour_total?.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Parts Total:</span>
-                  <span className="font-medium">{formData.parts_total?.toLocaleString()}</span>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Subtotal:</span>
-                  <span className="font-medium">{formData.subtotal?.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Tax</span>
-                    <Input
-                      type="number"
-                      className="w-16 h-8 text-sm"
-                      value={formData.tax_rate}
-                      onChange={(e) => handleTaxChange(parseFloat(e.target.value) || 0)}
-                    />
-                    <span className="text-muted-foreground">%</span>
-                  </div>
-                  <span className="font-medium">{formData.tax_amount?.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">Discount:</span>
-                  <Input
-                    type="number"
-                    className="w-28 h-8 text-sm text-right"
-                    value={formData.discount_amount || ""}
-                    onChange={(e) => handleDiscountChange(parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg">Total:</span>
-                  <span className="font-bold text-xl text-primary">{formData.total_amount?.toLocaleString()}</span>
-                </div>
+          <CardHeader>
+            <CardTitle>Parts</CardTitle>
+            <CardDescription>
+              Spare parts — selling price from part master
+              {warehouse ? ` · Warehouse: ${warehouse}` : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {partRows.length > 0 && (
+              <div className="overflow-hidden rounded-lg border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Part</th>
+                      <th className="p-3 text-right">Qty</th>
+                      <th className="p-3 text-right">Unit price</th>
+                      <th className="p-3 text-right">Amount</th>
+                      <th className="w-10 p-3" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {partRows.map((pr, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="p-3">{pr.item_name || pr.item_code}</td>
+                        <td className="p-3 text-right">{pr.quantity}</td>
+                        <td className="p-3 text-right">{pr.unit_price.toLocaleString()}</td>
+                        <td className="p-3 text-right font-medium">
+                          {(pr.quantity * pr.unit_price).toLocaleString()}
+                        </td>
+                        <td className="p-3">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() =>
+                              setPartRows((prev) => prev.filter((_, i) => i !== idx))
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="grid grid-cols-12 items-end gap-2">
+              <div className="col-span-5 space-y-1">
+                <Label className="text-xs">Spare part *</Label>
+                <SearchableSelect
+                  options={
+                    spareParts?.map((p) => ({
+                      value: p.name,
+                      label: p.item_name || p.name,
+                      description: p.item_group,
+                    })) || []
+                  }
+                  value={newPart.item_code}
+                  onValueChange={handleSparePartSelect}
+                  onSearchChange={setSparePartSearch}
+                  placeholder="Search parts..."
+                  isLoading={sparePartsLoading}
+                />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Qty</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={newPart.quantity || ""}
+                  onChange={(e) =>
+                    setNewPart((p) => ({
+                      ...p,
+                      quantity: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </div>
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Unit price</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={newPart.unit_price || ""}
+                  onChange={(e) =>
+                    setNewPart((p) => ({
+                      ...p,
+                      unit_price: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </div>
+              <div className="col-span-2">
+                <Button type="button" onClick={addPartRow} className="w-full">
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Notes */}
+        <Card>
+          <CardContent className="flex justify-end p-6">
+            <div className="w-full max-w-sm space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Labour</span>
+                <span>{labourTotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Parts</span>
+                <span>{partsTotal.toLocaleString()}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-base font-semibold">
+                <span>Subtotal (excl. tax)</span>
+                <span>{subtotal.toLocaleString()}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tax and grand total are calculated in ERPNext on save.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Notes</CardTitle>
-            <CardDescription>Additional notes to appear on the invoice</CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
-              placeholder="Enter any notes for the customer..."
-              rows={3}
-              value={formData.notes}
-              onChange={(e) => handleInputChange("notes", e.target.value)}
+              rows={2}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Optional remarks on the invoice"
             />
           </CardContent>
         </Card>
 
         <FormActionsBar>
-          <Button type="button" variant="outline" onClick={() => navigate('invoices')}>
+          <Button type="button" variant="outline" onClick={() => navigate("invoices")}>
             Cancel
           </Button>
           <Button type="submit" disabled={isMutating}>
-            <Receipt className="h-4 w-4 mr-2" />
-            {isMutating ? "Creating..." : "Create Invoice"}
+            <Receipt className="mr-2 h-4 w-4" />
+            {isMutating ? "Creating…" : "Create invoice"}
           </Button>
         </FormActionsBar>
       </form>

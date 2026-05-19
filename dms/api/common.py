@@ -319,6 +319,23 @@ def get_warehouses(search=None, company=None, limit=20):
 
 
 @frappe.whitelist()
+def get_currencies():
+	"""Enabled ERPNext currencies for invoice / job card forms."""
+	rows = frappe.get_all(
+		"Currency",
+		filters={"enabled": 1},
+		fields=["name"],
+		order_by="name asc",
+	)
+	names = [r.name for r in rows]
+	if "ETB" in names:
+		names = ["ETB"] + [n for n in names if n != "ETB"]
+	elif not names:
+		names = ["ETB"]
+	return names
+
+
+@frappe.whitelist()
 def get_companies(search=None, limit=20):
 	allowed = get_dms_companies()
 

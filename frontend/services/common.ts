@@ -139,6 +139,13 @@ export async function fetchCompanies(search?: string): Promise<CompanyOption[]> 
   });
 }
 
+export async function fetchCurrencies(): Promise<string[]> {
+  return apiRequest<string[]>(`/api/method/${API}.get_currencies`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 /** Same pricing as ERPNext Job Card form — `dms.api.common.get_spare_part_price` → `spare_part_default_selling_price`. */
 export async function fetchSparePartPrice(sparePart: string): Promise<number> {
   const raw = await apiRequest<unknown>(`/api/method/${API}.get_spare_part_price`, {

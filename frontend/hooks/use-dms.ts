@@ -316,6 +316,12 @@ export function useCompanies(search?: string) {
   );
 }
 
+export function useCurrencies() {
+  return useSWR<string[]>(['currencies'], () => commonSvc.fetchCurrencies(), {
+    dedupingInterval: 60000,
+  });
+}
+
 // ============ TECHNICIANS ============
 
 export function useTechniciansList(options?: {
