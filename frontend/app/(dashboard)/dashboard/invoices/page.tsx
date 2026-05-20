@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { mutate } from "swr";
 import { useNavigation } from "@/contexts/navigation-context";
+import { usePermissions } from "@/contexts/permissions-context";
+import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useInvoices } from "@/hooks/use-dms";
+import { toast } from "sonner";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +34,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Plus,
   Search,
   Filter,
   MoreHorizontal,
@@ -42,12 +45,24 @@ import {
   DollarSign,
   Send,
   CreditCard,
+  XCircle,
+  Loader2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { ListRowActions } from "@/components/list-row-actions";
 import * as invoicesSvc from "@/services/invoices";
-import type { SalesInvoiceDetail } from "@/types/dms";
+import type { SalesInvoiceDetail, SalesInvoiceListItem } from "@/types/dms";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   Draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -74,7 +89,12 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelInvoiceId, setCancelInvoiceId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
+  const { canCancel } = usePermissions();
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -95,10 +115,49 @@ export default function InvoicesPage() {
     invoicesSvc.getSalesInvoiceDetail(selectedId).then(setInvoiceDetail).catch(() => setInvoiceDetail(null));
   }, [selectedId]);
 
-  const canCollectPayment =
-    invoiceDetail &&
-    invoiceDetail.docstatus === 1 &&
-    (invoiceDetail.outstanding_amount || 0) > 0;
+  const canCollectFor = (inv: Pick<SalesInvoiceListItem, "docstatus" | "outstanding_amount">) =>
+    inv.docstatus === 1 && (inv.outstanding_amount || 0) > 0;
+
+  const canCancelFor = (inv: Pick<SalesInvoiceListItem, "docstatus" | "status">) =>
+    canCancel("invoices") && inv.docstatus === 1 && inv.status !== "Cancelled";
+
+  const canCollectPayment = invoiceDetail ? canCollectFor(invoiceDetail) : false;
+  const canCancelInvoice = invoiceDetail ? canCancelFor(invoiceDetail) : false;
+
+  const openCollectPayment = (invoiceName: string) => {
+    setPaymentInvoiceId(invoiceName);
+    setShowPaymentDialog(true);
+  };
+
+  const openCancelInvoice = (invoiceName: string) => {
+    setCancelInvoiceId(invoiceName);
+    setShowCancelDialog(true);
+  };
+
+  const refreshAfterInvoiceAction = async (invoiceName: string) => {
+    await mutate((key) => Array.isArray(key) && key[0] === "invoices");
+    if (selectedId === invoiceName) {
+      const updated = await invoicesSvc.getSalesInvoiceDetail(invoiceName);
+      setInvoiceDetail(updated);
+    }
+  };
+
+  const handleCancelInvoice = async () => {
+    const target = cancelInvoiceId ?? selectedId;
+    if (!target) return;
+    setCancelling(true);
+    try {
+      await invoicesSvc.cancelSalesInvoice(target);
+      toast.success("Invoice cancelled");
+      setShowCancelDialog(false);
+      setCancelInvoiceId(null);
+      await refreshAfterInvoiceAction(target);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel invoice");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const stats = {
     total: invoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
@@ -119,10 +178,11 @@ export default function InvoicesPage() {
             Aftersales invoices linked to a job card (DMS)
           </p>
         </div>
-        <Button onClick={() => navigate('invoice-new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Invoice
-        </Button>
+        <PermittedCreateButton
+          module="invoices"
+          label="New Invoice"
+          onClick={() => navigate('invoice-new')}
+        />
       </div>
 
       {/* Stats */}
@@ -290,7 +350,7 @@ export default function InvoicesPage() {
                           <ListRowActions doctype="Sales Invoice" docName={invoice.name}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" title="More actions">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -299,6 +359,21 @@ export default function InvoicesPage() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   View
                                 </DropdownMenuItem>
+                                {canCollectFor(invoice) ? (
+                                  <DropdownMenuItem onClick={() => openCollectPayment(invoice.name)}>
+                                    <CreditCard className="h-4 w-4 mr-2" />
+                                    Collect payment
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {canCancelFor(invoice) ? (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => openCancelInvoice(invoice.name)}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Cancel invoice
+                                  </DropdownMenuItem>
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </ListRowActions>
@@ -333,10 +408,20 @@ export default function InvoicesPage() {
           selectedId ? (
             <div className="flex flex-col gap-2 w-full">
               <PrintFormatDropdown doctype="Sales Invoice" docName={selectedId} className="w-full" />
-              {canCollectPayment ? (
-                <Button className="w-full" onClick={() => setShowPaymentDialog(true)}>
+              {canCollectPayment && selectedId ? (
+                <Button className="w-full" onClick={() => openCollectPayment(selectedId)}>
                   <CreditCard className="h-4 w-4 mr-2" />
                   Collect Payment
+                </Button>
+              ) : null}
+              {canCancelInvoice && selectedId ? (
+                <Button
+                  variant="outline"
+                  className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={() => openCancelInvoice(selectedId)}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancel Invoice
                 </Button>
               ) : null}
             </div>
@@ -393,13 +478,55 @@ export default function InvoicesPage() {
         )}
       </DetailSheet>
 
-      {selectedId && (
+      <AlertDialog
+        open={showCancelDialog}
+        onOpenChange={(open) => {
+          setShowCancelDialog(open);
+          if (!open) setCancelInvoiceId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cancel <strong>{cancelInvoiceId ?? selectedId}</strong>? This reverses the submitted Sales Invoice
+              in ERPNext, same as cancelling from Desk. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>Keep invoice</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelling}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleCancelInvoice();
+              }}
+            >
+              {cancelling ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Cancelling…
+                </>
+              ) : (
+                "Cancel invoice"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {(paymentInvoiceId ?? selectedId) && (
         <CollectPaymentDialog
           open={showPaymentDialog}
-          onOpenChange={setShowPaymentDialog}
-          salesInvoice={selectedId}
+          onOpenChange={(open) => {
+            setShowPaymentDialog(open);
+            if (!open) setPaymentInvoiceId(null);
+          }}
+          salesInvoice={paymentInvoiceId ?? selectedId!}
           onPaid={() => {
-            invoicesSvc.getSalesInvoiceDetail(selectedId).then(setInvoiceDetail);
+            const id = paymentInvoiceId ?? selectedId;
+            if (id) void refreshAfterInvoiceAction(id);
           }}
         />
       )}

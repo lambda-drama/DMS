@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useTechniciansAvailability, useTechnicianDetail } from "@/hooks/use-dms";
+import { CreateTechnicianDialog } from "@/components/technicians/create-technician-dialog";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { TechnicianAvailabilityPanel } from "@/components/technicians/technician-availability-panel";
 import { Button } from "@/components/ui/button";
@@ -79,7 +81,7 @@ export default function TechniciansPage() {
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [viewDate, setViewDate] = useState(getTodayISO);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
+  const [createOpen, setCreateOpen] = useState(false);
   const { data: technicians, isLoading, error } = useTechniciansAvailability(viewDate);
   const { data: selectedTechnician, isLoading: detailLoading } = useTechnicianDetail(selectedId);
 
@@ -131,7 +133,18 @@ export default function TechniciansPage() {
             {!isViewingToday && " (not today)"}
           </p>
         </div>
+        <PermittedCreateButton
+          module="technicians"
+          label="New technician"
+          onClick={() => setCreateOpen(true)}
+        />
       </div>
+
+      <CreateTechnicianDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(name) => setSelectedId(name)}
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>

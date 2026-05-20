@@ -45,7 +45,13 @@ fixtures = [
                     "Item Group-custom_is_vehicle",
                     "Customer Group-custom_is_vehicle_customer",
                     "Warehouse-custom_is_dms_warehouse",
-                    "Sales Invoice-custom_dms_job_card"
+                    "Sales Invoice-custom_dms_job_card",
+                     "Vehicle Service Item-custom_sub_code",
+                    "Vehicle Service Item-custom_cat_code",
+                    "Vehicle Service Item-custom_frt",
+                    "Vehicle Service Item-custom_category",
+                    "Vehicle Service Item-custom_column_break_cgzhn",
+                    "Vehicle Service Item-custom_vehicle_model",
                 ]
             ]
         ]

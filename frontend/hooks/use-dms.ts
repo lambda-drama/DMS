@@ -252,6 +252,8 @@ export function useVehicleServiceTypes(search?: string) {
   );
 }
 
+export { usePermissions, useViewPermission } from '@/contexts/permissions-context';
+
 export function useServiceAdvisors() {
   return useSWR<ServiceAdvisor[]>(
     'service-advisors',

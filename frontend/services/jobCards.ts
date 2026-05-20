@@ -2,7 +2,7 @@
  * DMS Job Card service — calls whitelisted Python methods in dms.api.job_cards
  * and dms_job_card.py for workflow actions.
  */
-import { apiRequest, ensureCSRF } from './apiClient';
+import { apiRequest, ensureCSRF, clearCSRF } from './apiClient';
 import type { DMSJobCard, JobCardQCResult, PaginatedResponse, RoadTestItemResult } from '@/types/dms';
 
 const API = 'dms.api.job_cards';
@@ -335,21 +335,39 @@ export async function reworkCompleted(name: string): Promise<void> {
 // ─── Actions (Invoice & Delivery) ────────────────────────────
 
 export async function makeSalesInvoice(name: string): Promise<string> {
-  await ensureCSRF();
-  const csrf = (window as Record<string, unknown>).csrf_token as string;
-  const response = await fetch(`/api/method/${DT_PATH}.make_sales_invoice_from_job_card`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(csrf ? { 'X-Frappe-CSRF-Token': csrf } : {}),
-    },
-    body: JSON.stringify({ job_card: name }),
-  });
-  const resData = await response.json();
+  const run = async (isRetry: boolean) => {
+    await ensureCSRF(isRetry);
+    const csrf = (window as Record<string, unknown>).csrf_token as string | undefined;
+    const body = JSON.stringify({ job_card: name, ...(csrf ? { csrf_token: csrf } : {}) });
+    return fetch(`/api/method/${DT_PATH}.make_sales_invoice_from_job_card`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(csrf ? { 'X-Frappe-CSRF-Token': csrf } : {}),
+      },
+      body,
+    });
+  };
+
+  let response = await run(false);
+  let resData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const isCsrf =
+    response.status === 403 ||
+    (response.status === 400 &&
+      (resData.exc_type === 'CSRFTokenError' ||
+        String(resData.exc ?? '').includes('CSRFTokenError')));
+
+  if (!response.ok && isCsrf) {
+    clearCSRF();
+    response = await run(true);
+    resData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  }
+
   if (resData?.message) return resData.message as string;
-  throw new Error(resData?.exc || 'Failed to create sales invoice');
+  throw new Error(String(resData?.exc || resData?.exc_type || 'Failed to create sales invoice'));
 }
 
 export async function getPartStockAvailable(

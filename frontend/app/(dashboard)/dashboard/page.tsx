@@ -22,6 +22,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { useNavigation } from '@/contexts/navigation-context';
+import { usePermissions } from '@/contexts/permissions-context';
 import { useDashboard } from '@/hooks/use-dms';
 import type { JobCardStatus } from '@/types/dms';
 
@@ -56,6 +57,7 @@ function formatAppointmentsDelta(delta: number) {
 
 export default function DashboardPage() {
   const { navigate } = useNavigation();
+  const { canCreate, canAccessView } = usePermissions();
   const { data, isLoading, error } = useDashboard();
 
   const stats = data?.stats;
@@ -407,34 +409,42 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Button className="h-auto flex-col gap-2 p-6" onClick={() => navigate('appointment-new')}>
-          <Calendar className="h-6 w-6" />
-          <span>New Appointment</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-auto flex-col gap-2 p-6"
-          onClick={() => navigate('inspection-new')}
-        >
-          <Users className="h-6 w-6" />
-          <span>Walk-in Inspection</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-auto flex-col gap-2 p-6"
-          onClick={() => navigate('job-cards')}
-        >
-          <Wrench className="h-6 w-6" />
-          <span>View Job Cards</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-auto flex-col gap-2 p-6"
-          onClick={() => navigate('deliveries')}
-        >
-          <TrendingUp className="h-6 w-6" />
-          <span>Pending Deliveries</span>
-        </Button>
+        {canCreate('appointments') && (
+          <Button className="h-auto flex-col gap-2 p-6" onClick={() => navigate('appointment-new')}>
+            <Calendar className="h-6 w-6" />
+            <span>New Appointment</span>
+          </Button>
+        )}
+        {canCreate('inspections') && (
+          <Button
+            variant="outline"
+            className="h-auto flex-col gap-2 p-6"
+            onClick={() => navigate('inspection-new')}
+          >
+            <Users className="h-6 w-6" />
+            <span>Walk-in Inspection</span>
+          </Button>
+        )}
+        {canAccessView('job-cards') && (
+          <Button
+            variant="outline"
+            className="h-auto flex-col gap-2 p-6"
+            onClick={() => navigate('job-cards')}
+          >
+            <Wrench className="h-6 w-6" />
+            <span>View Job Cards</span>
+          </Button>
+        )}
+        {canAccessView('deliveries') && (
+          <Button
+            variant="outline"
+            className="h-auto flex-col gap-2 p-6"
+            onClick={() => navigate('deliveries')}
+          >
+            <TrendingUp className="h-6 w-6" />
+            <span>Pending Deliveries</span>
+          </Button>
+        )}
       </div>
     </div>
   );

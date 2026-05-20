@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useJobCards, useJobCard } from "@/hooks/use-dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
-  Plus,
   Search,
   Filter,
   MoreHorizontal,
@@ -204,10 +204,11 @@ export default function JobCardsPage() {
           <h1 className="text-2xl font-bold text-foreground">Job Cards</h1>
           <p className="text-muted-foreground mt-1">Manage workshop job cards and track repairs</p>
         </div>
-        <Button onClick={() => navigate("job-card-new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Job Card
-        </Button>
+        <PermittedCreateButton
+          module="job-cards"
+          label="New Job Card"
+          onClick={() => navigate("job-card-new")}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

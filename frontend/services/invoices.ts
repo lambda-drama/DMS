@@ -126,6 +126,18 @@ export async function listModesOfPayment(company?: string): Promise<ModeOfPaymen
   });
 }
 
+export async function cancelSalesInvoice(salesInvoice: string): Promise<{
+  name: string;
+  docstatus: number;
+  status: string;
+  outstanding_amount: number;
+}> {
+  return apiRequest(`/api/method/${API}.cancel_sales_invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ sales_invoice: salesInvoice }),
+  });
+}
+
 export async function collectPayment(params: {
   salesInvoice: string;
   modeOfPayment: string;

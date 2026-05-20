@@ -28,7 +28,8 @@ export async function login(
     throw new Error(err.message || 'Invalid credentials');
   }
 
-  await ensureCSRF();
+  clearCSRF();
+  await ensureCSRF(true);
   return getCurrentUserProfile();
 }
 

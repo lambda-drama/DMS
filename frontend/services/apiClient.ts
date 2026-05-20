@@ -1,16 +1,34 @@
 /**
- * Core API client following the healthcare app pattern.
- * Uses direct fetch() with credentials: 'include' and CSRF token handling.
- * No generic createDoc/getDoc abstractions — each service file calls
- * whitelisted methods or Frappe REST endpoints directly.
+ * Core API client following the healthcare / Frappe Desk pattern:
+ * direct fetch() with credentials, X-Frappe-CSRF-Token header, and csrf_token
+ * on JSON bodies (see frappe.auth.HTTPRequest.validate_csrf_token — form_dict).
  */
 
 let csrfFetchInFlight: Promise<string | null> | null = null;
 
-export async function ensureCSRF(): Promise<string | null> {
+function readCsrfFromMeta(): string | null {
+  if (typeof document === 'undefined') return null;
+  const el = document.querySelector('meta[name="csrf-token"]');
+  const c = el?.getAttribute('content');
+  return c && c.trim() ? c.trim() : null;
+}
+
+/**
+ * Resolve CSRF for session-based requests.
+ * @param forceRefresh Skip window/meta cache and fetch a fresh token from the server (after CSRF failures).
+ */
+export async function ensureCSRF(forceRefresh = false): Promise<string | null> {
   const win = typeof window !== 'undefined' ? (window as Record<string, unknown>) : null;
-  if (win?.csrf_token && typeof win.csrf_token === 'string') {
-    return win.csrf_token;
+
+  if (!forceRefresh) {
+    if (win?.csrf_token && typeof win.csrf_token === 'string') {
+      return win.csrf_token as string;
+    }
+    const meta = readCsrfFromMeta();
+    if (meta && win) {
+      win.csrf_token = meta;
+      return meta;
+    }
   }
 
   if (csrfFetchInFlight) return csrfFetchInFlight;
@@ -20,7 +38,7 @@ export async function ensureCSRF(): Promise<string | null> {
       const res = await fetch('/api/method/frappe.sessions.get_csrf_token', {
         credentials: 'include',
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const token = data?.message || null;
       if (token && win) {
         win.csrf_token = token;
@@ -46,6 +64,49 @@ function getCSRF(): string | null {
   return (win?.csrf_token as string) || null;
 }
 
+function mergeHeaders(
+  base: Record<string, string>,
+  extra?: HeadersInit
+): Record<string, string> {
+  const out: Record<string, string> = { ...base };
+  if (!extra) return out;
+  if (extra instanceof Headers) {
+    extra.forEach((v, k) => {
+      out[k] = v;
+    });
+    return out;
+  }
+  if (Array.isArray(extra)) {
+    for (const [k, v] of extra) {
+      out[k] = v;
+    }
+    return out;
+  }
+  Object.assign(out, extra as Record<string, string>);
+  return out;
+}
+
+/** Frappe merges JSON POST bodies into form_dict; csrf_token there satisfies validate_csrf_token. */
+function injectCsrfIntoJsonBody(
+  body: BodyInit | null | undefined,
+  csrf: string | null
+): BodyInit | null | undefined {
+  if (!csrf || body === undefined || body === null) return body;
+  if (typeof body !== 'string') return body;
+  try {
+    const parsed = JSON.parse(body) as unknown;
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return JSON.stringify({
+        ...(parsed as Record<string, unknown>),
+        csrf_token: csrf,
+      });
+    }
+  } catch {
+    /* not JSON */
+  }
+  return body;
+}
+
 function buildHeaders(method: string): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -56,6 +117,12 @@ function buildHeaders(method: string): Record<string, string> {
     if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
   }
   return headers;
+}
+
+function isCSRFErrorPayload(resData: Record<string, unknown>): boolean {
+  if (resData.exc_type === 'CSRFTokenError') return true;
+  const exc = String(resData.exc ?? '');
+  return exc.includes('CSRFTokenError');
 }
 
 function parseError(resData: Record<string, unknown>): string {
@@ -77,35 +144,50 @@ function parseError(resData: Record<string, unknown>): string {
 }
 
 /**
- * Core request wrapper with CSRF auto-retry.
- * Handles CSRF token injection, credentials, and error parsing.
+ * Core request wrapper with CSRF header + JSON body token and retry on CSRF failure.
+ * Frappe raises CSRFTokenError with HTTP 400 (not 403), so we retry on 400 + exc_type as well.
  */
 export async function apiRequest<T = unknown>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const method = options.method?.toUpperCase() || 'GET';
+  const method = (options.method?.toUpperCase() || 'GET') as string;
 
-  if (method !== 'GET') {
-    await ensureCSRF();
-  }
+  const run = async (isCsrfRetry: boolean): Promise<{ response: Response; resData: Record<string, unknown> }> => {
+    if (method !== 'GET') {
+      await ensureCSRF(isCsrfRetry);
+    }
 
-  options.headers = buildHeaders(method);
-  options.credentials = 'include';
+    const headers = mergeHeaders(buildHeaders(method), options.headers);
+    const csrf = method !== 'GET' ? getCSRF() : null;
+    const body =
+      method !== 'GET' ? injectCsrfIntoJsonBody(options.body ?? null, csrf) : options.body;
 
-  let response = await fetch(path, options);
+    const response = await fetch(path, {
+      ...options,
+      headers,
+      body: body ?? options.body,
+      credentials: 'include',
+    });
 
-  if (!response.ok && response.status === 403 && method !== 'GET') {
+    const resData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    return { response, resData };
+  };
+
+  let { response, resData } = await run(false);
+
+  if (
+    !response.ok &&
+    method !== 'GET' &&
+    (response.status === 403 ||
+      (response.status === 400 && isCSRFErrorPayload(resData)))
+  ) {
     clearCSRF();
-    await ensureCSRF();
-    options.headers = buildHeaders(method);
-    response = await fetch(path, options);
+    ({ response, resData } = await run(true));
   }
-
-  const resData = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(parseError(resData as Record<string, unknown>));
+    throw new Error(parseError(resData));
   }
 
   if (resData.data !== undefined) return resData.data as T;

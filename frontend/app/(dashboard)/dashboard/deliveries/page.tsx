@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useDeliveries } from "@/hooks/use-dms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,6 @@ import {
   DetailRow,
 } from "@/components/detail-sheet";
 import {
-  Plus,
   Search,
   MoreHorizontal,
   Eye,
@@ -73,10 +73,11 @@ export default function DeliveriesPage() {
           <h1 className="text-2xl font-bold text-foreground">Vehicle Deliveries</h1>
           <p className="text-muted-foreground mt-1">Manage vehicle delivery and handover</p>
         </div>
-        <Button onClick={() => navigate("delivery-new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Delivery
-        </Button>
+        <PermittedCreateButton
+          module="deliveries"
+          label="New Delivery"
+          onClick={() => navigate("delivery-new")}
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-4">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
+import { PermittedCreateButton } from '@/components/permitted-create-button';
 import { format } from 'date-fns';
 import { mutate } from 'swr';
 import { toast } from 'sonner';
@@ -35,7 +36,6 @@ import {
   Calendar,
   Clock,
   MoreHorizontal,
-  Plus,
   Search,
   Filter,
   Phone,
@@ -331,10 +331,11 @@ export default function AppointmentsPage() {
             <CardTitle>Service Appointments</CardTitle>
             <CardDescription>Manage customer service appointments</CardDescription>
           </div>
-          <Button onClick={() => navigate('appointment-new')}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Appointment
-          </Button>
+          <PermittedCreateButton
+            module="appointments"
+            label="New Appointment"
+            onClick={() => navigate('appointment-new')}
+          />
         </CardHeader>
         <CardContent>
           {/* Filters */}
