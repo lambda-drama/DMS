@@ -276,7 +276,7 @@
   "name": "Vehicle Service Item-custom_category",
   "no_copy": 0,
   "non_negative": 0,
-  "options": "Vehicle Service Category",
+  "options": "Vehicle Service Type",
   "permlevel": 0,
   "placeholder": null,
   "precision": "",
