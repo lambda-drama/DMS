@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
+import { usePermissions } from '@/contexts/permissions-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -58,6 +59,7 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, navigate } = useNavigation();
+  const { canAccessView } = usePermissions();
 
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
@@ -77,7 +79,13 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-6">
-          {navigation.map((section) => (
+          {navigation
+            .map((section) => ({
+              ...section,
+              items: section.items.filter((item) => canAccessView(item.view)),
+            }))
+            .filter((section) => section.items.length > 0)
+            .map((section) => (
             <div key={section.title}>
               <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
                 {section.title}

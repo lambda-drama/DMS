@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useVehicles, useVehicle } from "@/hooks/use-dms";
 import { PaginationControls } from "@/components/pagination-controls";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
@@ -25,7 +26,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Plus,
   Search,
   Car,
   Shield,
@@ -129,10 +129,11 @@ export default function VehiclesPage() {
               : "Manage vehicle inventory (VIN records)"}
           </p>
         </div>
-        <Button onClick={() => navigate("vehicle-new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Vehicle
-        </Button>
+        <PermittedCreateButton
+          module="vehicles"
+          label="New Vehicle"
+          onClick={() => navigate("vehicle-new")}
+        />
       </div>
 
       {/* Stats */}

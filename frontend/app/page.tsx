@@ -2,6 +2,8 @@
 
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { NavigationProvider, useNavigation } from '@/contexts/navigation-context';
+import { PermissionsProvider } from '@/contexts/permissions-context';
+import { PermissionGate } from '@/components/permission-gate';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -78,7 +80,7 @@ function AppContent() {
 
   return (
     <DashboardShell>
-      {renderView()}
+      <PermissionGate view={activeView || 'dashboard'}>{renderView()}</PermissionGate>
     </DashboardShell>
   );
 }
@@ -87,7 +89,9 @@ export default function Home() {
   return (
     <AuthProvider>
       <NavigationProvider>
-        <AppContent />
+        <PermissionsProvider>
+          <AppContent />
+        </PermissionsProvider>
       </NavigationProvider>
     </AuthProvider>
   );

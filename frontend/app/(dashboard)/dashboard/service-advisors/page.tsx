@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useServiceAdvisorsList, useServiceAdvisorDetail } from "@/hooks/use-dms";
 import { CreateServiceAdvisorDialog } from "@/components/service-advisors/create-service-advisor-dialog";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
+import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Search,
-  Plus,
   Users,
   Phone,
   Mail,
@@ -80,10 +80,11 @@ export default function ServiceAdvisorsPage() {
             Manage advisors assigned to appointments and job cards
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New advisor
-        </Button>
+        <PermittedCreateButton
+          module="service-advisors"
+          label="New advisor"
+          onClick={() => setCreateOpen(true)}
+        />
       </div>
 
       <Card>

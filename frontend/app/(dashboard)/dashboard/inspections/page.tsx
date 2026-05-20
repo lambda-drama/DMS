@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
+import { PermittedCreateButton } from '@/components/permitted-create-button';
 import { useInspections, useInspection } from '@/hooks/use-dms';
 import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
 import { format } from 'date-fns';
@@ -34,7 +35,6 @@ import {
 import {
   ClipboardCheck,
   MoreHorizontal,
-  Plus,
   Search,
   Filter,
   Car,
@@ -153,10 +153,11 @@ export default function InspectionsPage() {
             <CardTitle>Vehicle Inspections</CardTitle>
             <CardDescription>Vehicle intake inspections and condition reports</CardDescription>
           </div>
-          <Button onClick={() => navigate('inspection-new')}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Inspection
-          </Button>
+          <PermittedCreateButton
+            module="inspections"
+            label="New Inspection"
+            onClick={() => navigate('inspection-new')}
+          />
         </CardHeader>
         <CardContent>
           {/* Filters */}

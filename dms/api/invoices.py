@@ -13,6 +13,15 @@ def _ensure_erpnext():
 		frappe.throw(_("ERPNext must be installed for Sales Invoice and Payment Entry."))
 
 
+def _is_dms_sales_invoice(si) -> bool:
+	meta = frappe.get_meta("Sales Invoice")
+	if meta.has_field("custom_dms_job_card") and si.get("custom_dms_job_card"):
+		return True
+	if meta.has_field("custom_is_dms_transaction") and cint(si.get("custom_is_dms_transaction")):
+		return True
+	return False
+
+
 def _dms_sales_invoice_condition():
 	"""Invoices from a DMS job card and/or created from the DMS UI."""
 	si_meta = frappe.get_meta("Sales Invoice")
@@ -179,6 +188,35 @@ def get_sales_invoice_detail(sales_invoice):
 	if frappe.get_meta("Sales Invoice").has_field("custom_is_dms_transaction"):
 		result["is_dms_transaction"] = cint(si.get("custom_is_dms_transaction"))
 	return result
+
+
+@frappe.whitelist()
+def cancel_sales_invoice(sales_invoice):
+	"""Cancel a submitted DMS Sales Invoice (same as Desk cancel)."""
+	_ensure_erpnext()
+
+	name = (sales_invoice or "").strip()
+	if not name:
+		frappe.throw(_("Sales Invoice name is required."))
+
+	si = frappe.get_doc("Sales Invoice", name)
+	if not _is_dms_sales_invoice(si):
+		frappe.throw(_("This invoice was not created from DMS."))
+
+	if si.docstatus != 1:
+		frappe.throw(_("Only submitted invoices can be cancelled."))
+
+	si.check_permission("cancel")
+	si.cancel()
+	frappe.db.commit()
+	si.reload()
+
+	return {
+		"name": si.name,
+		"docstatus": si.docstatus,
+		"status": si.status,
+		"outstanding_amount": flt(si.outstanding_amount),
+	}
 
 
 @frappe.whitelist()
