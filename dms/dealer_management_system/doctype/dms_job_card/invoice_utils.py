@@ -700,6 +700,76 @@ def mark_sales_invoice_as_dms_ui_transaction(si) -> None:
 		si.custom_is_dms_transaction = 1
 
 
+def _normalize_standalone_discount(discount) -> dict | None:
+	"""Parse {type: percentage|amount, value: number} from API payload."""
+	if not discount:
+		return None
+	if isinstance(discount, str):
+		import json
+
+		try:
+			discount = json.loads(discount)
+		except Exception:
+			return None
+	if not isinstance(discount, dict):
+		return None
+	dtype = (discount.get("type") or discount.get("discount_type") or "").strip().lower()
+	if dtype not in ("percentage", "amount"):
+		return None
+	value = flt(discount.get("value") if discount.get("value") is not None else discount.get("discount_value"))
+	if value <= 0:
+		return None
+	return {"type": dtype, "value": value}
+
+
+def _sales_invoice_item_has_dms_discount_field() -> bool:
+	return frappe.get_meta("Sales Invoice Item").has_field("custom_dms_discount")
+
+
+def _standalone_line_discount_amount(
+	line_amount: float,
+	group_total: float,
+	discount: dict | None,
+) -> float:
+	"""
+	Discount amount for one Sales Invoice Item row (custom_dms_discount).
+	Percentage: % of line amount. Amount: proportional share of group discount.
+	"""
+	if not discount or line_amount <= 0:
+		return 0.0
+
+	dtype = discount["type"]
+	value = flt(discount["value"])
+	group_total = flt(group_total)
+
+	if dtype == "percentage":
+		pct = min(value, 100.0)
+		return flt(line_amount * pct / 100.0)
+
+	if dtype == "amount":
+		if group_total <= 0:
+			return 0.0
+		if value > group_total:
+			value = group_total
+		return flt(value * (flt(line_amount) / group_total))
+
+	return 0.0
+
+
+def _standalone_discounted_unit_rate(
+	qty: float,
+	base_rate: float,
+	line_amount: float,
+	group_total: float,
+	discount: dict | None,
+) -> float:
+	"""Net unit rate billed on Sales Invoice Item.rate (matches DMS UI totals)."""
+	if not discount or qty <= 0 or line_amount <= 0:
+		return flt(base_rate)
+	line_discount = _standalone_line_discount_amount(line_amount, group_total, discount)
+	return flt((flt(line_amount) - line_discount) / qty)
+
+
 def _apply_standalone_stock_warehouse(si_row, erp_item: str, warehouse: str, company: str) -> None:
 	"""Set warehouse on Sales Invoice item row for stock spare parts."""
 	if not cint(frappe.db.get_value("Item", erp_item, "is_stock_item")):
@@ -734,6 +804,8 @@ def create_standalone_dms_sales_invoice(
 	posting_date: str | None = None,
 	remarks: str | None = None,
 	submit: bool = False,
+	labour_discount=None,
+	parts_discount=None,
 ) -> str:
 	"""Create a Sales Invoice from DMS UI labour + parts (no job card)."""
 	_ensure_erpnext()
@@ -783,38 +855,98 @@ def create_standalone_dms_sales_invoice(
 		frappe.throw(_("Currency {0} is not defined in ERPNext.").format(frappe.bold(invoice_currency)))
 	si.currency = invoice_currency
 
-	for row in labour_lines:
+	labour_disc = _normalize_standalone_discount(labour_discount)
+	parts_disc = _normalize_standalone_discount(parts_discount)
+
+	def _standalone_labour_line_amount(row) -> tuple[float, float, float, str | None]:
 		vsi = (row.get("vehicle_service_item") or "").strip()
 		if not vsi:
-			continue
+			return 0.0, 0.0, 0.0, None
 		qty = flt(row.get("hours") or row.get("estimated_hours") or row.get("qty") or 0)
 		if qty <= 0:
-			continue
+			return 0.0, 0.0, 0.0, None
 		item_code = resolve_vehicle_service_item_to_item_code(vsi)
 		if not item_code:
-			frappe.throw(
-				_(
-					"Vehicle Service Item {0}: link to an ERP Item before invoicing."
-				).format(frappe.bold(vsi))
-			)
+			return 0.0, 0.0, 0.0, vsi
 		base_rate = flt(row.get("rate_per_hour") or row.get("rate") or 0)
 		if base_rate <= 0:
 			base_rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
-		si.append(
-			"items",
-			{
-				"item_code": item_code,
-				"qty": qty,
-				"rate": base_rate,
-				"description": (row.get("description") or "")[:4096] or None,
-			},
+		return qty, base_rate, qty * base_rate, None
+
+	def _standalone_parts_line_amount(row) -> tuple[float, float, float]:
+		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+		if not spare_part:
+			return 0.0, 0.0, 0.0
+		qty = flt(row.get("qty") or row.get("quantity") or 0)
+		if qty <= 0:
+			return 0.0, 0.0, 0.0
+		base_rate = flt(row.get("unit_price") or row.get("rate") or 0)
+		if base_rate <= 0:
+			base_rate = spare_part_default_selling_price(spare_part)
+		return qty, base_rate, qty * base_rate
+
+	labour_group_total = 0.0
+	for row in labour_lines:
+		_qty, _rate, amount, _missing = _standalone_labour_line_amount(row)
+		labour_group_total += amount
+
+	parts_group_total = 0.0
+	for row in parts_lines:
+		_qty, _rate, amount = _standalone_parts_line_amount(row)
+		parts_group_total += amount
+
+	if labour_disc and labour_disc["type"] == "amount" and flt(labour_disc["value"]) > labour_group_total:
+		frappe.throw(
+			_("Labour discount amount cannot exceed labour total ({0}).").format(
+				labour_group_total
+			)
 		)
+	if parts_disc and parts_disc["type"] == "amount" and flt(parts_disc["value"]) > parts_group_total:
+		frappe.throw(
+			_("Parts discount amount cannot exceed parts total ({0}).").format(
+				parts_group_total
+			)
+		)
+
+	use_dms_discount_field = _sales_invoice_item_has_dms_discount_field()
+	item_final_rates: list[float] = []
+	item_dms_discounts: list[float] = []
+
+	for row in labour_lines:
+		qty, base_rate, line_amount, missing_vsi = _standalone_labour_line_amount(row)
+		if missing_vsi:
+			frappe.throw(
+				_(
+					"Vehicle Service Item {0}: link to an ERP Item before invoicing."
+				).format(frappe.bold(missing_vsi))
+			)
+		if qty <= 0:
+			continue
+		vsi = (row.get("vehicle_service_item") or "").strip()
+		item_code = resolve_vehicle_service_item_to_item_code(vsi)
+		line_discount = _standalone_line_discount_amount(
+			line_amount, labour_group_total, labour_disc
+		)
+		final_rate = _standalone_discounted_unit_rate(
+			qty, base_rate, line_amount, labour_group_total, labour_disc
+		)
+		item_final_rates.append(final_rate)
+		item_dms_discounts.append(line_discount)
+		item_row = {
+			"item_code": item_code,
+			"qty": qty,
+			"rate": final_rate,
+			"description": (row.get("description") or "")[:4096] or None,
+		}
+		if use_dms_discount_field:
+			item_row["custom_dms_discount"] = line_discount
+		si.append("items", item_row)
 
 	for row in parts_lines:
 		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
 		if not spare_part:
 			continue
-		qty = flt(row.get("qty") or row.get("quantity") or 0)
+		qty, base_rate, line_amount = _standalone_parts_line_amount(row)
 		if qty <= 0:
 			continue
 		erp_item = spare_part_erp_item_code(spare_part)
@@ -822,25 +954,45 @@ def create_standalone_dms_sales_invoice(
 			frappe.throw(
 				_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part))
 			)
-		base_rate = flt(row.get("unit_price") or row.get("rate") or 0)
-		if base_rate <= 0:
-			base_rate = spare_part_default_selling_price(spare_part)
-		child = si.append(
-			"items",
-			{
-				"item_code": erp_item,
-				"qty": qty,
-				"rate": base_rate,
-			},
+		line_discount = _standalone_line_discount_amount(
+			line_amount, parts_group_total, parts_disc
 		)
+		final_rate = _standalone_discounted_unit_rate(
+			qty, base_rate, line_amount, parts_group_total, parts_disc
+		)
+		item_final_rates.append(final_rate)
+		item_dms_discounts.append(line_discount)
+		item_row = {
+			"item_code": erp_item,
+			"qty": qty,
+			"rate": final_rate,
+		}
+		if use_dms_discount_field:
+			item_row["custom_dms_discount"] = line_discount
+		child = si.append("items", item_row)
 		_apply_standalone_stock_warehouse(child, erp_item, warehouse, company)
 
 	if not si.get("items"):
 		frappe.throw(_("Add at least one labour or parts line to create an invoice."))
 
+	if hasattr(si, "ignore_pricing_rule"):
+		si.ignore_pricing_rule = 1
+
 	si.set_missing_values()
 	si.currency = invoice_currency
 	_apply_dms_settings_dimensions_to_sales_invoice(si, company)
+
+	# set_missing_values() may reset rates — re-apply net rate; custom_dms_discount is audit-only.
+	for idx, item_row in enumerate(si.get("items") or []):
+		if idx < len(item_final_rates):
+			final_rate = item_final_rates[idx]
+			item_row.rate = final_rate
+			item_row.price_list_rate = final_rate
+			item_row.discount_percentage = 0
+			item_row.discount_amount = 0
+			if use_dms_discount_field and idx < len(item_dms_discounts):
+				item_row.custom_dms_discount = item_dms_discounts[idx]
+
 	si.run_method("calculate_taxes_and_totals")
 	si.insert()
 

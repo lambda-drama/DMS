@@ -133,6 +133,8 @@ def create_standalone_invoice(data):
 		posting_date=data.get("posting_date"),
 		remarks=data.get("remarks"),
 		submit=cint(data.get("submit", 1)),
+		labour_discount=data.get("labour_discount"),
+		parts_discount=data.get("parts_discount"),
 	)
 
 	si = frappe.get_doc("Sales Invoice", name)
