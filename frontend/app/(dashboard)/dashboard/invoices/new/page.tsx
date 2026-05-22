@@ -32,6 +32,12 @@ import { ArrowLeft, FileText, Plus, Receipt, Trash2, User, Wrench } from "lucide
 import { toast } from "sonner";
 import { fetchLabourRate, fetchSparePartPrice } from "@/services/common";
 import * as invoicesSvc from "@/services/invoices";
+import {
+  buildGroupDiscountPayload,
+  groupDiscountAmount,
+  parseDiscountValue,
+  type InvoiceDiscountMode,
+} from "@/lib/invoice-discount";
 
 interface LabourRow {
   vehicle_service_item: string;
@@ -51,6 +57,76 @@ function defaultDueDate() {
   const d = new Date();
   d.setDate(d.getDate() + 30);
   return d.toISOString().split("T")[0];
+}
+
+function GroupDiscountFields({
+  label,
+  mode,
+  onModeChange,
+  value,
+  onValueChange,
+  subtotal,
+}: {
+  label: string;
+  mode: InvoiceDiscountMode;
+  onModeChange: (m: InvoiceDiscountMode) => void;
+  value: string;
+  onValueChange: (v: string) => void;
+  subtotal: number;
+}) {
+  const discountVal = parseDiscountValue(mode, value);
+  const discountAmt = groupDiscountAmount(subtotal, mode, discountVal);
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+      <p className="text-sm font-medium">{label} discount</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label className="text-xs">Type</Label>
+          <Select
+            value={mode}
+            onValueChange={(v) => onModeChange(v as InvoiceDiscountMode)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No discount</SelectItem>
+              <SelectItem value="percentage">Percentage (%)</SelectItem>
+              <SelectItem value="amount">Amount</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {mode !== "none" && (
+          <div className="space-y-2">
+            <Label className="text-xs">
+              {mode === "percentage"
+                ? `Percent off ${label.toLowerCase()} total`
+                : `Amount off ${label.toLowerCase()} total`}
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              max={mode === "percentage" ? 100 : subtotal || undefined}
+              step={mode === "percentage" ? 0.01 : 0.01}
+              value={value}
+              onChange={(e) => onValueChange(e.target.value)}
+              placeholder={mode === "percentage" ? "e.g. 15" : "e.g. 500"}
+            />
+          </div>
+        )}
+      </div>
+      {mode !== "none" && discountAmt > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Reduces {label.toLowerCase()} totals here; the invoice is saved with discounted line
+          rates. Per-line DMS Discount on the invoice is for audit only.
+          {mode === "percentage"
+            ? ` −${discountAmt.toLocaleString()} (${discountVal}%)`
+            : ` −${discountAmt.toLocaleString()}`}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function NewInvoicePage() {
@@ -93,6 +169,10 @@ export default function NewInvoicePage() {
 
   const [labourRows, setLabourRows] = useState<LabourRow[]>([]);
   const [partRows, setPartRows] = useState<PartRow[]>([]);
+  const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>("none");
+  const [labourDiscountInput, setLabourDiscountInput] = useState("");
+  const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>("none");
+  const [partsDiscountInput, setPartsDiscountInput] = useState("");
   const [newLabour, setNewLabour] = useState<LabourRow>({
     vehicle_service_item: "",
     vehicle_service_item_name: "",
@@ -157,7 +237,22 @@ export default function NewInvoicePage() {
     0
   );
   const partsTotal = partRows.reduce((sum, r) => sum + r.quantity * r.unit_price, 0);
-  const subtotal = labourTotal + partsTotal;
+  const labourDiscountValue = parseDiscountValue(labourDiscountMode, labourDiscountInput);
+  const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
+  const labourDiscountTotal = groupDiscountAmount(
+    labourTotal,
+    labourDiscountMode,
+    labourDiscountValue
+  );
+  const partsDiscountTotal = groupDiscountAmount(
+    partsTotal,
+    partsDiscountMode,
+    partsDiscountValue
+  );
+  const labourNet = labourTotal - labourDiscountTotal;
+  const partsNet = partsTotal - partsDiscountTotal;
+  const subtotal = labourNet + partsNet;
+  const isStandalone = !jobCardId;
 
   const handleCustomerChange = (id: string) => {
     setCustomer(id);
@@ -288,6 +383,31 @@ export default function NewInvoicePage() {
       return;
     }
 
+    if (
+      labourDiscountMode === "amount" &&
+      labourDiscountValue > labourTotal &&
+      labourTotal > 0
+    ) {
+      toast.error("Labour discount cannot exceed labour total");
+      return;
+    }
+    if (
+      partsDiscountMode === "amount" &&
+      partsDiscountValue > partsTotal &&
+      partsTotal > 0
+    ) {
+      toast.error("Parts discount cannot exceed parts total");
+      return;
+    }
+    if (labourDiscountMode === "percentage" && labourDiscountValue > 100) {
+      toast.error("Labour discount percentage cannot exceed 100%");
+      return;
+    }
+    if (partsDiscountMode === "percentage" && partsDiscountValue > 100) {
+      toast.error("Parts discount percentage cannot exceed 100%");
+      return;
+    }
+
     setIsMutating(true);
     try {
       await invoicesSvc.createStandaloneInvoice({
@@ -299,6 +419,8 @@ export default function NewInvoicePage() {
         due_date: dueDate,
         remarks: remarks || undefined,
         submit: submitInvoice,
+        labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
+        parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
         labour: labourRows.map((r) => ({
           vehicle_service_item: r.vehicle_service_item,
           hours: r.estimated_hours,
@@ -577,6 +699,19 @@ export default function NewInvoicePage() {
                 </Button>
               </div>
             </div>
+            {isStandalone && labourRows.length > 0 && (
+              <GroupDiscountFields
+                label="Labour"
+                mode={labourDiscountMode}
+                onModeChange={(m) => {
+                  setLabourDiscountMode(m);
+                  if (m === "none") setLabourDiscountInput("");
+                }}
+                value={labourDiscountInput}
+                onValueChange={setLabourDiscountInput}
+                subtotal={labourTotal}
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -683,6 +818,19 @@ export default function NewInvoicePage() {
                 </Button>
               </div>
             </div>
+            {isStandalone && partRows.length > 0 && (
+              <GroupDiscountFields
+                label="Parts"
+                mode={partsDiscountMode}
+                onModeChange={(m) => {
+                  setPartsDiscountMode(m);
+                  if (m === "none") setPartsDiscountInput("");
+                }}
+                value={partsDiscountInput}
+                onValueChange={setPartsDiscountInput}
+                subtotal={partsTotal}
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -693,10 +841,34 @@ export default function NewInvoicePage() {
                 <span className="text-muted-foreground">Labour</span>
                 <span>{labourTotal.toLocaleString()}</span>
               </div>
+              {isStandalone && labourDiscountTotal > 0 && (
+                <div className="flex justify-between text-amber-700 dark:text-amber-400">
+                  <span>Labour discount</span>
+                  <span>−{labourDiscountTotal.toLocaleString()}</span>
+                </div>
+              )}
+              {isStandalone && labourDiscountTotal > 0 && (
+                <div className="flex justify-between font-medium">
+                  <span>Labour net</span>
+                  <span>{labourNet.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Parts</span>
                 <span>{partsTotal.toLocaleString()}</span>
               </div>
+              {isStandalone && partsDiscountTotal > 0 && (
+                <div className="flex justify-between text-amber-700 dark:text-amber-400">
+                  <span>Parts discount</span>
+                  <span>−{partsDiscountTotal.toLocaleString()}</span>
+                </div>
+              )}
+              {isStandalone && partsDiscountTotal > 0 && (
+                <div className="flex justify-between font-medium">
+                  <span>Parts net</span>
+                  <span>{partsNet.toLocaleString()}</span>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between text-base font-semibold">
                 <span>Subtotal (excl. tax)</span>
@@ -704,6 +876,9 @@ export default function NewInvoicePage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 Tax and grand total are calculated in ERPNext on save.
+                {isStandalone &&
+                  (labourDiscountTotal > 0 || partsDiscountTotal > 0) &&
+                  " Discounted rates are written to each invoice line; DMS Discount column is audit only."}
               </p>
             </div>
           </CardContent>

@@ -62,6 +62,11 @@ export type StandaloneInvoicePartLine = {
   unit_price?: number;
 };
 
+export type StandaloneInvoiceGroupDiscount = {
+  type: 'percentage' | 'amount';
+  value: number;
+};
+
 export async function createStandaloneInvoice(data: {
   customer: string;
   company: string;
@@ -69,6 +74,8 @@ export async function createStandaloneInvoice(data: {
   currency?: string;
   labour?: StandaloneInvoiceLabourLine[];
   parts?: StandaloneInvoicePartLine[];
+  labour_discount?: StandaloneInvoiceGroupDiscount;
+  parts_discount?: StandaloneInvoiceGroupDiscount;
   due_date?: string;
   posting_date?: string;
   remarks?: string;
