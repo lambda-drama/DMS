@@ -12,7 +12,14 @@ import { uploadFile } from '@/services/common';
 import * as inspectionsSvc from '@/services/inspections';
 import { RequiredLabel } from '@/components/required-label';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
-import { useCustomers, useVINs, useServiceAdvisors, useCreateInspection } from '@/hooks/use-dms';
+import {
+  useCustomers,
+  useVINs,
+  useServiceAdvisors,
+  useCreateInspection,
+  useCompanies,
+  useAppointment,
+} from '@/hooks/use-dms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -246,6 +253,8 @@ export default function NewInspectionPage() {
   // Search states
   const [customerSearch, setCustomerSearch] = useState("");
   const [vinSearch, setVinSearch] = useState("");
+  const [companySearch, setCompanySearch] = useState("");
+  const [company, setCompany] = useState("");
 
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState('');
@@ -279,6 +288,8 @@ export default function NewInspectionPage() {
   // Real data hooks
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
   const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
+  const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const { data: linkedAppointment } = useAppointment(appointmentId);
   const { data: advisors } = useServiceAdvisors();
   const { trigger: createInspection } = useCreateInspection();
   const [customerPresent, setCustomerPresent] = useState(true);
@@ -299,6 +310,12 @@ export default function NewInspectionPage() {
       if (adv?.name) setServiceAdvisor(adv.name);
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (linkedAppointment?.company) {
+      setCompany(linkedAppointment.company);
+    }
+  }, [linkedAppointment?.company]);
 
   const applyVinToForm = (vin: VINNo) => {
     setSelectedVin(vin);
@@ -507,6 +524,10 @@ export default function NewInspectionPage() {
       toast.error('Please select a service advisor');
       return;
     }
+    if (!company) {
+      toast.error('Please select a company');
+      return;
+    }
     if (selectedWarnings.length === 0) {
       toast.error('Please select warning lights status (tap None if none are on)');
       return;
@@ -573,6 +594,7 @@ export default function NewInspectionPage() {
         exterior_photos: firstExteriorViewPhoto(),
         exterior_view_photos: exteriorViewPhotos,
         appointment: appointmentId || undefined,
+        company,
         customer_present: customerPresent,
         warning_lights: selectedWarnings,
         scan_performed: scanPerformed ? 1 : 0,
@@ -637,6 +659,26 @@ export default function NewInspectionPage() {
               )}
 
               <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <RequiredLabel>Company</RequiredLabel>
+                  <SearchableSelect
+                    value={company}
+                    onValueChange={setCompany}
+                    onSearchChange={setCompanySearch}
+                    placeholder="Search companies (from DMS Settings)..."
+                    isLoading={companiesLoading}
+                    options={(companies || []).map((c) => ({
+                      value: c.name,
+                      label: c.company_name || c.name,
+                    }))}
+                  />
+                  {companies && companies.length === 0 && !companiesLoading ? (
+                    <p className="text-xs text-muted-foreground">
+                      No companies available. Add companies under DMS Settings → Company (table).
+                    </p>
+                  ) : null}
+                </div>
+
                 <div className="space-y-2 sm:col-span-2">
                   <RequiredLabel>Vehicle (VIN)</RequiredLabel>
                   <SearchableSelect

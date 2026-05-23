@@ -286,6 +286,14 @@ export default function InspectionDetailPage() {
                     <p className="text-sm text-muted-foreground">Contact</p>
                     <p className="font-medium">{inspection.contact_number || "N/A"}</p>
                   </div>
+                  {(inspection.company || inspection.company_name) && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Company</p>
+                      <p className="font-medium">
+                        {inspection.company_name || inspection.company}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

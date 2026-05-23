@@ -13,7 +13,9 @@
   "defaults_section",
   "company_defaults",
   "section_break_nwax",
-  "add_full_warranty_item_on_invoice"
+  "add_full_warranty_item_on_invoice",
+  "print_formats_tab",
+  "sales_print_format"
  ],
  "fields": [
   {
@@ -66,13 +68,24 @@
    "fieldname": "add_full_warranty_item_on_invoice",
    "fieldtype": "Check",
    "label": "Add Full Warranty Item on Invoice"
+  },
+  {
+   "fieldname": "print_formats_tab",
+   "fieldtype": "Tab Break",
+   "label": "Print Formats"
+  },
+  {
+   "fieldname": "sales_print_format",
+   "fieldtype": "Table MultiSelect",
+   "label": "Sales Print Format",
+   "options": "Print Format TB"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-16 17:44:05.912133",
+ "modified": "2026-05-24 01:42:08.520224",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

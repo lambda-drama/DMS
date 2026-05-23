@@ -2,6 +2,8 @@ import frappe
 from frappe import _
 from frappe.utils import today
 
+from dms.api.utils import get_dms_companies
+
 # Frontend warning-light labels → Vehicle Warning Light.select option
 EXTERIOR_COMPONENT_ALIASES = {
 	"Hood": "Bonnet/Hood",
@@ -144,7 +146,7 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 		fields=[
 			"name", "customer", "vin_chassis",
 			"license_plate", "model_year", "inspection_date",
-			"service_advisor", "customer_vehicle",
+			"service_advisor", "customer_vehicle", "company",
 			"docstatus", "creation", "modified",
 		],
 		limit=int(limit),
@@ -169,6 +171,10 @@ def get_inspection(name):
 		result["contact_number"] = frappe.db.get_value(
 			"Customer", doc.customer, "mobile_no"
 		)
+	if doc.company:
+		result["company_name"] = frappe.db.get_value(
+			"Company", doc.company, "company_name"
+		)
 	return result
 
 
@@ -181,6 +187,14 @@ def create_inspection(data):
 	exterior_photos = data.get("exterior_photos") or _first_photo(data.get("exterior_view_photos"))
 	service_advisor = _resolve_service_advisor(data)
 	customer_vehicle = _resolve_customer_vehicle(data)
+
+	company = (data.get("company") or "").strip()
+	allowed = get_dms_companies()
+	if allowed:
+		if not company:
+			frappe.throw(_("Company is required"))
+		if company not in allowed:
+			frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
 
 	doc = frappe.get_doc({
 		"doctype": "Vehicle Inspection",
@@ -203,7 +217,7 @@ def create_inspection(data):
 		"scan_performed": data.get("scan_performed", 0),
 		"customer_signature": data.get("customer_signature"),
 		"advisor_signature": data.get("advisor_signature"),
-		"company": data.get("company"),
+		"company": company or None,
 	})
 
 	for row in data.get("exterior_checklist") or []:

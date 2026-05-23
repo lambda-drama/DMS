@@ -12,6 +12,21 @@ def get_dms_companies():
 	return [r.company for r in rows if r.company]
 
 
+def get_dms_sales_print_formats():
+	"""Print formats allowed for Sales Invoice in the DMS UI (DMS Settings)."""
+	rows = frappe.get_all(
+		"Print Format TB",
+		filters={
+			"parent": "DMS Settings",
+			"parenttype": "DMS Settings",
+			"parentfield": "sales_print_format",
+		},
+		fields=["print_format"],
+		order_by="idx asc",
+	)
+	return [r.print_format for r in rows if r.print_format]
+
+
 def get_vehicle_customer_groups():
 	"""Return customer group names where custom_is_vehicle_customer is checked."""
 	groups = frappe.get_all(

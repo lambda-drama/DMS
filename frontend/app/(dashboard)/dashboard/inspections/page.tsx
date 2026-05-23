@@ -349,6 +349,7 @@ export default function InspectionsPage() {
           <>
             <DetailSection title="Inspection Info">
               <DetailRow label="Date" value={selectedInspection.inspection_date ? new Date(selectedInspection.inspection_date).toLocaleDateString() : undefined} />
+              <DetailRow label="Company" value={selectedInspection.company_name || selectedInspection.company} />
               <DetailRow label="Service Advisor" value={selectedInspection.service_advisor} />
               <DetailRow label="Job Card" value={selectedInspection.job_card} />
             </DetailSection>
