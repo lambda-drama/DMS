@@ -176,6 +176,7 @@ export interface ServiceAppointment {
   booking_source: BookingSource;
   booking_reference?: string;
   appointment_date_time: string;
+  company?: string;
   promised_delivery_date_time?: string;
   estimated_duration_hours?: number;
   priority: Priority;
@@ -478,6 +479,8 @@ export interface DMSJobCard {
   status: JobCardStatus;
   posting_date: string;
   company?: string;
+  /** Billing currency for costing and sales invoice (default ETB). */
+  currency?: string;
   opened_date_time: string;
   completed_date_time?: string;
   promised_delivery_date_time: string;
@@ -528,6 +531,10 @@ export interface DMSJobCard {
   total_labor_cost?: number;
   total_parts_cost?: number;
   total_amount?: number;
+  labour_discount_type?: string;
+  labour_discount_value?: number;
+  parts_discount_type?: string;
+  parts_discount_value?: number;
   discount_amount?: number;
   net_amount?: number;
   customer_approval_status: CustomerApprovalStatus;
@@ -1063,6 +1070,8 @@ export interface InvoicePreviewLine {
   base_rate?: number;
   discount_percentage?: number;
   is_warranty_covered?: boolean;
+  /** Per-line share when warranty type is Discount (audit / preview). */
+  dms_discount?: number;
 }
 
 export interface InvoicePreview {
@@ -1078,6 +1087,8 @@ export interface InvoicePreview {
   parts_total: number;
   subtotal: number;
   discount_amount: number;
+  labour_discount?: { type: 'percentage' | 'amount'; value: number } | null;
+  parts_discount?: { type: 'percentage' | 'amount'; value: number } | null;
   estimated_total: number;
   currency?: string;
   existing_invoice?: string;

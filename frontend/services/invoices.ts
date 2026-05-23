@@ -32,6 +32,8 @@ export async function getInvoicePreviewFromJobCard(
   options?: {
     warrantyApplicationType?: string;
     discountAmount?: number;
+    labourDiscount?: StandaloneInvoiceGroupDiscount;
+    partsDiscount?: StandaloneInvoiceGroupDiscount;
   }
 ): Promise<InvoicePreview> {
   return apiRequest<InvoicePreview>(
@@ -42,6 +44,8 @@ export async function getInvoicePreviewFromJobCard(
         job_card: jobCard,
         warranty_application_type: options?.warrantyApplicationType ?? null,
         discount_amount: options?.discountAmount ?? null,
+        labour_discount: options?.labourDiscount ?? null,
+        parts_discount: options?.partsDiscount ?? null,
       }),
     }
   );
@@ -100,6 +104,8 @@ export async function createInvoiceFromJobCard(
     submit?: boolean;
     warrantyApplicationType?: string;
     discountAmount?: number;
+    labourDiscount?: StandaloneInvoiceGroupDiscount;
+    partsDiscount?: StandaloneInvoiceGroupDiscount;
   }
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${JC_API}.make_sales_invoice_from_job_card`, {
@@ -110,6 +116,8 @@ export async function createInvoiceFromJobCard(
       submit: options?.submit ? 1 : 0,
       warranty_application_type: options?.warrantyApplicationType ?? null,
       discount_amount: options?.discountAmount ?? null,
+      labour_discount: options?.labourDiscount ?? null,
+      parts_discount: options?.partsDiscount ?? null,
     }),
   });
 }

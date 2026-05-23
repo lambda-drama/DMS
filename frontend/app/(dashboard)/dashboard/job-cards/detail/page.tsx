@@ -1224,6 +1224,14 @@ export default function JobCardDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
+                    <p className="text-sm text-muted-foreground">Currency</p>
+                    <p className="font-medium">{jobCard.currency || "ETB"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Company</p>
+                    <p className="font-medium">{jobCard.company || "N/A"}</p>
+                  </div>
+                  <div>
                     <p className="text-sm text-muted-foreground">Opened</p>
                     <p className="font-medium">
                       {jobCard.opened_date_time

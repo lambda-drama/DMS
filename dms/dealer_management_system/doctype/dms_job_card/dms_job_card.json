@@ -57,6 +57,12 @@
   "total_labor_cost",
   "total_parts_cost",
   "total_amount",
+  "section_job_card_discount",
+  "labour_discount_type",
+  "labour_discount_value",
+  "column_break_job_discount",
+  "parts_discount_type",
+  "parts_discount_value",
   "discount_amount",
   "net_amount",
   "column_break_estimate",
@@ -422,10 +428,50 @@
    "read_only": 1
   },
   {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "section_job_card_discount",
+   "fieldtype": "Section Break",
+   "label": "Discount (Labour & Parts)"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "labour_discount_type",
+   "fieldtype": "Select",
+   "label": "Labour Discount Type",
+   "options": "\nPercentage\nAmount"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "labour_discount_value",
+   "fieldtype": "Float",
+   "label": "Labour Discount Value"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "column_break_job_discount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "parts_discount_type",
+   "fieldtype": "Select",
+   "label": "Parts Discount Type",
+   "options": "\nPercentage\nAmount"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "parts_discount_value",
+   "fieldtype": "Float",
+   "label": "Parts Discount Value"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "description": "Total labour + parts discount (computed from group discounts above).",
    "fieldname": "discount_amount",
    "fieldtype": "Currency",
-   "label": "Discount Amount",
-   "options": "currency"
+   "label": "Total Discount Amount",
+   "options": "currency",
+   "read_only": 1
   },
   {
    "fieldname": "net_amount",
