@@ -17,6 +17,13 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 
 class DMSJobCard(Document):
 	def validate(self):
+		if self.warranty_application_type != "Discount":
+			from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+				clear_split_discount_fields,
+			)
+
+			clear_split_discount_fields(self)
+
 		self.apply_job_card_warehouse_to_parts()
 		self.ensure_qc_results_from_template()
 		self.validate_qc_measurements()
@@ -72,6 +79,10 @@ class DMSJobCard(Document):
 		self.apply_warranty_application()
 
 	def apply_warranty_application(self):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			job_card_combined_discount_amount,
+		)
+
 		warranty_application_type = self.warranty_application_type
 		total_labor = flt(self.total_labor_cost or 0)
 		total_parts = flt(self.total_parts_cost or 0)
@@ -85,8 +96,15 @@ class DMSJobCard(Document):
 		elif warranty_application_type == "Labour":
 			self.net_amount = round(total_parts, 2)
 		elif warranty_application_type == "Discount":
+			discount_amount = job_card_combined_discount_amount(self)
+			self.discount_amount = discount_amount
 			if discount_amount < 1:
-				frappe.throw(_("Discount Amount must be at least 1 when Warranty Application Type is Discount."))
+				frappe.throw(
+					_(
+						"Set a labour and/or parts discount (total at least 1) when "
+						"Warranty Application Type is Discount."
+					)
+				)
 			self.net_amount = round(total_amount - discount_amount, 2)
 		else:
 			self.net_amount = round(total_amount - discount_amount, 2)
@@ -146,6 +164,8 @@ def make_sales_invoice_from_job_card(
 	submit=0,
 	warranty_application_type=None,
 	discount_amount=None,
+	labour_discount=None,
+	parts_discount=None,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
@@ -164,6 +184,8 @@ def make_sales_invoice_from_job_card(
 		submit=bool(int(submit or 0)),
 		warranty_application_type=warranty_application_type,
 		discount_amount=discount_amount,
+		labour_discount=labour_discount,
+		parts_discount=parts_discount,
 	)
 
 

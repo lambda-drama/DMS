@@ -17,6 +17,14 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
 )
+from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+	apply_discount_fields_from_payload,
+	compute_group_discount_amount,
+	job_card_combined_discount_amount,
+	job_card_labour_discount_dict,
+	job_card_parts_discount_dict,
+	parse_discount_payload,
+)
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
@@ -270,6 +278,8 @@ def _sync_job_card_warranty_for_invoice(
 	job_card_name: str,
 	warranty_application_type: str | None = None,
 	discount_amount: float | None = None,
+	labour_discount=None,
+	parts_discount=None,
 ):
 	"""Optional overrides from invoice UI — persisted on the job card before invoicing."""
 	jc = frappe.get_doc("DMS Job Card", job_card_name)
@@ -279,9 +289,36 @@ def _sync_job_card_warranty_for_invoice(
 			warranty_application_type
 		) or None
 		changed = True
-	if discount_amount is not None:
-		jc.discount_amount = flt(discount_amount)
-		changed = True
+
+	wt = normalize_warranty_application_type(
+		warranty_application_type or jc.warranty_application_type
+	)
+
+	if labour_discount is not None or parts_discount is not None:
+		if wt != "Discount":
+			if labour_discount or parts_discount:
+				frappe.throw(
+					_("Labour/parts discounts apply only when Warranty Application Type is Discount.")
+				)
+		else:
+			apply_discount_fields_from_payload(
+				jc,
+				{
+					"labour_discount": labour_discount,
+					"parts_discount": parts_discount,
+				},
+			)
+			changed = True
+	elif discount_amount is not None:
+		if wt == "Discount":
+			# Legacy single lump from invoice UI — not stored as split fields
+			jc.discount_amount = flt(discount_amount)
+			changed = True
+		elif flt(discount_amount) > 0:
+			frappe.throw(
+				_("Discount amount is only used when Warranty Application Type is Discount.")
+			)
+
 	if changed:
 		jc.calculate_costing_and_totals()
 		jc.db_update()
@@ -292,6 +329,8 @@ def build_invoice_preview_from_job_card(
 	job_card_name: str,
 	warranty_application_type: str | None = None,
 	discount_amount: float | None = None,
+	labour_discount=None,
+	parts_discount=None,
 ) -> dict:
 	"""Return billable lines and totals for UI preview before creating a Sales Invoice."""
 	_ensure_erpnext()
@@ -305,10 +344,16 @@ def build_invoice_preview_from_job_card(
 		if warranty_application_type is not None
 		else jc.warranty_application_type
 	)
-	discount = (
-		flt(discount_amount)
-		if discount_amount is not None
-		else flt(jc.discount_amount)
+	lump_discount = flt(discount_amount) if discount_amount is not None else None
+	labour_disc = (
+		_normalize_standalone_discount(labour_discount)
+		if labour_discount is not None
+		else job_card_labour_discount_dict(jc)
+	)
+	parts_disc = (
+		_normalize_standalone_discount(parts_discount)
+		if parts_discount is not None
+		else job_card_parts_discount_dict(jc)
 	)
 
 	lines = _build_preview_lines(jc, warranty_type)
@@ -325,6 +370,27 @@ def build_invoice_preview_from_job_card(
 	parts_total = sum(flt(l["amount"]) for l in lines if l["line_type"] == "Parts")
 	subtotal = labour_total + parts_total
 	has_labour = any(l["line_type"] == "Labour" for l in lines)
+
+	discount = 0.0
+	if warranty_type == "Discount":
+		if labour_disc or parts_disc:
+			labour_lines = [ln for ln in lines if ln["line_type"] == "Labour"]
+			parts_lines = [ln for ln in lines if ln["line_type"] == "Parts"]
+			if labour_disc:
+				_apply_group_discount_on_preview_lines(labour_lines, labour_disc)
+			if parts_disc:
+				_apply_group_discount_on_preview_lines(parts_lines, parts_disc)
+			discount = _group_discount_total_amount(labour_total, labour_disc) + _group_discount_total_amount(
+				parts_total, parts_disc
+			)
+		else:
+			discount = (
+				lump_discount
+				if lump_discount is not None
+				else flt(jc.discount_amount)
+			)
+			if discount > 0:
+				_distribute_discount_on_preview_lines(lines, discount)
 
 	customer_name = jc.customer
 	if jc.customer:
@@ -345,6 +411,8 @@ def build_invoice_preview_from_job_card(
 		"parts_total": parts_total,
 		"subtotal": subtotal,
 		"discount_amount": discount,
+		"labour_discount": labour_disc,
+		"parts_discount": parts_disc,
 		"estimated_total": invoice_estimated_total(
 			labour_total, parts_total, warranty_type, discount
 		),
@@ -360,6 +428,8 @@ def create_sales_invoice_from_dms_job_card(
 	submit: bool = False,
 	warranty_application_type: str | None = None,
 	discount_amount: float | None = None,
+	labour_discount=None,
+	parts_discount=None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -376,6 +446,8 @@ def create_sales_invoice_from_dms_job_card(
 		job_card_name,
 		warranty_application_type=warranty_application_type,
 		discount_amount=discount_amount,
+		labour_discount=labour_discount,
+		parts_discount=parts_discount,
 	)
 
 	if not jc.customer:
@@ -391,10 +463,18 @@ def create_sales_invoice_from_dms_job_card(
 	if has_labour and not due_date:
 		frappe.throw(_("Due date is required when the invoice includes labour items."))
 
-	if warranty_type == "Discount" and flt(jc.discount_amount) < 1:
-		frappe.throw(
-			_("Discount Amount must be at least 1 when Warranty Application Type is Discount.")
-		)
+	if warranty_type == "Discount":
+		if job_card_labour_discount_dict(jc) or job_card_parts_discount_dict(jc):
+			total_disc = job_card_combined_discount_amount(jc)
+		else:
+			total_disc = flt(jc.discount_amount)
+		if total_disc < 1:
+			frappe.throw(
+				_(
+					"Set a labour and/or parts discount (total at least 1) when "
+					"Warranty Application Type is Discount."
+				)
+			)
 
 	si = frappe.new_doc("Sales Invoice")
 	si.custom_invoice_no = _generate_invoice_no(jc.company)
@@ -415,16 +495,17 @@ def create_sales_invoice_from_dms_job_card(
 			)
 		)
 
+	if hasattr(si, "ignore_pricing_rule"):
+		si.ignore_pricing_rule = 1
+
 	si.set_missing_values()
 	# set_missing_values can reset currency from company / price list — re-apply from job card
 	_apply_sales_invoice_currency_from_job_card(si, jc)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
-	si.run_method("calculate_taxes_and_totals")
 
-	if warranty_type == "Discount" and flt(jc.discount_amount) > 0:
-		si.discount_amount = flt(jc.discount_amount)
-		si.apply_discount_on = "Grand Total"
-		si.run_method("calculate_taxes_and_totals")
+	_apply_job_card_discounts_to_si(si, jc, warranty_type)
+
+	si.run_method("calculate_taxes_and_totals")
 
 	si.insert()
 
@@ -576,6 +657,229 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 	return lines
 
 
+def _group_discount_total_amount(group_total: float, discount: dict | None) -> float:
+	if not discount:
+		return 0.0
+	return compute_group_discount_amount(
+		group_total, discount.get("type"), discount.get("value")
+	)
+
+
+def _job_card_invoice_item_code_sets(jc) -> tuple[set[str], set[str]]:
+	labour_codes: set[str] = set()
+	parts_codes: set[str] = set()
+
+	for row in jc.get("labour") or []:
+		if not row.vehicle_service_item:
+			continue
+		item_code = resolve_vehicle_service_item_to_item_code(row.vehicle_service_item)
+		if item_code:
+			labour_codes.add(item_code)
+
+	for ji in jc.get("job_items") or []:
+		if ji.labor_operation:
+			labour_codes.add(ji.labor_operation)
+
+	for part in jc.get("parts") or []:
+		if not part.item_code:
+			continue
+		erp_item = spare_part_erp_item_code(part.item_code)
+		if erp_item:
+			parts_codes.add(erp_item)
+
+	return labour_codes, parts_codes
+
+
+def _apply_group_discount_on_preview_lines(
+	lines: list[dict], discount: dict | None
+) -> None:
+	if not discount:
+		return
+	billable = [ln for ln in lines if flt(ln.get("amount")) > 0]
+	if not billable:
+		return
+	group_total = sum(flt(ln["amount"]) for ln in billable)
+	total_disc = _group_discount_total_amount(group_total, discount)
+	if total_disc <= 0:
+		return
+	if discount["type"] == "amount" and flt(discount["value"]) > group_total:
+		frappe.throw(
+			_("Discount amount cannot exceed group total ({0}).").format(
+				frappe.bold(round(group_total, 2))
+			)
+		)
+	_distribute_discount_on_preview_lines(billable, total_disc)
+
+
+def _apply_group_discount_dict_to_si_items(items, discount: dict | None) -> None:
+	if not discount or not items:
+		return
+
+	line_gross = []
+	for row in items:
+		qty = flt(row.qty)
+		rate = flt(row.rate)
+		if qty <= 0 or rate <= 0:
+			line_gross.append(0.0)
+			continue
+		if flt(row.discount_percentage) >= 100:
+			line_gross.append(0.0)
+			continue
+		line_gross.append(qty * rate)
+
+	group_total = sum(line_gross)
+	if group_total <= 0:
+		return
+
+	if discount["type"] == "amount" and flt(discount["value"]) > group_total:
+		frappe.throw(
+			_("Discount amount cannot exceed billable total ({0}).").format(
+				frappe.bold(round(group_total, 2))
+			)
+		)
+
+	total_disc = _group_discount_total_amount(group_total, discount)
+	if total_disc <= 0:
+		return
+
+	use_dms = _sales_invoice_item_has_dms_discount_field()
+	discount_cfg = {"type": "amount", "value": total_disc}
+	final_rates: list[float] = []
+	dms_discounts: list[float] = []
+
+	for row, gross in zip(items, line_gross):
+		if gross <= 0:
+			final_rates.append(flt(row.rate))
+			dms_discounts.append(0.0)
+			continue
+		qty = flt(row.qty)
+		line_disc = _standalone_line_discount_amount(gross, group_total, discount_cfg)
+		final_rates.append(flt((gross - line_disc) / qty) if qty else flt(row.rate))
+		dms_discounts.append(line_disc)
+
+	for idx, row in enumerate(items):
+		if idx >= len(final_rates):
+			break
+		row.rate = final_rates[idx]
+		row.price_list_rate = final_rates[idx]
+		row.discount_percentage = 0
+		row.discount_amount = 0
+		if use_dms and idx < len(dms_discounts):
+			row.custom_dms_discount = dms_discounts[idx]
+
+
+def _apply_job_card_discounts_to_si(si, jc, warranty_type: str) -> None:
+	if warranty_type != "Discount":
+		return
+
+	labour_disc = job_card_labour_discount_dict(jc)
+	parts_disc = job_card_parts_discount_dict(jc)
+
+	if labour_disc or parts_disc:
+		labour_codes, parts_codes = _job_card_invoice_item_code_sets(jc)
+		labour_items = []
+		parts_items = []
+		for row in si.get("items") or []:
+			code = row.item_code
+			if code in labour_codes:
+				labour_items.append(row)
+			elif code in parts_codes:
+				parts_items.append(row)
+			else:
+				parts_items.append(row)
+
+		if labour_disc:
+			_apply_group_discount_dict_to_si_items(labour_items, labour_disc)
+		if parts_disc:
+			_apply_group_discount_dict_to_si_items(parts_items, parts_disc)
+	elif flt(jc.discount_amount) > 0:
+		_apply_distributed_amount_discount_to_si_items(si, jc.discount_amount)
+
+
+def _distribute_discount_on_preview_lines(lines: list[dict], discount_amount: float) -> None:
+	"""Apply fixed discount across billable preview lines (matches standalone / SI save)."""
+	discount_amount = flt(discount_amount)
+	if discount_amount <= 0 or not lines:
+		return
+
+	billable = [ln for ln in lines if flt(ln.get("amount")) > 0]
+	group_total = sum(flt(ln["amount"]) for ln in billable)
+	if group_total <= 0:
+		return
+
+	if discount_amount > group_total:
+		discount_amount = group_total
+
+	discount_cfg = {"type": "amount", "value": discount_amount}
+	for line in billable:
+		amt = flt(line["amount"])
+		line_disc = _standalone_line_discount_amount(amt, group_total, discount_cfg)
+		line["dms_discount"] = round(line_disc, 2)
+		line["amount"] = round(amt - line_disc, 2)
+		qty = flt(line.get("qty") or 1)
+		if qty > 0:
+			line["rate"] = round(line["amount"] / qty, 2)
+
+
+def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -> None:
+	"""
+	Spread a fixed discount across billable Sales Invoice item rows.
+	Same rules as standalone amount discount: net rate on each line + custom_dms_discount audit.
+	"""
+	discount_amount = flt(discount_amount)
+	if discount_amount <= 0:
+		return
+
+	items = list(si.get("items") or [])
+	line_gross = []
+	for row in items:
+		qty = flt(row.qty)
+		rate = flt(row.rate)
+		if qty <= 0 or rate <= 0:
+			line_gross.append(0.0)
+			continue
+		if flt(row.discount_percentage) >= 100:
+			line_gross.append(0.0)
+			continue
+		line_gross.append(qty * rate)
+
+	group_total = sum(line_gross)
+	if group_total <= 0:
+		return
+
+	if discount_amount > group_total:
+		frappe.throw(
+			_("Discount amount cannot exceed billable total ({0}).").format(
+				frappe.bold(round(group_total, 2))
+			)
+		)
+
+	use_dms = _sales_invoice_item_has_dms_discount_field()
+	discount_cfg = {"type": "amount", "value": discount_amount}
+	final_rates: list[float] = []
+	dms_discounts: list[float] = []
+
+	for row, gross in zip(items, line_gross):
+		if gross <= 0:
+			final_rates.append(flt(row.rate))
+			dms_discounts.append(0.0)
+			continue
+		qty = flt(row.qty)
+		line_disc = _standalone_line_discount_amount(gross, group_total, discount_cfg)
+		final_rates.append(flt((gross - line_disc) / qty) if qty else flt(row.rate))
+		dms_discounts.append(line_disc)
+
+	for idx, row in enumerate(items):
+		if idx >= len(final_rates):
+			break
+		row.rate = final_rates[idx]
+		row.price_list_rate = final_rates[idx]
+		row.discount_percentage = 0
+		row.discount_amount = 0
+		if use_dms and idx < len(dms_discounts):
+			row.custom_dms_discount = dms_discounts[idx]
+
+
 def append_si_items(si, jc, warranty_application_type: str = ""):
 	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items; warranty-aware rates."""
 
@@ -702,24 +1006,7 @@ def mark_sales_invoice_as_dms_ui_transaction(si) -> None:
 
 def _normalize_standalone_discount(discount) -> dict | None:
 	"""Parse {type: percentage|amount, value: number} from API payload."""
-	if not discount:
-		return None
-	if isinstance(discount, str):
-		import json
-
-		try:
-			discount = json.loads(discount)
-		except Exception:
-			return None
-	if not isinstance(discount, dict):
-		return None
-	dtype = (discount.get("type") or discount.get("discount_type") or "").strip().lower()
-	if dtype not in ("percentage", "amount"):
-		return None
-	value = flt(discount.get("value") if discount.get("value") is not None else discount.get("discount_value"))
-	if value <= 0:
-		return None
-	return {"type": dtype, "value": value}
+	return parse_discount_payload(discount)
 
 
 def _sales_invoice_item_has_dms_discount_field() -> bool:

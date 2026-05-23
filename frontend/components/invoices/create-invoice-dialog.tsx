@@ -31,6 +31,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { GroupDiscountFields } from '@/components/group-discount-fields';
+import {
+  buildGroupDiscountPayload,
+  groupDiscountAmount,
+  parseDiscountValue,
+  type InvoiceDiscountMode,
+} from '@/lib/invoice-discount';
 import * as invoicesSvc from '@/services/invoices';
 import type { InvoicePreview, WarrantyApplicationType } from '@/types/dms';
 
@@ -50,15 +57,23 @@ function formatMoney(amount: number, currency?: string) {
   }).format(amount);
 }
 
-function defaultDueDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 30);
-  return d.toISOString().split('T')[0];
-}
-
 function warrantyFromPreview(preview: InvoicePreview): string {
   const w = preview.warranty_application_type;
   return w ? String(w) : 'none';
+}
+
+function discountModeFromApi(
+  d?: { type: string; value: number } | null
+): InvoiceDiscountMode {
+  if (!d?.type) return 'none';
+  const t = String(d.type).toLowerCase();
+  if (t === 'percentage' || t === 'amount') return t;
+  return 'none';
+}
+
+function discountInputFromApi(d?: { type: string; value: number } | null): string {
+  if (!d?.value) return '';
+  return String(d.value);
 }
 
 interface CreateInvoiceDialogProps {
@@ -78,18 +93,53 @@ export function CreateInvoiceDialog({
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<InvoicePreview | null>(null);
   const [warrantyType, setWarrantyType] = useState('none');
-  const [discountAmount, setDiscountAmount] = useState('');
+  const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>('none');
+  const [labourDiscountInput, setLabourDiscountInput] = useState('');
+  const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>('none');
+  const [partsDiscountInput, setPartsDiscountInput] = useState('');
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [submitInvoice, setSubmitInvoice] = useState(true);
   const skipWarrantyRefetch = useRef(true);
 
+  const applyDiscountsFromPreview = useCallback((data: InvoicePreview) => {
+    if (data.labour_discount) {
+      setLabourDiscountMode(discountModeFromApi(data.labour_discount));
+      setLabourDiscountInput(discountInputFromApi(data.labour_discount));
+    } else {
+      setLabourDiscountMode('none');
+      setLabourDiscountInput('');
+    }
+    if (data.parts_discount) {
+      setPartsDiscountMode(discountModeFromApi(data.parts_discount));
+      setPartsDiscountInput(discountInputFromApi(data.parts_discount));
+    } else {
+      setPartsDiscountMode('none');
+      setPartsDiscountInput('');
+    }
+  }, []);
+
   const loadPreview = useCallback(
-    async (warranty: string, discount: string) => {
+    async (
+      warranty: string,
+      labourMode: InvoiceDiscountMode,
+      labourInput: string,
+      partsMode: InvoiceDiscountMode,
+      partsInput: string
+    ) => {
       const warrantyApplicationType =
         warranty === 'none' ? '' : (warranty as WarrantyApplicationType);
+      const labourDiscount =
+        warranty === 'Discount'
+          ? buildGroupDiscountPayload(labourMode, labourInput)
+          : undefined;
+      const partsDiscount =
+        warranty === 'Discount'
+          ? buildGroupDiscountPayload(partsMode, partsInput)
+          : undefined;
       return invoicesSvc.getInvoicePreviewFromJobCard(jobCardId, {
         warrantyApplicationType: warrantyApplicationType || undefined,
-        discountAmount: parseFloat(discount) || 0,
+        labourDiscount,
+        partsDiscount,
       });
     },
     [jobCardId]
@@ -111,9 +161,7 @@ export function CreateInvoiceDialog({
         if (cancelled) return;
         setPreview(data);
         setWarrantyType(warrantyFromPreview(data));
-        setDiscountAmount(
-          data.discount_amount > 0 ? String(data.discount_amount) : ''
-        );
+        applyDiscountsFromPreview(data);
       })
       .catch((err: Error) => {
         if (!cancelled) {
@@ -131,7 +179,7 @@ export function CreateInvoiceDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, jobCardId, onOpenChange]);
+  }, [open, jobCardId, onOpenChange, applyDiscountsFromPreview]);
 
   useEffect(() => {
     if (!open || !jobCardId || skipWarrantyRefetch.current) return;
@@ -139,7 +187,13 @@ export function CreateInvoiceDialog({
     let cancelled = false;
     const timer = setTimeout(() => {
       setLoading(true);
-      loadPreview(warrantyType, discountAmount)
+      loadPreview(
+        warrantyType,
+        labourDiscountMode,
+        labourDiscountInput,
+        partsDiscountMode,
+        partsDiscountInput
+      )
         .then((data) => {
           if (!cancelled) setPreview(data);
         })
@@ -157,7 +211,16 @@ export function CreateInvoiceDialog({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [warrantyType, discountAmount, open, jobCardId, loadPreview]);
+  }, [
+    warrantyType,
+    labourDiscountMode,
+    labourDiscountInput,
+    partsDiscountMode,
+    partsDiscountInput,
+    open,
+    jobCardId,
+    loadPreview,
+  ]);
 
   const handleCreate = async () => {
     if (!preview) return;
@@ -167,10 +230,25 @@ export function CreateInvoiceDialog({
       return;
     }
 
+    const labourDiscount = buildGroupDiscountPayload(
+      labourDiscountMode,
+      labourDiscountInput
+    );
+    const partsDiscount = buildGroupDiscountPayload(
+      partsDiscountMode,
+      partsDiscountInput
+    );
+
     if (warrantyType === 'Discount') {
-      const d = parseFloat(discountAmount);
-      if (!d || d < 1) {
-        toast.error('Discount amount must be at least 1 when warranty type is Discount');
+      const labourVal = parseDiscountValue(labourDiscountMode, labourDiscountInput);
+      const partsVal = parseDiscountValue(partsDiscountMode, partsDiscountInput);
+      const totalDisc =
+        groupDiscountAmount(preview.labour_total, labourDiscountMode, labourVal) +
+        groupDiscountAmount(preview.parts_total, partsDiscountMode, partsVal);
+      if (totalDisc < 1) {
+        toast.error(
+          'Set a labour and/or parts discount (total at least 1) when warranty type is Discount'
+        );
         return;
       }
     }
@@ -183,7 +261,8 @@ export function CreateInvoiceDialog({
         dueDate: preview.has_labour ? dueDate : dueDate || undefined,
         submit: submitInvoice,
         warrantyApplicationType: warrantyApplicationType || undefined,
-        discountAmount: parseFloat(discountAmount) || 0,
+        labourDiscount: warrantyType === 'Discount' ? labourDiscount : undefined,
+        partsDiscount: warrantyType === 'Discount' ? partsDiscount : undefined,
       });
       toast.success(
         submitInvoice
@@ -200,6 +279,16 @@ export function CreateInvoiceDialog({
   };
 
   const currency = preview?.currency;
+  const labourDiscountVal = parseDiscountValue(labourDiscountMode, labourDiscountInput);
+  const partsDiscountVal = parseDiscountValue(partsDiscountMode, partsDiscountInput);
+  const previewLabourDisc =
+    preview && warrantyType === 'Discount'
+      ? groupDiscountAmount(preview.labour_total, labourDiscountMode, labourDiscountVal)
+      : 0;
+  const previewPartsDisc =
+    preview && warrantyType === 'Discount'
+      ? groupDiscountAmount(preview.parts_total, partsDiscountMode, partsDiscountVal)
+      : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -217,23 +306,22 @@ export function CreateInvoiceDialog({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : preview ? (
-          <div className="relative space-y-4">
-            {loading ? (
-              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-background/60">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : null}
-
-            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+          <>
+            <div className="space-y-1 text-sm">
               <p>
                 <span className="text-muted-foreground">Customer: </span>
                 <span className="font-medium">{preview.customer_name}</span>
               </p>
+              {preview.existing_invoice && (
+                <p className="text-amber-600 text-xs">
+                  This job card already has invoice {preview.existing_invoice} linked
+                  (creating another may be blocked).
+                </p>
+              )}
               {preview.job_card_warranty_application_type &&
-                preview.job_card_warranty_application_type !==
-                  preview.warranty_application_type && (
+                preview.job_card_warranty_application_type !== preview.warranty_application_type && (
                   <p className="text-xs text-muted-foreground">
-                    Job card had: {preview.job_card_warranty_application_type} (overridden
+                    Job card warranty: {preview.job_card_warranty_application_type} (overridden
                     below)
                   </p>
                 )}
@@ -242,7 +330,18 @@ export function CreateInvoiceDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Warranty application type</Label>
-                <Select value={warrantyType} onValueChange={setWarrantyType}>
+                <Select
+                  value={warrantyType}
+                  onValueChange={(v) => {
+                    setWarrantyType(v);
+                    if (v !== 'Discount') {
+                      setLabourDiscountMode('none');
+                      setLabourDiscountInput('');
+                      setPartsDiscountMode('none');
+                      setPartsDiscountInput('');
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select warranty application" />
                   </SelectTrigger>
@@ -262,16 +361,28 @@ export function CreateInvoiceDialog({
               </div>
 
               {warrantyType === 'Discount' && (
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="invoice-discount-amount">Discount amount</Label>
-                  <Input
-                    id="invoice-discount-amount"
-                    type="number"
-                    min={1}
-                    step="0.01"
-                    value={discountAmount}
-                    onChange={(e) => setDiscountAmount(e.target.value)}
+                <div className="space-y-4 sm:col-span-2">
+                  <GroupDiscountFields
+                    label="Labour"
+                    mode={labourDiscountMode}
+                    onModeChange={setLabourDiscountMode}
+                    value={labourDiscountInput}
+                    onValueChange={setLabourDiscountInput}
+                    subtotal={preview.labour_total}
                   />
+                  <GroupDiscountFields
+                    label="Parts"
+                    mode={partsDiscountMode}
+                    onModeChange={setPartsDiscountMode}
+                    value={partsDiscountInput}
+                    onValueChange={setPartsDiscountInput}
+                    subtotal={preview.parts_total}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Discounts apply to labour and parts separately (same as standalone invoice).
+                    Each billable line gets a net rate; DMS Discount on the Sales Invoice is for
+                    audit only.
+                  </p>
                 </div>
               )}
             </div>
@@ -285,6 +396,9 @@ export function CreateInvoiceDialog({
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    {warrantyType === 'Discount' && preview.discount_amount > 0 ? (
+                      <TableHead className="text-right">DMS disc.</TableHead>
+                    ) : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -330,6 +444,13 @@ export function CreateInvoiceDialog({
                       <TableCell className="text-right font-medium">
                         {formatMoney(line.amount, currency)}
                       </TableCell>
+                      {warrantyType === 'Discount' && preview.discount_amount > 0 ? (
+                        <TableCell className="text-right text-destructive text-xs">
+                          {line.dms_discount && line.dms_discount > 0
+                            ? `−${formatMoney(line.dms_discount, currency)}`
+                            : '—'}
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -349,11 +470,19 @@ export function CreateInvoiceDialog({
                   {formatMoney(preview.parts_total, currency)}
                 </span>
               </div>
-              {preview.discount_amount > 0 && (
+              {warrantyType === 'Discount' && previewLabourDisc > 0 && (
                 <div className="flex justify-between sm:block">
-                  <span className="text-muted-foreground">Discount</span>
+                  <span className="text-muted-foreground">Labour discount</span>
                   <span className="font-medium text-destructive sm:ml-2">
-                    −{formatMoney(preview.discount_amount, currency)}
+                    −{formatMoney(previewLabourDisc, currency)}
+                  </span>
+                </div>
+              )}
+              {warrantyType === 'Discount' && previewPartsDisc > 0 && (
+                <div className="flex justify-between sm:block">
+                  <span className="text-muted-foreground">Parts discount</span>
+                  <span className="font-medium text-destructive sm:ml-2">
+                    −{formatMoney(previewPartsDisc, currency)}
                   </span>
                 </div>
               )}
@@ -363,6 +492,12 @@ export function CreateInvoiceDialog({
                   {formatMoney(preview.estimated_total, currency)}
                 </span>
               </div>
+              {warrantyType === 'Discount' && preview.discount_amount > 0 && (
+                <p className="text-xs text-muted-foreground sm:col-span-2">
+                  Tax and grand total are calculated in ERPNext on save from discounted line
+                  rates (not a separate header discount).
+                </p>
+              )}
             </div>
 
             {preview.has_labour && (
@@ -373,11 +508,7 @@ export function CreateInvoiceDialog({
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  required
                 />
-                <p className="text-xs text-muted-foreground">
-                  Required when the invoice includes labour items.
-                </p>
               </div>
             )}
 
@@ -385,31 +516,37 @@ export function CreateInvoiceDialog({
               <Checkbox
                 id="submit-invoice"
                 checked={submitInvoice}
-                onCheckedChange={(v) => setSubmitInvoice(!!v)}
+                onCheckedChange={(c) => setSubmitInvoice(c === true)}
               />
-              <Label htmlFor="submit-invoice" className="cursor-pointer font-normal">
-                Submit invoice immediately (required to collect payment)
+              <Label htmlFor="submit-invoice" className="font-normal cursor-pointer">
+                Submit invoice after creation
               </Label>
             </div>
-          </div>
+          </>
         ) : null}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={loading || submitting || !preview}>
+          <Button onClick={handleCreate} disabled={!preview || submitting || loading}>
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating…
               </>
             ) : (
-              'Create Invoice'
+              'Create invoice'
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
+}
+
+function defaultDueDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().split('T')[0];
 }

@@ -11,6 +11,7 @@
   "booking_source",
   "booking_reference",
   "appointment_date_time",
+  "company",
   "column_break_appointment",
   "promised_delivery_date_time",
   "estimated_duration_hours",
@@ -571,13 +572,19 @@
    "fieldname": "mobile_no",
    "fieldtype": "Data",
    "label": "Mobile No 2"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-20 02:59:21.248444",
+ "modified": "2026-05-23 13:16:32.407068",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Appointment",

@@ -1,6 +1,18 @@
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
+
+def _resolve_job_card_currency(currency=None, company=None) -> str:
+	"""Default ETB; fall back to company default currency when currency not sent."""
+	cur = (currency or "").strip()
+	if not cur and company:
+		cur = (frappe.db.get_value("Company", company, "default_currency") or "").strip()
+	if not cur:
+		cur = "ETB"
+	if not frappe.db.exists("Currency", cur):
+		frappe.throw(_("Currency {0} is not defined in ERPNext.").format(frappe.bold(cur)))
+	return cur
+
 
 ASSIGNMENT_LOCKED_STATUSES = frozenset({
 	"Repair In Progress",
@@ -47,7 +59,7 @@ def get_job_cards(limit=50, offset=0, status=None, customer=None, search=None):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "status", "job_card_type", "posting_date",
+			"name", "status", "job_card_type", "posting_date", "company", "currency",
 			"customer", "customer_name", "customer_mobile",
 			"vehicle_vin", "vehicle_model", "license_plate",
 			"current_odometer", "priority", "service_advisor",
@@ -84,9 +96,14 @@ def create_job_card(data):
 		import json
 		data = json.loads(data)
 
+	company = (data.get("company") or "").strip() or None
+	currency = _resolve_job_card_currency(data.get("currency"), company)
+
 	doc = frappe.get_doc({
 		"doctype": "DMS Job Card",
 		"job_card_type": data.get("job_card_type"),
+		"company": company,
+		"currency": currency,
 		"customer": data.get("customer"),
 		"vehicle_vin": data.get("vehicle_vin"),
 		"license_plate": data.get("license_plate"),
@@ -97,7 +114,6 @@ def create_job_card(data):
 		"assigned_bay": data.get("assigned_bay"),
 		"workshop": data.get("workshop"),
 		"warehouse": data.get("warehouse"),
-		"company": data.get("company"),
 		"estimated_duration_hours": data.get("estimated_duration_hours"),
 		"promised_delivery_date_time": data.get("promised_delivery_date_time"),
 		"appointment": data.get("appointment"),
@@ -111,6 +127,22 @@ def create_job_card(data):
 		"schedule_start_time": data.get("schedule_start_time"),
 		"schedule_end_time": data.get("schedule_end_time"),
 	})
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+		apply_discount_fields_from_payload,
+	)
+
+	apply_discount_fields_from_payload(doc, data)
+	if (
+		data.get("discount_amount") is not None
+		and not data.get("labour_discount")
+		and not data.get("parts_discount")
+		and not data.get("labour_discount_type")
+		and not data.get("parts_discount_type")
+		and flt(data.get("discount_amount")) > 0
+	):
+		doc.parts_discount_type = "Amount"
+		doc.parts_discount_value = flt(data.get("discount_amount"))
 
 	if data.get("job_items"):
 		for item in data["job_items"]:
@@ -175,11 +207,28 @@ def update_job_card(name, data):
 		"warranty_status", "warranty_expiry_date", "warranty_application_type",
 		"customer_complaint_summary", "service_advisor_notes", "internal_notes",
 		"schedule_start_time", "schedule_end_time", "workshop", "warehouse",
+		"discount_amount",
+		"labour_discount_type",
+		"labour_discount_value",
+		"parts_discount_type",
+		"parts_discount_value",
 	]
 
 	for field in updatable_fields:
 		if field in data:
 			doc.set(field, data[field])
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+		apply_discount_fields_from_payload,
+	)
+
+	if any(k in data for k in ("labour_discount", "parts_discount")):
+		apply_discount_fields_from_payload(doc, data)
+
+	if "currency" in data:
+		doc.currency = _resolve_job_card_currency(
+			data.get("currency"), doc.company or data.get("company")
+		)
 
 	if "warehouse" in data and data.get("warehouse"):
 		for row in doc.parts or []:

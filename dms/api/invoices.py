@@ -87,7 +87,11 @@ def get_invoices(limit=50, offset=0, status=None, search=None):
 
 @frappe.whitelist()
 def get_invoice_preview_from_job_card(
-	job_card, warranty_application_type=None, discount_amount=None
+	job_card,
+	warranty_application_type=None,
+	discount_amount=None,
+	labour_discount=None,
+	parts_discount=None,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		build_invoice_preview_from_job_card,
@@ -104,6 +108,8 @@ def get_invoice_preview_from_job_card(
 		job_card_name,
 		warranty_application_type=warranty_application_type,
 		discount_amount=discount_amount,
+		labour_discount=labour_discount,
+		parts_discount=parts_discount,
 	)
 
 

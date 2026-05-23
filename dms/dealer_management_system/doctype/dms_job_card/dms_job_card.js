@@ -242,9 +242,18 @@ frappe.ui.form.on("DMS Job Card", {
         update_job_card_net_amount(frm);
     },
 
-    discount_amount(frm) {
+    labour_discount_type(frm) {
         update_job_card_net_amount(frm);
-    }
+    },
+    labour_discount_value(frm) {
+        update_job_card_net_amount(frm);
+    },
+    parts_discount_type(frm) {
+        update_job_card_net_amount(frm);
+    },
+    parts_discount_value(frm) {
+        update_job_card_net_amount(frm);
+    },
 });
 
 // ============================================================
@@ -769,12 +778,46 @@ function update_job_card_parts_total(frm) {
     });
 }
 
+function compute_job_card_group_discount(subtotal, discount_type, discount_value) {
+    const total = flt(subtotal);
+    const dtype = (discount_type || "").toLowerCase();
+    const value = flt(discount_value);
+    if (!dtype || total <= 0 || value <= 0) return 0;
+    if (dtype === "percentage") {
+        return flt(total * (Math.min(value, 100) / 100));
+    }
+    if (dtype === "amount") {
+        return Math.min(value, total);
+    }
+    return 0;
+}
+
 function update_job_card_net_amount(frm) {
     const warranty_type = frm.doc.warranty_application_type;
     const total_amount = flt(frm.doc.total_amount || 0);
     const total_labor = flt(frm.doc.total_labor_cost || 0);
     const total_parts = flt(frm.doc.total_parts_cost || 0);
-    const discount_amount = flt(frm.doc.discount_amount || 0);
+
+    let discount_amount = flt(frm.doc.discount_amount || 0);
+    if (warranty_type === "Discount") {
+        discount_amount =
+            compute_job_card_group_discount(
+                total_labor,
+                frm.doc.labour_discount_type,
+                frm.doc.labour_discount_value
+            ) +
+            compute_job_card_group_discount(
+                total_parts,
+                frm.doc.parts_discount_type,
+                frm.doc.parts_discount_value
+            );
+        frappe.model.set_value(
+            frm.doctype,
+            frm.doc.name,
+            "discount_amount",
+            flt(discount_amount, 2)
+        );
+    }
 
     let net_amount = total_amount - discount_amount;
     if (warranty_type === "All Invoice") {
@@ -784,7 +827,10 @@ function update_job_card_net_amount(frm) {
     } else if (warranty_type === "Labour") {
         net_amount = total_parts;
     } else if (warranty_type === "Discount" && discount_amount < 1) {
-        frappe.show_alert(__("Discount Amount must be at least 1."), 5);
+        frappe.show_alert(
+            __("Set a labour and/or parts discount (total at least 1)."),
+            5
+        );
     }
 
     frappe.model.set_value(frm.doctype, frm.doc.name, "net_amount", flt(net_amount, 2));

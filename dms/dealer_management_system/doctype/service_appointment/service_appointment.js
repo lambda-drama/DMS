@@ -9,6 +9,7 @@ frappe.ui.form.on("Service Appointment", {
 		apply_customer_filter_advanced(frm);
 		apply_vehicle_item_filter(frm);
 		apply_vin_filter(frm);
+		apply_company_filter(frm);
 		add_vehicle_inspection_action(frm);
 	},
 });
@@ -33,6 +34,19 @@ function apply_vehicle_item_filter(frm) {
     };
 }
 
+
+function apply_company_filter(frm) {
+	frappe.call({
+		method: "dms.api.common.get_companies",
+		args: { limit: 999 },
+		callback(r) {
+			const names = (r.message || []).map((c) => c.name).filter(Boolean);
+			frm.set_query("company", () => ({
+				filters: { name: ["in", names.length ? names : ["__none__"]] },
+			}));
+		},
+	});
+}
 
 function apply_vin_filter(frm) {
 	frm.fields_dict.vin_chassis.get_query = function (doc, cdt, cdn) {

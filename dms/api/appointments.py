@@ -4,6 +4,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint, get_datetime, now_datetime
 
+from dms.api.utils import get_dms_companies
+
 _TERMINAL_STATUSES = frozenset({
 	"Completed", "Cancelled", "No-Show",
 })
@@ -121,7 +123,7 @@ def get_appointments(limit=50, offset=0, status=None, date=None, search=None):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "booking_source", "appointment_date_time",
+			"name", "booking_source", "appointment_date_time", "company",
 			"promised_delivery_date_time", "estimated_duration_hours",
 			"priority", "customer", "customer_name", "primary_phone", "mobile_no",
 			"customer_email", "vehicle", "vin_chassis", "license_plate",
@@ -198,11 +200,20 @@ def create_appointment(data):
 	if vin_chassis and not vehicle:
 		frappe.throw(_("Selected vehicle has no linked model item. Update the VIN record first."))
 
+	company = (data.get("company") or "").strip()
+	allowed = get_dms_companies()
+	if allowed:
+		if not company:
+			frappe.throw(_("Company is required"))
+		if company not in allowed:
+			frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
+
 	doc_data = {
 		"doctype": "Service Appointment",
 		"booking_source": data.get("booking_source", "Walk-in"),
 		"booking_reference": data.get("booking_reference"),
 		"appointment_date_time": data.get("appointment_date_time"),
+		"company": company or None,
 		"estimated_duration_hours": data.get("estimated_duration_hours"),
 		"priority": data.get("priority", "Normal"),
 		"customer": data.get("customer"),
@@ -266,7 +277,7 @@ def update_appointment(name, data):
 	doc.check_permission("write")
 
 	updatable = [
-		"appointment_date_time", "promised_delivery_date_time",
+		"appointment_date_time", "promised_delivery_date_time", "company",
 		"estimated_duration_hours", "priority", "customer_complaint_summary",
 		"preferred_advisor", "preferred_technician", "special_instructions",
 		"assigned_service_advisor", "assigned_bay", "vehicle_arrival_status",
@@ -276,6 +287,15 @@ def update_appointment(name, data):
 	for field in updatable:
 		if field in data:
 			doc.set(field, data[field])
+
+	if "company" in data:
+		company = (data.get("company") or "").strip()
+		allowed = get_dms_companies()
+		if allowed:
+			if not company:
+				frappe.throw(_("Company is required"))
+			if company not in allowed:
+				frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
 
 	doc.save()
 	frappe.db.commit()

@@ -14,6 +14,7 @@ import {
   useWarehouses,
   useInspections,
   useCompanies,
+  useCurrencies,
 } from "@/hooks/use-dms";
 import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
@@ -45,6 +46,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Plus, Trash2, Car, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import { GroupDiscountFields } from "@/components/group-discount-fields";
+import {
+  buildGroupDiscountPayload,
+  groupDiscountAmount,
+  parseDiscountValue,
+  type InvoiceDiscountMode,
+} from "@/lib/invoice-discount";
 import type { DMSJobCard, JobCardType, Priority, VINNo } from "@/types/dms";
 
 const jobCardTypes: JobCardType[] = [
@@ -106,6 +114,7 @@ export default function NewJobCardPage() {
   const [warehouseSearch, setWarehouseSearch] = useState("");
   const [companySearch, setCompanySearch] = useState("");
   const [company, setCompany] = useState("");
+  const [currency, setCurrency] = useState("ETB");
   const [warehouse, setWarehouse] = useState("");
 
   // Lookup hooks
@@ -120,6 +129,7 @@ export default function NewJobCardPage() {
     company || undefined
   );
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const { data: currencies } = useCurrencies();
 
   // Main form state
   const [jobCardType, setJobCardType] = useState<string>("");
@@ -147,11 +157,20 @@ export default function NewJobCardPage() {
   const [workshop, setWorkshop] = useState("");
 
   const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
-  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>("none");
+  const [labourDiscountInput, setLabourDiscountInput] = useState("");
+  const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>("none");
+  const [partsDiscountInput, setPartsDiscountInput] = useState("");
   const customerVehicleSectionRef = useRef<HTMLDivElement>(null);
 
   const handleWarrantyApplicationChange = (value: string) => {
     setWarrantyApplicationType(value);
+    if (value !== "Discount") {
+      setLabourDiscountMode("none");
+      setLabourDiscountInput("");
+      setPartsDiscountMode("none");
+      setPartsDiscountInput("");
+    }
     if (value && value !== "none") {
       requestAnimationFrame(() => {
         customerVehicleSectionRef.current?.scrollIntoView({
@@ -480,12 +499,28 @@ export default function NewJobCardPage() {
 
   const totalAmount = labourTotal + partsTotal;
 
+  const labourDiscountValue = parseDiscountValue(labourDiscountMode, labourDiscountInput);
+  const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
+  const labourDiscountTotal = groupDiscountAmount(
+    labourTotal,
+    labourDiscountMode,
+    labourDiscountValue
+  );
+  const partsDiscountTotal = groupDiscountAmount(
+    partsTotal,
+    partsDiscountMode,
+    partsDiscountValue
+  );
+  const combinedDiscountTotal = labourDiscountTotal + partsDiscountTotal;
+
   const netAmount = (() => {
     if (warrantyApplicationType === "All Invoice") return 0;
     if (warrantyApplicationType === "Spare Part") return labourTotal;
     if (warrantyApplicationType === "Labour") return partsTotal;
-    if (warrantyApplicationType === "Discount") return Math.max(totalAmount - discountAmount, 0);
-    return totalAmount - discountAmount;
+    if (warrantyApplicationType === "Discount") {
+      return Math.max(totalAmount - combinedDiscountTotal, 0);
+    }
+    return totalAmount;
   })();
 
   // --- Submit ---
@@ -514,7 +549,50 @@ export default function NewJobCardPage() {
       return;
     }
 
-    const payload: Partial<DMSJobCard> = {
+    if (warrantyApplicationType === "Discount") {
+      if (combinedDiscountTotal < 1) {
+        toast.error("Set a labour and/or parts discount (total at least 1)");
+        return;
+      }
+      if (
+        labourDiscountMode === "amount" &&
+        labourDiscountValue > labourTotal &&
+        labourTotal > 0
+      ) {
+        toast.error("Labour discount cannot exceed labour total");
+        return;
+      }
+      if (
+        partsDiscountMode === "amount" &&
+        partsDiscountValue > partsTotal &&
+        partsTotal > 0
+      ) {
+        toast.error("Parts discount cannot exceed parts total");
+        return;
+      }
+      if (labourDiscountMode === "percentage" && labourDiscountValue > 100) {
+        toast.error("Labour discount percentage cannot exceed 100");
+        return;
+      }
+      if (partsDiscountMode === "percentage" && partsDiscountValue > 100) {
+        toast.error("Parts discount percentage cannot exceed 100");
+        return;
+      }
+    }
+
+    const labourDiscountPayload = buildGroupDiscountPayload(
+      labourDiscountMode,
+      labourDiscountInput
+    );
+    const partsDiscountPayload = buildGroupDiscountPayload(
+      partsDiscountMode,
+      partsDiscountInput
+    );
+
+    const payload: Partial<DMSJobCard> & {
+      labour_discount?: { type: string; value: number };
+      parts_discount?: { type: string; value: number };
+    } = {
       job_card_type: jobCardType as JobCardType,
       priority: priority as Priority,
       estimated_duration_hours: estimatedDurationHours || undefined,
@@ -530,8 +608,14 @@ export default function NewJobCardPage() {
       workshop: workshop || undefined,
       warehouse: warehouse || undefined,
       company: company || undefined,
+      currency: currency || "ETB",
       warranty_application_type: (warrantyApplicationType && warrantyApplicationType !== "none") ? warrantyApplicationType : undefined,
-      discount_amount: discountAmount || undefined,
+      ...(warrantyApplicationType === "Discount"
+        ? {
+            labour_discount: labourDiscountPayload,
+            parts_discount: partsDiscountPayload,
+          }
+        : {}),
       customer_complaint_summary: customerComplaintSummary || undefined,
       service_advisor_notes: serviceAdvisorNotes || undefined,
       internal_notes: internalNotes || undefined,
@@ -680,19 +764,6 @@ export default function NewJobCardPage() {
                 </Select>
               </div>
 
-              {warrantyApplicationType === "Discount" && (
-                <div className="space-y-2">
-                  <Label htmlFor="discount_amount">Discount Amount</Label>
-                  <Input
-                    id="discount_amount"
-                    type="number"
-                    min={1}
-                    step="0.01"
-                    value={discountAmount || ""}
-                    onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -886,6 +957,10 @@ export default function NewJobCardPage() {
                     setCompany(val);
                     setWarehouse("");
                     setWarehouseSearch("");
+                    const match = companies?.find((c) => c.name === val);
+                    if (match?.default_currency) {
+                      setCurrency(match.default_currency);
+                    }
                   }}
                   onSearchChange={setCompanySearch}
                   placeholder="Select company..."
@@ -895,6 +970,25 @@ export default function NewJobCardPage() {
                     label: c.company_name || c.name,
                   }))}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(currencies?.length ? currencies : ["ETB"]).map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Used for job costing and when creating a sales invoice from this job card.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -1302,7 +1396,27 @@ export default function NewJobCardPage() {
 
         {/* 8. Totals */}
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-4">
+            {warrantyApplicationType === "Discount" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <GroupDiscountFields
+                  label="Labour"
+                  mode={labourDiscountMode}
+                  onModeChange={setLabourDiscountMode}
+                  value={labourDiscountInput}
+                  onValueChange={setLabourDiscountInput}
+                  subtotal={labourTotal}
+                />
+                <GroupDiscountFields
+                  label="Parts"
+                  mode={partsDiscountMode}
+                  onModeChange={setPartsDiscountMode}
+                  value={partsDiscountInput}
+                  onValueChange={setPartsDiscountInput}
+                  subtotal={partsTotal}
+                />
+              </div>
+            )}
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-8">
                 <span className="text-muted-foreground">Labour Total:</span>
@@ -1333,11 +1447,19 @@ export default function NewJobCardPage() {
                   </span>
                 </div>
               )}
-              {discountAmount > 0 && warrantyApplicationType !== "All Invoice" && warrantyApplicationType !== "Spare Part" && warrantyApplicationType !== "Labour" && (
+              {warrantyApplicationType === "Discount" && labourDiscountTotal > 0 && (
                 <div className="flex items-center gap-8">
-                  <span className="text-muted-foreground text-sm">Discount:</span>
+                  <span className="text-muted-foreground text-sm">Labour discount:</span>
                   <span className="font-medium w-32 text-right text-orange-600">
-                    -{discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    -{labourDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+              {warrantyApplicationType === "Discount" && partsDiscountTotal > 0 && (
+                <div className="flex items-center gap-8">
+                  <span className="text-muted-foreground text-sm">Parts discount:</span>
+                  <span className="font-medium w-32 text-right text-orange-600">
+                    -{partsDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               )}

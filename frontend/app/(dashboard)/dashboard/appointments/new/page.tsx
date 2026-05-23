@@ -41,6 +41,7 @@ import {
   useServiceAdvisors,
   useServiceBays,
   useCreateAppointment,
+  useCompanies,
 } from '@/hooks/use-dms';
 import type { BookingSource, Priority, VehicleArrivalStatus } from '@/types/dms';
 
@@ -101,6 +102,7 @@ export default function NewAppointmentPage() {
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [vinSearch, setVinSearch] = useState('');
+  const [companySearch, setCompanySearch] = useState('');
   const [customerContact, setCustomerContact] = useState({
     mobile_no: '',
     email_id: '',
@@ -112,6 +114,7 @@ export default function NewAppointmentPage() {
   const { data: serviceTypes } = useVehicleServiceTypes();
   const { data: advisors } = useServiceAdvisors();
   const { data: bays } = useServiceBays();
+  const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const { trigger: createAppointment, isMutating } = useCreateAppointment();
 
   const selectedCustomer = customers?.find((c) => c.name === form.customer);
@@ -180,6 +183,10 @@ export default function NewAppointmentPage() {
       toast.error('Please add at least one service type');
       return;
     }
+    if (!form.company) {
+      toast.error('Please select a company');
+      return;
+    }
 
     try {
       await commonSvc.updateCustomerContact(form.customer, {
@@ -190,6 +197,7 @@ export default function NewAppointmentPage() {
       await createAppointment({
         booking_source: form.booking_source,
         priority: form.priority,
+        company: form.company,
         appointment_date_time: form.appointment_date_time,
         promised_delivery_date_time: form.promised_delivery_date_time || undefined,
         estimated_duration_hours: form.estimated_duration_hours,
@@ -249,6 +257,28 @@ export default function NewAppointmentPage() {
             <CardDescription>Basic appointment information</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="company">
+                Company <span className="text-destructive">*</span>
+              </Label>
+              <SearchableSelect
+                value={form.company}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, company: val }))}
+                onSearchChange={setCompanySearch}
+                placeholder="Search companies (from DMS Settings)..."
+                isLoading={companiesLoading}
+                options={(companies || []).map((c) => ({
+                  value: c.name,
+                  label: c.company_name || c.name,
+                }))}
+              />
+              {companies && companies.length === 0 && !companiesLoading ? (
+                <p className="text-xs text-muted-foreground">
+                  No companies available. Add companies under DMS Settings → Company (table).
+                </p>
+              ) : null}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="booking_source">Booking Source</Label>
               <Select
