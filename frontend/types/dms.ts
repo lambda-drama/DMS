@@ -319,6 +319,8 @@ export interface VehicleCustomerComplaint {
 export interface VehicleInspection {
   name: string;
   naming_series?: string;
+  company?: string;
+  company_name?: string;
   appointment?: string;
   job_card?: string;
   inspection_date: string;

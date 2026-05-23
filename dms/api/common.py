@@ -454,12 +454,23 @@ def get_print_formats(doctype):
 	"""Return print format names for the given doctype (Frappe printview dropdown)."""
 	if not doctype:
 		return ["Standard"]
+
+	from dms.api.utils import get_dms_sales_print_formats
+
 	formats = frappe.get_all(
 		"Print Format",
 		filters={"doc_type": doctype, "disabled": 0},
 		pluck="name",
 		order_by="name",
 	)
+
+	if doctype == "Sales Invoice":
+		allowed = get_dms_sales_print_formats()
+		if allowed:
+			valid = set(formats)
+			filtered = [name for name in allowed if name in valid]
+			return filtered if filtered else ["Standard"]
+
 	result = ["Standard"]
 	seen = {"Standard"}
 	for name in formats:

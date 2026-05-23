@@ -16,6 +16,7 @@
   "customer_present",
   "service_advisor",
   "service_advisor_name",
+  "company",
   "received_from",
   "received_from_name",
   "received_from_phone",
@@ -487,13 +488,21 @@
    "fieldname": "service_advisor_sign",
    "fieldtype": "Signature",
    "label": "Service Advisor Sign"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-09 20:50:45.778822",
+ "modified": "2026-05-24 01:59:24.367309",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Inspection",
