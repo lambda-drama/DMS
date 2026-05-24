@@ -199,6 +199,9 @@ fixtures = [
 # Hook on document methods and events
 
 doc_events = {
+	"Vehicle Service Item": {
+		"validate": "dms.overrides.vehicle_service_item.validate_vehicle_service_item",
+	},
 	"Serial No": {
 		"after_insert": "dms.dealer_management_system.doctype.dms_settings.dms_settings.auto_create_vin_on_serial_insert",
 		"on_update": "dms.utils.serial_vin_sync.sync_vin_on_serial_update",

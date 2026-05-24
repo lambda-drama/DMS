@@ -18,7 +18,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Master",
-   "link_count": 11,
+   "link_count": 12,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -109,6 +109,16 @@
    "label": "Vehicle Service Item",
    "link_count": 0,
    "link_to": "Vehicle Service Item",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle Service Package",
+   "link_count": 0,
+   "link_to": "Vehicle Service Package",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
