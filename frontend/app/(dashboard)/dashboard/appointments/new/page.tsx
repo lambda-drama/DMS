@@ -43,7 +43,9 @@ import {
   useCreateAppointment,
   useCompanies,
 } from '@/hooks/use-dms';
-import type { BookingSource, Priority, VehicleArrivalStatus } from '@/types/dms';
+import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
+import * as vehiclesSvc from '@/services/vehicles';
+import type { BookingSource, Priority, VehicleArrivalStatus, VehicleWarrantySummary } from '@/types/dms';
 
 const bookingSources: BookingSource[] = [
   'Walk-in',
@@ -108,6 +110,7 @@ export default function NewAppointmentPage() {
     email_id: '',
   });
   const [loadingContact, setLoadingContact] = useState(false);
+  const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
 
   const { data: customers } = useCustomers(customerSearch);
   const { data: vins } = useVINs(form.customer || undefined, vinSearch);
@@ -434,6 +437,7 @@ export default function NewAppointmentPage() {
                   value={form.vin_chassis}
                   onValueChange={(val) => {
                     const vin = vins?.find((v) => v.name === val);
+                    setWarrantySummary(null);
                     setForm((prev) => ({
                       ...prev,
                       vin_chassis: val,
@@ -441,6 +445,11 @@ export default function NewAppointmentPage() {
                       license_plate: vin?.plate_number || '',
                       current_odometer: vin?.current_odometer ?? 0,
                     }));
+                    if (val) {
+                      void vehiclesSvc.getVehicle(val).then((full) => {
+                        setWarrantySummary(full.warranty_summary || null);
+                      }).catch(() => {});
+                    }
                   }}
                   onSearchChange={setVinSearch}
                   placeholder="Search vehicle..."
@@ -510,7 +519,7 @@ export default function NewAppointmentPage() {
 
             {/* Vehicle Info Display */}
             {selectedVin && (
-              <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Car className="h-4 w-4 text-muted-foreground" />
@@ -525,6 +534,7 @@ export default function NewAppointmentPage() {
                     <span className="font-mono text-xs">{selectedVin.vin_number}</span>
                   </div>
                 </div>
+                {warrantySummary && <WarrantyStatusBanner summary={warrantySummary} />}
               </div>
             )}
           </CardContent>

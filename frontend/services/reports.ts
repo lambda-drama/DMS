@@ -9,6 +9,8 @@ export interface ReportMeta {
   id: string;
   title: string;
   description: string;
+  /** When "stock", UI shows company / warehouse / spare part filters instead of date range. */
+  filter_type?: 'default' | 'stock';
 }
 
 export interface ReportColumn {
@@ -47,6 +49,16 @@ export interface ReportFilters {
   vehicle_vin?: string;
   /** VIN No document name from searchable dropdown */
   vin_no?: string;
+  warehouse?: string;
+  spare_part?: string;
+  below_minimum_only?: boolean | number;
+  include_zero_stock?: boolean | number;
+}
+
+export const STOCK_REPORT_ID = 'spare_parts_stock';
+
+export function isStockReportId(reportId: string | undefined): boolean {
+  return reportId === STOCK_REPORT_ID;
 }
 
 export async function listReports(): Promise<ReportMeta[]> {

@@ -13,6 +13,7 @@ class VINNo(Document):
         self.validate_vin_format()
         self.validate_duplicate_vin()
         self.validate_engine_number()
+        self.apply_dms_warranty_schedule()
         self.calculate_warranty_status()
         self.calculate_next_service()
         self.validate_odometer()
@@ -75,21 +76,17 @@ class VINNo(Document):
                     indicator="red"
                 )
     
+    def apply_dms_warranty_schedule(self):
+        """Warranty period/km from DMS Settings; start date = vehicle sale from stock."""
+        from dms.utils.warranty import apply_dms_warranty_schedule
+
+        apply_dms_warranty_schedule(self, persist=False)
+
     def calculate_warranty_status(self):
-        """Calculate warranty status based on date and mileage"""
-        today = getdate(nowdate())
-        
-        if self.warranty_end_date:
-            if getdate(self.warranty_end_date) < today:
-                self.warranty_status = "Expired by Time"
-                return
-        
-        if self.warranty_km_limit and self.current_odometer:
-            if self.current_odometer >= self.warranty_km_limit:
-                self.warranty_status = "Expired by Mileage"
-                return
-        
-        self.warranty_status = "Active"
+        """Active / Inactive (time) / Expired by Mileage — see dms.utils.warranty."""
+        from dms.utils.warranty import compute_warranty_status
+
+        compute_warranty_status(self)
     
     def calculate_next_service(self):
         """Calculate next service due"""
@@ -476,6 +473,8 @@ class VINNo(Document):
         self.current_customer = customer_name
         self.delivery_date = delivery_date
         self.warranty_start_date = delivery_date
+        self.apply_dms_warranty_schedule()
+        self.calculate_warranty_status()
         self.save(ignore_permissions=True)
        
         # Also update Serial No
@@ -504,10 +503,9 @@ class VINNo(Document):
             
     def get_service_interval_km(self):
         """Get the appropriate service interval based on vehicle conditions"""
-        if not self.vehicle_model:
+        if not self.model:
             return 10000
-        frappe.throw("Haoa")
-        model = frappe.get_doc("Vehicle Model", self.vehicle_model)
+        model = frappe.get_doc("Vehicle Model", self.model)
         # Find matching service interval rule
         for rule in model.service_intervals:
             if rule.is_default:
@@ -522,10 +520,9 @@ class VINNo(Document):
 
     def calculate_warranty_dates(self):
         """Calculate warranty end dates based on vehicle model rules"""
-        if not self.vehicle_model:
+        if not self.model:
             return
-        frappe.throw("Haoa")
-        model = frappe.get_doc("Vehicle Model", self.vehicle_model)
+        model = frappe.get_doc("Vehicle Model", self.model)
         
         for rule in model.warranty_rules:
             if rule.is_default:

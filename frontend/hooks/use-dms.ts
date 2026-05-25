@@ -9,6 +9,7 @@ import * as commonSvc from '@/services/common';
 import type { ColorOption } from '@/services/common';
 import * as techniciansSvc from '@/services/technicians';
 import * as vehiclesSvc from '@/services/vehicles';
+import * as servicePackagesSvc from '@/services/service-packages';
 import * as dashboardSvc from '@/services/dashboard';
 import type {
   ServiceAppointment,
@@ -25,6 +26,7 @@ import type {
   ServiceAdvisor,
   Technician,
   ServiceBay,
+  ServicePackageForVehicleResponse,
   TechnicianListItem,
   TechnicianFull,
   TechnicianAvailability,
@@ -312,6 +314,14 @@ export function useVehicleServiceItems(search?: string) {
   return useSWR(
     ['vehicle-service-items', search],
     () => commonSvc.fetchVehicleServiceItems(search),
+    { dedupingInterval: 5000 }
+  );
+}
+
+export function useServicePackagesForVin(vin: string | null, search?: string) {
+  return useSWR<ServicePackageForVehicleResponse>(
+    vin ? ['service-packages-for-vin', vin, search] : null,
+    () => servicePackagesSvc.fetchServicePackagesForVin(vin!, search),
     { dedupingInterval: 5000 }
   );
 }

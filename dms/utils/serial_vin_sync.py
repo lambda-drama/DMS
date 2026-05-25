@@ -116,7 +116,9 @@ def sync_vin_from_serial_no(serial_name, bundle=None):
 
 	frappe.flags.skip_vin_serial_sync = True
 	try:
-		vin.calculate_warranty_status()
+		from dms.utils.warranty import apply_dms_warranty_schedule
+
+		apply_dms_warranty_schedule(vin, persist=False)
 		vin.save(ignore_permissions=True)
 	finally:
 		frappe.flags.skip_vin_serial_sync = False
@@ -157,6 +159,29 @@ def sync_vin_on_stock_ledger_entry(doc, method=None):
 		except Exception:
 			frappe.log_error(
 				title="VIN sync from Stock Ledger Entry failed",
+				message=frappe.get_traceback(),
+			)
+
+	frappe.db.after_commit.add(_run)
+
+
+def sync_vin_on_outward_bundle_submit(doc, method=None):
+	"""When a vehicle is sold (outward DN/SI bundle), set delivery date and warranty on VIN."""
+	if doc.docstatus != 1 or getattr(doc, "is_cancelled", 0):
+		return
+	if doc.type_of_transaction != "Outward":
+		return
+	if doc.voucher_type not in SALES_VOUCHERS:
+		return
+
+	def _run():
+		try:
+			for row in doc.entries or []:
+				if row.serial_no:
+					sync_vin_from_serial_no(row.serial_no, bundle=doc)
+		except Exception:
+			frappe.log_error(
+				title="VIN sync from outward Serial and Batch Bundle failed",
 				message=frappe.get_traceback(),
 			)
 

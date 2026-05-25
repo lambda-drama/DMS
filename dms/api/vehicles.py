@@ -12,7 +12,10 @@ def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=
 	if vehicle_status:
 		filters["vehicle_status"] = vehicle_status
 	if warranty_status:
-		filters["warranty_status"] = warranty_status
+		if warranty_status == "Inactive":
+			filters["warranty_status"] = ["in", ["Inactive", "Expired by Time"]]
+		else:
+			filters["warranty_status"] = warranty_status
 
 	or_filters = {}
 	if search:
@@ -39,7 +42,7 @@ def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=
 		or_filters=or_filters if or_filters else None,
 		fields=[
 			"name", "vin_number", "engine_number", "plate_number",
-			"linked_item", "model_name", "model_year", "brand",
+			"linked_item", "model", "model_name", "model_year", "brand",
 			"fuel_type", "transmission", "exterior_color",
 			"current_customer", "customer_name",
 			"current_odometer", "odometer_unit",
@@ -64,7 +67,29 @@ def get_vehicle(name):
 	doc = frappe.get_doc("VIN No", name)
 	doc.check_permission("read")
 
-	return doc.as_dict()
+	data = doc.as_dict()
+	from dms.api.service_packages import resolve_vehicle_model_from_vin
+
+	vm, vm_label = resolve_vehicle_model_from_vin(name)
+	data["resolved_vehicle_model"] = vm
+	data["resolved_vehicle_model_label"] = vm_label
+
+	from dms.utils.warranty import get_warranty_summary
+
+	data["warranty_summary"] = get_warranty_summary(doc, recalculate=True)
+	return data
+
+
+@frappe.whitelist()
+def get_vehicle_warranty_summary(vin_no=None):
+	"""Warranty active/inactive for UI (DMS Settings period + mileage, sale from stock)."""
+	vin_no = (vin_no or "").strip()
+	if not vin_no:
+		frappe.throw(_("VIN is required"))
+
+	from dms.utils.warranty import get_warranty_summary
+
+	return get_warranty_summary(vin_no, recalculate=True)
 
 
 @frappe.whitelist()

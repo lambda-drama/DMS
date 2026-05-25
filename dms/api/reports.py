@@ -8,6 +8,7 @@ from frappe import _
 from frappe.utils import add_days, cint, date_diff, flt, getdate, nowdate
 
 from dms.api.dashboard import ACTIVE_JOB_CARD_STATUSES
+from dms.api.utils import get_dms_companies
 
 OPEN_JOB_CARD_STATUSES = list(ACTIVE_JOB_CARD_STATUSES)
 
@@ -197,6 +198,12 @@ def list_reports():
 		{"id": "customer_satisfaction", "title": "Customer Satisfaction", "description": "Ratings, complaints, follow-up, advisor performance."},
 		{"id": "odometer_exception", "title": "Odometer Exception Report", "description": "Rollback, unreadable, or large mileage jumps."},
 		{"id": "aging", "title": "Aging Report", "description": "Vehicles in workshop by days open and hold reason."},
+		{
+			"id": "spare_parts_stock",
+			"title": "Spare Parts Stock",
+			"description": "On-hand stock for one company and warehouse (Spare Part → Item, ERPNext stock balance).",
+			"filter_type": "stock",
+		},
 	]
 
 
@@ -220,6 +227,7 @@ def get_report(report_id, filters=None):
 		"customer_satisfaction": get_customer_satisfaction_report,
 		"odometer_exception": get_odometer_exception_report,
 		"aging": get_aging_report,
+		"spare_parts_stock": get_spare_parts_stock_report,
 	}
 	fn = handlers.get((report_id or "").strip())
 	if not fn:
@@ -1165,3 +1173,219 @@ def get_aging_report(filters=None):
 		],
 		"rows": aged_rows,
 	}
+
+
+def _parse_stock_report_filters(data=None):
+	if isinstance(data, str):
+		import json
+		data = json.loads(data) if data else {}
+	data = data or {}
+	company = (data.get("company") or "").strip() or None
+	warehouse = (data.get("warehouse") or "").strip() or None
+	spare_part = (data.get("spare_part") or "").strip() or None
+	search = (data.get("search") or data.get("spare_part_search") or "").strip() or None
+	if not company:
+		frappe.throw(_("Company is required for the Spare Parts Stock report."))
+	if not warehouse:
+		frappe.throw(_("Warehouse is required for the Spare Parts Stock report."))
+
+	allowed = get_dms_companies()
+	if allowed and company not in allowed:
+		frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
+	if not frappe.db.exists("Warehouse", warehouse):
+		frappe.throw(_("Warehouse {0} was not found.").format(frappe.bold(warehouse)))
+
+	wh_company = frappe.db.get_value("Warehouse", warehouse, "company")
+	if wh_company and wh_company != company:
+		frappe.throw(_("Warehouse does not belong to the selected company."))
+	return {
+		"company": company,
+		"warehouse": warehouse,
+		"spare_part": spare_part,
+		"search": search,
+		"below_minimum_only": cint(data.get("below_minimum_only")),
+		"include_zero_stock": cint(data.get("include_zero_stock", 1)),
+	}
+
+
+def _stock_report_filters_response(f):
+	out = {}
+	if f.get("company"):
+		out["company"] = f["company"]
+	if f.get("warehouse"):
+		out["warehouse"] = f["warehouse"]
+	if f.get("spare_part"):
+		out["spare_part"] = f["spare_part"]
+	if f.get("search"):
+		out["search"] = f["search"]
+	if f.get("below_minimum_only"):
+		out["below_minimum_only"] = "1"
+	return out
+
+
+def _warehouses_for_stock_report(filters):
+	"""Company and warehouse are required; returns a single-warehouse list."""
+	warehouse = (filters.get("warehouse") or "").strip()
+	if warehouse and frappe.db.exists("Warehouse", warehouse):
+		return [warehouse]
+	return []
+
+
+def _spare_part_stock_status(qty, minimum_level):
+	qty = flt(qty)
+	minimum_level = flt(minimum_level)
+	if qty <= 0:
+		return _("Out of Stock")
+	if minimum_level > 0 and qty < minimum_level:
+		return _("Below Minimum")
+	return _("OK")
+
+
+@frappe.whitelist()
+def get_spare_parts_stock_report(filters=None):
+	"""Spare parts on-hand stock by warehouse (ERPNext get_stock_balance on linked Item)."""
+	from erpnext.stock.utils import get_stock_balance
+
+	f = _parse_stock_report_filters(filters)
+	warehouses = _warehouses_for_stock_report(f)
+	if not warehouses:
+		msg = _("Select company and warehouse in Filters, then click Apply.")
+		if not get_dms_companies():
+			msg = _("Add companies in DMS Settings, then select company and warehouse.")
+		return {
+			"report_id": "spare_parts_stock",
+			"title": _("Spare Parts Stock"),
+			"filters": _stock_report_filters_response(f),
+			"summary": {"message": msg, "total_rows": 0},
+			"columns": _spare_parts_stock_columns(),
+			"rows": [],
+		}
+
+	sp_filters = {}
+	if f.get("spare_part"):
+		sp_filters["name"] = f["spare_part"]
+
+	spare_parts = frappe.get_all(
+		"Spare Part",
+		filters=sp_filters,
+		fields=[
+			"name",
+			"item_name",
+			"item_code",
+			"oem_part_number",
+			"part_category",
+			"spare_part_item",
+			"stock_uom",
+			"minimum_stock_level",
+			"maximum_stock_level",
+			"reorder_quantity",
+			"selling_price",
+		],
+		order_by="item_name asc",
+		limit_page_length=0,
+	)
+
+	needle = (f.get("search") or "").lower()
+	if needle:
+		def _matches(sp):
+			for field in ("name", "item_name", "item_code", "oem_part_number", "part_category"):
+				val = (sp.get(field) or "").lower()
+				if needle in val:
+					return True
+			return False
+
+		spare_parts = [sp for sp in spare_parts if _matches(sp)]
+
+	wh_company = {}
+	if warehouses:
+		for row in frappe.get_all(
+			"Warehouse",
+			filters={"name": ["in", warehouses]},
+			fields=["name", "company", "warehouse_name"],
+		):
+			wh_company[row.name] = row
+
+	rows = []
+	total_qty = 0.0
+	below_min = 0
+	out_of_stock = 0
+	posting_date = nowdate()
+
+	for sp in spare_parts:
+		item_code = (sp.get("spare_part_item") or sp.get("item_code") or "").strip()
+		if not item_code or not frappe.db.exists("Item", item_code):
+			continue
+		if not cint(frappe.db.get_value("Item", item_code, "is_stock_item")):
+			continue
+
+		min_level = flt(sp.get("minimum_stock_level"))
+		for wh in warehouses:
+			try:
+				qty = flt(get_stock_balance(item_code, wh, posting_date) or 0)
+			except Exception:
+				qty = 0.0
+
+			if not f.get("include_zero_stock") and qty == 0:
+				continue
+
+			status = _spare_part_stock_status(qty, min_level)
+			if f.get("below_minimum_only") and status != _("Below Minimum"):
+				continue
+
+			wh_row = wh_company.get(wh) or {}
+			rows.append({
+				"spare_part": sp.name,
+				"item_code": item_code,
+				"item_name": sp.get("item_name") or item_code,
+				"oem_part_number": sp.get("oem_part_number") or "",
+				"part_category": sp.get("part_category") or "",
+				"warehouse": wh,
+				"warehouse_name": wh_row.get("warehouse_name") or wh,
+				"company": wh_row.get("company") or f.get("company") or "",
+				"stock_uom": sp.get("stock_uom") or frappe.db.get_value("Item", item_code, "stock_uom"),
+				"qty": qty,
+				"minimum_stock_level": min_level,
+				"reorder_quantity": flt(sp.get("reorder_quantity")),
+				"selling_price": flt(sp.get("selling_price")),
+				"stock_status": status,
+			})
+			total_qty += qty
+			if status == _("Below Minimum"):
+				below_min += 1
+			elif status == _("Out of Stock"):
+				out_of_stock += 1
+
+	return {
+		"report_id": "spare_parts_stock",
+		"title": _("Spare Parts Stock"),
+		"filters": _stock_report_filters_response(f),
+		"summary": {
+			"as_at_date": str(posting_date),
+			"warehouse_count": len(warehouses),
+			"spare_part_count": len({r["spare_part"] for r in rows}),
+			"total_rows": len(rows),
+			"total_qty": round(total_qty, 2),
+			"below_minimum_rows": below_min,
+			"out_of_stock_rows": out_of_stock,
+		},
+		"columns": _spare_parts_stock_columns(),
+		"rows": rows,
+	}
+
+
+def _spare_parts_stock_columns():
+	return [
+		{"key": "spare_part", "label": _("Spare Part")},
+		{"key": "item_code", "label": _("Item Code")},
+		{"key": "item_name", "label": _("Item Name")},
+		{"key": "oem_part_number", "label": _("OEM Part No.")},
+		{"key": "part_category", "label": _("Category")},
+		{"key": "warehouse_name", "label": _("Warehouse")},
+		{"key": "company", "label": _("Company")},
+		{"key": "qty", "label": _("Qty On Hand")},
+		{"key": "stock_uom", "label": _("UOM")},
+		{"key": "minimum_stock_level", "label": _("Min Level")},
+		{"key": "reorder_quantity", "label": _("Reorder Qty")},
+		{"key": "stock_status", "label": _("Status")},
+		{"key": "selling_price", "label": _("Selling Price")},
+	]

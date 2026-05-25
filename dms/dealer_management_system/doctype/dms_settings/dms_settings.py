@@ -199,6 +199,9 @@ def create_vin_from_serial_document(serial, force_recreate=0):
 	try:
 		vin_doc.flags.ignore_validate = True
 		vin_doc.insert(ignore_permissions=True)
+		from dms.utils.warranty import apply_dms_warranty_schedule
+
+		apply_dms_warranty_schedule(vin_doc, persist=True)
 	finally:
 		frappe.flags.skip_auto_vin_from_serial = False
 
