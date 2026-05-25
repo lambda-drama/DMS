@@ -242,7 +242,7 @@
    "reqd": 1
   },
   {
-   "fetch_from": "vehicle_vin.model_name",
+   "fetch_from": "vehicle_vin.model.model_name",
    "fieldname": "vehicle_model",
    "fieldtype": "Read Only",
    "label": "Model"

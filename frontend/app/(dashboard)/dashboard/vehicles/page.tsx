@@ -47,7 +47,7 @@ const statusOptions = [
 const warrantyOptions = [
   { value: "all", label: "All Warranty" },
   { value: "Active", label: "Active" },
-  { value: "Expired by Time", label: "Expired (Time)" },
+  { value: "Inactive", label: "Inactive (expired)" },
   { value: "Expired by Mileage", label: "Expired (Mileage)" },
   { value: "Void", label: "Void" },
 ];
@@ -67,6 +67,7 @@ function getStatusBadge(status?: string) {
 function getWarrantyBadge(status?: string) {
   const m: Record<string, string> = {
     Active: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300",
+    Inactive: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
     "Expired by Time": "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
     "Expired by Mileage": "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
     Void: "bg-muted text-muted-foreground",
@@ -338,7 +339,9 @@ export default function VehiclesPage() {
                             className={`text-[10px] gap-1 ${getWarrantyBadge(v.warranty_status)}`}
                           >
                             {v.warranty_status === "Active" && <Shield className="h-2.5 w-2.5" />}
-                            {(v.warranty_status?.startsWith("Expired") || v.warranty_status === "Void") && (
+                            {(v.warranty_status === "Inactive" ||
+                              v.warranty_status?.startsWith("Expired") ||
+                              v.warranty_status === "Void") && (
                               <AlertTriangle className="h-2.5 w-2.5" />
                             )}
                             {v.warranty_status}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import {
   useCreateJobCard,
@@ -15,6 +15,7 @@ import {
   useInspections,
   useCompanies,
   useCurrencies,
+  useServicePackagesForVin,
 } from "@/hooks/use-dms";
 import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
@@ -25,6 +26,15 @@ import {
   fetchServiceBayDetail,
 } from "@/services/common";
 import * as vehiclesSvc from "@/services/vehicles";
+import { fetchServicePackageLines } from "@/services/service-packages";
+import { getInspection } from "@/services/inspections";
+import { htmlToPlainText } from "@/lib/plain-text";
+import {
+  COMPLAINT_SEVERITY_OPTIONS,
+  DEFAULT_COMPLAINT_SEVERITY,
+  DEFAULT_SYMPTOM_CATEGORY,
+  SYMPTOM_CATEGORIES,
+} from "@/lib/customer-complaint-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +54,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Trash2, Car, User, Wrench } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Car, User, Wrench, Package } from "lucide-react";
 import { toast } from "sonner";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import {
@@ -53,7 +63,8 @@ import {
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
-import type { DMSJobCard, JobCardType, Priority, VINNo } from "@/types/dms";
+import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
+import type { DMSJobCard, JobCardType, Priority, VINNo, VehicleWarrantySummary } from "@/types/dms";
 
 const jobCardTypes: JobCardType[] = [
   "Customer Paid",
@@ -139,6 +150,9 @@ export default function NewJobCardPage() {
 
   const [customer, setCustomer] = useState("");
   const [vehicleVin, setVehicleVin] = useState("");
+  const [selectedServicePackage, setSelectedServicePackage] = useState("");
+  const [isLoadingPackageLines, setIsLoadingPackageLines] = useState(false);
+  const lastAppliedPackageRef = useRef<string | null>(null);
   /** Keeps VIN label/details when customer changes and search results no longer include this VIN */
   const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
   /** Owner from VIN — pinned in customer dropdown when not in search results */
@@ -150,6 +164,7 @@ export default function NewJobCardPage() {
   const [licensePlate, setLicensePlate] = useState("");
   const [currentOdometer, setCurrentOdometer] = useState<number>(0);
   const [warrantyStatus, setWarrantyStatus] = useState("");
+  const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
 
   const [serviceAdvisor, setServiceAdvisor] = useState("");
   const [leadTechnician, setLeadTechnician] = useState("");
@@ -187,19 +202,24 @@ export default function NewJobCardPage() {
 
   const appointment = viewParams.get("appointment") || "";
   const [inspectionId, setInspectionId] = useState(viewParams.get("inspection") || "");
+  const [isLoadingInspectionComplaints, setIsLoadingInspectionComplaints] =
+    useState(false);
+  const lastAppliedInspectionRef = useRef<string | null>(null);
 
   // Inspections filtered by selected customer
   const { data: inspectionsData } = useInspections({ customer: customer || undefined });
 
   // VIN search is independent of customer — VIN drives customer, not the other way around
   const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
+  const { data: servicePackagesForVin, isLoading: servicePackagesLoading } =
+    useServicePackagesForVin(vehicleVin || null);
 
   // Child table: Job Items
   const [jobItems, setJobItems] = useState<JobItemRow[]>([]);
   const [newJobItem, setNewJobItem] = useState<JobItemRow>({
     complaint_description: "",
-    symptom_category: "",
-    severity: "",
+    symptom_category: DEFAULT_SYMPTOM_CATEGORY,
+    severity: DEFAULT_COMPLAINT_SEVERITY,
     labor_operation: "",
   });
 
@@ -240,6 +260,7 @@ export default function NewJobCardPage() {
     setLicensePlate(vin.plate_number || "");
     setCurrentOdometer(vin.current_odometer || 0);
     setWarrantyStatus(vin.warranty_status || "");
+    setWarrantySummary(null);
     if (vin.current_customer) {
       setCustomer(vin.current_customer);
       setSelectedCustomer({
@@ -251,8 +272,11 @@ export default function NewJobCardPage() {
 
   const handleVinSelect = async (vinName: string) => {
     setVehicleVin(vinName);
+    setSelectedServicePackage("");
+    setWarrantySummary(null);
     if (!vinName) {
       setSelectedVin(null);
+      setWarrantyStatus("");
       return;
     }
 
@@ -267,6 +291,7 @@ export default function NewJobCardPage() {
         name: full.name,
         vin_number: full.vin_number,
         plate_number: full.plate_number,
+        model: full.model,
         model_name: full.model_name,
         current_customer: full.current_customer,
         customer_name: full.customer_name,
@@ -276,6 +301,8 @@ export default function NewJobCardPage() {
         model_year: full.model_year,
         warranty_end_date: full.warranty_end_date,
       });
+      setWarrantyStatus(full.warranty_status || "");
+      setWarrantySummary(full.warranty_summary || null);
     } catch {
       if (!fromList) {
         toast.error("Could not load vehicle details for the selected VIN");
@@ -431,7 +458,12 @@ export default function NewJobCardPage() {
       return;
     }
     setJobItems((prev) => [...prev, { ...newJobItem }]);
-    setNewJobItem({ complaint_description: "", symptom_category: "", severity: "", labor_operation: "" });
+    setNewJobItem({
+      complaint_description: "",
+      symptom_category: DEFAULT_SYMPTOM_CATEGORY,
+      severity: DEFAULT_COMPLAINT_SEVERITY,
+      labor_operation: "",
+    });
   };
 
   const removeJobItem = (idx: number) => {
@@ -480,6 +512,167 @@ export default function NewJobCardPage() {
   const removePartRow = (idx: number) => {
     setPartRows((prev) => prev.filter((_, i) => i !== idx));
   };
+
+  const populateFromServicePackage = useCallback(
+    async (packageName: string) => {
+      setIsLoadingPackageLines(true);
+      try {
+        const lines = await fetchServicePackageLines(packageName);
+        const leadTechName =
+          technicians?.find((t) => t.name === leadTechnician)?.full_name ||
+          leadTechnician ||
+          "";
+
+        setLabourRows(
+          lines.labour.map((row) => ({
+            vehicle_service_item: row.vehicle_service_item,
+            vehicle_service_item_name:
+              row.service_name || row.vehicle_service_item,
+            technician: leadTechnician || "",
+            technician_name: leadTechName,
+            estimated_hours: row.estimated_hours,
+            rate_per_hour: row.rate_per_hour,
+            complaint: row.notes || "",
+          }))
+        );
+
+        setPartRows(
+          lines.parts.map((row) => ({
+            item_code: row.item_code,
+            item_name: row.item_name || row.item_code,
+            quantity_requested: row.quantity_requested,
+            unit_price: row.unit_price,
+            warehouse: warehouse || undefined,
+          }))
+        );
+
+        const pkgLabel = lines.package_name || packageName;
+        toast.success(
+          `Loaded "${pkgLabel}": ${lines.labour.length} labour, ${lines.parts.length} parts`
+        );
+
+        const packageHours = lines.labour.reduce(
+          (sum, r) => sum + (r.estimated_hours || 0),
+          0
+        );
+        if (packageHours > 0) {
+          setEstimatedDurationHours(Math.round(packageHours * 10) / 10);
+        }
+      } catch (err) {
+        lastAppliedPackageRef.current = null;
+        toast.error(
+          err instanceof Error ? err.message : "Could not load service package"
+        );
+      } finally {
+        setIsLoadingPackageLines(false);
+      }
+    },
+    [leadTechnician, technicians, warehouse]
+  );
+
+  const populateFromInspection = useCallback(async (inspectionName: string) => {
+    setIsLoadingInspectionComplaints(true);
+    try {
+      const insp = await getInspection(inspectionName);
+      const complaints = insp.customer_complaints || [];
+      const rows: JobItemRow[] = complaints
+        .map((row) => {
+          const text = htmlToPlainText(
+            row.customer_exact_words || row.complaint || ""
+          );
+          return {
+            complaint_description: text,
+            symptom_category:
+              row.symptom_category || row.category || DEFAULT_SYMPTOM_CATEGORY,
+            severity: row.severity || DEFAULT_COMPLAINT_SEVERITY,
+            labor_operation: "",
+          };
+        })
+        .filter((row) => row.complaint_description);
+
+      if (rows.length) {
+        setJobItems(rows);
+        setCustomerComplaintSummary(
+          rows.map((r) => r.complaint_description).join("\n\n")
+        );
+      } else {
+        setJobItems([]);
+        setCustomerComplaintSummary("");
+        toast.info("This inspection has no customer complaint rows");
+      }
+
+      const advisorNotes = htmlToPlainText(insp.service_advisor_notes || "");
+      if (advisorNotes) {
+        setServiceAdvisorNotes(advisorNotes);
+      }
+    } catch (err) {
+      lastAppliedInspectionRef.current = null;
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Could not load complaints from inspection"
+      );
+    } finally {
+      setIsLoadingInspectionComplaints(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!inspectionId) {
+      lastAppliedInspectionRef.current = null;
+      return;
+    }
+    if (lastAppliedInspectionRef.current === inspectionId) {
+      return;
+    }
+    lastAppliedInspectionRef.current = inspectionId;
+    void populateFromInspection(inspectionId);
+  }, [inspectionId, populateFromInspection]);
+
+  useEffect(() => {
+    if (!vehicleVin || !selectedServicePackage) {
+      if (!selectedServicePackage) {
+        lastAppliedPackageRef.current = null;
+      }
+      return;
+    }
+    if (lastAppliedPackageRef.current === selectedServicePackage) {
+      return;
+    }
+    lastAppliedPackageRef.current = selectedServicePackage;
+    void populateFromServicePackage(selectedServicePackage);
+  }, [vehicleVin, selectedServicePackage, populateFromServicePackage]);
+
+  const inspectionSelectOptions = useMemo(() => {
+    let list = inspectionsData?.data || [];
+    if (vehicleVin) {
+      const forVin = list.filter((i) => i.customer_vehicle === vehicleVin);
+      if (forVin.length) list = forVin;
+    }
+    return list.map((insp) => ({
+      value: insp.name!,
+      label: insp.name!,
+      description: [insp.customer_vehicle || insp.vin_chassis, insp.customer]
+        .filter(Boolean)
+        .join(" · "),
+    }));
+  }, [inspectionsData, vehicleVin]);
+
+  const servicePackageOptions = useMemo(
+    () =>
+      servicePackagesForVin?.packages?.map((p) => ({
+        value: p.name,
+        label: p.package_name,
+        description: [
+          p.interval_km ? `${p.interval_km.toLocaleString()} km` : null,
+          p.interval_months ? `${p.interval_months} mo` : null,
+          p.total_labor_hours ? `${p.total_labor_hours}h labour` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      })) || [],
+    [servicePackagesForVin]
+  );
 
   // --- Totals (include current row being edited) ---
 
@@ -845,13 +1038,8 @@ export default function NewJobCardPage() {
               </div>
             </div>
 
-            {warrantyStatus && (
-              <div className="text-sm text-muted-foreground">
-                Warranty Status:{" "}
-                <span className="font-medium text-foreground">
-                  {warrantyStatus}
-                </span>
-              </div>
+            {warrantySummary && (
+              <WarrantyStatusBanner summary={warrantySummary} />
             )}
 
             <Separator />
@@ -860,16 +1048,15 @@ export default function NewJobCardPage() {
               <div className="space-y-2">
                 <Label>Vehicle Inspection *</Label>
                 <SearchableSelect
-                  options={
-                    (inspectionsData?.data || []).map((insp) => ({
-                      value: insp.name!,
-                      label: insp.name!,
-                      description: [insp.vehicle_vin, insp.customer].filter(Boolean).join(" · "),
-                    }))
-                  }
+                  options={inspectionSelectOptions}
                   value={inspectionId}
                   onValueChange={setInspectionId}
-                  placeholder="Search inspections..."
+                  placeholder={
+                    isLoadingInspectionComplaints
+                      ? "Loading complaints…"
+                      : "Search inspections..."
+                  }
+                  isLoading={isLoadingInspectionComplaints}
                 />
               </div>
             </div>
@@ -1017,7 +1204,7 @@ export default function NewJobCardPage() {
           <CardHeader>
             <CardTitle>Customer Complaints</CardTitle>
             <CardDescription>
-              Summarize the customer&apos;s reported issues
+              Filled from the selected inspection; you can edit before saving
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1035,7 +1222,7 @@ export default function NewJobCardPage() {
           <CardHeader>
             <CardTitle>Job Items</CardTitle>
             <CardDescription>
-              Complaint, Cause, and Correction lines
+              Customer complaints from the inspection (same fields as Job Card Items)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1090,29 +1277,49 @@ export default function NewJobCardPage() {
               </div>
               <div className="col-span-3 space-y-1">
                 <Label className="text-xs">Symptom Category</Label>
-                <Input
-                  placeholder="e.g. Engine, Brakes"
-                  value={newJobItem.symptom_category}
-                  onChange={(e) =>
+                <Select
+                  value={newJobItem.symptom_category || DEFAULT_SYMPTOM_CATEGORY}
+                  onValueChange={(val) =>
                     setNewJobItem((prev) => ({
                       ...prev,
-                      symptom_category: e.target.value,
+                      symptom_category: val,
                     }))
                   }
-                />
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SYMPTOM_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Severity</Label>
-                <Input
-                  placeholder="e.g. High, Low"
-                  value={newJobItem.severity}
-                  onChange={(e) =>
+                <Select
+                  value={newJobItem.severity || DEFAULT_COMPLAINT_SEVERITY}
+                  onValueChange={(val) =>
                     setNewJobItem((prev) => ({
                       ...prev,
-                      severity: e.target.value,
+                      severity: val,
                     }))
                   }
-                />
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select severity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMPLAINT_SEVERITY_OPTIONS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2">
                 <Button type="button" onClick={addJobItem} className="w-full">
@@ -1124,6 +1331,57 @@ export default function NewJobCardPage() {
           </CardContent>
         </Card>
 
+        {/* Service package (model from VIN) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Service Package
+            </CardTitle>
+            <CardDescription>
+              {vehicleVin
+                ? servicePackagesForVin?.vehicle_model_label
+                  ? `Packages for ${servicePackagesForVin.vehicle_model_label}. Choosing a package fills labour and parts below.`
+                  : servicePackagesForVin?.message ||
+                    "Select a VIN with a linked vehicle model to see packages."
+                : "Select a vehicle (VIN) first — the model is taken from the vehicle record."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Package</Label>
+              <SearchableSelect
+                options={servicePackageOptions}
+                value={selectedServicePackage}
+                onValueChange={setSelectedServicePackage}
+                placeholder={
+                  !vehicleVin
+                    ? "Select VIN first"
+                    : servicePackagesLoading || isLoadingPackageLines
+                      ? "Loading…"
+                      : servicePackageOptions.length
+                        ? "Select service package…"
+                        : "No packages for this model"
+                }
+                disabled={
+                  !vehicleVin ||
+                  servicePackageOptions.length === 0 ||
+                  isLoadingPackageLines
+                }
+                isLoading={servicePackagesLoading || isLoadingPackageLines}
+              />
+            </div>
+            {vehicleVin &&
+              !servicePackagesLoading &&
+              servicePackageOptions.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Set Model on the vehicle (VIN No), then link packages under Vehicle
+                  Service Package → Applicable Vehicle Models.
+                </p>
+              )}
+          </CardContent>
+        </Card>
+
         {/* 6. Labour Lines */}
         <Card>
           <CardHeader>
@@ -1132,7 +1390,7 @@ export default function NewJobCardPage() {
               Labour Lines
             </CardTitle>
             <CardDescription>
-              Add labour items for this job card
+              Filled from the service package above, or add lines manually
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

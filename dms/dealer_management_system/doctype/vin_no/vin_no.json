@@ -17,6 +17,7 @@
   "model_name",
   "linked_serial",
   "serial_status",
+  "model",
   "section_model_details",
   "brand",
   "model_variant",
@@ -143,7 +144,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Vehicle Model (Item)",
+   "label": "Vehicle ERPNext(Item)",
    "options": "Item",
    "reqd": 1
   },
@@ -361,7 +362,7 @@
    "fieldname": "warranty_status",
    "fieldtype": "Select",
    "label": "Warranty Status",
-   "options": "Active\nExpired by Time\nExpired by Mileage\nVoid\nPending Verification",
+   "options": "Active\nInactive\nExpired by Time\nExpired by Mileage\nVoid\nPending Verification",
    "read_only": 1
   },
   {
@@ -665,12 +666,18 @@
    "fieldtype": "Link",
    "label": "Status",
    "options": "Vehicle Location Status"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Vehicle Model"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-20 00:58:56.487039",
+ "modified": "2026-05-26 01:35:30.912633",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "VIN No",

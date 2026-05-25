@@ -309,11 +309,19 @@ export interface VehicleUnderbodyItem {
 }
 
 export interface VehicleCustomerComplaint {
-  name: string;
-  complaint: string;
-  category?: string;
-  priority?: Priority;
+  name?: string;
+  complaint_sequence?: number;
+  customer_exact_words?: string;
+  symptom_category?: string;
+  severity?: string;
+  frequency?: string;
   notes?: string;
+  /** @deprecated use customer_exact_words */
+  complaint?: string;
+  /** @deprecated use symptom_category */
+  category?: string;
+  /** @deprecated use severity */
+  priority?: Priority;
 }
 
 export interface VehicleInspection {
@@ -388,6 +396,48 @@ export interface VehicleInspection {
   docstatus?: 0 | 1 | 2;
   creation?: string;
   modified?: string;
+}
+
+// ============ VEHICLE SERVICE PACKAGE ============
+
+export interface ServicePackageListItem {
+  name: string;
+  package_name: string;
+  description?: string;
+  interval_km?: number;
+  interval_months?: number;
+  total_labor_hours?: number;
+  package_price?: number;
+}
+
+export interface ServicePackageForVehicleResponse {
+  vehicle_model: string | null;
+  vehicle_model_label?: string | null;
+  packages: ServicePackageListItem[];
+  message?: string;
+}
+
+export interface ServicePackageLabourLine {
+  vehicle_service_item: string;
+  service_name?: string;
+  estimated_hours: number;
+  rate_per_hour: number;
+  notes?: string;
+}
+
+export interface ServicePackagePartLine {
+  item_code: string;
+  item_name?: string;
+  quantity_requested: number;
+  unit_price: number;
+}
+
+export interface ServicePackageLinesResponse {
+  package: string;
+  package_name: string;
+  description?: string;
+  labour: ServicePackageLabourLine[];
+  parts: ServicePackagePartLine[];
 }
 
 // ============ DMS JOB CARD ============
@@ -630,12 +680,31 @@ export interface VehicleServiceType {
   requires_diagnostic?: number;
 }
 
+export interface VehicleWarrantySummary {
+  warranty_active: boolean;
+  warranty_status: string;
+  warranty_start_date?: string | null;
+  warranty_end_date?: string | null;
+  warranty_km_limit?: number | null;
+  current_odometer?: number | null;
+  delivery_date?: string | null;
+  sale_date?: string | null;
+  warranty_years?: number;
+  days_remaining?: number | null;
+  km_remaining?: number | null;
+  warranty_reason?: string;
+}
+
 export interface VINNo {
   name: string;
   vin_number: string;
   linked_item?: string;
   plate_number?: string;
+  /** Link to Vehicle Model doctype */
+  model?: string;
   model_name?: string;
+  resolved_vehicle_model?: string;
+  resolved_vehicle_model_label?: string;
   model_year?: number;
   current_customer?: string;
   customer_name?: string;
@@ -650,6 +719,7 @@ export interface VINNoListItem {
   engine_number?: string;
   plate_number?: string;
   linked_item?: string;
+  model?: string;
   model_name?: string;
   model_year?: number;
   brand?: string;
@@ -692,6 +762,7 @@ export interface VINNoFull {
   company?: string;
   status?: string;
   linked_item?: string;
+  model?: string;
   model_name?: string;
   linked_serial?: string;
   brand?: string;
@@ -707,6 +778,9 @@ export interface VINNoFull {
   interior_material?: string;
   current_customer?: string;
   customer_name?: string;
+  resolved_vehicle_model?: string;
+  resolved_vehicle_model_label?: string;
+  warranty_summary?: VehicleWarrantySummary;
   owner_mobile?: string;
   owner_email?: string;
   owner_tax_id?: string;

@@ -13,6 +13,12 @@ import * as inspectionsSvc from '@/services/inspections';
 import { RequiredLabel } from '@/components/required-label';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import {
+  COMPLAINT_SEVERITY_OPTIONS,
+  DEFAULT_COMPLAINT_SEVERITY,
+  DEFAULT_SYMPTOM_CATEGORY,
+  SYMPTOM_CATEGORIES,
+} from '@/lib/customer-complaint-fields';
+import {
   useCustomers,
   useVINs,
   useServiceAdvisors,
@@ -51,7 +57,8 @@ import {
   User,
   Wrench,
 } from 'lucide-react';
-import type { FuelLevel, ArrivalMethod, VINNo } from '@/types/dms';
+import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
+import type { FuelLevel, ArrivalMethod, VINNo, VehicleWarrantySummary } from '@/types/dms';
 import * as vehiclesSvc from '@/services/vehicles';
 
 const fuelLevels: FuelLevel[] = ['Empty', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8', 'Full'];
@@ -195,13 +202,7 @@ const tireConditionsList = [
   'Low Pressure',
 ] as const;
 
-const SYMPTOM_CATEGORIES = [
-  'Engine', 'Transmission', 'Brake', 'Steering', 'Suspension', 'Electrical', 'AC', 'Body',
-  'Infotainment', 'Warning Light', 'Noise', 'Vibration', 'Leak', 'Smell', 'Performance',
-  'Charging/PHEV', 'Other',
-] as const;
-
-type ComplaintRow = { text: string; category: string };
+type ComplaintRow = { text: string; category: string; severity: string };
 
 const EXTERIOR_VIEW_SLOTS = [
   { id: 'front', label: 'Front' },
@@ -265,6 +266,7 @@ export default function NewInspectionPage() {
   } | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
+  const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
   const [customerVehicle, setCustomerVehicle] = useState('');
   const [serviceAdvisor, setServiceAdvisor] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
@@ -303,7 +305,9 @@ export default function NewInspectionPage() {
   const [tireConditions, setTireConditions] = useState<Record<string, string>>(() =>
     defaultOkConditions(tirePositions),
   );
-  const [complaints, setComplaints] = useState<ComplaintRow[]>([{ text: '', category: 'Other' }]);
+  const [complaints, setComplaints] = useState<ComplaintRow[]>([
+    { text: '', category: DEFAULT_SYMPTOM_CATEGORY, severity: DEFAULT_COMPLAINT_SEVERITY },
+  ]);
 
   useEffect(() => {
     inspectionsSvc.getCurrentServiceAdvisor().then((adv) => {
@@ -333,6 +337,7 @@ export default function NewInspectionPage() {
 
   const handleVinSelect = async (vinName: string) => {
     setSelectedVehicle(vinName);
+    setWarrantySummary(null);
     if (!vinName) {
       setSelectedVin(null);
       setCustomerVehicle('');
@@ -357,6 +362,7 @@ export default function NewInspectionPage() {
         current_odometer: full.current_odometer,
         model_year: full.model_year,
       });
+      setWarrantySummary(full.warranty_summary || null);
     } catch {
       if (!fromList) {
         toast.error('Could not load vehicle details for the selected VIN');
@@ -472,7 +478,10 @@ export default function NewInspectionPage() {
   };
 
   const addComplaint = () => {
-    setComplaints([...complaints, { text: '', category: 'Other' }]);
+    setComplaints([
+      ...complaints,
+      { text: '', category: DEFAULT_SYMPTOM_CATEGORY, severity: DEFAULT_COMPLAINT_SEVERITY },
+    ]);
   };
 
   const updateComplaint = (index: number, patch: Partial<ComplaintRow>) => {
@@ -618,6 +627,7 @@ export default function NewInspectionPage() {
         customer_complaints: filledComplaints.map((c) => ({
           customer_exact_words: c.text.trim(),
           symptom_category: c.category,
+          severity: c.severity,
         })),
         customer_signature: customerSignatureUrl,
         advisor_signature: advisorSignatureUrl,
@@ -700,6 +710,9 @@ export default function NewInspectionPage() {
                     <p className="text-xs text-destructive">
                       This VIN has no linked model item. Set Linked Item on the VIN record.
                     </p>
+                  )}
+                  {warrantySummary && (
+                    <WarrantyStatusBanner summary={warrantySummary} className="mt-2" />
                   )}
                 </div>
 
@@ -1227,23 +1240,43 @@ export default function NewInspectionPage() {
                       placeholder="Record exactly what the customer said..."
                       className="min-h-20"
                     />
-                    <div className="space-y-2">
-                      <RequiredLabel>Symptom category</RequiredLabel>
-                      <Select
-                        value={complaint.category}
-                        onValueChange={(val) => updateComplaint(index, { category: val })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SYMPTOM_CATEGORIES.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <RequiredLabel>Symptom category</RequiredLabel>
+                        <Select
+                          value={complaint.category}
+                          onValueChange={(val) => updateComplaint(index, { category: val })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SYMPTOM_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat} value={cat}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <RequiredLabel>Severity</RequiredLabel>
+                        <Select
+                          value={complaint.severity || DEFAULT_COMPLAINT_SEVERITY}
+                          onValueChange={(val) => updateComplaint(index, { severity: val })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COMPLAINT_SEVERITY_OPTIONS.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {level}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
                 ))}

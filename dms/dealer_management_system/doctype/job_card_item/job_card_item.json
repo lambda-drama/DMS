@@ -24,9 +24,10 @@
   {
    "columns": 2,
    "fieldname": "symptom_category",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Symptom Category"
+   "label": "Symptom Category",
+   "options": "Engine\nTransmission\nBrake\nSteering\nSuspension\nElectrical\nAC\nBody\nInfotainment\nWarning Light\nNoise\nVibration\nLeak\nSmell\nPerformance\nCharging/PHEV\nOther"
   },
   {
    "fieldname": "column_break_job_item",
@@ -34,10 +35,12 @@
   },
   {
    "columns": 2,
+   "default": "3 - Moderate",
    "fieldname": "severity",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Severity"
+   "label": "Severity",
+   "options": "1 - Low\n2 - Minor\n3 - Moderate\n4 - High\n5 - Safety Critical"
   },
   {
    "columns": 2,
