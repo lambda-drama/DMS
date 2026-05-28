@@ -17,6 +17,7 @@
   "warranty_mileage",
   "column_break_dmgn",
   "add_full_warranty_item_on_invoice",
+  "send_reminders_for_servicing",
   "print_formats_tab",
   "sales_print_format"
  ],
@@ -99,13 +100,19 @@
    "fieldname": "warranty_period",
    "fieldtype": "Data",
    "label": "Warranty Period(Years)"
+  },
+  {
+   "default": "0",
+   "fieldname": "send_reminders_for_servicing",
+   "fieldtype": "Check",
+   "label": "Send Reminders for Servicing"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-26 03:01:07.815511",
+ "modified": "2026-05-28 14:05:47.594008",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

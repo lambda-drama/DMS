@@ -239,6 +239,12 @@ doc_events = {
 # 	],
 # }
 
+scheduler_events = {
+	"daily": [
+		"dms.tasks.daily",
+	],
+}
+
 # Testing
 # -------
 

@@ -14,8 +14,26 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	apply_vehicle_labour_row_pricing,
 )
 
+SEVERITY_NORMALIZATION_MAP = {
+	"low": "1 - Low",
+	"1 - low": "1 - Low",
+	"minor": "2 - Minor",
+	"2 - minor": "2 - Minor",
+	"moderate": "3 - Moderate",
+	"3 - moderate": "3 - Moderate",
+	"high": "4 - High",
+	"4 - high": "4 - High",
+	"safety critical": "5 - Safety Critical",
+	"safety-critical": "5 - Safety Critical",
+	"5 - safety critical": "5 - Safety Critical",
+}
+
 
 class DMSJobCard(Document):
+	def before_validate(self):
+		# Must run before Frappe's select-option validation.
+		self.normalize_job_item_severity()
+
 	def validate(self):
 		if self.warranty_application_type != "Discount":
 			from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
@@ -28,6 +46,16 @@ class DMSJobCard(Document):
 		self.ensure_qc_results_from_template()
 		self.validate_qc_measurements()
 		self.calculate_costing_and_totals()
+
+	def normalize_job_item_severity(self):
+		"""Backfill legacy severity values (e.g. 'Low') to current select options."""
+		for row in self.job_items or []:
+			severity = (row.severity or "").strip()
+			if not severity:
+				continue
+			normalized = SEVERITY_NORMALIZATION_MAP.get(severity.lower())
+			if normalized:
+				row.severity = normalized
 
 	def apply_job_card_warehouse_to_parts(self):
 		"""Default each spare-part line warehouse from the job card header when not set."""

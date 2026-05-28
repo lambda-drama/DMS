@@ -50,6 +50,7 @@ export interface BrdDashboardKpis {
   open_job_cards?: number;
   overdue_promised?: number;
   net_revenue?: number;
+  revenue_currency?: string;
   labour_revenue?: number;
   parts_revenue?: number;
   appointment_arrival_rate?: number;
