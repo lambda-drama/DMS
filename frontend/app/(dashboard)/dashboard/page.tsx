@@ -55,6 +55,23 @@ function formatAppointmentsDelta(delta: number) {
   return 'Same as yesterday';
 }
 
+function formatMoney(amount: number, currency?: string) {
+  const selectedCurrency = (currency || '').trim();
+  try {
+    if (selectedCurrency) {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: selectedCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount || 0);
+    }
+  } catch {
+    // Fall back to numeric rendering when currency code is invalid.
+  }
+  return (amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function DashboardPage() {
   const { navigate } = useNavigation();
   const { canCreate, canAccessView } = usePermissions();
@@ -180,8 +197,8 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground">{brd.overdue_promised ?? 0} overdue</p>
               </div>
               <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" /> Net revenue</p>
-                <p className="text-2xl font-bold">{(brd.net_revenue ?? 0).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1"> Net revenue</p>
+                <p className="text-2xl font-bold">{formatMoney(brd.net_revenue ?? 0, brd.revenue_currency)}</p>
               </div>
                             <div className="rounded-lg border p-3">
                 <p className="text-xs text-muted-foreground">Appointment arrival</p>

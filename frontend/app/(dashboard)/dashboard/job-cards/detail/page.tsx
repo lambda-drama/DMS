@@ -585,10 +585,20 @@ export default function JobCardDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Schedule &amp; technicians
+              Customer signature, schedule &amp; technicians
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Customer signature *</p>
+              <SignaturePad
+                existingUrl={customerSignatureUrl || undefined}
+                uploading={signatureUploading}
+                onSave={handleSaveCustomerSignature}
+                onClear={() => setSavedSignatureUrl(null)}
+              />
+            </div>
+            <Separator />
             <p className="text-sm text-muted-foreground">
               Required before customer approval. The job card will be submitted when approved.
             </p>
@@ -693,21 +703,7 @@ export default function JobCardDetailPage() {
 
             {/* Estimation Pending → signature then Mark Customer Approved */}
             {showApprovalSignature && (
-              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="w-full sm:max-w-md">
-                  <p className="text-sm font-medium mb-2">Customer signature</p>
-                  <SignaturePad
-                    existingUrl={customerSignatureUrl || undefined}
-                    uploading={signatureUploading}
-                    onSave={handleSaveCustomerSignature}
-                    onClear={() => setSavedSignatureUrl(null)}
-                  />
-                  {!canMarkApproved && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Complete signature, schedule times, and lead technician before approval.
-                    </p>
-                  )}
-                </div>
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <Button
                   onClick={() => setShowApproveDialog(true)}
                   disabled={busy || !canMarkApproved}
@@ -716,6 +712,11 @@ export default function JobCardDetailPage() {
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Mark Customer Approved
                 </Button>
+                {!canMarkApproved && (
+                  <p className="text-xs text-muted-foreground">
+                    Complete signature, schedule times, and lead technician before approval.
+                  </p>
+                )}
               </div>
             )}
 
@@ -892,11 +893,6 @@ export default function JobCardDetailPage() {
                     Collect Payment
                   </Button>
                 )}
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/app/sales-invoice/${jobCard.invoice}`} target="_blank" rel="noreferrer">
-                    Open in Desk
-                  </a>
-                </Button>
               </div>
             </div>
           </CardHeader>

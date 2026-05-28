@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DetailSheetProps {
@@ -60,17 +60,6 @@ export function DetailSheet({
                 <SheetDescription className="mt-1">{subtitle}</SheetDescription>
               )}
             </div>
-            {onOpenInDesk && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenInDesk}
-                className="shrink-0 text-xs hover:text-dms-green"
-              >
-                <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                Open in Desk
-              </Button>
-            )}
           </div>
         </SheetHeader>
         <Separator className="bg-(--dms-green)/20" />

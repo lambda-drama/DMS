@@ -52,6 +52,34 @@ BAY_UI_STATUS = {
 }
 
 
+def _count_completed_job_cards():
+	"""Completed cards are candidates for delivery (before Delivered state)."""
+	return frappe.db.count("DMS Job Card", {"status": "Completed"})
+
+
+def _count_completed_job_cards_awaiting_payment():
+	"""
+	Completed Job Cards with a submitted Sales Invoice that still has outstanding balance.
+
+	This uses invoice truth (outstanding_amount/docstatus) instead of the cached
+	job card payment_status field so dashboard numbers always reflect real ERP data.
+	"""
+	jc = frappe.qb.DocType("DMS Job Card")
+	si = frappe.qb.DocType("Sales Invoice")
+	rows = (
+		frappe.qb.from_(jc)
+		.join(si)
+		.on(jc.invoice == si.name)
+		.select(jc.name)
+		.where(jc.status == "Completed")
+		.where(jc.invoice.isnotnull())
+		.where(jc.invoice != "")
+		.where(si.docstatus == 1)
+		.where(si.outstanding_amount > 0)
+	).run(as_dict=True)
+	return len(rows)
+
+
 def _day_bounds(day):
 	"""Return (start, end) datetime strings for a calendar day."""
 	d = getdate(day)
@@ -119,17 +147,8 @@ def get_dashboard_summary():
 			"priority": ["in", ["Urgent", "VIP"]],
 		},
 	)
-	ready_for_delivery = frappe.db.count(
-		"DMS Job Card",
-		{"status": "Completed"},
-	)
-	awaiting_payment = frappe.db.count(
-		"DMS Job Card",
-		{
-			"status": "Completed",
-			"payment_status": ["in", ["Unpaid", "Partially Paid", ""]],
-		},
-	)
+	ready_for_delivery = _count_completed_job_cards()
+	awaiting_payment = _count_completed_job_cards_awaiting_payment()
 
 	job_cards = frappe.get_all(
 		"DMS Job Card",

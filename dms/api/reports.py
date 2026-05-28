@@ -250,6 +250,7 @@ def get_brd_dashboard_kpis(filters=None):
 		"open_job_cards": wip["summary"].get("total_open", 0),
 		"overdue_promised": wip["summary"].get("overdue_promised", 0),
 		"net_revenue": revenue["summary"].get("net_revenue", 0),
+		"revenue_currency": revenue["summary"].get("revenue_currency"),
 		"labour_revenue": revenue["summary"].get("labour_total", 0),
 		"parts_revenue": revenue["summary"].get("parts_total", 0),
 		"appointment_arrival_rate": apt["summary"].get("arrival_rate_pct", 0),
@@ -345,7 +346,7 @@ def get_service_revenue_report(filters=None):
 		fields=[
 			"name", "posting_date", "vehicle_model", "vehicle_vin", "service_advisor",
 			"total_labor_cost", "total_parts_cost", "discount_amount",
-			"net_amount", "total_amount", "job_card_type",
+			"net_amount", "total_amount", "job_card_type", "currency", "company",
 		],
 		limit=2000,
 	)
@@ -354,6 +355,8 @@ def get_service_revenue_report(filters=None):
 	_apply_vin_numbers(jcs)
 
 	labour_total = parts_total = discount_total = net_total = 0.0
+	revenue_currencies = set()
+	companies_seen = set()
 	by_month = {}
 	by_advisor = {}
 	by_model = {}
@@ -367,6 +370,10 @@ def get_service_revenue_report(filters=None):
 		parts_total += prt
 		discount_total += disc
 		net_total += net
+		if jc.currency:
+			revenue_currencies.add(jc.currency)
+		if jc.company:
+			companies_seen.add(jc.company)
 
 		month = str(getdate(jc.posting_date))[:7] if jc.posting_date else "—"
 		if month not in by_month:
@@ -415,6 +422,15 @@ def get_service_revenue_report(filters=None):
 				)
 				vat_total = sum(flt(s.total_taxes_and_charges) for s in sis)
 
+	revenue_currency = None
+	if len(revenue_currencies) == 1:
+		revenue_currency = next(iter(revenue_currencies))
+	elif f.get("company"):
+		revenue_currency = frappe.db.get_value("Company", f["company"], "default_currency")
+	elif len(companies_seen) == 1:
+		only_company = next(iter(companies_seen))
+		revenue_currency = frappe.db.get_value("Company", only_company, "default_currency")
+
 	return {
 		"report_id": "service_revenue",
 		"title": "Service Revenue Report",
@@ -425,6 +441,7 @@ def get_service_revenue_report(filters=None):
 			"discount_total": round(discount_total, 2),
 			"vat_total": round(vat_total, 2),
 			"net_revenue": round(net_total, 2),
+			"revenue_currency": revenue_currency,
 			"job_card_count": len(jcs),
 			"by_month": by_month,
 			"by_advisor": by_advisor,
@@ -901,11 +918,11 @@ def get_appointment_conversion_report(filters=None):
 @frappe.whitelist()
 def get_qc_failure_report(filters=None):
 	f = _parse_filters(filters)
-	failed = frappe.get_all(
+	qc_rows = frappe.get_all(
 		"DMS Job Card",
 		filters={
 			**_jc_filters(f),
-			"status": ["in", ["QC Failed", "Rework"]],
+			"status": ["in", ["QC In Progress", "QC Failed", "Rework", "Completed", "Delivered"]],
 		},
 		fields=[
 			"name", "status", "vehicle_vin", "qc_fail_reason", "qc_result", "rework_required",
@@ -915,18 +932,17 @@ def get_qc_failure_report(filters=None):
 	)
 
 	_apply_link_display_names(
-		failed,
+		qc_rows,
 		{"lead_technician": "Technician", "service_advisor": "Service Advisor"},
 	)
-	_apply_vin_numbers(failed)
+	_apply_vin_numbers(qc_rows)
 
-	total_qc = frappe.db.count(
-		"DMS Job Card",
-		{
-			**_jc_filters(f),
-			"status": ["in", ["QC In Progress", "QC Failed", "Rework", "Completed", "Delivered"]],
-		},
-	)
+	failed = [
+		r for r in qc_rows
+		if (r.status in ("QC Failed", "Rework")) or cint(r.rework_required) == 1
+	]
+
+	total_qc = len(qc_rows)
 	fail_count = len(failed)
 	fail_rate = round((fail_count / total_qc) * 100, 1) if total_qc else 0
 

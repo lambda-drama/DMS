@@ -380,6 +380,7 @@
    "label": "Job Items (Complaint \u2192 Cause \u2192 Correction)"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "job_items",
    "fieldtype": "Table",
    "label": "Job Card Items",
@@ -547,6 +548,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "default": "0",
    "fieldname": "rework_required",
    "fieldtype": "Check",
@@ -748,6 +750,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "reason_for_stop",
    "fieldtype": "Text Editor",
    "label": "Reason for Stop"
@@ -844,7 +847,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-19 03:00:41.786260",
+ "modified": "2026-05-28 13:27:28.803700",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",
