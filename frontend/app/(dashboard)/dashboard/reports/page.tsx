@@ -16,7 +16,7 @@ import { PRINTABLE_DOCUMENTS, isStockReportId } from '@/services/reports';
 import type { ReportMeta, ReportResult } from '@/services/reports';
 import { fetchVINs, fetchSpareParts } from '@/services/common';
 import type { VINNo } from '@/types/dms';
-import { useCompanies, useWarehouses } from '@/hooks/use-dms';
+import { useCompanies, useWarehouses, useAutofillSingleCompany } from '@/hooks/use-dms';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RequiredLabel } from '@/components/required-label';
 import { BarChart3, ChevronDown, Download, FileText, Filter, Loader2, RefreshCw } from 'lucide-react';
@@ -93,6 +93,16 @@ export default function ReportsPage() {
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
     warehouseSearch,
     draftCompany || company || undefined
+  );
+
+  const isStockReport = isStockReportId(selectedId);
+
+  useAutofillSingleCompany(
+    companies,
+    companiesLoading,
+    draftCompany,
+    (c) => setDraftCompany(c.name),
+    { search: companySearch, enabled: isStockReport }
   );
 
   const sparePartQuery = sparePartSearch.trim();
@@ -205,7 +215,6 @@ export default function ReportsPage() {
   ]);
 
   const selectedMeta = catalog.find((r) => r.id === selectedId);
-  const isStockReport = isStockReportId(selectedId);
 
   useEffect(() => {
     if (!isStockReport) return;

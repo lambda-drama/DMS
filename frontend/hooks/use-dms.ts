@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 import * as appointmentsSvc from '@/services/appointments';
@@ -6,7 +7,7 @@ import * as jobCardsSvc from '@/services/jobCards';
 import * as deliveriesSvc from '@/services/deliveries';
 import * as invoicesSvc from '@/services/invoices';
 import * as commonSvc from '@/services/common';
-import type { ColorOption } from '@/services/common';
+import type { ColorOption, CompanyOption } from '@/services/common';
 import * as techniciansSvc from '@/services/technicians';
 import * as vehiclesSvc from '@/services/vehicles';
 import * as servicePackagesSvc from '@/services/service-packages';
@@ -348,6 +349,31 @@ export function useCompanies(search?: string) {
     () => commonSvc.fetchCompanies(search),
     { dedupingInterval: 30000 }
   );
+}
+
+/** Auto-select company when exactly one is available and the field is still empty. */
+export function useAutofillSingleCompany(
+  companies: CompanyOption[] | undefined,
+  isLoading: boolean,
+  currentValue: string,
+  onAutofill: (company: CompanyOption) => void,
+  options?: {
+    enabled?: boolean;
+    search?: string;
+  }
+) {
+  const enabled = options?.enabled ?? true;
+  const search = options?.search ?? '';
+
+  useEffect(() => {
+    if (!enabled) return;
+    if (isLoading || !companies) return;
+    if (currentValue) return;
+    if (search.trim()) return;
+    if (companies.length !== 1) return;
+
+    onAutofill(companies[0]);
+  }, [companies, isLoading, currentValue, onAutofill, enabled, search]);
 }
 
 export function useCurrencies() {

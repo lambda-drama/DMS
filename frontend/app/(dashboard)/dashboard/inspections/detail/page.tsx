@@ -117,6 +117,9 @@ export default function InspectionDetailPage() {
   }
 
   const fuelLevelPercent = inspection.fuel_level_percentage || 0;
+  const isSubmitted = inspection.docstatus === 1;
+  const isDraft = inspection.docstatus === 0;
+  const inspectionStatus = isSubmitted ? "Submitted" : isDraft ? "Draft" : "Cancelled";
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
@@ -128,8 +131,8 @@ export default function InspectionDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-foreground">{inspection.name}</h1>
-              <Badge variant={statusConfig[inspection.status]?.variant || "secondary"}>
-                {inspection.status}
+              <Badge variant={statusConfig[inspectionStatus]?.variant || "secondary"}>
+                {inspectionStatus}
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1">
@@ -141,7 +144,7 @@ export default function InspectionDetailPage() {
           {id && (
             <PrintFormatDropdown doctype="Vehicle Inspection" docName={id} />
           )}
-          {inspection.status === "Draft" && (
+          {isDraft && (
             <>
               <Button variant="outline" size="sm" onClick={() => navigate('inspection-detail', { id, mode: 'edit' })}>
                 <Pencil className="h-4 w-4 mr-2" />
@@ -153,10 +156,20 @@ export default function InspectionDetailPage() {
               </Button>
             </>
           )}
-          {inspection.status === "Submitted" && (
+          {isSubmitted && !inspection.job_card && (
             <Button size="sm" onClick={handleCreateJobCard}>
               <FileText className="h-4 w-4 mr-2" />
               Create Job Card
+            </Button>
+          )}
+          {isSubmitted && inspection.job_card && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('job-card-detail', { id: inspection.job_card! })}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Job Card
             </Button>
           )}
         </div>

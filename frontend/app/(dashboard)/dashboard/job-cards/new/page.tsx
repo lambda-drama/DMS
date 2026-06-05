@@ -14,6 +14,7 @@ import {
   useWarehouses,
   useInspections,
   useCompanies,
+  useAutofillSingleCompany,
   useCurrencies,
   useServicePackagesForVin,
 } from "@/hooks/use-dms";
@@ -142,6 +143,21 @@ export default function NewJobCardPage() {
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const { data: currencies } = useCurrencies();
 
+  useAutofillSingleCompany(
+    companies,
+    companiesLoading,
+    company,
+    (c) => {
+      setCompany(c.name);
+      setWarehouse("");
+      setWarehouseSearch("");
+      if (c.default_currency) {
+        setCurrency(c.default_currency);
+      }
+    },
+    { search: companySearch }
+  );
+
   // Main form state
   const [jobCardType, setJobCardType] = useState<string>("");
   const [priority, setPriority] = useState<string>("Normal");
@@ -200,7 +216,7 @@ export default function NewJobCardPage() {
   const [serviceAdvisorNotes, setServiceAdvisorNotes] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
 
-  const appointment = viewParams.get("appointment") || "";
+  const [appointmentId, setAppointmentId] = useState(viewParams.get("appointment") || "");
   const [inspectionId, setInspectionId] = useState(viewParams.get("inspection") || "");
   const [isLoadingInspectionComplaints, setIsLoadingInspectionComplaints] =
     useState(false);
@@ -570,10 +586,78 @@ export default function NewJobCardPage() {
     [leadTechnician, technicians, warehouse]
   );
 
+  useEffect(() => {
+    const fromUrl = viewParams.get("inspection") || "";
+    if (fromUrl && fromUrl !== inspectionId) {
+      setInspectionId(fromUrl);
+    }
+    const appointmentFromUrl = viewParams.get("appointment") || "";
+    if (appointmentFromUrl && appointmentFromUrl !== appointmentId) {
+      setAppointmentId(appointmentFromUrl);
+    }
+  }, [viewParams, inspectionId, appointmentId]);
+
   const populateFromInspection = useCallback(async (inspectionName: string) => {
     setIsLoadingInspectionComplaints(true);
     try {
       const insp = await getInspection(inspectionName);
+
+      if (insp.company) {
+        setCompany(insp.company);
+        const companyMatch = companies?.find((c) => c.name === insp.company);
+        if (companyMatch?.default_currency) {
+          setCurrency(companyMatch.default_currency);
+        }
+      }
+
+      if (insp.service_advisor) {
+        setServiceAdvisor(insp.service_advisor);
+      }
+
+      if (insp.appointment) {
+        setAppointmentId(insp.appointment);
+      }
+
+      if (insp.customer) {
+        setCustomer(insp.customer);
+        setSelectedCustomer({
+          name: insp.customer,
+          customer_name: insp.customer_name || insp.customer,
+        });
+      }
+
+      if (insp.vin_chassis) {
+        setVehicleVin(insp.vin_chassis);
+        try {
+          const full = await vehiclesSvc.getVehicle(insp.vin_chassis);
+          applyVinToForm({
+            name: full.name,
+            vin_number: full.vin_number,
+            plate_number: full.plate_number,
+            model: full.model,
+            model_name: full.model_name,
+            current_customer: full.current_customer,
+            customer_name: full.customer_name,
+            current_odometer: full.current_odometer,
+            warranty_status: full.warranty_status,
+            linked_item: full.linked_item,
+            model_year: full.model_year,
+            warranty_end_date: full.warranty_end_date,
+          });
+          setWarrantyStatus(full.warranty_status || "");
+          setWarrantySummary(full.warranty_summary || null);
+        } catch {
+          toast.error("Could not load vehicle details from the inspection");
+        }
+      }
+
+      if (insp.license_plate) {
+        setLicensePlate(insp.license_plate);
+      }
+      if (insp.odometer != null) {
+        setCurrentOdometer(insp.odometer);
+      }
+
       const complaints = insp.customer_complaints || [];
       const rows: JobItemRow[] = complaints
         .map((row) => {
@@ -605,6 +689,11 @@ export default function NewJobCardPage() {
       if (advisorNotes) {
         setServiceAdvisorNotes(advisorNotes);
       }
+
+      const internal = htmlToPlainText(insp.internal_notes || "");
+      if (internal) {
+        setInternalNotes(internal);
+      }
     } catch (err) {
       lastAppliedInspectionRef.current = null;
       toast.error(
@@ -615,7 +704,7 @@ export default function NewJobCardPage() {
     } finally {
       setIsLoadingInspectionComplaints(false);
     }
-  }, []);
+  }, [companies]);
 
   useEffect(() => {
     if (!inspectionId) {
@@ -812,7 +901,7 @@ export default function NewJobCardPage() {
       customer_complaint_summary: customerComplaintSummary || undefined,
       service_advisor_notes: serviceAdvisorNotes || undefined,
       internal_notes: internalNotes || undefined,
-      appointment: appointment || undefined,
+      appointment: appointmentId || undefined,
       inspection: inspectionId || undefined,
       job_items: jobItems.map((ji) => ({
         name: "",
@@ -846,7 +935,8 @@ export default function NewJobCardPage() {
   };
 
   return (
-    <div className="min-w-0 space-y-4 sm:space-y-6">
+    <>
+      <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -864,7 +954,11 @@ export default function NewJobCardPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
+      <form
+        id="new-job-card-form"
+        onSubmit={handleSubmit}
+        className="dms-form-page min-w-0 space-y-4 sm:space-y-6"
+      >
         {/* 1. Service Details */}
         <Card>
           <CardHeader>
@@ -1762,16 +1856,17 @@ export default function NewJobCardPage() {
             </div>
           </CardContent>
         </Card>
-
-        <FormActionsBar>
-          <Button type="button" variant="outline" onClick={() => navigate("job-cards")}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isMutating}>
-            {isMutating ? "Creating..." : "Create Job Card"}
-          </Button>
-        </FormActionsBar>
       </form>
-    </div>
+      </div>
+
+      <FormActionsBar>
+        <Button type="button" variant="outline" onClick={() => navigate("job-cards")}>
+          Cancel
+        </Button>
+        <Button type="submit" form="new-job-card-form" disabled={isMutating}>
+          {isMutating ? "Creating..." : "Create Job Card"}
+        </Button>
+      </FormActionsBar>
+    </>
   );
 }

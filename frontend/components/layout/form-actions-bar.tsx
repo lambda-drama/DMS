@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
 interface FormActionsBarProps {
@@ -14,7 +16,13 @@ interface FormActionsBarProps {
  * Pair with `dms-form-page` on the scrollable page wrapper so content is not hidden.
  */
 export function FormActionsBar({ children, className, align = 'end' }: FormActionsBarProps) {
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const bar = (
     <div
       role="toolbar"
       aria-label="Form actions"
@@ -35,4 +43,10 @@ export function FormActionsBar({ children, className, align = 'end' }: FormActio
       </div>
     </div>
   );
+
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(bar, document.body);
 }

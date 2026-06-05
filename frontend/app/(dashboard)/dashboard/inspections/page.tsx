@@ -29,7 +29,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -285,29 +284,30 @@ export default function InspectionsPage() {
                     </TableCell>
                     <TableCell>
                       <ListRowActions doctype="Vehicle Inspection" docName={insp.name}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name })}>
-                              View Details
-                            </DropdownMenuItem>
-                            {insp.docstatus === 0 && (
-                              <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name, mode: 'edit' })}>
-                                Continue Editing
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            {insp.docstatus === 1 && !insp.job_card && (
-                              <DropdownMenuItem className="text-primary">
-                                Create Job Card
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {(insp.docstatus === 0 || (insp.docstatus === 1 && !insp.job_card)) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {insp.docstatus === 0 && (
+                                <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name, mode: 'edit' })}>
+                                  Continue Editing
+                                </DropdownMenuItem>
+                              )}
+                              {insp.docstatus === 1 && !insp.job_card && (
+                                <DropdownMenuItem
+                                  className="text-primary"
+                                  onClick={() => navigate('job-card-new', { inspection: insp.name })}
+                                >
+                                  Create Job Card
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </ListRowActions>
                     </TableCell>
                   </TableRow>
@@ -361,16 +361,39 @@ export default function InspectionsPage() {
               <DetailRow label="Odometer" value={selectedInspection.odometer ? `${selectedInspection.odometer} ${selectedInspection.odometer_unit || 'km'}` : undefined} />
               <DetailRow label="Fuel Level" value={selectedInspection.fuel_level} />
             </DetailSection>
-            {selectedInspection.customer_complaints && (
+            {selectedInspection.customer_complaints?.length ? (
               <DetailSection title="Customer Complaints">
-                <p className="text-sm">{selectedInspection.customer_complaints}</p>
+                <div className="space-y-3">
+                  {selectedInspection.customer_complaints.map((complaint, idx) => (
+                    <div key={complaint.name || idx} className="text-sm">
+                      <p className="font-medium">
+                        {complaint.customer_exact_words || complaint.complaint || '—'}
+                      </p>
+                      {(complaint.symptom_category || complaint.category || complaint.severity) ? (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {[complaint.symptom_category || complaint.category, complaint.severity]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
               </DetailSection>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => { setSelectedId(null); navigate('inspection-detail', { id: selectedId! }); }}>
-                Open Full Details
-              </Button>
-            </div>
+            ) : null}
+            {selectedInspection.docstatus === 1 && !selectedInspection.job_card ? (
+              <div className="flex justify-end pt-2">
+                <Button
+                  onClick={() => {
+                    const id = selectedId!;
+                    setSelectedId(null);
+                    navigate('job-card-new', { inspection: id });
+                  }}
+                >
+                  Create Job Card
+                </Button>
+              </div>
+            ) : null}
           </>
         )}
       </DetailSheet>
