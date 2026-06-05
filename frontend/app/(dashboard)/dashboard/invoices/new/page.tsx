@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import {
   useCompanies,
+  useAutofillSingleCompany,
   useCustomers,
   useJobCard,
   useSpareParts,
@@ -116,6 +117,14 @@ export default function NewInvoicePage() {
     quantity: 1,
     unit_price: 0,
   });
+
+  useAutofillSingleCompany(
+    companies,
+    companiesLoading,
+    company,
+    (c) => setCompany(c.name),
+    { search: companySearch, enabled: !jobCardId }
+  );
 
   useEffect(() => {
     if (!jobCard) return;

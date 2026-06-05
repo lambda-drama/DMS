@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as commonSvc from '@/services/common';
 import { useNavigation } from '@/contexts/navigation-context';
 import { format } from 'date-fns';
@@ -42,10 +42,17 @@ import {
   useServiceBays,
   useCreateAppointment,
   useCompanies,
+  useAutofillSingleCompany,
 } from '@/hooks/use-dms';
 import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
 import * as vehiclesSvc from '@/services/vehicles';
-import type { BookingSource, Priority, VehicleArrivalStatus, VehicleWarrantySummary } from '@/types/dms';
+import type {
+  BookingSource,
+  Priority,
+  VehicleArrivalStatus,
+  VehicleWarrantySummary,
+  VINNo,
+} from '@/types/dms';
 
 const bookingSources: BookingSource[] = [
   'Walk-in',
@@ -111,17 +118,175 @@ export default function NewAppointmentPage() {
   });
   const [loadingContact, setLoadingContact] = useState(false);
   const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
+  const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
+  const [selectedCustomerMeta, setSelectedCustomerMeta] = useState<{
+    name: string;
+    customer_name: string;
+    mobile_no?: string;
+  } | null>(null);
 
   const { data: customers } = useCustomers(customerSearch);
-  const { data: vins } = useVINs(form.customer || undefined, vinSearch);
+  const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
   const { data: serviceTypes } = useVehicleServiceTypes();
   const { data: advisors } = useServiceAdvisors();
   const { data: bays } = useServiceBays();
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const { trigger: createAppointment, isMutating } = useCreateAppointment();
 
-  const selectedCustomer = customers?.find((c) => c.name === form.customer);
-  const selectedVin = vins?.find((v) => v.name === form.vin_chassis);
+  useAutofillSingleCompany(
+    companies,
+    companiesLoading,
+    form.company,
+    (c) => setForm((prev) => ({ ...prev, company: c.name })),
+    { search: companySearch }
+  );
+
+  const handleVinSelect = async (vinName: string) => {
+    setWarrantySummary(null);
+    if (!vinName) {
+      setSelectedVin(null);
+      setForm((prev) => ({
+        ...prev,
+        vin_chassis: '',
+        vehicle: '',
+        license_plate: '',
+        current_odometer: 0,
+      }));
+      return;
+    }
+
+    const fromList = vins?.find((v) => v.name === vinName);
+    if (fromList) {
+      setSelectedVin(fromList);
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      vin_chassis: vinName,
+      vehicle: fromList?.linked_item || '',
+      license_plate: fromList?.plate_number || '',
+      current_odometer: fromList?.current_odometer ?? 0,
+    }));
+
+    if (fromList?.current_customer) {
+      setForm((prev) => ({ ...prev, customer: fromList.current_customer! }));
+      setSelectedCustomerMeta({
+        name: fromList.current_customer!,
+        customer_name: fromList.customer_name || fromList.current_customer!,
+        mobile_no: undefined,
+      });
+    }
+
+    try {
+      const full = await vehiclesSvc.getVehicle(vinName);
+      setSelectedVin({
+        name: full.name,
+        vin_number: full.vin_number,
+        plate_number: full.plate_number,
+        model_name: full.model_name,
+        linked_item: full.linked_item,
+        current_customer: full.current_customer,
+        customer_name: full.customer_name,
+        current_odometer: full.current_odometer,
+      });
+      setForm((prev) => ({
+        ...prev,
+        vehicle: full.linked_item || '',
+        license_plate: full.plate_number || '',
+        current_odometer: full.current_odometer ?? 0,
+      }));
+      if (full.current_customer) {
+        setForm((prev) => ({ ...prev, customer: full.current_customer! }));
+        setSelectedCustomerMeta({
+          name: full.current_customer,
+          customer_name: full.customer_name || full.current_customer,
+        });
+      }
+      setWarrantySummary(full.warranty_summary || null);
+    } catch {
+      if (!fromList) {
+        toast.error('Could not load vehicle details for the selected VIN');
+      }
+    }
+  };
+
+  const handleCustomerChange = (customerId: string) => {
+    setForm((prev) => ({ ...prev, customer: customerId }));
+    if (!customerId) {
+      setSelectedCustomerMeta(null);
+      return;
+    }
+    const match = customers?.find((c) => c.name === customerId);
+    if (match) {
+      setSelectedCustomerMeta({
+        name: match.name,
+        customer_name: match.customer_name,
+        mobile_no: match.mobile_no,
+      });
+    }
+  };
+
+  const handleCustomerCreated = (name: string, label?: string) => {
+    setForm((prev) => ({ ...prev, customer: name }));
+    setSelectedCustomerMeta({
+      name,
+      customer_name: label || name,
+    });
+  };
+
+  const customerSelectOptions = useMemo(() => {
+    const mapped =
+      customers?.map((c) => ({
+        value: c.name,
+        label: c.customer_name,
+        description: c.mobile_no,
+      })) || [];
+
+    if (
+      form.customer &&
+      selectedCustomerMeta &&
+      !mapped.some((o) => o.value === form.customer)
+    ) {
+      return [
+        {
+          value: selectedCustomerMeta.name,
+          label: selectedCustomerMeta.customer_name,
+          description: selectedCustomerMeta.mobile_no,
+        },
+        ...mapped,
+      ];
+    }
+    return mapped;
+  }, [customers, form.customer, selectedCustomerMeta]);
+
+  const vinSelectOptions = useMemo(() => {
+    const mapped =
+      vins?.map((v) => ({
+        value: v.name,
+        label: v.vin_number,
+        description: [v.model_name, v.plate_number, v.customer_name]
+          .filter(Boolean)
+          .join(' · '),
+      })) || [];
+
+    if (
+      form.vin_chassis &&
+      selectedVin &&
+      !mapped.some((o) => o.value === form.vin_chassis)
+    ) {
+      return [
+        {
+          value: selectedVin.name,
+          label: selectedVin.vin_number,
+          description: [selectedVin.model_name, selectedVin.plate_number]
+            .filter(Boolean)
+            .join(' · '),
+        },
+        ...mapped,
+      ];
+    }
+    return mapped;
+  }, [vins, form.vin_chassis, selectedVin]);
 
   useEffect(() => {
     if (!form.customer) {
@@ -170,12 +335,12 @@ export default function NewAppointmentPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!form.customer) {
-      toast.error('Please select a customer');
-      return;
-    }
     if (!form.vin_chassis) {
       toast.error('Please select a vehicle');
+      return;
+    }
+    if (!form.customer) {
+      toast.error('Please select a customer');
       return;
     }
     if (!form.vehicle) {
@@ -377,85 +542,75 @@ export default function NewAppointmentPage() {
           </CardContent>
         </Card>
 
-        {/* Customer & Vehicle */}
+        {/* Vehicle & Customer */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Customer & Vehicle
+              <Car className="h-5 w-5 text-primary" />
+              Vehicle & Customer
             </CardTitle>
-            <CardDescription>Select customer and vehicle information</CardDescription>
+            <CardDescription>
+              Select the vehicle first; the registered owner fills in as customer when available
+            </CardDescription>
           </CardHeader>
           <CardContent className="min-w-0 space-y-4 sm:space-y-6">
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="customer">Customer</Label>
-                <LinkWithCreate
-                  doctype="Customer"
-                  onCreated={(name) => {
-                    setForm((prev) => ({
-                      ...prev,
-                      customer: name,
-                      vehicle: '',
-                      vin_chassis: '',
-                      license_plate: '',
-                      current_odometer: 0,
-                    }));
-                  }}
-                >
-                  <SearchableSelect
-                    options={(customers || []).map((c) => ({
-                      value: c.name,
-                      label: c.customer_name,
-                      description: c.mobile_no,
-                    }))}
-                    value={form.customer}
-                    onValueChange={(val) => {
-                      setForm((prev) => ({
-                        ...prev,
-                        customer: val,
-                        vehicle: '',
-                        vin_chassis: '',
-                        license_plate: '',
-                        current_odometer: 0,
-                      }));
-                    }}
-                    onSearchChange={setCustomerSearch}
-                    placeholder="Search customer..."
-                  />
-                </LinkWithCreate>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="vehicle">
+                Vehicle (VIN) <span className="text-destructive">*</span>
+              </Label>
+              <SearchableSelect
+                options={vinSelectOptions}
+                value={form.vin_chassis}
+                onValueChange={handleVinSelect}
+                onSearchChange={setVinSearch}
+                placeholder="Type at least 3 characters of VIN, chassis, or plate..."
+                isLoading={vinsLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Search and select the vehicle first. The registered owner fills in as customer when
+                available; you can change or create a customer without clearing the VIN.
+              </p>
+              {form.vin_chassis && !form.vehicle && (
+                <p className="text-xs text-destructive">
+                  This VIN has no linked model item. Set Linked Item on the VIN record.
+                </p>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="vehicle">Vehicle (VIN)</Label>
-                <SearchableSelect
-                  options={(vins || []).map((v) => ({
-                    value: v.name,
-                    label: `${v.model_name || v.name} - ${v.plate_number || ''}`,
-                    description: v.vin_number,
-                  }))}
-                  value={form.vin_chassis}
-                  onValueChange={(val) => {
-                    const vin = vins?.find((v) => v.name === val);
-                    setWarrantySummary(null);
-                    setForm((prev) => ({
-                      ...prev,
-                      vin_chassis: val,
-                      vehicle: vin?.linked_item || '',
-                      license_plate: vin?.plate_number || '',
-                      current_odometer: vin?.current_odometer ?? 0,
-                    }));
-                    if (val) {
-                      void vehiclesSvc.getVehicle(val).then((full) => {
-                        setWarrantySummary(full.warranty_summary || null);
-                      }).catch(() => {});
-                    }
-                  }}
-                  onSearchChange={setVinSearch}
-                  placeholder="Search vehicle..."
-                  disabled={!form.customer}
-                />
+            {selectedVin && (
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Car className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{selectedVin.model_name || selectedVin.name}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Plate: </span>
+                    <span className="font-medium">{selectedVin.plate_number || '—'}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">VIN: </span>
+                    <span className="font-mono text-xs">{selectedVin.vin_number}</span>
+                  </div>
+                </div>
+                {warrantySummary && <WarrantyStatusBanner summary={warrantySummary} />}
               </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="customer">
+                Customer <span className="text-destructive">*</span>
+              </Label>
+              <LinkWithCreate doctype="Customer" onCreated={handleCustomerCreated}>
+                <SearchableSelect
+                  options={customerSelectOptions}
+                  value={form.customer}
+                  valueLabel={selectedCustomerMeta?.customer_name}
+                  onValueChange={handleCustomerChange}
+                  onSearchChange={setCustomerSearch}
+                  placeholder="Search customer..."
+                />
+              </LinkWithCreate>
             </div>
 
             {form.customer && (
@@ -463,7 +618,7 @@ export default function NewAppointmentPage() {
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    {selectedCustomer?.customer_name || form.customer}
+                    {selectedCustomerMeta?.customer_name || form.customer}
                   </p>
                   {loadingContact && (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -514,27 +669,6 @@ export default function NewAppointmentPage() {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Vehicle Info Display */}
-            {selectedVin && (
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Car className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{selectedVin.model_name || selectedVin.name}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Plate: </span>
-                    <span className="font-medium">{selectedVin.plate_number || '—'}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">VIN: </span>
-                    <span className="font-mono text-xs">{selectedVin.vin_number}</span>
-                  </div>
-                </div>
-                {warrantySummary && <WarrantyStatusBanner summary={warrantySummary} />}
               </div>
             )}
           </CardContent>

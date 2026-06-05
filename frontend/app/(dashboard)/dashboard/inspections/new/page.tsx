@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/searchable-select';
@@ -25,6 +25,7 @@ import {
   useCreateInspection,
   useCompanies,
   useAppointment,
+  useAutofillSingleCompany,
 } from '@/hooks/use-dms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,7 @@ import {
 import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
 import type { FuelLevel, ArrivalMethod, VINNo, VehicleWarrantySummary } from '@/types/dms';
 import * as vehiclesSvc from '@/services/vehicles';
+import { htmlToPlainText } from '@/lib/plain-text';
 
 const fuelLevels: FuelLevel[] = ['Empty', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8', 'Full'];
 
@@ -308,18 +310,22 @@ export default function NewInspectionPage() {
   const [complaints, setComplaints] = useState<ComplaintRow[]>([
     { text: '', category: DEFAULT_SYMPTOM_CATEGORY, severity: DEFAULT_COMPLAINT_SEVERITY },
   ]);
+  const lastAppliedAppointmentRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (appointmentId) return;
     inspectionsSvc.getCurrentServiceAdvisor().then((adv) => {
       if (adv?.name) setServiceAdvisor(adv.name);
     }).catch(() => {});
-  }, []);
+  }, [appointmentId]);
 
-  useEffect(() => {
-    if (linkedAppointment?.company) {
-      setCompany(linkedAppointment.company);
-    }
-  }, [linkedAppointment?.company]);
+  useAutofillSingleCompany(
+    companies,
+    companiesLoading,
+    company,
+    (c) => setCompany(c.name),
+    { search: companySearch, enabled: !linkedAppointment?.company }
+  );
 
   const applyVinToForm = (vin: VINNo) => {
     setSelectedVin(vin);
@@ -369,6 +375,65 @@ export default function NewInspectionPage() {
       }
     }
   };
+
+  useEffect(() => {
+    if (!appointmentId || !linkedAppointment) {
+      if (!appointmentId) lastAppliedAppointmentRef.current = null;
+      return;
+    }
+    if (lastAppliedAppointmentRef.current === appointmentId) return;
+    lastAppliedAppointmentRef.current = appointmentId;
+
+    if (linkedAppointment.company) {
+      setCompany(linkedAppointment.company);
+    }
+
+    const advisor =
+      linkedAppointment.assigned_service_advisor || linkedAppointment.preferred_advisor;
+    if (advisor) {
+      setServiceAdvisor(advisor);
+    } else {
+      inspectionsSvc.getCurrentServiceAdvisor().then((adv) => {
+        if (adv?.name) setServiceAdvisor(adv.name);
+      }).catch(() => {});
+    }
+
+    const complaintText = htmlToPlainText(linkedAppointment.customer_complaint_summary || '');
+    if (complaintText) {
+      setComplaints([
+        { text: complaintText, category: DEFAULT_SYMPTOM_CATEGORY, severity: DEFAULT_COMPLAINT_SEVERITY },
+      ]);
+    }
+
+    const applyFromAppointment = async () => {
+      if (linkedAppointment.vin_chassis) {
+        await handleVinSelect(linkedAppointment.vin_chassis);
+      }
+      if (linkedAppointment.vehicle) {
+        setCustomerVehicle(linkedAppointment.vehicle);
+      }
+      if (linkedAppointment.license_plate) {
+        setLicensePlate(linkedAppointment.license_plate);
+      }
+      if (linkedAppointment.current_odometer != null) {
+        setCurrentOdometer(linkedAppointment.current_odometer);
+      }
+      if (linkedAppointment.customer) {
+        setSelectedCustomer(linkedAppointment.customer);
+        setSelectedCustomerMeta({
+          name: linkedAppointment.customer,
+          customer_name: linkedAppointment.customer_name || linkedAppointment.customer,
+          mobile_no:
+            linkedAppointment.contact_phone ||
+            linkedAppointment.primary_phone ||
+            linkedAppointment.mobile_no,
+        });
+      }
+    };
+
+    void applyFromAppointment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per linked appointment
+  }, [appointmentId, linkedAppointment]);
 
   const vinFromReturn = viewParams.get('vin');
 

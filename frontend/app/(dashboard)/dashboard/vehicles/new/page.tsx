@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useCustomers, useVehicleItems, useColors, useCompanies } from "@/hooks/use-dms";
+import { useCustomers, useVehicleItems, useColors, useCompanies, useAutofillSingleCompany } from "@/hooks/use-dms";
 import * as vehiclesSvc from "@/services/vehicles";
 import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
@@ -98,6 +98,14 @@ export default function NewVehiclePage() {
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  useAutofillSingleCompany(
+    companies,
+    companiesLoading,
+    form.company,
+    (c) => update("company", c.name),
+    { search: companySearch }
+  );
 
   async function handleSubmit() {
     if (!form.vin_number.trim()) {
