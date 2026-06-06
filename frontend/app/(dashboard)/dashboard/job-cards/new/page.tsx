@@ -407,14 +407,20 @@ export default function NewJobCardPage() {
 
   const handleBaySelect = async (bayName: string) => {
     setAssignedBay(bayName);
-    if (bayName) {
-      try {
-        const detail = await fetchServiceBayDetail(bayName);
-        if (detail?.branch) {
-          setWorkshop(detail.branch);
-        }
-      } catch { /* ignore */ }
+    if (!bayName) {
+      setWorkshop("");
+      return;
     }
+    try {
+      const detail = await fetchServiceBayDetail(bayName);
+      const workshopName = detail?.workshop || detail?.branch;
+      if (workshopName) {
+        setWorkshop(workshopName);
+      }
+      if (detail?.warehouse) {
+        setWarehouse(detail.warehouse);
+      }
+    } catch { /* ignore */ }
   };
 
   const handleServiceItemSelect = async (itemName: string) => {

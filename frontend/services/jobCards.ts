@@ -148,15 +148,28 @@ export async function saveCustomerSignature(name: string, fileUrl: string): Prom
 
 export async function startRepair(
   name: string,
-  timeLogs?: Array<{ technician: string; technician_name: string; start_time: string }>
-): Promise<string> {
-  return apiRequest<string>(`/api/method/${DT_PATH}.start_repair`, {
-    method: 'POST',
-    body: JSON.stringify({
-      job_card: name,
-      time_logs: timeLogs ? JSON.stringify(timeLogs) : undefined,
-    }),
-  });
+  technicians: string[]
+): Promise<{ status: string; repair_session_start_ms?: number }> {
+  if (!technicians.length) {
+    throw new Error('Assign a lead technician before starting repair.');
+  }
+
+  const timeLogs = technicians.map((technician) => ({
+    technician,
+    // Server always stamps its own start_time — payload is for technician list only.
+    start_time: new Date().toISOString().replace('T', ' ').slice(0, 19),
+  }));
+
+  return apiRequest<{ status: string; repair_session_start_ms?: number }>(
+    `/api/method/${DT_PATH}.start_repair`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        job_card: name,
+        time_logs: JSON.stringify(timeLogs),
+      }),
+    }
+  );
 }
 
 export async function pauseRepair(

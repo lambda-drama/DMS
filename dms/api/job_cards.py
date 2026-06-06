@@ -14,6 +14,30 @@ def _resolve_job_card_currency(currency=None, company=None) -> str:
 	return cur
 
 
+def _sync_workshop_warehouse_from_bay(doc, bay_name=None):
+	"""Set workshop + warehouse from the service bay's linked WorkShop."""
+	bay = (bay_name or getattr(doc, "assigned_bay", None) or "").strip()
+	if not bay:
+		return
+
+	workshop = frappe.db.get_value("Service Bay", bay, "branch")
+	if not workshop:
+		return
+
+	doc.workshop = workshop
+	warehouse = frappe.db.get_value("WorkShop", workshop, "warehouse")
+	if not warehouse:
+		return
+
+	company = getattr(doc, "company", None)
+	if company:
+		wh_company = frappe.db.get_value("Warehouse", warehouse, "company")
+		if wh_company and wh_company != company:
+			return
+
+	doc.warehouse = warehouse
+
+
 ASSIGNMENT_LOCKED_STATUSES = frozenset({
 	"Repair In Progress",
 	"Repair Completed",
@@ -105,10 +129,57 @@ def get_job_card(name):
 	if not name:
 		frappe.throw(_("Job Card name is required"))
 
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+		repair_session_start_ms,
+	)
+
 	doc = frappe.get_doc("DMS Job Card", name)
 	doc.check_permission("read")
 
-	return doc.as_dict()
+	data = doc.as_dict()
+	# Always read time logs from DB — rows may be inserted via start_repair db_insert.
+	data["time_logs"] = frappe.get_all(
+		"DMS Job Card Time Log",
+		filters={"parent": name},
+		fields=[
+			"name",
+			"technician",
+			"start_time",
+			"end_time",
+			"duration_hours",
+			"pause_reason",
+			"job_item",
+			"notes",
+		],
+		order_by="idx asc",
+	)
+
+	for row in data.get("time_logs") or []:
+		if row.get("start_time"):
+			row["start_time"] = str(row["start_time"])
+		if row.get("end_time"):
+			row["end_time"] = str(row["end_time"])
+		if row.get("technician") and not row.get("technician_name"):
+			row["technician_name"] = frappe.db.get_value(
+				"Technician", row["technician"], "full_name"
+			) or row["technician"]
+
+	session_ms = repair_session_start_ms(data.get("time_logs"))
+	data["repair_session_start_ms"] = session_ms
+
+	if data.get("assigned_bay") and not (data.get("warehouse") or "").strip():
+		_sync_workshop_warehouse_from_bay(doc, data.get("assigned_bay"))
+		if doc.warehouse:
+			frappe.db.set_value(
+				"DMS Job Card",
+				name,
+				{"workshop": doc.workshop, "warehouse": doc.warehouse},
+				update_modified=False,
+			)
+			data["workshop"] = doc.workshop
+			data["warehouse"] = doc.warehouse
+
+	return data
 
 
 @frappe.whitelist()
@@ -195,6 +266,9 @@ def create_job_card(data):
 				"warehouse": part_warehouse,
 			})
 
+	if data.get("assigned_bay"):
+		_sync_workshop_warehouse_from_bay(doc, data.get("assigned_bay"))
+
 	doc.insert()
 	frappe.db.commit()
 
@@ -262,10 +336,18 @@ def update_job_card(name, data):
 			rows = json.loads(rows)
 		_apply_assistant_technicians(doc, rows)
 
+	if "assigned_bay" in data:
+		_sync_workshop_warehouse_from_bay(doc, data.get("assigned_bay"))
+
 	doc.save()
 	frappe.db.commit()
 
-	return {"name": doc.name, "status": doc.status}
+	return {
+		"name": doc.name,
+		"status": doc.status,
+		"workshop": doc.workshop,
+		"warehouse": doc.warehouse,
+	}
 
 
 @frappe.whitelist()

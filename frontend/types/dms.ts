@@ -619,6 +619,8 @@ export interface DMSJobCard {
   
   // Time Log
   time_logs?: DMSJobCardTimeLog[];
+  /** UTC epoch ms for earliest open time log — used by live repair timer */
+  repair_session_start_ms?: number | null;
   
   // Delivery
   delivered_to?: string;
