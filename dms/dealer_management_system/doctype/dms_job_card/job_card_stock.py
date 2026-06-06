@@ -49,11 +49,16 @@ def resolve_workshop_warehouse(jc) -> str | None:
 		if wh:
 			return wh
 
-	company = getattr(jc, "company", None)
-	if company:
-		wh = frappe.db.get_value("Company", company, "default_warehouse")
+	for part in jc.get("parts") or []:
+		wh = (getattr(part, "warehouse", None) or "").strip()
 		if wh:
 			return wh
+
+	company = getattr(jc, "company", None)
+	if company:
+		default_wh = frappe.db.get_single_value("Stock Settings", "default_warehouse")
+		if default_wh and frappe.db.get_value("Warehouse", default_wh, "company") == company:
+			return default_wh
 
 	return None
 
