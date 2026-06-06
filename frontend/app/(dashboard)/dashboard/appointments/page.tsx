@@ -97,6 +97,14 @@ function canCancel(apt: ServiceAppointment) {
   return normalizeDocstatus(apt.docstatus) < 2 && apt.status !== 'Completed';
 }
 
+function hasMobileMenuActions(apt: ServiceAppointment) {
+  return (
+    canConfirmAppointment(apt) ||
+    shouldShowSendReminderAction(apt) ||
+    canMarkArrived(apt)
+  );
+}
+
 function getStatusConfig(status: AppointmentStatus | string | undefined) {
   const configs: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
     'Booked': { color: 'bg-chart-1/10 text-chart-1 border-chart-1/20', icon: Calendar },
@@ -277,48 +285,52 @@ export default function AppointmentsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-primary/10 p-3">
-              <Calendar className="h-5 w-5 text-primary" />
+          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+            <div className="shrink-0 rounded-lg bg-primary/10 p-2 sm:p-3">
+              <Calendar className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-2xl font-bold">{todayCount}</p>
-              <p className="text-sm text-muted-foreground">Today&apos;s Appointments</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-chart-3/10 p-3">
-              <CheckCircle2 className="h-5 w-5 text-chart-3" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{arrivedCount}</p>
-              <p className="text-sm text-muted-foreground">Arrived</p>
+            <div className="min-w-0">
+              <p className="text-xl font-bold sm:text-2xl">{todayCount}</p>
+              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                Today&apos;s Appointments
+              </p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-chart-4/10 p-3">
-              <Clock className="h-5 w-5 text-chart-4" />
+          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+            <div className="shrink-0 rounded-lg bg-chart-3/10 p-2 sm:p-3">
+              <CheckCircle2 className="h-4 w-4 text-chart-3 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-2xl font-bold">{pendingCount}</p>
-              <p className="text-sm text-muted-foreground">Pending Arrival</p>
+            <div className="min-w-0">
+              <p className="text-xl font-bold sm:text-2xl">{arrivedCount}</p>
+              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Arrived</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-destructive/10 p-3">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
+          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+            <div className="shrink-0 rounded-lg bg-chart-4/10 p-2 sm:p-3">
+              <Clock className="h-4 w-4 text-chart-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-2xl font-bold">
+            <div className="min-w-0">
+              <p className="text-xl font-bold sm:text-2xl">{pendingCount}</p>
+              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                Pending Arrival
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+            <div className="shrink-0 rounded-lg bg-destructive/10 p-2 sm:p-3">
+              <AlertTriangle className="h-4 w-4 text-destructive sm:h-5 sm:w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xl font-bold sm:text-2xl">
                 {(appointments || []).filter((apt) => apt.priority === 'VIP' || apt.priority === 'Urgent').length}
               </p>
-              <p className="text-sm text-muted-foreground">Priority</p>
+              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Priority</p>
             </div>
           </CardContent>
         </Card>
@@ -398,80 +410,84 @@ export default function AppointmentsPage() {
                 return (
                   <div
                     key={apt.name}
-                    className="flex gap-1 rounded-lg border border-border bg-card p-4"
+                    className="rounded-lg border border-border bg-card p-4"
                   >
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(apt.name)}
-                      className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-medium">{apt.customer_name}</p>
-                          <p className="truncate text-sm text-muted-foreground">{apt.name}</p>
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(apt.name)}
+                        className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
+                      >
+                        <p className="font-medium">{apt.customer_name}</p>
+                        <p className="truncate text-sm text-muted-foreground">{apt.name}</p>
+                        <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                          <p>{apt.vehicle} · {apt.license_plate}</p>
+                          <p>{aptDate}{aptTime ? ` · ${aptTime}` : ''}</p>
+                          {serviceTypes ? <p className="truncate">{serviceTypes}</p> : null}
                         </div>
-                        <Badge variant="outline" className={statusConfig.color}>
-                          <StatusIcon className="mr-1 h-3 w-3" />
-                          {apt.status}
+                        <Badge variant="outline" className={`mt-2 ${priorityConfig.color}`}>
+                          {priorityConfig.label}
                         </Badge>
+                      </button>
+                      <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
+                        <Badge
+                          variant="outline"
+                          className={`max-w-38 justify-end text-[11px] leading-tight ${statusConfig.color}`}
+                        >
+                          <StatusIcon className="mr-1 h-3 w-3 shrink-0" />
+                          <span className="truncate">{apt.status}</span>
+                        </Badge>
+                        <div className="mt-auto">
+                          <ListRowActions doctype="Service Appointment" docName={apt.name}>
+                            {hasMobileMenuActions(apt) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="shrink-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {canConfirmAppointment(apt) && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setActionTarget(apt);
+                                      setConfirmOpen(true);
+                                    }}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                    Confirm appointment
+                                  </DropdownMenuItem>
+                                )}
+                                {shouldShowSendReminderAction(apt) && (
+                                  <DropdownMenuItem
+                                    disabled={Boolean(sendReminderBlockReason(apt)) || actionLoading}
+                                    title={sendReminderBlockReason(apt) || undefined}
+                                    onClick={() => {
+                                      if (sendReminderBlockReason(apt)) return;
+                                      setActionTarget(apt);
+                                      setReminderOpen(true);
+                                    }}
+                                  >
+                                    <MessageCircle className="h-4 w-4 mr-2" />
+                                    Send reminder
+                                  </DropdownMenuItem>
+                                )}
+                                {canMarkArrived(apt) && (
+                                  <DropdownMenuItem
+                                    disabled={actionLoading}
+                                    onClick={() => void handleMarkArrived(apt)}
+                                  >
+                                    <Car className="h-4 w-4 mr-2" />
+                                    Mark as arrived
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            )}
+                          </ListRowActions>
+                        </div>
                       </div>
-                      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                        <p>{apt.vehicle} · {apt.license_plate}</p>
-                        <p>{aptDate}{aptTime ? ` · ${aptTime}` : ''}</p>
-                        {serviceTypes ? <p className="truncate">{serviceTypes}</p> : null}
-                      </div>
-                      <Badge variant="outline" className={`mt-2 ${priorityConfig.color}`}>
-                        {priorityConfig.label}
-                      </Badge>
-                    </button>
-                    <ListRowActions doctype="Service Appointment" docName={apt.name}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="shrink-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSelectedId(apt.name)}>
-                            View Details
-                          </DropdownMenuItem>
-                          {canConfirmAppointment(apt) && (
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setActionTarget(apt);
-                                setConfirmOpen(true);
-                              }}
-                            >
-                              <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Confirm appointment
-                            </DropdownMenuItem>
-                          )}
-                          {shouldShowSendReminderAction(apt) && (
-                            <DropdownMenuItem
-                              disabled={Boolean(sendReminderBlockReason(apt)) || actionLoading}
-                              title={sendReminderBlockReason(apt) || undefined}
-                              onClick={() => {
-                                if (sendReminderBlockReason(apt)) return;
-                                setActionTarget(apt);
-                                setReminderOpen(true);
-                              }}
-                            >
-                              <MessageCircle className="h-4 w-4 mr-2" />
-                              Send reminder
-                            </DropdownMenuItem>
-                          )}
-                          {canMarkArrived(apt) && (
-                            <DropdownMenuItem
-                              disabled={actionLoading}
-                              onClick={() => void handleMarkArrived(apt)}
-                            >
-                              <Car className="h-4 w-4 mr-2" />
-                              Mark as arrived
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </ListRowActions>
+                    </div>
                   </div>
                 );
               })
@@ -579,9 +595,6 @@ export default function AppointmentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedId(apt.name)}>
-                                View Details
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => navigate('appointment-detail', { id: apt.name, mode: 'edit' })}>
                                 Edit
                               </DropdownMenuItem>
@@ -788,9 +801,6 @@ export default function AppointmentsPage() {
                   Start inspection
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => { setSelectedId(null); navigate('appointment-detail', { id: selectedId! }); }}>
-                Open Full Details
-              </Button>
             </div>
           </>
         )}

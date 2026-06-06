@@ -171,10 +171,10 @@ export default function InvoicesPage() {
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 hidden text-muted-foreground sm:block">
             Aftersales invoices linked to a job card (DMS)
           </p>
         </div>

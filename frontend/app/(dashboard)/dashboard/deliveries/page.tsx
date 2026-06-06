@@ -68,10 +68,12 @@ export default function DeliveriesPage() {
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Vehicle Deliveries</h1>
-          <p className="text-muted-foreground mt-1">Manage vehicle delivery and handover</p>
+          <p className="mt-1 hidden text-muted-foreground sm:block">
+            Manage vehicle delivery and handover
+          </p>
         </div>
         <PermittedCreateButton
           module="deliveries"
@@ -80,42 +82,42 @@ export default function DeliveriesPage() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="order-1 w-fit rounded-lg bg-primary/10 p-2 sm:order-2">
+                <FileText className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
               </div>
-              <div className="p-2 rounded-lg bg-primary/10">
-                <FileText className="h-5 w-5 text-primary" />
+              <div className="order-2 min-w-0 sm:order-1">
+                <p className="text-[13px] text-muted-foreground sm:text-sm">Total</p>
+                <p className="text-xl font-bold sm:text-2xl">{stats.total}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Draft</p>
-                <p className="text-2xl font-bold">{stats.draft}</p>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="order-1 w-fit rounded-lg bg-[#F9A825]/10 p-2 sm:order-2">
+                <Clock className="h-4 w-4 text-[#F9A825] sm:h-5 sm:w-5" />
               </div>
-              <div className="p-2 rounded-lg bg-[#F9A825]/10">
-                <Clock className="h-5 w-5 text-[#F9A825]" />
+              <div className="order-2 min-w-0 sm:order-1">
+                <p className="text-[13px] text-muted-foreground sm:text-sm">Draft</p>
+                <p className="text-xl font-bold sm:text-2xl">{stats.draft}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Submitted</p>
-                <p className="text-2xl font-bold">{stats.submitted}</p>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="order-1 w-fit rounded-lg bg-[#2E7D32]/10 p-2 sm:order-2">
+                <CheckCircle2 className="h-4 w-4 text-[#2E7D32] sm:h-5 sm:w-5" />
               </div>
-              <div className="p-2 rounded-lg bg-[#2E7D32]/10">
-                <CheckCircle2 className="h-5 w-5 text-[#2E7D32]" />
+              <div className="order-2 min-w-0 sm:order-1">
+                <p className="text-[13px] text-muted-foreground sm:text-sm">Submitted</p>
+                <p className="text-xl font-bold sm:text-2xl">{stats.submitted}</p>
               </div>
             </div>
           </CardContent>

@@ -161,15 +161,19 @@ export default function DashboardPage() {
             ))
           : statCards.map((stat) => (
               <Card key={stat.title}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                      <p className="mt-2 text-3xl font-bold">{stat.value}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{stat.change}</p>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium leading-snug text-muted-foreground sm:text-sm">
+                        {stat.title}
+                      </p>
+                      <p className="mt-2 text-2xl font-bold sm:text-3xl">{stat.value}</p>
+                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
+                        {stat.change}
+                      </p>
                     </div>
-                    <div className={`rounded-lg p-3 ${stat.bgColor}`}>
-                      <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                    <div className={`shrink-0 rounded-lg p-2 sm:p-3 ${stat.bgColor}`}>
+                      <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
                     </div>
                   </div>
                 </CardContent>
@@ -351,23 +355,23 @@ export default function DashboardPage() {
       {/* Bay Occupancy */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="text-lg">Service Bay Status</CardTitle>
               <CardDescription>Live bay occupancy from the workshop</CardDescription>
             </div>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-chart-3" />
-                <span className="text-muted-foreground">Available</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:gap-x-4 sm:text-sm">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-chart-3 sm:h-3 sm:w-3" />
+                <span className="whitespace-nowrap text-muted-foreground">Available</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-chart-1" />
-                <span className="text-muted-foreground">Occupied</span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-chart-1 sm:h-3 sm:w-3" />
+                <span className="whitespace-nowrap text-muted-foreground">Occupied</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-destructive" />
-                <span className="text-muted-foreground">Maintenance</span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-destructive sm:h-3 sm:w-3" />
+                <span className="whitespace-nowrap text-muted-foreground">Maintenance</span>
               </div>
             </div>
           </div>
@@ -413,7 +417,7 @@ export default function DashboardPage() {
                       <p className="mt-1 text-xs text-muted-foreground">{bay.progress}% complete</p>
                     </>
                   ) : (
-                    <p className="mt-2 text-sm capitalize text-muted-foreground">
+                    <p className="mt-2 truncate text-sm capitalize text-muted-foreground">
                       {bay.erp_status || bay.status}
                     </p>
                   )}
