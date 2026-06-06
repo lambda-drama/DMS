@@ -147,10 +147,12 @@ export default function InspectionsPage() {
 
       {/* Main Content */}
       <Card>
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
+          <div className="min-w-0">
             <CardTitle>Vehicle Inspections</CardTitle>
-            <CardDescription>Vehicle intake inspections and condition reports</CardDescription>
+            <CardDescription className="hidden sm:block">
+              Vehicle intake inspections and condition reports
+            </CardDescription>
           </div>
           <PermittedCreateButton
             module="inspections"

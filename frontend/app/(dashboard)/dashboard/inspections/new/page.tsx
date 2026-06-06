@@ -1362,7 +1362,7 @@ export default function NewInspectionPage() {
                 <Textarea placeholder="Internal observations..." />
               </div>
 
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+              <div className="scroll-mt-4 rounded-lg border bg-muted/30 p-4 space-y-4 max-sm:mb-2">
                 <h4 className="font-medium">Signatures Required</h4>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -1395,6 +1395,7 @@ export default function NewInspectionPage() {
   };
 
   return (
+    <>
     <div className="dms-form-page mx-auto max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -1457,44 +1458,45 @@ export default function NewInspectionPage() {
 
       {/* Step Content */}
       {renderStep()}
+    </div>
 
       <FormActionsBar align="between">
         {currentStep === 1 ? (
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('inspections')}>
+          <Button variant="outline" className="min-w-0 w-full sm:w-auto" onClick={() => navigate('inspections')}>
             Cancel
           </Button>
         ) : (
           <Button
             variant="outline"
-            className="w-full sm:w-auto"
+            className="min-w-0 w-full sm:w-auto"
             onClick={() => setCurrentStep(currentStep - 1)}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Previous
+            <ArrowLeft className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">Previous</span>
           </Button>
         )}
 
         {currentStep < steps.length ? (
-          <Button className="w-full sm:w-auto" onClick={() => setCurrentStep(currentStep + 1)}>
-            Next
-            <ArrowRight className="ml-2 h-4 w-4" />
+          <Button className="min-w-0 w-full sm:w-auto" onClick={() => setCurrentStep(currentStep + 1)}>
+            <span className="truncate">Next</span>
+            <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
           </Button>
         ) : (
-          <Button className="w-full sm:w-auto" onClick={handleSubmit} disabled={isSubmitting}>
+          <Button className="min-w-0 w-full sm:w-auto" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
+                <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
+                <span className="truncate">Submitting...</span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Submit Inspection
+                <CheckCircle2 className="mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">Submit</span>
               </>
             )}
           </Button>
         )}
       </FormActionsBar>
-    </div>
+    </>
   );
 }

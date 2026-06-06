@@ -338,10 +338,12 @@ export default function AppointmentsPage() {
 
       {/* Main Content */}
       <Card>
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
+          <div className="min-w-0">
             <CardTitle>Service Appointments</CardTitle>
-            <CardDescription>Manage customer service appointments</CardDescription>
+            <CardDescription className="hidden sm:block">
+              Manage customer service appointments
+            </CardDescription>
           </div>
           <PermittedCreateButton
             module="appointments"
