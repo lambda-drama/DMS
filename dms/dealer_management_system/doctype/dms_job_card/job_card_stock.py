@@ -45,13 +45,7 @@ def resolve_workshop_warehouse(jc) -> str | None:
 
 	workshop = getattr(jc, "workshop", None)
 	if workshop:
-		wh = frappe.db.get_value("Workshop", workshop, "warehouse")
-		if wh:
-			return wh
-
-	company = getattr(jc, "company", None)
-	if company:
-		wh = frappe.db.get_value("Company", company, "default_warehouse")
+		wh = frappe.db.get_value("WorkShop", workshop, "warehouse")
 		if wh:
 			return wh
 
@@ -95,7 +89,7 @@ def transfer_job_card_parts_to_wip(jc) -> str | None:
 	source_wh = resolve_workshop_warehouse(jc)
 	if not source_wh:
 		frappe.throw(
-			_("Set a workshop warehouse on the Job Card or Workshop before starting repair."),
+			_("Kindly add a warehouse on the Workshop before starting repair."),
 			title=_("Warehouse required"),
 		)
 

@@ -245,6 +245,9 @@ export default function JobCardDetailPage() {
   const status = jobCard.status;
   const docstatus = jobCard.docstatus ?? 0;
   const assignmentEditable = canEditJobCardAssignment(status);
+  const hasWorkshopWarehouse = Boolean((jobCard.warehouse || "").trim());
+  const needsWorkshopWarehouse =
+    status === "Estimation Approved" && !hasWorkshopWarehouse;
 
   const assignmentDirty =
     leadTechnician !== (jobCard.lead_technician || "") ||
@@ -329,7 +332,15 @@ export default function JobCardDetailPage() {
     setApprovedAmount("");
   };
 
-  const handleStartRepair = () =>
+  const handleStartRepair = () => {
+    if (!hasWorkshopWarehouse) {
+      toast.error(
+        jobCard.workshop
+          ? `Kindly add a warehouse on Workshop ${jobCard.workshop} before starting repair.`
+          : "Kindly add a warehouse on the Workshop before starting repair."
+      );
+      return;
+    }
     runAction("Repair Started", async () => {
       const now = new Date().toISOString().replace("T", " ").slice(0, 19);
       const technicians = new Set<string>();
@@ -344,6 +355,7 @@ export default function JobCardDetailPage() {
       }));
       await jobCardsSvc.startRepair(id, timeLogs.length > 0 ? timeLogs : undefined);
     });
+  };
 
   const handlePauseRepair = () => {
     const openLogs = (jobCard.time_logs || []).filter((l) => l.start_time && !l.end_time);
@@ -722,10 +734,23 @@ export default function JobCardDetailPage() {
 
             {/* Estimation Approved → auto starts repair on submit */}
             {status === "Estimation Approved" && (
-              <Button onClick={handleStartRepair} disabled={busy}>
-                <Play className="h-4 w-4 mr-2" />
-                Start Repair
-              </Button>
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+                <Button
+                  onClick={handleStartRepair}
+                  disabled={busy || needsWorkshopWarehouse}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Repair
+                </Button>
+                {needsWorkshopWarehouse && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    {jobCard.workshop
+                      ? `Kindly add a warehouse on Workshop ${jobCard.workshop} before starting repair.`
+                      : "Assign a service bay linked to a Workshop, then add a warehouse on that Workshop before starting repair."}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Repair In Progress → Pause / Complete */}
@@ -1193,6 +1218,22 @@ export default function JobCardDetailPage() {
                     ) : (
                       <p className="font-medium">{jobCard.assigned_bay || "N/A"}</p>
                     )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Workshop</p>
+                    <p className="font-medium">{jobCard.workshop || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Warehouse</p>
+                    <p
+                      className={
+                        hasWorkshopWarehouse
+                          ? "font-medium"
+                          : "font-medium text-amber-600 dark:text-amber-400"
+                      }
+                    >
+                      {jobCard.warehouse || "Not set — add on Workshop"}
+                    </p>
                   </div>
                 </div>
                 {jobCard.assistant_technicians && jobCard.assistant_technicians.length > 0 && (
