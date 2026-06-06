@@ -159,15 +159,35 @@ function WorkflowProgress({
   );
 }
 
+const presetFilterLabels: Record<string, string> = {
+  active: "Active job cards",
+  qc: "Pending QC",
+};
+
 export default function JobCardsPage() {
-  const { navigate } = useNavigation();
+  const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [presetFilter, setPresetFilter] = useState<"active" | "qc" | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const filter = viewParams.get("filter");
+    const status = viewParams.get("status");
+    if (status) {
+      setStatusFilter(status);
+      setPresetFilter(null);
+    } else if (filter === "active" || filter === "qc") {
+      setPresetFilter(filter);
+      setStatusFilter("all");
+    }
+  }, [viewParams]);
+
   const { data: result, isLoading, error } = useJobCards({
     status: statusFilter !== "all" ? statusFilter : undefined,
+    filter: presetFilter || undefined,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
@@ -177,7 +197,13 @@ export default function JobCardsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, presetFilter]);
+
+  const clearListFilters = () => {
+    setStatusFilter("all");
+    setPresetFilter(null);
+    navigate("job-cards");
+  };
 
   const filtered = jobCards?.filter((jc) => {
     if (!searchQuery) return true;
@@ -268,6 +294,19 @@ export default function JobCardsPage() {
         </Card>
       </div>
 
+      {(presetFilter || statusFilter !== "all") && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">
+            {presetFilter
+              ? presetFilterLabels[presetFilter]
+              : `Status: ${statusFilter}`}
+          </Badge>
+          <Button variant="ghost" size="sm" onClick={clearListFilters}>
+            Clear filter
+          </Button>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -280,7 +319,13 @@ export default function JobCardsPage() {
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                setStatusFilter(val);
+                setPresetFilter(null);
+              }}
+            >
               <SelectTrigger className="w-full sm:w-[240px]">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by status" />

@@ -1,5 +1,6 @@
 'use client';
 
+import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,8 @@ export default function DashboardPage() {
   const todayAppointments = data?.today_appointments ?? [];
   const serviceBays = data?.service_bays ?? [];
 
+  const todayDate = format(new Date(), 'yyyy-MM-dd');
+
   const statCards = stats
     ? [
         {
@@ -92,6 +95,9 @@ export default function DashboardPage() {
           icon: Calendar,
           color: 'text-primary',
           bgColor: 'bg-primary/10',
+          onClick: canAccessView('appointments')
+            ? () => navigate('appointments', { date: todayDate })
+            : undefined,
         },
         {
           title: 'Active Job Cards',
@@ -103,6 +109,9 @@ export default function DashboardPage() {
           icon: Wrench,
           color: 'text-chart-3',
           bgColor: 'bg-chart-3/10',
+          onClick: canAccessView('job-cards')
+            ? () => navigate('job-cards', { filter: 'active' })
+            : undefined,
         },
         {
           title: 'Pending QC',
@@ -116,6 +125,9 @@ export default function DashboardPage() {
           icon: CheckCircle2,
           color: 'text-chart-4',
           bgColor: 'bg-chart-4/10',
+          onClick: canAccessView('job-cards')
+            ? () => navigate('job-cards', { filter: 'qc' })
+            : undefined,
         },
         {
           title: 'Ready for Delivery',
@@ -129,6 +141,9 @@ export default function DashboardPage() {
           icon: Car,
           color: 'text-chart-1',
           bgColor: 'bg-chart-1/10',
+          onClick: canAccessView('job-cards')
+            ? () => navigate('job-cards', { status: 'Completed' })
+            : undefined,
         },
       ]
     : [];
@@ -160,7 +175,23 @@ export default function DashboardPage() {
               </Card>
             ))
           : statCards.map((stat) => (
-              <Card key={stat.title}>
+              <Card
+                key={stat.title}
+                className={stat.onClick ? 'cursor-pointer transition-colors hover:bg-muted/40' : undefined}
+                onClick={stat.onClick}
+                role={stat.onClick ? 'button' : undefined}
+                tabIndex={stat.onClick ? 0 : undefined}
+                onKeyDown={
+                  stat.onClick
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          stat.onClick?.();
+                        }
+                      }
+                    : undefined
+                }
+              >
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -231,7 +262,7 @@ export default function DashboardPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('job-cards')}
+              onClick={() => navigate('job-cards', { filter: 'active' })}
               className="flex items-center gap-1"
             >
               View all <ArrowRight className="h-4 w-4" />
@@ -299,7 +330,7 @@ export default function DashboardPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('appointments')}
+              onClick={() => navigate('appointments', { date: todayDate })}
               className="flex items-center gap-1"
             >
               View all <ArrowRight className="h-4 w-4" />
