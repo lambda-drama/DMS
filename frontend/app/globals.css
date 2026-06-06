@@ -219,6 +219,11 @@
     @apply min-w-0;
     padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
   }
+  @media (max-width: 639px) {
+    .dms-form-page {
+      padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
   .dms-clickable {
     @apply cursor-pointer;
   }

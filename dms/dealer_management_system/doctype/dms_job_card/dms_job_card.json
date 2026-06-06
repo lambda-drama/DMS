@@ -199,8 +199,7 @@
    "description": "Commitment to customer",
    "fieldname": "promised_delivery_date_time",
    "fieldtype": "Datetime",
-   "label": "Promised Delivery Date & Time",
-   "reqd": 1
+   "label": "Promised Delivery Date & Time"
   },
   {
    "collapsible": 1,
@@ -335,8 +334,7 @@
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
    "label": "Assigned Service Bay",
-   "options": "Service Bay",
-   "reqd": 1
+   "options": "Service Bay"
   },
   {
    "fieldname": "column_break_priority",

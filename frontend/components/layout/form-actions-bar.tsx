@@ -35,8 +35,10 @@ export function FormActionsBar({ children, className, align = 'end' }: FormActio
     >
       <div
         className={cn(
-          'mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:px-6',
-          align === 'between' ? 'justify-between' : 'justify-end',
+          'mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6',
+          align === 'between'
+            ? 'grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3'
+            : 'flex flex-wrap items-center justify-end gap-2 sm:gap-3',
         )}
       >
         {children}

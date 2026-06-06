@@ -1020,7 +1020,7 @@ export default function NewJobCardPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="promised_delivery">
-                  Promised Delivery Date/Time
+                  Promised Delivery Date/Time (optional)
                 </Label>
                 <Input
                   id="promised_delivery"
@@ -1204,7 +1204,7 @@ export default function NewJobCardPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Assigned Bay</Label>
+                <Label>Assigned Bay (optional)</Label>
                 <SearchableSelect
                   options={
                     serviceBays?.map((b) => ({
@@ -1321,8 +1321,8 @@ export default function NewJobCardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {jobItems.length > 0 && (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border rounded-lg overflow-x-auto">
+                <table className="w-full min-w-[32rem] text-sm">
                   <thead className="bg-muted">
                     <tr>
                       <th className="text-left p-3">Complaint Description</th>
@@ -1355,8 +1355,8 @@ export default function NewJobCardPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-5 space-y-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
+              <div className="space-y-1 sm:col-span-5">
                 <Label className="text-xs">Complaint Description *</Label>
                 <Input
                   placeholder="Customer complaint / work description"
@@ -1369,7 +1369,7 @@ export default function NewJobCardPage() {
                   }
                 />
               </div>
-              <div className="col-span-3 space-y-1">
+              <div className="space-y-1 sm:col-span-3">
                 <Label className="text-xs">Symptom Category</Label>
                 <Select
                   value={newJobItem.symptom_category || DEFAULT_SYMPTOM_CATEGORY}
@@ -1392,7 +1392,7 @@ export default function NewJobCardPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2 space-y-1">
+              <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Severity</Label>
                 <Select
                   value={newJobItem.severity || DEFAULT_COMPLAINT_SEVERITY}
@@ -1415,7 +1415,7 @@ export default function NewJobCardPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Button type="button" onClick={addJobItem} className="w-full">
                   <Plus className="h-4 w-4 mr-1" />
                   Add
@@ -1489,8 +1489,8 @@ export default function NewJobCardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {labourRows.length > 0 && (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border rounded-lg overflow-x-auto">
+                <table className="w-full min-w-[40rem] text-sm">
                   <thead className="bg-muted">
                     <tr>
                       <th className="text-left p-3">Service Item</th>
@@ -1538,8 +1538,8 @@ export default function NewJobCardPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-3 space-y-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
+              <div className="space-y-1 sm:col-span-3">
                 <Label className="text-xs">Service Item *</Label>
                 <SearchableSelect
                   options={
@@ -1556,7 +1556,7 @@ export default function NewJobCardPage() {
                   isLoading={serviceItemsLoading}
                 />
               </div>
-              <div className="col-span-3 space-y-1">
+              <div className="space-y-1 sm:col-span-3">
                 <Label className="text-xs">Technician</Label>
                 <LinkWithCreate
                   doctype="Technician"
@@ -1589,38 +1589,40 @@ export default function NewJobCardPage() {
                   />
                 </LinkWithCreate>
               </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Hours</Label>
-                <Input
-                  type="number"
-                  step="0.5"
-                  min={0}
-                  placeholder="0"
-                  value={newLabour.estimated_hours || ""}
-                  onChange={(e) =>
-                    setNewLabour((prev) => ({
-                      ...prev,
-                      estimated_hours: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                />
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-xs">Hours</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min={0}
+                    placeholder="0"
+                    value={newLabour.estimated_hours || ""}
+                    onChange={(e) =>
+                      setNewLabour((prev) => ({
+                        ...prev,
+                        estimated_hours: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-xs">Rate/Hr</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={newLabour.rate_per_hour || ""}
+                    onChange={(e) =>
+                      setNewLabour((prev) => ({
+                        ...prev,
+                        rate_per_hour: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                </div>
               </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Rate/Hr</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder="0"
-                  value={newLabour.rate_per_hour || ""}
-                  onChange={(e) =>
-                    setNewLabour((prev) => ({
-                      ...prev,
-                      rate_per_hour: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                />
-              </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Button
                   type="button"
                   onClick={addLabourRow}
@@ -1642,8 +1644,8 @@ export default function NewJobCardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {partRows.length > 0 && (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border rounded-lg overflow-x-auto">
+                <table className="w-full min-w-[36rem] text-sm">
                   <thead className="bg-muted">
                     <tr>
                       <th className="text-left p-3">Part</th>
@@ -1688,8 +1690,8 @@ export default function NewJobCardPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-5 space-y-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
+              <div className="space-y-1 sm:col-span-5">
                 <Label className="text-xs">Spare Part *</Label>
                 <SearchableSelect
                   options={
@@ -1706,37 +1708,39 @@ export default function NewJobCardPage() {
                   isLoading={sparePartsLoading}
                 />
               </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Quantity</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="1"
-                  value={newPart.quantity_requested || ""}
-                  onChange={(e) =>
-                    setNewPart((prev) => ({
-                      ...prev,
-                      quantity_requested: parseInt(e.target.value) || 1,
-                    }))
-                  }
-                />
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-xs">Quantity</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="1"
+                    value={newPart.quantity_requested || ""}
+                    onChange={(e) =>
+                      setNewPart((prev) => ({
+                        ...prev,
+                        quantity_requested: parseInt(e.target.value) || 1,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-3">
+                  <Label className="text-xs">Unit Price</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={newPart.unit_price || ""}
+                    onChange={(e) =>
+                      setNewPart((prev) => ({
+                        ...prev,
+                        unit_price: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                </div>
               </div>
-              <div className="col-span-3 space-y-1">
-                <Label className="text-xs">Unit Price</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder="0"
-                  value={newPart.unit_price || ""}
-                  onChange={(e) =>
-                    setNewPart((prev) => ({
-                      ...prev,
-                      unit_price: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                />
-              </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Button type="button" onClick={addPartRow} className="w-full">
                   <Plus className="h-4 w-4 mr-1" />
                   Add
