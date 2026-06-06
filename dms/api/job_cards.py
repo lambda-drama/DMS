@@ -29,11 +29,32 @@ ASSIGNMENT_LOCKED_STATUSES = frozenset({
 })
 
 
+JOB_CARD_FILTER_PRESETS = {
+	"active": [
+		"Estimation Pending",
+		"Estimation Approved",
+		"Waiting Customer Approval",
+		"Scheduled",
+		"Repair In Progress",
+		"Repair Completed",
+		"Waiting Parts",
+		"Road Test In Progress",
+		"Road Test Completed",
+		"QC In Progress",
+		"QC Failed",
+		"Rework",
+	],
+	"qc": ["QC In Progress", "QC Failed"],
+}
+
+
 @frappe.whitelist()
-def get_job_cards(limit=50, offset=0, status=None, customer=None, search=None):
+def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, search=None):
 	filters = {}
 	if status:
 		filters["status"] = status
+	elif filter and filter in JOB_CARD_FILTER_PRESETS:
+		filters["status"] = ["in", JOB_CARD_FILTER_PRESETS[filter]]
 	if customer:
 		filters["customer"] = customer
 

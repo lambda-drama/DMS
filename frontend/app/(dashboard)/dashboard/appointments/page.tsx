@@ -143,10 +143,11 @@ function getPriorityConfig(priority: Priority) {
 }
 
 export default function AppointmentsPage() {
-  const { navigate } = useNavigation();
+  const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -166,8 +167,16 @@ export default function AppointmentsPage() {
     }
   }, [selectedId]);
 
+  useEffect(() => {
+    const date = viewParams.get('date');
+    if (date) {
+      setDateFilter(date);
+    }
+  }, [viewParams]);
+
   const { data: result, isLoading, error } = useAppointments({
     status: statusFilter !== 'all' ? statusFilter : undefined,
+    date: dateFilter || undefined,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
@@ -176,7 +185,7 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, priorityFilter, searchQuery]);
+  }, [statusFilter, priorityFilter, searchQuery, dateFilter]);
 
   const filteredAppointments = (appointments || []).filter((apt) => {
     const matchesSearch =
@@ -352,6 +361,24 @@ export default function AppointmentsPage() {
           />
         </CardHeader>
         <CardContent>
+          {dateFilter && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Badge variant="outline">
+                Date: {format(new Date(`${dateFilter}T12:00:00`), 'MMM d, yyyy')}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setDateFilter('');
+                  navigate('appointments');
+                }}
+              >
+                Clear date
+              </Button>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
@@ -364,6 +391,13 @@ export default function AppointmentsPage() {
               />
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full sm:w-40"
+                aria-label="Filter by date"
+              />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-40">
                   <Filter className="mr-2 h-4 w-4" />

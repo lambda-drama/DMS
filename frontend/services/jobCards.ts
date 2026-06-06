@@ -12,6 +12,7 @@ const DT_PATH = 'dms.dealer_management_system.doctype.dms_job_card.dms_job_card'
 
 export async function listJobCards(options?: {
   status?: string;
+  filter?: 'active' | 'qc';
   customer?: string;
   search?: string;
   limit?: number;
@@ -21,6 +22,7 @@ export async function listJobCards(options?: {
     method: 'POST',
     body: JSON.stringify({
       status: options?.status || null,
+      filter: options?.filter || null,
       customer: options?.customer || null,
       search: options?.search || null,
       limit: options?.limit || 50,

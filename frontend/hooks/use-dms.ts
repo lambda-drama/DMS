@@ -140,6 +140,7 @@ export function useSubmitInspection(name: string) {
 
 export function useJobCards(options?: {
   status?: string;
+  filter?: 'active' | 'qc';
   customer?: string;
   limit?: number;
   offset?: number;
