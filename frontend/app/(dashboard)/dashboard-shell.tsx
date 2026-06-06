@@ -54,9 +54,9 @@ export default function DashboardShell({
         <Sidebar onNavigate={() => setSidebarOpen(false)} />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:ml-64">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 lg:p-6">
+        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain p-3 sm:p-4 lg:p-6">
           {children}
         </main>
       </div>

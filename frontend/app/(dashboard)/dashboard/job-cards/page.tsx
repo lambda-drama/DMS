@@ -199,10 +199,12 @@ export default function JobCardsPage() {
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Job Cards</h1>
-          <p className="text-muted-foreground mt-1">Manage workshop job cards and track repairs</p>
+          <p className="mt-1 hidden text-muted-foreground sm:block">
+            Manage workshop job cards and track repairs
+          </p>
         </div>
         <PermittedCreateButton
           module="job-cards"

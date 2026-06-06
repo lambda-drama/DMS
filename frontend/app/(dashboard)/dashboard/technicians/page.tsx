@@ -204,20 +204,20 @@ export default function TechniciansPage() {
       <Card>
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">View date</span>
+            <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="shrink-0 text-sm font-medium">View date</span>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="hidden h-8 w-8 sm:inline-flex"
               onClick={() => setViewDate((d) => addDaysISO(d, -1))}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Input
               type="date"
-              className="h-8 w-[150px]"
+              className="h-8 min-w-0 flex-1 sm:w-[150px] sm:flex-none"
               value={viewDate}
               onChange={(e) => e.target.value && setViewDate(e.target.value)}
             />
@@ -225,7 +225,7 @@ export default function TechniciansPage() {
               type="button"
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="hidden h-8 w-8 sm:inline-flex"
               onClick={() => setViewDate((d) => addDaysISO(d, 1))}
             >
               <ChevronRight className="h-4 w-4" />
