@@ -1362,10 +1362,10 @@ export default function NewInspectionPage() {
                 <Textarea placeholder="Internal observations..." />
               </div>
 
-              <div className="scroll-mt-4 rounded-lg border bg-muted/30 p-4 space-y-4 max-sm:mb-2">
+              <div className="scroll-mt-4 min-w-0 overflow-hidden rounded-lg border bg-muted/30 p-4 space-y-4 max-sm:mb-2">
                 <h4 className="font-medium">Signatures Required</h4>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
+                <div className="grid min-w-0 gap-6 sm:grid-cols-2">
+                  <div className="min-w-0 space-y-2">
                     <RequiredLabel>Customer Signature</RequiredLabel>
                     <SignaturePad
                       existingUrl={customerSignatureUrl}
@@ -1374,7 +1374,7 @@ export default function NewInspectionPage() {
                       onClear={() => setCustomerSignatureUrl(undefined)}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="min-w-0 space-y-2">
                     <RequiredLabel>Service Advisor Signature</RequiredLabel>
                     <SignaturePad
                       existingUrl={advisorSignatureUrl}

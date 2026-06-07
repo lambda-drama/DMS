@@ -348,15 +348,73 @@ export default function JobCardsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="flex h-48 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center h-48 text-muted-foreground">
+            <div className="flex h-48 items-center justify-center text-muted-foreground">
               Failed to load job cards
             </div>
           ) : filtered && filtered.length > 0 ? (
-            <div className="dms-table-panel">
+            <>
+              {/* Mobile list */}
+              <div className="space-y-3 md:hidden">
+                {filtered.map((jc) => (
+                  <div
+                    key={jc.name}
+                    className="rounded-lg border border-border bg-card p-4"
+                  >
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(jc.name)}
+                        className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
+                      >
+                        <p className="font-medium">{jc.customer_name}</p>
+                        <p className="truncate text-sm text-muted-foreground">{jc.name}</p>
+                        <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                          <p>
+                            {jc.license_plate || '—'}
+                            {jc.vehicle_model ? ` · ${jc.vehicle_model}` : ''}
+                          </p>
+                          <Badge variant="outline" className="mt-1">
+                            {jc.job_card_type}
+                          </Badge>
+                        </div>
+                      </button>
+                      <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
+                        <StatusBadge status={jc.status} />
+                        <div className="mt-auto">
+                          <ListRowActions doctype="DMS Job Card" docName={jc.name}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="shrink-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => navigate('job-card-detail', { id: jc.name })}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Open Job Card
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </ListRowActions>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Table — tablet/desktop */}
+              <div className="dms-table-panel hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -436,7 +494,8 @@ export default function JobCardsPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
               <Wrench className="h-12 w-12 mb-4 opacity-50" />

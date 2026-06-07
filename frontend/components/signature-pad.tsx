@@ -34,20 +34,24 @@ export function SignaturePad({
     if (existingUrl) setMode("done");
   }, [existingUrl]);
 
-  /** Size backing store to match displayed size; ctx works in CSS pixels. */
+  /** Size backing store from container width so the canvas never overflows on mobile. */
   const setupCanvas = useCallback((clear = false) => {
     const canvas = canvasRef.current;
-    if (!canvas) return null;
+    const container = containerRef.current;
+    if (!canvas || !container) return null;
 
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return null;
+    const cssW = container.clientWidth;
+    const cssH = 144;
+
+    if (cssW < 1 || cssH < 1) return null;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const cssW = rect.width;
-    const cssH = rect.height;
 
     canvas.width = Math.floor(cssW * dpr);
     canvas.height = Math.floor(cssH * dpr);
+    canvas.style.width = "100%";
+    canvas.style.maxWidth = "100%";
+    canvas.style.height = `${cssH}px`;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
@@ -204,7 +208,7 @@ export function SignaturePad({
   if (uploading) {
     return (
       <div
-        className={`flex min-h-[120px] items-center justify-center rounded-lg border border-dashed bg-muted/30 ${className}`}
+        className={`flex min-h-[120px] w-full min-w-0 max-w-full items-center justify-center rounded-lg border border-dashed bg-muted/30 ${className}`}
       >
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         <span className="ml-2 text-sm text-muted-foreground">Saving signature…</span>
@@ -218,7 +222,7 @@ export function SignaturePad({
         type="button"
         disabled={disabled}
         onClick={() => setMode("drawing")}
-        className={`flex min-h-[120px] w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground transition-colors hover:border-[var(--dms-green)] hover:bg-[var(--dms-green-light)]/30 hover:text-foreground disabled:opacity-50 ${className}`}
+        className={`flex min-h-[120px] w-full min-w-0 max-w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground transition-colors hover:border-[var(--dms-green)] hover:bg-[var(--dms-green-light)]/30 hover:text-foreground disabled:opacity-50 ${className}`}
       >
         <PenLine className="h-5 w-5" />
         <span className="text-sm font-medium">Customer digital signature</span>
@@ -230,7 +234,7 @@ export function SignaturePad({
   if (mode === "done" && existingUrl) {
     return (
       <div
-        className={`flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-lg border border-[var(--dms-green)]/40 bg-[var(--dms-green-light)]/20 p-3 ${className}`}
+        className={`flex min-h-[120px] w-full min-w-0 max-w-full flex-col items-center justify-center gap-2 rounded-lg border border-[var(--dms-green)]/40 bg-[var(--dms-green-light)]/20 p-3 ${className}`}
       >
         <img
           src={resolveUrl(existingUrl)}
@@ -259,14 +263,14 @@ export function SignaturePad({
   return (
     <div
       ref={containerRef}
-      className={`flex w-full flex-col overflow-hidden rounded-lg border bg-card ${className}`}
+      className={`flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-lg border bg-card ${className}`}
     >
-      <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2">
-        <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+        <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground">
           <PenLine className="h-3 w-3" />
           Draw signature
         </span>
-        <div className="flex items-center gap-1">
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
           <Button
             type="button"
             variant="ghost"
@@ -275,8 +279,8 @@ export function SignaturePad({
             onClick={clearCanvas}
             disabled={!hasStrokes}
           >
-            <Trash2 className="mr-1 h-3 w-3" />
-            Clear
+            <Trash2 className="h-3 w-3 sm:mr-1" />
+            <span className="hidden sm:inline">Clear</span>
           </Button>
           <Button
             type="button"
@@ -297,14 +301,14 @@ export function SignaturePad({
             onClick={saveSignature}
             disabled={!hasStrokes}
           >
-            <Check className="mr-1 h-3 w-3" />
-            Save
+            <Check className="h-3 w-3 sm:mr-1" />
+            <span className="hidden sm:inline">Save</span>
           </Button>
         </div>
       </div>
       <canvas
         ref={canvasRef}
-        className="block h-36 w-full cursor-crosshair bg-white"
+        className="block h-36 w-full max-w-full cursor-crosshair bg-white box-border"
         style={{ touchAction: "none" }}
       />
     </div>

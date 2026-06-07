@@ -657,8 +657,8 @@ export default function JobCardDetailPage() {
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Header — sticky on mobile so back/title stay visible while scrolling */}
+      <div className="sticky top-0 z-20 -mx-3 flex flex-col gap-4 border-b border-border bg-background/95 px-3 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
           <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("job-cards")}>
             <ArrowLeft className="h-5 w-5" />

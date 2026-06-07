@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -16,9 +16,11 @@ export default function DashboardShell({
   const { isAuthenticated, isLoading } = useAuth();
   const { activeView } = useNavigation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setSidebarOpen(false);
+    mainRef.current?.scrollTo(0, 0);
   }, [activeView]);
 
   if (isLoading) {
@@ -56,7 +58,10 @@ export default function DashboardShell({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:ml-64">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain p-3 sm:p-4 lg:p-6">
+        <main
+          ref={mainRef}
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain p-3 sm:p-4 lg:p-6"
+        >
           {children}
         </main>
       </div>
