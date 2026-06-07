@@ -233,7 +233,6 @@ export default function JobCardsPage() {
       <Card className="order-1 md:order-2">
         <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
           <div className="min-w-0">
-            <CardTitle className="md:hidden">Job Cards</CardTitle>
             <CardTitle className="hidden md:block">Job Cards</CardTitle>
             <CardDescription className="hidden sm:block">
               Manage workshop job cards and track repairs

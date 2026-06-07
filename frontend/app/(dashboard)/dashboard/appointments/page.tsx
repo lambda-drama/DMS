@@ -291,7 +291,6 @@ export default function AppointmentsPage() {
       <Card className="order-1 md:order-2">
         <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
           <div className="min-w-0">
-            <CardTitle className="md:hidden">Appointments</CardTitle>
             <CardTitle className="hidden md:block">Service Appointments</CardTitle>
             <CardDescription className="hidden sm:block">
               Manage customer service appointments

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { cn } from '@/lib/utils';
+import { resetAppScroll } from '@/lib/reset-app-scroll';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardShell({
@@ -18,9 +19,14 @@ export default function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setSidebarOpen(false);
-    mainRef.current?.scrollTo(0, 0);
+    resetAppScroll(mainRef.current);
+  }, [activeView]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => resetAppScroll(mainRef.current), 50);
+    return () => window.clearTimeout(t);
   }, [activeView]);
 
   if (isLoading) {
@@ -39,7 +45,7 @@ export default function DashboardShell({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden"
@@ -62,7 +68,9 @@ export default function DashboardShell({
           ref={mainRef}
           className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain p-3 sm:p-4 lg:p-6"
         >
-          {children}
+          <div key={activeView} className="min-w-0">
+            {children}
+          </div>
         </main>
       </div>
     </div>

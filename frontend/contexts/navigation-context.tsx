@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { resetAppScroll } from '@/lib/reset-app-scroll';
 
 const ALL_VIEWS = [
   'dashboard',
@@ -71,11 +72,17 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [viewParams, setViewParams] = useState<URLSearchParams>(new URLSearchParams());
 
   const navigate = useCallback((view: string, params?: Record<string, string>) => {
+    const paramsObj = params && Object.keys(params).length > 0 ? params : undefined;
     let hash = `#${view}`;
-    if (params && Object.keys(params).length > 0) {
-      hash += `?${new URLSearchParams(params).toString()}`;
+    if (paramsObj) {
+      hash += `?${new URLSearchParams(paramsObj).toString()}`;
     }
+
+    setActiveView(view);
+    setViewParams(new URLSearchParams(paramsObj ? paramsObj : {}));
     window.location.hash = hash;
+    resetAppScroll();
+    requestAnimationFrame(() => resetAppScroll());
   }, []);
 
   useEffect(() => {
