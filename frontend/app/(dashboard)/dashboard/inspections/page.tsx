@@ -42,9 +42,12 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  ChevronDown,
+  BarChart3,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ListRowActions } from '@/components/list-row-actions';
+import { cn } from '@/lib/utils';
 
 export default function InspectionsPage() {
   const { navigate } = useNavigation();
@@ -53,6 +56,7 @@ export default function InspectionsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showMobileStats, setShowMobileStats] = useState(false);
 
   const { data: selectedInspection, isLoading: detailLoading } = useInspection(selectedId);
 
@@ -94,65 +98,23 @@ export default function InspectionsPage() {
   );
 
   return (
-    <div className="min-w-0 space-y-4 sm:space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-primary/10 p-3">
-              <ClipboardCheck className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{todayCount}</p>
-              <p className="text-sm text-muted-foreground">Today&apos;s Inspections</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-chart-4/10 p-3">
-              <Clock className="h-5 w-5 text-chart-4" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{pendingCount}</p>
-              <p className="text-sm text-muted-foreground">Pending Submission</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-destructive/10 p-3">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{issuesCount}</p>
-              <p className="text-sm text-muted-foreground">Issues Found</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-lg bg-chart-3/10 p-3">
-              <CheckCircle2 className="h-5 w-5 text-chart-3" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">
-                {inspections.filter((insp) => insp.job_card).length}
-              </p>
-              <p className="text-sm text-muted-foreground">Job Cards Created</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Card>
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+      {/* Main listing — first on mobile so inspections are visible immediately */}
+      <Card className="order-1 md:order-2">
         <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
           <div className="min-w-0">
-            <CardTitle>Vehicle Inspections</CardTitle>
+            <CardTitle className="md:hidden">Inspections</CardTitle>
+            <CardTitle className="hidden md:block">Vehicle Inspections</CardTitle>
             <CardDescription className="hidden sm:block">
               Vehicle intake inspections and condition reports
             </CardDescription>
+            {!isLoading && totalItems > 0 ? (
+              <p className="mt-1 text-sm text-muted-foreground md:hidden">
+                {filteredInspections.length === totalItems
+                  ? `${totalItems} inspection${totalItems === 1 ? '' : 's'}`
+                  : `${filteredInspections.length} of ${totalItems} shown`}
+              </p>
+            ) : null}
           </div>
           <PermittedCreateButton
             module="inspections"
@@ -160,9 +122,9 @@ export default function InspectionsPage() {
             onClick={() => navigate('inspection-new')}
           />
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0">
           {/* Filters */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row">
+          <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -190,9 +152,19 @@ export default function InspectionsPage() {
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
             ) : filteredInspections.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No inspections found</p>
+              <div className="rounded-lg border border-dashed py-10 text-center">
+                <ClipboardCheck className="mx-auto h-10 w-10 text-muted-foreground/40" />
+                <p className="mt-3 text-sm font-medium">No inspections found</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Try adjusting search or filters, or create a new inspection
+                </p>
+              </div>
             ) : (
-              filteredInspections.map((insp) => (
+              <>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Tap a row for details
+                </p>
+                {filteredInspections.map((insp) => (
                 <div
                   key={insp.name}
                   className="rounded-lg border border-border bg-card p-4"
@@ -282,9 +254,22 @@ export default function InspectionsPage() {
                     </button>
                   ) : null}
                 </div>
-              ))
+                ))}
+              </>
             )}
           </div>
+
+          {filteredInspections.length > 0 ? (
+            <div className="mt-4 md:hidden">
+              <PaginationControls
+                page={page}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          ) : null}
 
           {/* Table — tablet/desktop */}
           <div className="dms-table-panel hidden md:block rounded-lg border">
@@ -429,15 +414,98 @@ export default function InspectionsPage() {
             </div>
           )}
 
-          <PaginationControls
-            page={page}
-            pageSize={pageSize}
-            totalItems={totalItems}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-          />
+          <div className="hidden md:block">
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
         </CardContent>
       </Card>
+
+      {/* Summary stats — hidden on mobile by default; always visible on md+ */}
+      <div className="order-2 space-y-3 md:order-1">
+        <div className="flex items-center justify-between md:hidden">
+          <p className="text-sm font-medium text-muted-foreground">Summary</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => setShowMobileStats((open) => !open)}
+          >
+            <BarChart3 className="mr-2 h-3.5 w-3.5" />
+            {showMobileStats ? 'Hide stats' : 'Show stats'}
+            <ChevronDown
+              className={cn('ml-2 h-3.5 w-3.5 transition-transform', showMobileStats && 'rotate-180')}
+            />
+          </Button>
+        </div>
+        <div
+          className={cn(
+            'grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4',
+            showMobileStats ? 'grid' : 'hidden md:grid',
+          )}
+        >
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="rounded-lg bg-primary/10 p-2 sm:p-3">
+                <ClipboardCheck className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">{todayCount}</p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                  Today&apos;s Inspections
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="rounded-lg bg-chart-4/10 p-2 sm:p-3">
+                <Clock className="h-4 w-4 text-chart-4 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">{pendingCount}</p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                  Pending Submission
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="rounded-lg bg-destructive/10 p-2 sm:p-3">
+                <AlertCircle className="h-4 w-4 text-destructive sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">{issuesCount}</p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                  Issues Found
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="rounded-lg bg-chart-3/10 p-2 sm:p-3">
+                <CheckCircle2 className="h-4 w-4 text-chart-3 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">
+                  {inspections.filter((insp) => insp.job_card).length}
+                </p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                  Job Cards Created
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <DetailSheet
         open={!!selectedId}
