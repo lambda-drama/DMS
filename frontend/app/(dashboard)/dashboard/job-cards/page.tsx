@@ -7,7 +7,7 @@ import { useJobCards, useJobCard } from "@/hooks/use-dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -40,10 +40,13 @@ import {
   Wrench,
   Clock,
   CheckCircle2,
+  ChevronDown,
+  BarChart3,
 } from "lucide-react";
 import { StatusBadge } from "@/components/job-card/status-badge";
 import { PaginationControls } from "@/components/pagination-controls";
 import { ListRowActions } from "@/components/list-row-actions";
+import { cn } from "@/lib/utils";
 import type { JobCardStatus } from "@/types/dms";
 
 const statusFilterOptions: { value: string; label: string }[] = [
@@ -172,6 +175,7 @@ export default function JobCardsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showMobileStats, setShowMobileStats] = useState(false);
 
   useEffect(() => {
     const filter = viewParams.get("filter");
@@ -224,94 +228,47 @@ export default function JobCardsPage() {
   };
 
   return (
-    <div className="min-w-0 space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-foreground">Job Cards</h1>
-          <p className="mt-1 hidden text-muted-foreground sm:block">
-            Manage workshop job cards and track repairs
-          </p>
-        </div>
-        <PermittedCreateButton
-          module="job-cards"
-          label="New Job Card"
-          onClick={() => navigate("job-card-new")}
-        />
-      </div>
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+      {/* Main listing — first on mobile */}
+      <Card className="order-1 md:order-2">
+        <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
+          <div className="min-w-0">
+            <CardTitle className="md:hidden">Job Cards</CardTitle>
+            <CardTitle className="hidden md:block">Job Cards</CardTitle>
+            <CardDescription className="hidden sm:block">
+              Manage workshop job cards and track repairs
+            </CardDescription>
+            {!isLoading && totalItems > 0 ? (
+              <p className="mt-1 text-sm text-muted-foreground md:hidden">
+                {(filtered?.length ?? 0) === totalItems
+                  ? `${totalItems} job card${totalItems === 1 ? "" : "s"}`
+                  : `${filtered?.length ?? 0} of ${totalItems} shown`}
+              </p>
+            ) : null}
+          </div>
+          <PermittedCreateButton
+            module="job-cards"
+            label="New Job Card"
+            onClick={() => navigate("job-card-new")}
+          />
+        </CardHeader>
+        <CardContent className="min-w-0 space-y-4">
+          {(presetFilter || statusFilter !== "all") && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">
+                {presetFilter
+                  ? presetFilterLabels[presetFilter]
+                  : `Status: ${statusFilter}`}
+              </Badge>
+              <Button variant="ghost" size="sm" onClick={clearListFilters}>
+                Clear filter
+              </Button>
+            </div>
+          )}
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Jobs</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-primary/10">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Open</p>
-                <p className="text-2xl font-bold">{stats.open}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-[#1E88E5]/10">
-                <Clock className="h-5 w-5 text-[#1E88E5]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold">{stats.inProgress}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-[#F9A825]/10">
-                <Wrench className="h-5 w-5 text-[#F9A825]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold">{stats.completed}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-[#2E7D32]/10">
-                <CheckCircle2 className="h-5 w-5 text-[#2E7D32]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {(presetFilter || statusFilter !== "all") && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">
-            {presetFilter
-              ? presetFilterLabels[presetFilter]
-              : `Status: ${statusFilter}`}
-          </Badge>
-          <Button variant="ghost" size="sm" onClick={clearListFilters}>
-            Clear filter
-          </Button>
-        </div>
-      )}
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by job card ID, vehicle, customer..."
                 value={searchQuery}
@@ -327,7 +284,7 @@ export default function JobCardsPage() {
               }}
             >
               <SelectTrigger className="w-full sm:w-[240px]">
-                <Filter className="h-4 w-4 mr-2" />
+                <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -339,14 +296,7 @@ export default function JobCardsPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Job Cards List</CardTitle>
-        </CardHeader>
-        <CardContent>
           {isLoading ? (
             <div className="flex h-48 items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
@@ -357,8 +307,10 @@ export default function JobCardsPage() {
             </div>
           ) : filtered && filtered.length > 0 ? (
             <>
-              {/* Mobile list */}
               <div className="space-y-3 md:hidden">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Tap a row for details
+                </p>
                 {filtered.map((jc) => (
                   <div
                     key={jc.name}
@@ -374,8 +326,8 @@ export default function JobCardsPage() {
                         <p className="truncate text-sm text-muted-foreground">{jc.name}</p>
                         <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                           <p>
-                            {jc.license_plate || '—'}
-                            {jc.vehicle_model ? ` · ${jc.vehicle_model}` : ''}
+                            {jc.license_plate || "—"}
+                            {jc.vehicle_model ? ` · ${jc.vehicle_model}` : ""}
                           </p>
                           <Badge variant="outline" className="mt-1">
                             {jc.job_card_type}
@@ -398,7 +350,7 @@ export default function JobCardsPage() {
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => navigate('job-card-detail', { id: jc.name })}
+                                  onClick={() => navigate("job-card-detail", { id: jc.name })}
                                 >
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Open Job Card
@@ -413,7 +365,16 @@ export default function JobCardsPage() {
                 ))}
               </div>
 
-              {/* Table — tablet/desktop */}
+              <div className="mt-4 md:hidden">
+                <PaginationControls
+                  page={page}
+                  pageSize={pageSize}
+                  totalItems={totalItems}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              </div>
+
               <div className="dms-table-panel hidden md:block">
               <Table>
                 <TableHeader>
@@ -497,23 +458,102 @@ export default function JobCardsPage() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-              <Wrench className="h-12 w-12 mb-4 opacity-50" />
-              <p>No job cards found</p>
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-muted-foreground md:h-48 md:border-0 md:py-0">
+              <Wrench className="mb-4 h-12 w-12 opacity-50" />
+              <p className="text-sm font-medium">No job cards found</p>
               <Button variant="link" className="mt-2" onClick={() => navigate("job-card-new")}>
                 Create your first job card
               </Button>
             </div>
           )}
-          <PaginationControls
-            page={page}
-            pageSize={pageSize}
-            totalItems={totalItems}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-          />
+
+          {filtered && filtered.length > 0 ? (
+            <div className="hidden md:block">
+              <PaginationControls
+                page={page}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          ) : null}
         </CardContent>
       </Card>
+
+      {/* Summary stats — hidden on mobile by default */}
+      <div className="order-2 space-y-3 md:order-1">
+        <div className="flex items-center justify-between md:hidden">
+          <p className="text-sm font-medium text-muted-foreground">Summary</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => setShowMobileStats((open) => !open)}
+          >
+            <BarChart3 className="mr-2 h-3.5 w-3.5" />
+            {showMobileStats ? "Hide stats" : "Show stats"}
+            <ChevronDown
+              className={cn(
+                "ml-2 h-3.5 w-3.5 transition-transform",
+                showMobileStats && "rotate-180",
+              )}
+            />
+          </Button>
+        </div>
+        <div
+          className={cn(
+            "grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4",
+            showMobileStats ? "grid" : "hidden md:grid",
+          )}
+        >
+          <Card>
+            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+              <div className="min-w-0">
+                <p className="text-[13px] text-muted-foreground sm:text-sm">Total Jobs</p>
+                <p className="text-xl font-bold sm:text-2xl">{stats.total}</p>
+              </div>
+              <div className="rounded-lg bg-primary/10 p-2 sm:p-2">
+                <FileText className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+              <div className="min-w-0">
+                <p className="text-[13px] text-muted-foreground sm:text-sm">Open</p>
+                <p className="text-xl font-bold sm:text-2xl">{stats.open}</p>
+              </div>
+              <div className="rounded-lg bg-[#1E88E5]/10 p-2 sm:p-2">
+                <Clock className="h-4 w-4 text-[#1E88E5] sm:h-5 sm:w-5" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+              <div className="min-w-0">
+                <p className="text-[13px] text-muted-foreground sm:text-sm">In Progress</p>
+                <p className="text-xl font-bold sm:text-2xl">{stats.inProgress}</p>
+              </div>
+              <div className="rounded-lg bg-[#F9A825]/10 p-2 sm:p-2">
+                <Wrench className="h-4 w-4 text-[#F9A825] sm:h-5 sm:w-5" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+              <div className="min-w-0">
+                <p className="text-[13px] text-muted-foreground sm:text-sm">Completed</p>
+                <p className="text-xl font-bold sm:text-2xl">{stats.completed}</p>
+              </div>
+              <div className="rounded-lg bg-[#2E7D32]/10 p-2 sm:p-2">
+                <CheckCircle2 className="h-4 w-4 text-[#2E7D32] sm:h-5 sm:w-5" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <DetailSheet
         open={!!selectedId}

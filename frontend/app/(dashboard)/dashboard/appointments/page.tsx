@@ -47,9 +47,12 @@ import {
   CalendarClock,
   Ban,
   MessageCircle,
+  ChevronDown,
+  BarChart3,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ListRowActions } from '@/components/list-row-actions';
+import { cn } from '@/lib/utils';
 import {
   CancelAppointmentDialog,
   ConfirmAppointmentDialog,
@@ -149,6 +152,7 @@ export default function AppointmentsPage() {
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showMobileStats, setShowMobileStats] = useState(false);
 
   const { data: selectedAppointment, isLoading: detailLoading } = useAppointment(selectedId);
 
@@ -282,69 +286,23 @@ export default function AppointmentsPage() {
   };
 
   return (
-    <div className="min-w-0 space-y-4 sm:space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-            <div className="shrink-0 rounded-lg bg-primary/10 p-2 sm:p-3">
-              <Calendar className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl font-bold sm:text-2xl">{todayCount}</p>
-              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
-                Today&apos;s Appointments
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-            <div className="shrink-0 rounded-lg bg-chart-3/10 p-2 sm:p-3">
-              <CheckCircle2 className="h-4 w-4 text-chart-3 sm:h-5 sm:w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl font-bold sm:text-2xl">{arrivedCount}</p>
-              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Arrived</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-            <div className="shrink-0 rounded-lg bg-chart-4/10 p-2 sm:p-3">
-              <Clock className="h-4 w-4 text-chart-4 sm:h-5 sm:w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl font-bold sm:text-2xl">{pendingCount}</p>
-              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
-                Pending Arrival
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-            <div className="shrink-0 rounded-lg bg-destructive/10 p-2 sm:p-3">
-              <AlertTriangle className="h-4 w-4 text-destructive sm:h-5 sm:w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl font-bold sm:text-2xl">
-                {(appointments || []).filter((apt) => apt.priority === 'VIP' || apt.priority === 'Urgent').length}
-              </p>
-              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Priority</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Card>
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+      {/* Main listing — first on mobile */}
+      <Card className="order-1 md:order-2">
         <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
           <div className="min-w-0">
-            <CardTitle>Service Appointments</CardTitle>
+            <CardTitle className="md:hidden">Appointments</CardTitle>
+            <CardTitle className="hidden md:block">Service Appointments</CardTitle>
             <CardDescription className="hidden sm:block">
               Manage customer service appointments
             </CardDescription>
+            {!isLoading && totalItems > 0 ? (
+              <p className="mt-1 text-sm text-muted-foreground md:hidden">
+                {filteredAppointments.length === totalItems
+                  ? `${totalItems} appointment${totalItems === 1 ? '' : 's'}`
+                  : `${filteredAppointments.length} of ${totalItems} shown`}
+              </p>
+            ) : null}
           </div>
           <PermittedCreateButton
             module="appointments"
@@ -352,7 +310,7 @@ export default function AppointmentsPage() {
             onClick={() => navigate('appointment-new')}
           />
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0">
           {dateFilter && (
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Badge variant="outline">
@@ -372,7 +330,7 @@ export default function AppointmentsPage() {
           )}
 
           {/* Filters */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row">
+          <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -424,9 +382,19 @@ export default function AppointmentsPage() {
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
             ) : filteredAppointments.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No appointments found</p>
+              <div className="rounded-lg border border-dashed py-10 text-center">
+                <Calendar className="mx-auto h-10 w-10 text-muted-foreground/40" />
+                <p className="mt-3 text-sm font-medium">No appointments found</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Try adjusting search or filters, or create a new appointment
+                </p>
+              </div>
             ) : (
-              filteredAppointments.map((apt) => {
+              <>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Tap a row for details
+                </p>
+                {filteredAppointments.map((apt) => {
                 const statusConfig = getStatusConfig(apt.status);
                 const priorityConfig = getPriorityConfig(apt.priority);
                 const StatusIcon = statusConfig.icon;
@@ -560,9 +528,22 @@ export default function AppointmentsPage() {
                     </div>
                   </div>
                 );
-              })
+              })}
+              </>
             )}
           </div>
+
+          {filteredAppointments.length > 0 ? (
+            <div className="mt-4 md:hidden">
+              <PaginationControls
+                page={page}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          ) : null}
 
           {/* Table — tablet/desktop */}
           <div className="dms-table-panel hidden md:block rounded-lg border">
@@ -759,7 +740,7 @@ export default function AppointmentsPage() {
           </div>
 
           {filteredAppointments.length === 0 && !isLoading && (
-            <div className="py-12 text-center">
+            <div className="hidden py-12 text-center md:block">
               <Calendar className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-lg font-medium">No appointments found</p>
               <p className="text-sm text-muted-foreground">
@@ -768,15 +749,94 @@ export default function AppointmentsPage() {
             </div>
           )}
 
-          <PaginationControls
-            page={page}
-            pageSize={pageSize}
-            totalItems={totalItems}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-          />
+          <div className="hidden md:block">
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
         </CardContent>
       </Card>
+
+      {/* Summary stats — hidden on mobile by default */}
+      <div className="order-2 space-y-3 md:order-1">
+        <div className="flex items-center justify-between md:hidden">
+          <p className="text-sm font-medium text-muted-foreground">Summary</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => setShowMobileStats((open) => !open)}
+          >
+            <BarChart3 className="mr-2 h-3.5 w-3.5" />
+            {showMobileStats ? 'Hide stats' : 'Show stats'}
+            <ChevronDown
+              className={cn('ml-2 h-3.5 w-3.5 transition-transform', showMobileStats && 'rotate-180')}
+            />
+          </Button>
+        </div>
+        <div
+          className={cn(
+            'grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4',
+            showMobileStats ? 'grid' : 'hidden md:grid',
+          )}
+        >
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="shrink-0 rounded-lg bg-primary/10 p-2 sm:p-3">
+                <Calendar className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">{todayCount}</p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                  Today&apos;s Appointments
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="shrink-0 rounded-lg bg-chart-3/10 p-2 sm:p-3">
+                <CheckCircle2 className="h-4 w-4 text-chart-3 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">{arrivedCount}</p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Arrived</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="shrink-0 rounded-lg bg-chart-4/10 p-2 sm:p-3">
+                <Clock className="h-4 w-4 text-chart-4 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">{pendingCount}</p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                  Pending Arrival
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="shrink-0 rounded-lg bg-destructive/10 p-2 sm:p-3">
+                <AlertTriangle className="h-4 w-4 text-destructive sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold sm:text-2xl">
+                  {(appointments || []).filter((apt) => apt.priority === 'VIP' || apt.priority === 'Urgent').length}
+                </p>
+                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Priority</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <DetailSheet
         open={!!selectedId}
