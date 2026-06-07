@@ -103,7 +103,6 @@ export default function InspectionsPage() {
       <Card className="order-1 md:order-2">
         <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
           <div className="min-w-0">
-            <CardTitle className="md:hidden">Inspections</CardTitle>
             <CardTitle className="hidden md:block">Vehicle Inspections</CardTitle>
             <CardDescription className="hidden sm:block">
               Vehicle intake inspections and condition reports

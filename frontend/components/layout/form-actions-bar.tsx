@@ -20,6 +20,7 @@ export function FormActionsBar({ children, className, align = 'end' }: FormActio
 
   useEffect(() => {
     setMounted(true);
+    return () => setMounted(false);
   }, []);
 
   const bar = (
