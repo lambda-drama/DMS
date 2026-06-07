@@ -185,7 +185,108 @@ export default function InspectionsPage() {
             </Select>
           </div>
 
-          {/* Table */}
+          {/* Mobile list */}
+          <div className="space-y-3 md:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+            ) : filteredInspections.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No inspections found</p>
+            ) : (
+              filteredInspections.map((insp) => (
+                <div
+                  key={insp.name}
+                  className="rounded-lg border border-border bg-card p-4"
+                >
+                  <div className="flex items-start gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(insp.name)}
+                      className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
+                    >
+                      <p className="font-medium">{insp.customer_vehicle || insp.customer}</p>
+                      <p className="truncate text-sm text-muted-foreground">{insp.name}</p>
+                      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                        <p>{insp.customer}</p>
+                        {insp.license_plate ? <p>{insp.license_plate}</p> : null}
+                        <p>{format(new Date(insp.inspection_date), 'MMM d, yyyy · h:mm a')}</p>
+                        <p>
+                          {(insp.customer_complaints?.length || 0)} issue
+                          {(insp.customer_complaints?.length || 0) === 1 ? '' : 's'} found
+                        </p>
+                      </div>
+                    </button>
+                    <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
+                      <Badge
+                        variant="outline"
+                        className={
+                          insp.docstatus === 1
+                            ? 'bg-chart-3/10 text-chart-3 border-chart-3/20'
+                            : 'bg-chart-4/10 text-chart-4 border-chart-4/20'
+                        }
+                      >
+                        {insp.docstatus === 1 ? 'Submitted' : 'Draft'}
+                      </Badge>
+                      {(insp.warning_lights?.length || 0) > 0 ? (
+                        <Badge
+                          variant="outline"
+                          className="max-w-36 justify-end text-[11px] leading-tight bg-destructive/10 text-destructive border-destructive/20"
+                        >
+                          {insp.warning_lights!.length} warning
+                          {insp.warning_lights!.length > 1 ? 's' : ''}
+                        </Badge>
+                      ) : null}
+                      <div className="mt-auto">
+                        <ListRowActions doctype="Vehicle Inspection" docName={insp.name}>
+                          {(insp.docstatus === 0 || (insp.docstatus === 1 && !insp.job_card)) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="shrink-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {insp.docstatus === 0 && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      navigate('inspection-detail', { id: insp.name, mode: 'edit' })
+                                    }
+                                  >
+                                    Continue Editing
+                                  </DropdownMenuItem>
+                                )}
+                                {insp.docstatus === 1 && !insp.job_card && (
+                                  <DropdownMenuItem
+                                    className="text-primary"
+                                    onClick={() =>
+                                      navigate('job-card-new', { inspection: insp.name })
+                                    }
+                                  >
+                                    Create Job Card
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </ListRowActions>
+                      </div>
+                    </div>
+                  </div>
+                  {insp.job_card ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate('job-card-detail', { id: insp.job_card ?? '' })}
+                      className="mt-3 flex items-center gap-1 text-sm text-primary hover:underline"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {insp.job_card}
+                    </button>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Table — tablet/desktop */}
           <div className="dms-table-panel hidden md:block rounded-lg border">
             <Table>
               <TableHeader>
@@ -319,7 +420,7 @@ export default function InspectionsPage() {
           </div>
 
           {filteredInspections.length === 0 && !isLoading && (
-            <div className="py-12 text-center">
+            <div className="hidden py-12 text-center md:block">
               <ClipboardCheck className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-lg font-medium">No inspections found</p>
               <p className="text-sm text-muted-foreground">

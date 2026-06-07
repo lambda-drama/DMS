@@ -53,9 +53,9 @@ export function WorkflowStepper({ status }: { status: JobCardStatus }) {
   }
 
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between overflow-x-auto">
+        <div className="dms-tabs-scroll flex items-center justify-between">
           {workflowStages.map((stage, index) => {
             const isCompleted = index < currentIndex;
             const isCurrent = index === currentIndex;
