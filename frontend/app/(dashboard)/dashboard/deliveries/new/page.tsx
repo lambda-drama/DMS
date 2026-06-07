@@ -232,7 +232,11 @@ export default function NewDeliveryPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
+      <form
+        id="new-delivery-form"
+        onSubmit={handleSubmit}
+        className="dms-form-page min-w-0 space-y-4 sm:space-y-6"
+      >
         <Card className={jobCard ? "border-primary/30 bg-primary/5" : ""}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -587,7 +591,7 @@ export default function NewDeliveryPage() {
           <Button type="button" variant="outline" onClick={() => navigate("deliveries")}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isMutating || !canSubmit}>
+          <Button type="submit" form="new-delivery-form" disabled={isMutating || !canSubmit}>
             <Truck className="h-4 w-4 mr-2" />
             {isMutating ? "Recording…" : "Record delivery"}
           </Button>
