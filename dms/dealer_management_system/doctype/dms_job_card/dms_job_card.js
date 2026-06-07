@@ -238,6 +238,20 @@ frappe.ui.form.on("DMS Job Card", {
         suggest_warehouse_from_workshop(frm);
     },
 
+    assigned_bay(frm) {
+        if (!frm.doc.assigned_bay) {
+            return;
+        }
+        frappe.db.get_value("Service Bay", frm.doc.assigned_bay, "branch", (r) => {
+            const workshop = r.message;
+            if (!workshop) {
+                return;
+            }
+            frm.set_value("workshop", workshop);
+            suggest_warehouse_from_workshop(frm);
+        });
+    },
+
     warranty_application_type(frm) {
         update_job_card_net_amount(frm);
     },
@@ -1151,18 +1165,44 @@ function start_timer_display(frm) {
     }, 1000);
 }
 
-function update_timer_display(frm) {
-    const active_logs = (frm.doc.time_logs || []).filter(log => log.start_time && !log.end_time);
-    if (!active_logs.length) {
-        if (timer_display_div) timer_display_div.html("⏱️ Timer: 00:00:00");
-        return;
-    }
+function is_active_end_time(end_time) {
+    if (!end_time) return false;
+    if (typeof end_time === "string" && end_time.startsWith("0000-00-00")) return false;
+    return true;
+}
 
+function is_open_time_log(log) {
+    return Boolean(log.start_time) && !is_active_end_time(log.end_time);
+}
+
+function update_timer_display(frm) {
+    const logs = frm.doc.time_logs || [];
     let total_seconds = 0;
-    const now = new Date();
-    active_logs.forEach(log => {
-        total_seconds += Math.floor((now - new Date(log.start_time)) / 1000);
+
+    logs.filter(log => is_active_end_time(log.end_time)).forEach(log => {
+        if (log.duration_hours) {
+            total_seconds += Math.max(0, Math.round(flt(log.duration_hours) * 3600));
+            return;
+        }
+        if (log.start_time && log.end_time) {
+            total_seconds += Math.max(
+                0,
+                Math.floor((new Date(log.end_time) - new Date(log.start_time)) / 1000)
+            );
+        }
     });
+
+    const active_logs = logs.filter(is_open_time_log);
+    if (active_logs.length) {
+        const now = Date.now();
+        const session_start = Math.min(
+            ...active_logs.map(log => new Date(log.start_time).getTime())
+        );
+        if (!Number.isNaN(session_start)) {
+            const start_ms = session_start > now ? now : session_start;
+            total_seconds += Math.max(0, Math.floor((now - start_ms) / 1000));
+        }
+    }
 
     const h = Math.floor(total_seconds / 3600).toString().padStart(2, "0");
     const m = Math.floor((total_seconds % 3600) / 60).toString().padStart(2, "0");

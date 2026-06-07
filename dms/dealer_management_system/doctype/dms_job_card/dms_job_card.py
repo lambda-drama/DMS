@@ -278,7 +278,45 @@ and direct frappe.db operations for child table rows.
 import frappe
 import json
 from frappe import _
-from frappe.utils import now_datetime, flt
+from frappe.utils import get_datetime, now_datetime, flt
+
+
+def _time_log_has_active_end(end_time) -> bool:
+	if not end_time:
+		return False
+	if isinstance(end_time, str) and end_time.startswith("0000-00-00"):
+		return False
+	return True
+
+
+def _is_open_time_log(row) -> bool:
+	if isinstance(row, dict):
+		start_time = row.get("start_time")
+		end_time = row.get("end_time")
+	else:
+		start_time = getattr(row, "start_time", None)
+		end_time = getattr(row, "end_time", None)
+	return bool(start_time) and not _time_log_has_active_end(end_time)
+
+
+def repair_session_start_ms(time_logs) -> int | None:
+	"""UTC epoch ms for the earliest open repair time log (for live timer)."""
+	open_logs = [row for row in (time_logs or []) if _is_open_time_log(row)]
+	if not open_logs:
+		return None
+
+	starts = []
+	for row in open_logs:
+		start_time = row.get("start_time") if isinstance(row, dict) else row.start_time
+		try:
+			starts.append(get_datetime(start_time))
+		except Exception:
+			continue
+
+	if not starts:
+		return None
+
+	return int(min(starts).timestamp() * 1000)
 
 
 def _repair_technicians(doc):
@@ -313,44 +351,63 @@ def _insert_repair_time_logs(job_card, technicians, start_time=None):
 		child.db_insert()
 
 
+def _technicians_from_time_log_payload(time_logs, doc):
+	technicians = []
+	for log in time_logs or []:
+		tech = (log.get("technician") or "").strip()
+		if tech and tech not in technicians:
+			technicians.append(tech)
+	if technicians:
+		return technicians
+	return _repair_technicians(doc)
+
+
 @frappe.whitelist()
 def start_repair(job_card, time_logs=None):
 	doc = frappe.get_doc("DMS Job Card", job_card)
 	if doc.docstatus != 1:
 		frappe.throw(_("Job Card must be submitted before starting repair."))
 
-	frappe.db.delete("DMS Job Card Time Log", {"parent": job_card})
-
 	if isinstance(time_logs, str):
 		time_logs = json.loads(time_logs) if time_logs else []
 
-	if not time_logs:
-		technicians = _repair_technicians(doc)
-		if not technicians:
-			frappe.throw(_("Assign a lead technician before starting repair."))
-		time_logs = [{"technician": tech, "start_time": now_datetime()} for tech in technicians]
+	technicians = _technicians_from_time_log_payload(time_logs, doc)
+	if not technicians:
+		frappe.throw(_("Assign a lead technician before starting repair."))
 
-	for idx, log in enumerate(time_logs, start=1):
-		child = frappe.new_doc("DMS Job Card Time Log")
-		child.update({
-			"parent": job_card,
-			"parenttype": "DMS Job Card",
-			"parentfield": "time_logs",
-			"idx": idx,
-			"technician": log.get("technician"),
-			"start_time": log.get("start_time") or now_datetime(),
-		})
-		child.db_insert()
+	repair_started_at = now_datetime()
 
+	# Fresh repair session — replace any existing logs.
+	frappe.db.delete("DMS Job Card Time Log", {"parent": job_card})
+	doc.reload()
+
+	for tech in technicians:
+		doc.append(
+			"time_logs",
+			{
+				"technician": tech,
+				"start_time": repair_started_at,
+			},
+		)
+
+	doc.status = "Repair In Progress"
+	doc.flags.ignore_validate_update_after_submit = True
+	doc.save()
+
+	frappe.db.commit()
+
+	# Parts transfer after time logs are saved so technician logs persist even if stock fails.
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 		transfer_job_card_parts_to_wip,
 	)
 
+	doc.reload()
 	transfer_job_card_parts_to_wip(doc)
 
-	frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
-	frappe.db.commit()
-	return "ok"
+	return {
+		"status": "ok",
+		"repair_session_start_ms": int(repair_started_at.timestamp() * 1000),
+	}
 
 
 @frappe.whitelist()

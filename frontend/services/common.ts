@@ -189,8 +189,20 @@ export async function fetchLabourRate(vehicleServiceItem: string): Promise<numbe
   });
 }
 
-export async function fetchServiceBayDetail(bayName: string): Promise<{ branch?: string; bay_number?: string; bay_name?: string }> {
-  return apiRequest<{ branch?: string; bay_number?: string; bay_name?: string }>(`/api/method/${API}.get_service_bay_detail`, {
+export async function fetchServiceBayDetail(bayName: string): Promise<{
+  branch?: string;
+  workshop?: string;
+  warehouse?: string;
+  bay_number?: string;
+  bay_name?: string;
+}> {
+  return apiRequest<{
+    branch?: string;
+    workshop?: string;
+    warehouse?: string;
+    bay_number?: string;
+    bay_name?: string;
+  }>(`/api/method/${API}.get_service_bay_detail`, {
     method: 'POST',
     body: JSON.stringify({ bay_name: bayName }),
   });

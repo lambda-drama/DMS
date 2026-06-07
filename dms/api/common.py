@@ -515,9 +515,18 @@ def get_labour_rate(vehicle_service_item=None):
 
 @frappe.whitelist()
 def get_service_bay_detail(bay_name=None):
-	"""Return the workshop (branch) linked to a service bay."""
+	"""Return workshop (branch) and warehouse linked to a service bay."""
 	bay_name = (bay_name or "").strip()
 	if not bay_name:
 		return {}
 	bay = frappe.db.get_value("Service Bay", bay_name, ["branch", "bay_number", "bay_name"], as_dict=True)
-	return bay or {}
+	if not bay:
+		return {}
+
+	workshop = bay.get("branch")
+	warehouse = frappe.db.get_value("WorkShop", workshop, "warehouse") if workshop else None
+	return {
+		**bay,
+		"workshop": workshop,
+		"warehouse": warehouse,
+	}

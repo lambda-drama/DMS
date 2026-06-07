@@ -12,44 +12,88 @@ function formatDuration(seconds: number): string {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-/** Parse Frappe datetime strings reliably across browsers. */
-export function parseFrappeDatetime(value?: string): number {
-  if (!value) return NaN;
-  const normalized = value.includes("T") ? value : value.replace(" ", "T");
-  return new Date(normalized).getTime();
+function isActiveEndTime(endTime?: string | null): boolean {
+  if (!endTime) return false;
+  if (endTime.startsWith("0000-00-00")) return false;
+  return true;
 }
 
-function getActiveRepairSeconds(timeLogs: DMSJobCard["time_logs"]): number {
-  const openLogs = (timeLogs || []).filter((l) => l.start_time && !l.end_time);
-  if (openLogs.length === 0) return 0;
-
-  const now = Date.now();
-  return openLogs.reduce((total, log) => {
-    const start = parseFrappeDatetime(log.start_time);
-    if (Number.isNaN(start)) return total;
-    return total + Math.max(0, Math.floor((now - start) / 1000));
-  }, 0);
+export function isOpenTimeLog(log: NonNullable<DMSJobCard["time_logs"]>[number]): boolean {
+  return Boolean(log.start_time) && !isActiveEndTime(log.end_time);
 }
 
-export function RepairTimer({ jobCard }: { jobCard: DMSJobCard }) {
+export type RepairTimerState = {
+  offsetSeconds: number;
+  startedAtMs: number | null;
+};
+
+function timerStorageKey(jobCardId: string): string {
+  return `dms-repair-timer-${jobCardId}`;
+}
+
+export function saveRepairTimerState(jobCardId: string, state: RepairTimerState): void {
+  try {
+    sessionStorage.setItem(timerStorageKey(jobCardId), JSON.stringify(state));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+export function loadRepairTimerState(jobCardId: string): RepairTimerState | null {
+  try {
+    const raw = sessionStorage.getItem(timerStorageKey(jobCardId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as RepairTimerState;
+    if (typeof parsed.offsetSeconds !== "number") return null;
+    if (parsed.startedAtMs !== null && typeof parsed.startedAtMs !== "number") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function clearRepairTimerState(jobCardId: string): void {
+  try {
+    sessionStorage.removeItem(timerStorageKey(jobCardId));
+  } catch {
+    // ignore
+  }
+}
+
+type RepairTimerProps = {
+  /** True while status is Repair In Progress */
+  running: boolean;
+  /** Epoch ms when the user clicked Start Repair (or resumed) — client only */
+  startedAtMs: number | null;
+  /** Seconds accumulated before the current running segment (e.g. after pause) */
+  offsetSeconds?: number;
+};
+
+/** Live repair clock — counts only from client Start Repair / resume clicks. */
+export function RepairTimer({
+  running,
+  startedAtMs,
+  offsetSeconds = 0,
+}: RepairTimerProps) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    if (jobCard.status !== "Repair In Progress") {
+    if (!running || startedAtMs === null) {
       setElapsed(0);
       return;
     }
 
-    const tick = () => setElapsed(getActiveRepairSeconds(jobCard.time_logs));
+    const tick = () => {
+      const segment = Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+      setElapsed(offsetSeconds + segment);
+    };
+
     tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [running, startedAtMs, offsetSeconds]);
 
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [jobCard.status, jobCard.time_logs]);
-
-  if (jobCard.status !== "Repair In Progress") return null;
-
-  const openCount = (jobCard.time_logs || []).filter((l) => l.start_time && !l.end_time).length;
+  if (!running || startedAtMs === null) return null;
 
   return (
     <Card className="border-primary/30 bg-primary/5">
@@ -60,11 +104,6 @@ export function RepairTimer({ jobCard }: { jobCard: DMSJobCard }) {
         <div>
           <p className="text-sm text-muted-foreground">Repair Timer</p>
           <p className="text-2xl font-mono font-bold text-primary">{formatDuration(elapsed)}</p>
-          {openCount === 0 && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-              No active time log — start or resume repair to begin timing.
-            </p>
-          )}
         </div>
       </CardContent>
     </Card>

@@ -69,12 +69,18 @@ import { toast } from "sonner";
 import type { JobCardStatus, DMSJobCard, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
 import { StatusBadge } from "@/components/job-card/status-badge";
 import { WorkflowStepper } from "@/components/job-card/workflow-stepper";
-import { RepairTimer } from "@/components/job-card/repair-timer";
+import {
+  RepairTimer,
+  clearRepairTimerState,
+  isOpenTimeLog,
+  loadRepairTimerState,
+  saveRepairTimerState,
+} from "@/components/job-card/repair-timer";
 import { RoadTestSection } from "@/components/job-card/road-test-section";
 import { QCSection } from "@/components/job-card/qc-section";
 import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
-import { uploadFile } from "@/services/common";
+import { fetchServiceBayDetail, uploadFile } from "@/services/common";
 import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
 import { CreateInvoiceDialog } from "@/components/invoices/create-invoice-dialog";
@@ -92,6 +98,17 @@ function toDatetimeLocal(value?: string) {
 function toFrappeDatetime(local: string) {
   if (!local) return "";
   return `${local.replace("T", " ")}:00`;
+}
+
+function collectRepairTechnicians(jobCard: DMSJobCard): string[] {
+  const technicians: string[] = [];
+  const lead = (jobCard.lead_technician || "").trim();
+  if (lead) technicians.push(lead);
+  for (const row of jobCard.assistant_technicians || []) {
+    const tech = (row.technician || "").trim();
+    if (tech && !technicians.includes(tech)) technicians.push(tech);
+  }
+  return technicians;
 }
 
 export default function JobCardDetailPage() {
@@ -133,6 +150,10 @@ export default function JobCardDetailPage() {
     complete: boolean;
     hasMandatoryFails: boolean;
   }>({ rows: [], complete: false, hasMandatoryFails: false });
+  const [repairTimerAnchorMs, setRepairTimerAnchorMs] = useState<number | null>(null);
+  const [repairTimerOffsetSeconds, setRepairTimerOffsetSeconds] = useState(0);
+  const [bayLinkedWorkshop, setBayLinkedWorkshop] = useState<string>("");
+  const [bayLinkedWarehouse, setBayLinkedWarehouse] = useState<string>("");
 
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
   const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
@@ -210,6 +231,41 @@ export default function JobCardDetailPage() {
     }
   }, [jobCard?.invoice, refreshInvoiceDetail]);
 
+  useEffect(() => {
+    if (!jobCard?.assigned_bay || jobCard.warehouse) {
+      return;
+    }
+    void fetchServiceBayDetail(jobCard.assigned_bay).then((detail) => {
+      setBayLinkedWorkshop(detail.workshop || detail.branch || "");
+      setBayLinkedWarehouse(detail.warehouse || "");
+    });
+  }, [jobCard?.assigned_bay, jobCard?.warehouse]);
+
+  // Restore client-only timer from this browser session (never from time logs / schedule).
+  useEffect(() => {
+    if (!id || !jobCard) return;
+
+    if (jobCard.status === "Repair In Progress") {
+      if (repairTimerAnchorMs !== null) return;
+      const saved = loadRepairTimerState(id);
+      if (saved?.startedAtMs) {
+        setRepairTimerAnchorMs(saved.startedAtMs);
+        setRepairTimerOffsetSeconds(saved.offsetSeconds ?? 0);
+      }
+      return;
+    }
+
+    setRepairTimerAnchorMs(null);
+
+    if (
+      jobCard.status !== "Waiting Parts" &&
+      jobCard.status !== "Waiting Customer Approval"
+    ) {
+      clearRepairTimerState(id);
+      setRepairTimerOffsetSeconds(0);
+    }
+  }, [id, jobCard?.status, repairTimerAnchorMs]);
+
   if (!id) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
@@ -245,13 +301,32 @@ export default function JobCardDetailPage() {
   const status = jobCard.status;
   const docstatus = jobCard.docstatus ?? 0;
   const assignmentEditable = canEditJobCardAssignment(status);
-  const hasWorkshopWarehouse = Boolean((jobCard.warehouse || "").trim());
+  const displayWorkshop = bayLinkedWorkshop || jobCard.workshop || "";
+  const displayWarehouse = bayLinkedWarehouse || jobCard.warehouse || "";
+  const hasWorkshopWarehouse = Boolean(displayWarehouse.trim());
   const needsWorkshopWarehouse =
     status === "Estimation Approved" && !hasWorkshopWarehouse;
 
   const assignmentDirty =
     leadTechnician !== (jobCard.lead_technician || "") ||
     assignedBay !== (jobCard.assigned_bay || "");
+
+  const handleAssignedBayChange = async (bayName: string) => {
+    setAssignedBay(bayName);
+    if (!bayName) {
+      setBayLinkedWorkshop("");
+      setBayLinkedWarehouse("");
+      return;
+    }
+    try {
+      const detail = await fetchServiceBayDetail(bayName);
+      setBayLinkedWorkshop(detail.workshop || detail.branch || "");
+      setBayLinkedWarehouse(detail.warehouse || "");
+    } catch {
+      setBayLinkedWorkshop("");
+      setBayLinkedWarehouse("");
+    }
+  };
 
   const handleSaveAssignment = () => {
     if (!leadTechnician) {
@@ -262,12 +337,14 @@ export default function JobCardDetailPage() {
       toast.error("Assigned service bay is required");
       return;
     }
-    runAction("Assignment updated", () =>
-      jobCardsSvc.updateJobCard(id, {
+    runAction("Assignment updated", async () => {
+      await jobCardsSvc.updateJobCard(id, {
         lead_technician: leadTechnician,
         assigned_bay: assignedBay,
-      })
-    );
+      });
+      setBayLinkedWorkshop("");
+      setBayLinkedWarehouse("");
+    });
   };
 
   // ─── Workflow Action Handlers ───────────────────────────────
@@ -332,7 +409,7 @@ export default function JobCardDetailPage() {
     setApprovedAmount("");
   };
 
-  const handleStartRepair = () => {
+  const handleStartRepair = async () => {
     if (!hasWorkshopWarehouse) {
       toast.error(
         jobCard.workshop
@@ -341,24 +418,44 @@ export default function JobCardDetailPage() {
       );
       return;
     }
-    runAction("Repair Started", async () => {
-      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
-      const technicians = new Set<string>();
-      if (jobCard.lead_technician) technicians.add(jobCard.lead_technician);
-      (jobCard.assistant_technicians || []).forEach((row) => {
-        if (row.technician) technicians.add(row.technician);
-      });
-      const timeLogs = Array.from(technicians).map((technician) => ({
-        technician,
-        technician_name: technician,
-        start_time: now,
-      }));
-      await jobCardsSvc.startRepair(id, timeLogs.length > 0 ? timeLogs : undefined);
-    });
+
+    const technicians = collectRepairTechnicians(jobCard);
+    if (!technicians.length) {
+      toast.error("Assign a lead technician before starting repair.");
+      return;
+    }
+
+    const startedAt = Date.now();
+    setRepairTimerOffsetSeconds(0);
+    setRepairTimerAnchorMs(startedAt);
+    saveRepairTimerState(id, { offsetSeconds: 0, startedAtMs: startedAt });
+
+    setBusy(true);
+    try {
+      await jobCardsSvc.startRepair(id, technicians);
+      toast.success("Repair Started");
+      await mutate();
+    } catch (err) {
+      clearRepairTimerState(id);
+      setRepairTimerAnchorMs(null);
+      setRepairTimerOffsetSeconds(0);
+      toast.error(err instanceof Error ? err.message : "Failed to start repair");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handlePauseRepair = () => {
-    const openLogs = (jobCard.time_logs || []).filter((l) => l.start_time && !l.end_time);
+    const segmentSeconds =
+      repairTimerAnchorMs !== null
+        ? Math.max(0, Math.floor((Date.now() - repairTimerAnchorMs) / 1000))
+        : 0;
+    const totalElapsed = repairTimerOffsetSeconds + segmentSeconds;
+    setRepairTimerOffsetSeconds(totalElapsed);
+    setRepairTimerAnchorMs(null);
+    saveRepairTimerState(id, { offsetSeconds: totalElapsed, startedAtMs: null });
+
+    const openLogs = (jobCard.time_logs || []).filter(isOpenTimeLog);
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
     const closedLogs = openLogs.map((l) => ({
       name: l.name,
@@ -373,7 +470,11 @@ export default function JobCardDetailPage() {
   };
 
   const handleCompleteRepair = () => {
-    const openLogs = (jobCard.time_logs || []).filter((l) => l.start_time && !l.end_time);
+    clearRepairTimerState(id);
+    setRepairTimerAnchorMs(null);
+    setRepairTimerOffsetSeconds(0);
+
+    const openLogs = (jobCard.time_logs || []).filter(isOpenTimeLog);
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
     const closedLogs = openLogs.map((l) => ({
       name: l.name,
@@ -383,13 +484,26 @@ export default function JobCardDetailPage() {
     runAction("Repair Completed", () => jobCardsSvc.completeRepair(id, closedLogs, now));
   };
 
-  const handlePartsArrived = () =>
-    runAction("Parts Arrived – Resuming Repair", () => jobCardsSvc.partsArrived(id));
+  const resumeRepairTimer = () => {
+    const startedAt = Date.now();
+    setRepairTimerAnchorMs(startedAt);
+    saveRepairTimerState(id, {
+      offsetSeconds: repairTimerOffsetSeconds,
+      startedAtMs: startedAt,
+    });
+  };
 
-  const handleCustomerApprovedDuringRepair = () =>
+  const handlePartsArrived = () => {
+    resumeRepairTimer();
+    runAction("Parts Arrived – Resuming Repair", () => jobCardsSvc.partsArrived(id));
+  };
+
+  const handleCustomerApprovedDuringRepair = () => {
+    resumeRepairTimer();
     runAction("Customer Approved – Resuming Repair", () =>
       jobCardsSvc.customerApprovedDuringRepair(id)
     );
+  };
 
   const handleStartRoadTest = () =>
     runAction("Road Test Started", () => jobCardsSvc.startRoadTest(id));
@@ -574,7 +688,11 @@ export default function JobCardDetailPage() {
       <WorkflowStepper status={status} />
 
       {/* Repair Timer */}
-      <RepairTimer jobCard={jobCard} />
+      <RepairTimer
+        running={status === "Repair In Progress"}
+        startedAtMs={repairTimerAnchorMs}
+        offsetSeconds={repairTimerOffsetSeconds}
+      />
 
       {status === "Road Test In Progress" && (
         <RoadTestSection
@@ -1211,7 +1329,7 @@ export default function JobCardDetailPage() {
                       <SearchableSelect
                         options={bayOptions}
                         value={assignedBay}
-                        onValueChange={setAssignedBay}
+                        onValueChange={handleAssignedBayChange}
                         placeholder="Search bays..."
                         isLoading={baysLoading}
                       />
@@ -1221,7 +1339,7 @@ export default function JobCardDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Workshop</p>
-                    <p className="font-medium">{jobCard.workshop || "N/A"}</p>
+                    <p className="font-medium">{displayWorkshop || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Warehouse</p>
@@ -1232,7 +1350,7 @@ export default function JobCardDetailPage() {
                           : "font-medium text-amber-600 dark:text-amber-400"
                       }
                     >
-                      {jobCard.warehouse || "Not set — add on Workshop"}
+                      {displayWarehouse || "Not set — add on Workshop"}
                     </p>
                   </div>
                 </div>

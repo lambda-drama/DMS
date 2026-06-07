@@ -395,7 +395,11 @@ export default function NewInvoicePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
+      <form
+        id="new-invoice-form"
+        onSubmit={handleSubmit}
+        className="dms-form-page min-w-0 space-y-4 sm:space-y-6"
+      >
         {jobCard && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="flex items-center gap-2 p-4 text-primary">
@@ -842,7 +846,7 @@ export default function NewInvoicePage() {
           <Button type="button" variant="outline" onClick={() => navigate("invoices")}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isMutating}>
+          <Button type="submit" form="new-invoice-form" disabled={isMutating}>
             <Receipt className="mr-2 h-4 w-4" />
             {isMutating ? "Creating…" : "Create invoice"}
           </Button>

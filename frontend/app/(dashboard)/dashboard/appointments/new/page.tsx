@@ -414,7 +414,11 @@ export default function NewAppointmentPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="dms-form-page min-w-0 space-y-4 sm:space-y-6">
+      <form
+        id="new-appointment-form"
+        onSubmit={handleSubmit}
+        className="dms-form-page min-w-0 space-y-4 sm:space-y-6"
+      >
         {/* Appointment Details */}
         <Card>
           <CardHeader>
@@ -793,7 +797,7 @@ export default function NewAppointmentPage() {
           <Button type="button" variant="outline" onClick={() => navigate('appointments')}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isMutating}>
+          <Button type="submit" form="new-appointment-form" disabled={isMutating}>
             {isMutating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
