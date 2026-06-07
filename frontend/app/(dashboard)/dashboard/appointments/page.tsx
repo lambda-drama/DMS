@@ -97,14 +97,6 @@ function canCancel(apt: ServiceAppointment) {
   return normalizeDocstatus(apt.docstatus) < 2 && apt.status !== 'Completed';
 }
 
-function hasMobileMenuActions(apt: ServiceAppointment) {
-  return (
-    canConfirmAppointment(apt) ||
-    shouldShowSendReminderAction(apt) ||
-    canMarkArrived(apt)
-  );
-}
-
 function getStatusConfig(status: AppointmentStatus | string | undefined) {
   const configs: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
     'Booked': { color: 'bg-chart-1/10 text-chart-1 border-chart-1/20', icon: Calendar },
@@ -475,7 +467,6 @@ export default function AppointmentsPage() {
                         </Badge>
                         <div className="mt-auto">
                           <ListRowActions doctype="Service Appointment" docName={apt.name}>
-                            {hasMobileMenuActions(apt) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="shrink-0">
@@ -483,6 +474,14 @@ export default function AppointmentsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate('appointment-detail', { id: apt.name, mode: 'edit' })
+                                  }
+                                >
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 {canConfirmAppointment(apt) && (
                                   <DropdownMenuItem
                                     onClick={() => {
@@ -517,9 +516,44 @@ export default function AppointmentsPage() {
                                     Mark as arrived
                                   </DropdownMenuItem>
                                 )}
+                                {apt.status === 'Arrived' && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      navigate('inspection-new', { appointment: apt.name })
+                                    }
+                                  >
+                                    <Car className="h-4 w-4 mr-2" />
+                                    Start inspection
+                                  </DropdownMenuItem>
+                                )}
+                                {canReschedule(apt) && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setActionTarget(apt);
+                                      setRescheduleOpen(true);
+                                    }}
+                                  >
+                                    <CalendarClock className="h-4 w-4 mr-2" />
+                                    Reschedule
+                                  </DropdownMenuItem>
+                                )}
+                                {canCancel(apt) && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() => {
+                                        setActionTarget(apt);
+                                        setCancelOpen(true);
+                                      }}
+                                    >
+                                      <Ban className="h-4 w-4 mr-2" />
+                                      Cancel appointment
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                            )}
                           </ListRowActions>
                         </div>
                       </div>
