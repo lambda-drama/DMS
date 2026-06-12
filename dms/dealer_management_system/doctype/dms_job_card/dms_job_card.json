@@ -28,6 +28,7 @@
   "current_odometer",
   "appointment",
   "inspection",
+  "service_estimate",
   "warranty_status",
   "warranty_expiry_date",
   "warranty_application_type",
@@ -276,6 +277,13 @@
    "label": "Vehicle Inspection",
    "options": "Vehicle Inspection",
    "reqd": 1
+  },
+  {
+   "fieldname": "service_estimate",
+   "fieldtype": "Link",
+   "label": "Service Estimate",
+   "options": "DMS Service Estimate",
+   "read_only": 1
   },
   {
    "fetch_from": "vehicle_vin.warranty_status",

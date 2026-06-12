@@ -6,6 +6,7 @@ import {
   Calendar,
   Car,
   ClipboardCheck,
+  FileSpreadsheet,
   FileText,
   HardHat,
   Headphones,
@@ -35,6 +36,7 @@ const navigation = [
     items: [
       { name: 'Appointments', view: 'appointments', icon: Calendar },
       { name: 'Inspections', view: 'inspections', icon: ClipboardCheck },
+      { name: 'Service Estimates', view: 'service-estimates', icon: FileSpreadsheet },
       { name: 'Job Cards', view: 'job-cards', icon: Wrench },
       { name: 'Technicians', view: 'technicians', icon: HardHat },
       { name: 'Service Advisors', view: 'service-advisors', icon: Headphones },

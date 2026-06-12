@@ -23,6 +23,8 @@ const viewTitles: Record<string, string> = {
   inspections: 'Vehicle Inspections',
   'inspection-detail': 'Inspection Details',
   'inspection-new': 'New Inspection',
+  'service-estimates': 'Service Estimates',
+  'estimate-detail': 'Service Estimate',
   'job-cards': 'Job Cards',
   'job-card-detail': 'Job Card Details',
   'job-card-new': 'New Job Card',

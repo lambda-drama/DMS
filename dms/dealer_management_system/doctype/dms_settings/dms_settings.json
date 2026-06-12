@@ -4,9 +4,13 @@
  "creation": "2026-05-10 22:36:35.540127",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
+  "field_order": [
   "posting_date",
   "spare_part_markup",
+  "diagnostic_section",
+  "default_diagnostic_fee",
+  "diagnostic_fee_item",
+  "default_vat_rate",
   "serial_vin_no_section",
   "auto_create_vin_from_serial",
   "company",
@@ -33,6 +37,31 @@
    "fieldname": "spare_part_markup",
    "fieldtype": "Percent",
    "label": "Spare Part Markup"
+  },
+  {
+   "fieldname": "diagnostic_section",
+   "fieldtype": "Section Break",
+   "label": "Diagnosis & Estimation"
+  },
+  {
+   "default": "3000",
+   "description": "Fixed diagnostic fee charged when customer declines the repair estimate",
+   "fieldname": "default_diagnostic_fee",
+   "fieldtype": "Currency",
+   "label": "Default Diagnostic Fee"
+  },
+  {
+   "description": "ERPNext Item used on the diagnostic-only Sales Invoice when customer rejects the estimate",
+   "fieldname": "diagnostic_fee_item",
+   "fieldtype": "Link",
+   "label": "Diagnostic Fee Item",
+   "options": "Item"
+  },
+  {
+   "default": "15",
+   "fieldname": "default_vat_rate",
+   "fieldtype": "Percent",
+   "label": "Default VAT Rate (Estimates)"
   },
   {
    "fieldname": "serial_vin_no_section",

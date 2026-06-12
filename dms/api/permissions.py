@@ -8,6 +8,7 @@ from frappe.utils import cint
 DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"appointments": "Service Appointment",
 	"inspections": "Vehicle Inspection",
+	"service-estimates": "DMS Service Estimate",
 	"job-cards": "DMS Job Card",
 	"technicians": "Technician",
 	"service-advisors": "Service Advisor",

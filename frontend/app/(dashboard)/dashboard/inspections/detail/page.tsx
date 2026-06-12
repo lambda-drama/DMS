@@ -23,9 +23,12 @@ import {
   Pencil,
   Printer,
   ClipboardCheck,
+  Stethoscope,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
+import * as estimatesSvc from "@/services/serviceEstimates";
+import { canStartDiagnosis, normalizeInspectionDocstatus } from "@/lib/inspection-workflow";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   Draft: { label: "Draft", variant: "secondary" },
@@ -69,6 +72,7 @@ export default function InspectionDetailPage() {
   const { data: inspection, isLoading, error, mutate } = useInspection(id);
   const { trigger: submitInspection, isMutating } = useSubmitInspection(id);
   const [activeTab, setActiveTab] = useState("overview");
+  const [startingDiagnosis, setStartingDiagnosis] = useState(false);
 
   if (!id) {
     return (
@@ -92,8 +96,18 @@ export default function InspectionDetailPage() {
     }
   };
 
-  const handleCreateJobCard = () => {
-    navigate('job-card-new', { inspection: id });
+  const handleStartDiagnosis = async () => {
+    setStartingDiagnosis(true);
+    try {
+      const estimateName = await estimatesSvc.makeFromInspection(id);
+      toast.success("Service estimate created — add diagnosis findings");
+      mutate();
+      navigate("estimate-detail", { id: estimateName });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to start diagnosis");
+    } finally {
+      setStartingDiagnosis(false);
+    }
   };
 
   if (isLoading) {
@@ -117,8 +131,9 @@ export default function InspectionDetailPage() {
   }
 
   const fuelLevelPercent = inspection.fuel_level_percentage || 0;
-  const isSubmitted = inspection.docstatus === 1;
-  const isDraft = inspection.docstatus === 0;
+  const isSubmitted = normalizeInspectionDocstatus(inspection.docstatus) === 1;
+  const isDraft = normalizeInspectionDocstatus(inspection.docstatus) === 0;
+  const showStartDiagnosis = canStartDiagnosis(inspection);
   const inspectionStatus = isSubmitted ? "Submitted" : isDraft ? "Draft" : "Cancelled";
 
   return (
@@ -140,7 +155,7 @@ export default function InspectionDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {id && (
             <PrintFormatDropdown doctype="Vehicle Inspection" docName={id} />
           )}
@@ -156,10 +171,20 @@ export default function InspectionDetailPage() {
               </Button>
             </>
           )}
-          {isSubmitted && !inspection.job_card && (
-            <Button size="sm" onClick={handleCreateJobCard}>
-              <FileText className="h-4 w-4 mr-2" />
-              Create Job Card
+          {showStartDiagnosis && (
+            <Button size="sm" onClick={handleStartDiagnosis} disabled={startingDiagnosis}>
+              <Stethoscope className="h-4 w-4 mr-2" />
+              {startingDiagnosis ? "Creating..." : "Start diagnosis"}
+            </Button>
+          )}
+          {isSubmitted && inspection.service_estimate && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('estimate-detail', { id: inspection.service_estimate! })}
+            >
+              <Stethoscope className="h-4 w-4 mr-2" />
+              View service estimate
             </Button>
           )}
           {isSubmitted && inspection.job_card && (

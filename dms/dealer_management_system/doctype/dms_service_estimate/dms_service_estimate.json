@@ -1,0 +1,391 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-06-08 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_header",
+  "naming_series",
+  "status",
+  "posting_date",
+  "company",
+  "column_break_header",
+  "currency",
+  "section_links",
+  "inspection",
+  "appointment",
+  "job_card",
+  "diagnostic_invoice",
+  "column_break_links",
+  "customer",
+  "customer_name",
+  "vehicle_vin",
+  "license_plate",
+  "service_advisor",
+  "section_diagnosis",
+  "diagnostic_fee",
+  "diagnostic_fee_voided",
+  "column_break_diagnosis",
+  "diagnosis_completed_date",
+  "diagnosis_findings",
+  "recommended_repairs",
+  "section_estimation",
+  "labour",
+  "parts",
+  "section_totals",
+  "total_labor_cost",
+  "total_parts_cost",
+  "total_before_vat",
+  "column_break_totals",
+  "vat_rate",
+  "vat_amount",
+  "grand_total",
+  "section_customer_decision",
+  "customer_decision",
+  "decision_date",
+  "customer_signature",
+  "rejection_signature",
+  "section_notes",
+  "service_advisor_notes",
+  "internal_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_header",
+   "fieldtype": "Section Break",
+   "label": "Service Estimate"
+  },
+  {
+   "default": "EST-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "EST-.YYYY.-"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nDiagnosis In Progress\nDiagnosis Complete\nEstimation In Progress\nPending Customer Approval\nAccepted\nRejected\nCancelled",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "section_links",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "inspection",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Vehicle Inspection",
+   "options": "Vehicle Inspection"
+  },
+  {
+   "fieldname": "appointment",
+   "fieldtype": "Link",
+   "label": "Service Appointment",
+   "options": "Service Appointment"
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Job Card",
+   "options": "DMS Job Card",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diagnostic_invoice",
+   "fieldtype": "Link",
+   "label": "Diagnostic Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_links",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Read Only",
+   "label": "Customer Name"
+  },
+  {
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "VIN / Chassis",
+   "options": "VIN No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "license_plate",
+   "fieldtype": "Data",
+   "label": "License Plate"
+  },
+  {
+   "fieldname": "service_advisor",
+   "fieldtype": "Link",
+   "label": "Service Advisor",
+   "options": "Service Advisor"
+  },
+  {
+   "fieldname": "section_diagnosis",
+   "fieldtype": "Section Break",
+   "label": "Diagnosis"
+  },
+  {
+   "description": "Fixed diagnostic fee (voided when customer accepts the repair estimate)",
+   "fieldname": "diagnostic_fee",
+   "fieldtype": "Currency",
+   "label": "Diagnostic Fee"
+  },
+  {
+   "default": "0",
+   "fieldname": "diagnostic_fee_voided",
+   "fieldtype": "Check",
+   "label": "Diagnostic Fee Voided",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_diagnosis",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diagnosis_completed_date",
+   "fieldtype": "Datetime",
+   "label": "Diagnosis Completed Date",
+   "read_only": 1
+  },
+  {
+   "description": "Problems identified during diagnosis (written by service advisor from mechanic findings)",
+   "fieldname": "diagnosis_findings",
+   "fieldtype": "Text Editor",
+   "label": "Problems Found"
+  },
+  {
+   "description": "Recommended work to resolve the diagnosed problems",
+   "fieldname": "recommended_repairs",
+   "fieldtype": "Text Editor",
+   "label": "Recommended Repairs"
+  },
+  {
+   "fieldname": "section_estimation",
+   "fieldtype": "Section Break",
+   "label": "Estimation (Labour & Parts)"
+  },
+  {
+   "fieldname": "labour",
+   "fieldtype": "Table",
+   "label": "Labour",
+   "options": "Vehicle Labour Item"
+  },
+  {
+   "fieldname": "parts",
+   "fieldtype": "Table",
+   "label": "Parts",
+   "options": "Job Card Part Item"
+  },
+  {
+   "fieldname": "section_totals",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_labor_cost",
+   "fieldtype": "Currency",
+   "label": "Total Labour Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_parts_cost",
+   "fieldtype": "Currency",
+   "label": "Total Parts Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_before_vat",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Before VAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "15",
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "label": "VAT Rate"
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "VAT Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Grand Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_customer_decision",
+   "fieldtype": "Section Break",
+   "label": "Customer Decision"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "customer_decision",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Customer Decision",
+   "options": "Pending\nAccepted\nRejected"
+  },
+  {
+   "fieldname": "decision_date",
+   "fieldtype": "Datetime",
+   "label": "Decision Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_signature",
+   "fieldtype": "Attach Image",
+   "label": "Customer Signature (Acceptance)"
+  },
+  {
+   "fieldname": "rejection_signature",
+   "fieldtype": "Attach Image",
+   "label": "Customer Signature (Rejection)"
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "service_advisor_notes",
+   "fieldtype": "Text Editor",
+   "label": "Service Advisor Notes"
+  },
+  {
+   "fieldname": "internal_notes",
+   "fieldtype": "Text Editor",
+   "label": "Internal Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-08 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "DMS Service Estimate",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Gray",
+   "title": "Draft"
+  },
+  {
+   "color": "Blue",
+   "title": "Diagnosis In Progress"
+  },
+  {
+   "color": "Cyan",
+   "title": "Diagnosis Complete"
+  },
+  {
+   "color": "Orange",
+   "title": "Estimation In Progress"
+  },
+  {
+   "color": "Yellow",
+   "title": "Pending Customer Approval"
+  },
+  {
+   "color": "Green",
+   "title": "Accepted"
+  },
+  {
+   "color": "Red",
+   "title": "Rejected"
+  }
+ ]
+}
