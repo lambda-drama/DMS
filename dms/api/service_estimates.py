@@ -112,11 +112,23 @@ def update_service_estimate(name, data):
 		"internal_notes",
 		"vat_rate",
 		"status",
+		"warranty_application_type",
+		"labour_discount_type",
+		"labour_discount_value",
+		"parts_discount_type",
+		"parts_discount_value",
 	}
 
 	for field in scalar_fields:
 		if field in data:
 			doc.set(field, data[field])
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+		apply_discount_fields_from_payload,
+	)
+
+	if any(k in data for k in ("labour_discount", "parts_discount")):
+		apply_discount_fields_from_payload(doc, data)
 
 	for table in allowed_child:
 		if table in data and isinstance(data[table], list):

@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "creation": "2026-06-12 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "part_name",
+  "quantity",
+  "bin_location",
+  "picked"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Part Number",
+   "options": "Spare Part",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "part_name",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Part Name"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bin_location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bin Location"
+  },
+  {
+   "default": "0",
+   "fieldname": "picked",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Picked"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "DMS Pick Slip Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

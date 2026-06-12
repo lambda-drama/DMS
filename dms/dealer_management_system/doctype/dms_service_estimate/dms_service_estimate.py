@@ -27,6 +27,13 @@ from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils im
 
 class DMSServiceEstimate(Document):
 	def validate(self):
+		if self.warranty_application_type != "Discount":
+			from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+				clear_split_discount_fields,
+			)
+
+			clear_split_discount_fields(self)
+
 		self.calculate_totals()
 
 	def calculate_totals(self):
@@ -50,11 +57,35 @@ class DMSServiceEstimate(Document):
 
 		self.total_labor_cost = round(total_labor, 2)
 		self.total_parts_cost = round(total_parts, 2)
-		self.total_before_vat = round(total_labor + total_parts, 2)
+		self.apply_warranty_application()
 
 		vat_rate = flt(self.vat_rate if self.vat_rate is not None else get_default_vat_rate())
 		self.vat_amount = round(self.total_before_vat * vat_rate / 100.0, 2)
 		self.grand_total = round(self.total_before_vat + self.vat_amount, 2)
+
+	def apply_warranty_application(self):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			job_card_combined_discount_amount,
+		)
+
+		warranty_application_type = self.warranty_application_type
+		total_labor = flt(self.total_labor_cost or 0)
+		total_parts = flt(self.total_parts_cost or 0)
+		total_amount = round(total_labor + total_parts, 2)
+
+		if warranty_application_type == "All Invoice":
+			self.total_before_vat = 0
+		elif warranty_application_type == "Spare Part":
+			self.total_before_vat = round(total_labor, 2)
+		elif warranty_application_type == "Labour":
+			self.total_before_vat = round(total_parts, 2)
+		elif warranty_application_type == "Discount":
+			discount_amount = job_card_combined_discount_amount(self)
+			self.discount_amount = discount_amount
+			self.total_before_vat = round(total_amount - discount_amount, 2)
+		else:
+			self.discount_amount = 0
+			self.total_before_vat = round(total_amount, 2)
 
 
 def _ensure_estimate_writable(doc: Document):
@@ -187,6 +218,15 @@ def submit_for_customer_approval(estimate_name: str) -> dict:
 		frappe.throw(_("Add at least one labour or parts line before submitting for customer approval."))
 
 	doc.calculate_totals()
+	if doc.warranty_application_type == "Discount":
+		gross = flt(doc.total_labor_cost or 0) + flt(doc.total_parts_cost or 0)
+		if gross > 0 and flt(doc.discount_amount or 0) < 1:
+			frappe.throw(
+				_(
+					"Set a labour and/or parts discount (total at least 1) when "
+					"Warranty Application Type is Discount."
+				)
+			)
 	doc.status = "Pending Customer Approval"
 	doc.customer_decision = "Pending"
 	doc.save()
@@ -206,16 +246,42 @@ def accept_estimate(
 	customer_signature: str | None = None,
 	lead_technician: str | None = None,
 	assigned_bay: str | None = None,
+	schedule_start_time: str | None = None,
+	schedule_end_time: str | None = None,
 	start_repair: int | bool = 0,
 ) -> dict:
 	doc = frappe.get_doc("DMS Service Estimate", estimate_name)
 	doc.check_permission("write")
+
+	if doc.estimate_type == "Supplementary":
+		from dms.dealer_management_system.doctype.dms_additional_work_request.additional_work_workflow import (
+			accept_supplementary_estimate_and_update_job_card,
+		)
+
+		if not customer_signature:
+			frappe.throw(_("Customer signature is required to accept the estimate."))
+
+		result = accept_supplementary_estimate_and_update_job_card(estimate_name, customer_signature)
+		return {"name": doc.name, "status": "Accepted", "job_card": result["job_card"]}
 
 	if doc.status != "Pending Customer Approval":
 		frappe.throw(_("Estimate must be pending customer approval before acceptance."))
 
 	if not customer_signature:
 		frappe.throw(_("Customer signature is required to accept the estimate."))
+
+	if cint(start_repair):
+		missing = []
+		if not lead_technician:
+			missing.append(_("Lead Technician"))
+		if not schedule_start_time:
+			missing.append(_("Schedule Start Time"))
+		if not schedule_end_time:
+			missing.append(_("Schedule End Time"))
+		if missing:
+			frappe.throw(
+				_("Please fill in the following before starting repair: {0}").format(", ".join(missing))
+			)
 
 	if doc.job_card and frappe.db.exists("DMS Job Card", doc.job_card):
 		frappe.throw(_("Job Card {0} already exists for this estimate.").format(doc.job_card))
@@ -231,6 +297,8 @@ def accept_estimate(
 		doc.name,
 		lead_technician=lead_technician,
 		assigned_bay=assigned_bay,
+		schedule_start_time=schedule_start_time,
+		schedule_end_time=schedule_end_time,
 	)
 
 	if cint(start_repair):

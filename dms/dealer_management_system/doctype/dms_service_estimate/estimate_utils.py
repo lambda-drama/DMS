@@ -48,6 +48,8 @@ def make_dms_job_card_from_estimate(
 	estimate_name: str,
 	lead_technician: str | None = None,
 	assigned_bay: str | None = None,
+	schedule_start_time: str | None = None,
+	schedule_end_time: str | None = None,
 ) -> str:
 	if not frappe.has_permission("DMS Service Estimate", "read", doc=estimate_name):
 		frappe.throw(_("Not permitted to read this Service Estimate"), frappe.PermissionError)
@@ -66,7 +68,7 @@ def make_dms_job_card_from_estimate(
 	jc.update(
 		{
 			"job_card_type": "Customer Paid",
-			"status": "Estimation Approved",
+			"status": "Open",
 			"inspection": est.inspection,
 			"service_estimate": est.name,
 			"appointment": est.appointment,
@@ -83,6 +85,14 @@ def make_dms_job_card_from_estimate(
 			"customer_signature": est.customer_signature,
 			"posting_date": today(),
 			"opened_date_time": now_datetime(),
+			"warranty_status": est.warranty_status,
+			"warranty_expiry_date": est.warranty_expiry_date,
+			"warranty_application_type": est.warranty_application_type,
+			"labour_discount_type": est.labour_discount_type,
+			"labour_discount_value": est.labour_discount_value,
+			"parts_discount_type": est.parts_discount_type,
+			"parts_discount_value": est.parts_discount_value,
+			"discount_amount": est.discount_amount,
 		}
 	)
 
@@ -131,6 +141,11 @@ def make_dms_job_card_from_estimate(
 			jc.assigned_bay = assigned_bay
 		if lead_technician:
 			jc.lead_technician = lead_technician
+
+	if schedule_start_time:
+		jc.schedule_start_time = schedule_start_time
+	if schedule_end_time:
+		jc.schedule_end_time = schedule_end_time
 
 	if est.diagnosis_findings or est.recommended_repairs or est.get("diagnosis_summary"):
 		jc.customer_complaint_summary = _estimate_diagnosis_text(est)
@@ -191,6 +206,7 @@ def make_dms_job_card_from_estimate(
 				"total_amount": row.total_amount,
 				"is_warranty": row.is_warranty,
 				"notes": row.notes,
+				"line_status": "Requested",
 			},
 		)
 

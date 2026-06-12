@@ -61,7 +61,7 @@ fixtures = [
     {
         "doctype": "Role",
         "filters": [
-            ["name", "=", "Dealer Manager"]
+            ["name", "in", ["Dealer Manager", "Spare Parts Manager"]]
         ]
     },
 

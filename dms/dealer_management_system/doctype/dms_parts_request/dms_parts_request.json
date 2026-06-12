@@ -1,0 +1,244 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-06-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_header",
+  "naming_series",
+  "status",
+  "posting_date",
+  "column_break_header",
+  "job_card",
+  "pick_slip",
+  "stock_entry",
+  "section_vehicle",
+  "customer",
+  "vehicle_vin",
+  "license_plate",
+  "column_break_vehicle",
+  "company",
+  "requested_by",
+  "section_items",
+  "items",
+  "section_issue",
+  "picker_signature",
+  "parts_staff_signature",
+  "received_by_signature",
+  "column_break_issue",
+  "issued_date",
+  "received_date",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_header",
+   "fieldtype": "Section Break",
+   "label": "Parts Request"
+  },
+  {
+   "default": "PR-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "PR-.YYYY.-"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nPending Approval\nApproved\nReady for Issue\nPartially Issued\nIssued\nReceived\nCancelled",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Job Card",
+   "options": "DMS Job Card",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pick_slip",
+   "fieldtype": "Link",
+   "label": "Pick Slip",
+   "options": "DMS Pick Slip",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_vehicle",
+   "fieldtype": "Section Break",
+   "label": "Vehicle"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "label": "VIN / Chassis",
+   "options": "VIN No"
+  },
+  {
+   "fieldname": "license_plate",
+   "fieldtype": "Data",
+   "label": "License Plate"
+  },
+  {
+   "fieldname": "column_break_vehicle",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "requested_by",
+   "fieldtype": "Link",
+   "label": "Requested By",
+   "options": "Technician"
+  },
+  {
+   "fieldname": "section_items",
+   "fieldtype": "Section Break",
+   "label": "Parts"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "DMS Parts Request Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_issue",
+   "fieldtype": "Section Break",
+   "label": "Issue & Receipt"
+  },
+  {
+   "fieldname": "picker_signature",
+   "fieldtype": "Attach Image",
+   "label": "Picker Signature"
+  },
+  {
+   "fieldname": "parts_staff_signature",
+   "fieldtype": "Attach Image",
+   "label": "Parts Staff Signature"
+  },
+  {
+   "fieldname": "received_by_signature",
+   "fieldtype": "Attach Image",
+   "label": "Technician Receive Signature"
+  },
+  {
+   "fieldname": "column_break_issue",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "issued_date",
+   "fieldtype": "Datetime",
+   "label": "Issued Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "received_date",
+   "fieldtype": "Datetime",
+   "label": "Received Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "DMS Parts Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Spare Parts Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [
+  {"color": "Gray", "title": "Draft"},
+  {"color": "Orange", "title": "Pending Approval"},
+  {"color": "Blue", "title": "Approved"},
+  {"color": "Cyan", "title": "Ready for Issue"},
+  {"color": "Yellow", "title": "Partially Issued"},
+  {"color": "Green", "title": "Issued"},
+  {"color": "Green", "title": "Received"}
+ ],
+ "track_changes": 1
+}

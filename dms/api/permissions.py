@@ -10,6 +10,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"inspections": "Vehicle Inspection",
 	"service-estimates": "DMS Service Estimate",
 	"job-cards": "DMS Job Card",
+	"parts-requisitions": "DMS Parts Request",
 	"technicians": "Technician",
 	"service-advisors": "Service Advisor",
 	"deliveries": "Vehicle Delivery Note",

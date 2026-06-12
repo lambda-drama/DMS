@@ -22,6 +22,8 @@ const ServiceEstimateDetailPage = dynamic(() => import('./(dashboard)/dashboard/
 const JobCardsPage = dynamic(() => import('./(dashboard)/dashboard/job-cards/page'));
 const JobCardDetailPage = dynamic(() => import('./(dashboard)/dashboard/job-cards/detail/page'));
 const JobCardNewPage = dynamic(() => import('./(dashboard)/dashboard/job-cards/new/page'));
+const PartsRequisitionsPage = dynamic(() => import('./(dashboard)/dashboard/parts-requisitions/page'));
+const PartsRequisitionDetailPage = dynamic(() => import('./(dashboard)/dashboard/parts-requisitions/detail/page'));
 const DeliveriesPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/page'));
 const DeliveryNewPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/new/page'));
 const InvoicesPage = dynamic(() => import('./(dashboard)/dashboard/invoices/page'));
@@ -67,6 +69,8 @@ function AppContent() {
       case 'job-cards':          return <JobCardsPage />;
       case 'job-card-detail':    return <JobCardDetailPage />;
       case 'job-card-new':       return <JobCardNewPage />;
+      case 'parts-requisitions': return <PartsRequisitionsPage />;
+      case 'parts-requisition-detail': return <PartsRequisitionDetailPage />;
       case 'deliveries':         return <DeliveriesPage />;
       case 'delivery-new':       return <DeliveryNewPage />;
       case 'invoices':           return <InvoicesPage />;

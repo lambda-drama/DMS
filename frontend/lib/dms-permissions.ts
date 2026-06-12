@@ -8,6 +8,7 @@ export type DmsPermissionModule =
   | 'inspections'
   | 'service-estimates'
   | 'job-cards'
+  | 'parts-requisitions'
   | 'technicians'
   | 'service-advisors'
   | 'deliveries'
@@ -47,6 +48,8 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'job-cards': 'job-cards',
   'job-card-detail': 'job-cards',
   'job-card-new': 'job-cards',
+  'parts-requisitions': 'parts-requisitions',
+  'parts-requisition-detail': 'parts-requisitions',
   technicians: 'technicians',
   'technician-detail': 'technicians',
   'service-advisors': 'service-advisors',

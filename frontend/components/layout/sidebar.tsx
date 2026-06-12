@@ -16,6 +16,7 @@ import {
   Truck,
   Users,
   Wrench,
+  Package,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
@@ -38,6 +39,7 @@ const navigation = [
       { name: 'Inspections', view: 'inspections', icon: ClipboardCheck },
       { name: 'Service Estimates', view: 'service-estimates', icon: FileSpreadsheet },
       { name: 'Job Cards', view: 'job-cards', icon: Wrench },
+      { name: 'Parts Requisition', view: 'parts-requisitions', icon: Package },
       { name: 'Technicians', view: 'technicians', icon: HardHat },
       { name: 'Service Advisors', view: 'service-advisors', icon: Headphones },
       { name: 'Delivery', view: 'deliveries', icon: Truck },

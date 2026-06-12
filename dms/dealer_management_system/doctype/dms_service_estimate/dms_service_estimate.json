@@ -18,6 +18,10 @@
   "appointment",
   "job_card",
   "diagnostic_invoice",
+  "estimate_type",
+  "parent_job_card",
+  "parent_estimate",
+  "additional_work_request",
   "column_break_links",
   "customer",
   "customer_name",
@@ -31,6 +35,16 @@
   "diagnosis_completed_date",
   "diagnosis_findings",
   "recommended_repairs",
+  "section_warranty",
+  "warranty_status",
+  "warranty_expiry_date",
+  "warranty_application_type",
+  "column_break_warranty",
+  "labour_discount_type",
+  "labour_discount_value",
+  "parts_discount_type",
+  "parts_discount_value",
+  "discount_amount",
   "section_estimation",
   "labour",
   "parts",
@@ -134,6 +148,32 @@
    "read_only": 1
   },
   {
+   "default": "Original",
+   "fieldname": "estimate_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Estimate Type",
+   "options": "Original\nSupplementary"
+  },
+  {
+   "fieldname": "parent_job_card",
+   "fieldtype": "Link",
+   "label": "Parent Job Card",
+   "options": "DMS Job Card"
+  },
+  {
+   "fieldname": "parent_estimate",
+   "fieldtype": "Link",
+   "label": "Parent Estimate",
+   "options": "DMS Service Estimate"
+  },
+  {
+   "fieldname": "additional_work_request",
+   "fieldtype": "Link",
+   "label": "Additional Work Request",
+   "options": "DMS Additional Work Request"
+  },
+  {
    "fieldname": "column_break_links",
    "fieldtype": "Column Break"
   },
@@ -212,6 +252,69 @@
    "label": "Recommended Repairs"
   },
   {
+   "fieldname": "section_warranty",
+   "fieldtype": "Section Break",
+   "label": "Warranty"
+  },
+  {
+   "fetch_from": "vehicle_vin.warranty_status",
+   "fieldname": "warranty_status",
+   "fieldtype": "Data",
+   "label": "Warranty Status",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "vehicle_vin.warranty_end_date",
+   "fieldname": "warranty_expiry_date",
+   "fieldtype": "Date",
+   "label": "Warranty Expiry Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "warranty_application_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Warranty Application Type",
+   "options": "\nAll Invoice\nLabour\nSpare Part\nDiscount"
+  },
+  {
+   "fieldname": "column_break_warranty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "labour_discount_type",
+   "fieldtype": "Select",
+   "label": "Labour Discount Type",
+   "options": "\nPercentage\nAmount"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "labour_discount_value",
+   "fieldtype": "Float",
+   "label": "Labour Discount Value"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "parts_discount_type",
+   "fieldtype": "Select",
+   "label": "Parts Discount Type",
+   "options": "\nPercentage\nAmount"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "parts_discount_value",
+   "fieldtype": "Float",
+   "label": "Parts Discount Value"
+  },
+  {
+   "depends_on": "eval:doc.warranty_application_type=='Discount'",
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Total Discount",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_estimation",
    "fieldtype": "Section Break",
    "label": "Estimation (Labour & Parts)"
@@ -286,7 +389,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Customer Decision",
-   "options": "Pending\nAccepted\nRejected"
+   "options": "Pending\nAccepted\nPartially Accepted\nRejected"
   },
   {
    "fieldname": "decision_date",

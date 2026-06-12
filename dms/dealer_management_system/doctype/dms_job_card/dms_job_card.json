@@ -168,7 +168,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nOpen\nEstimation Pending\nEstimation Approved\nWaiting Customer Approval\"\nScheduled\nRepair In Progress\nRepair Completed\nWaiting Parts\nWaiting Customer Approval\nRoad Test In Progress\nRoad Test Completed\nQC In Progress\nQC Failed\nRework\nCompleted\nCancelled\nDelivered"
+   "options": "Draft\nOpen\nEstimation Pending\nEstimation Approved\nAssigned\nWaiting Customer Approval\nScheduled\nRepair In Progress\nRepair Completed\nWaiting Parts\nRoad Test In Progress\nRoad Test Completed\nQC In Progress\nQC Failed\nRework\nCompleted\nCancelled\nDelivered"
   },
   {
    "fieldname": "column_break_header",
@@ -400,6 +400,7 @@
    "label": "Parts & Materials"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "parts",
    "fieldtype": "Table",
    "label": "Parts Requested / Issued",
@@ -809,9 +810,11 @@
    "options": "WorkShop"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "workshop.warehouse",
    "fieldname": "warehouse",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Warehouse",
    "options": "Warehouse"
   },
@@ -853,7 +856,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-28 13:27:28.803700",
+ "modified": "2026-06-12 17:00:17.399428",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",
