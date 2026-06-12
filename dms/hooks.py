@@ -80,10 +80,16 @@ fixtures = [
         "doctype": "Road Test Template"
     },
     {
+        "doctype": "Delivery Checklist Template"
+    },
+    {
         "doctype": "Bay Type"
     },
     {
         "doctype":"Working Time"
+    },
+    {
+       "doctype": "Delivery Checklist Template"
     }
 ]
 

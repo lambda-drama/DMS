@@ -111,6 +111,7 @@ def approve_parts_return(name: str):
 		frappe.throw(_("Only submitted return notes can be approved."))
 
 	jc = frappe.get_doc("DMS Job Card", doc.job_card)
+	jc.check_permission("write")
 	source_wh = get_wip_warehouse(jc.company)
 	target_wh = resolve_workshop_warehouse(jc)
 	if not source_wh:
@@ -130,21 +131,14 @@ def approve_parts_return(name: str):
 		part = part_map.get(row.job_card_part_row)
 		if not part:
 			continue
-		new_returned = flt(part.quantity_returned or 0) + qty
-		new_issued = max(0, flt(part.quantity_issued or 0) - qty)
-		line_status = part.line_status
-		if new_returned >= flt(part.quantity_issued or 0) and new_issued == 0:
-			line_status = "Returned"
-		frappe.db.set_value(
-			"Job Card Part Item",
-			row.job_card_part_row,
-			{
-				"quantity_returned": new_returned,
-				"quantity_issued": new_issued,
-				"line_status": line_status,
-			},
-			update_modified=False,
-		)
+		part.quantity_returned = flt(part.quantity_returned or 0) + qty
+		part.quantity_issued = max(0, flt(part.quantity_issued or 0) - qty)
+		if part.quantity_issued == 0 and flt(part.quantity_returned or 0) > 0:
+			part.line_status = "Returned"
+
+	jc.calculate_costing_and_totals()
+	jc.flags.ignore_validate_update_after_submit = True
+	jc.save(ignore_permissions=True)
 
 	doc.status = "Completed"
 	doc.save(ignore_permissions=True)

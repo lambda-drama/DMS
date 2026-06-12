@@ -8,3 +8,5 @@ dms.patches.sync_dealer_management_workspace
 dms.patches.migrate_vin_customer_history
 dms.patches.seed_working_time_schedules
 dms.patches.refresh_vin_warranty_from_dms_settings
+dms.patches.seed_delivery_checklist_template
+dms.patches.set_dms_template_defaults

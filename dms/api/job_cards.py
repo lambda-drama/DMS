@@ -473,8 +473,8 @@ def get_road_test_templates():
 	return frappe.get_all(
 		"Road Test Template",
 		filters={"is_active": 1},
-		fields=["name", "template_name", "template_type"],
-		order_by="template_name asc",
+		fields=["name", "template_name", "template_type", "is_default"],
+		order_by="is_default desc, template_name asc",
 	)
 
 
@@ -541,8 +541,8 @@ def get_qc_checklist_templates():
 	return frappe.get_all(
 		"QC Checklist Template",
 		filters={"is_active": 1},
-		fields=["name", "checklist_name", "checklist_type"],
-		order_by="checklist_name asc",
+		fields=["name", "checklist_name", "checklist_type", "is_default"],
+		order_by="is_default desc, checklist_name asc",
 	)
 
 

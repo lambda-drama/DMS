@@ -22,6 +22,8 @@ interface DetailSheetProps {
   isLoading?: boolean;
   onOpenInDesk?: () => void;
   footer?: React.ReactNode;
+  /** "outer" scrolls the whole body; "inner" lets children manage their own scroll regions */
+  contentScroll?: "outer" | "inner";
   children: React.ReactNode;
 }
 
@@ -34,13 +36,14 @@ export function DetailSheet({
   isLoading,
   onOpenInDesk,
   footer,
+  contentScroll = "outer",
   children,
 }: DetailSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex h-full w-full max-w-[100vw] flex-col overflow-y-auto border-l-2 border-l-dms-green p-0 sm:max-w-xl md:max-w-2xl lg:max-w-3xl"
+        className="flex h-full w-full max-w-[100vw] flex-col overflow-hidden border-l-2 border-l-dms-green p-0 sm:max-w-xl md:max-w-2xl lg:max-w-3xl"
       >
         <SheetHeader className="shrink-0 bg-dms-green-light px-4 pt-4 pb-3">
           <div className="flex flex-col gap-3 pr-8 sm:flex-row sm:items-start sm:justify-between">
@@ -69,7 +72,14 @@ export function DetailSheet({
           </div>
         ) : (
           <>
-            <div className="flex-1 px-4 pb-4 space-y-4 overflow-y-auto">{children}</div>
+            <div
+              className={cn(
+                "flex min-h-0 flex-1 flex-col px-4 pb-4",
+                contentScroll === "inner" ? "overflow-hidden" : "overflow-y-auto",
+              )}
+            >
+              {children}
+            </div>
             {footer && (
               <div className="shrink-0 border-t bg-background px-4 py-3">{footer}</div>
             )}

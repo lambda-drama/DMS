@@ -64,7 +64,14 @@ export function QCSection({ jobCard, onSaved, onChecklistState }: QCSectionProps
     jobCardsSvc
       .fetchQCChecklistTemplates()
       .then((data) => {
-        if (!cancelled) setTemplates(data);
+        if (!cancelled) {
+          setTemplates(data);
+          if (!jobCard.qc_checklist_template && !template && data.length) {
+            const defaultTpl =
+              data.find((t) => Boolean(t.is_default)) || data[0];
+            if (defaultTpl) setTemplate(defaultTpl.name);
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) toast.error("Failed to load QC templates");

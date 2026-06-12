@@ -194,6 +194,7 @@
   "effective_from": "2026-05-09",
   "effective_to": null,
   "is_active": 1,
+  "is_default": 0,
   "modified": "2026-05-09 20:14:55.624565",
   "name": "Standard Service QC",
   "version": "1.0"
@@ -319,6 +320,7 @@
   "effective_from": "2026-05-09",
   "effective_to": "2026-05-09",
   "is_active": 1,
+  "is_default": 0,
   "modified": "2026-05-09 20:20:38.295596",
   "name": "Warranty QC",
   "version": "1.0"
@@ -427,6 +429,7 @@
   "effective_from": "2026-05-09",
   "effective_to": null,
   "is_active": 1,
+  "is_default": 0,
   "modified": "2026-05-09 20:14:55.686776",
   "name": "EV/PHEV Safety QC",
   "version": "1.0"
@@ -535,6 +538,7 @@
   "effective_from": "2026-05-09",
   "effective_to": null,
   "is_active": 1,
+  "is_default": 0,
   "modified": "2026-05-09 20:14:55.701027",
   "name": "Body Repair QC",
   "version": "1.0"
@@ -656,6 +660,7 @@
   "effective_from": "2026-05-09",
   "effective_to": null,
   "is_active": 1,
+  "is_default": 0,
   "modified": "2026-05-09 20:14:55.712798",
   "name": "PDI QC",
   "version": "1.0"

@@ -1,5 +1,12 @@
 [
  {
+  "bay_type": "Quick Service Bay",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-05-17 22:57:05.051989",
+  "name": "Quick Service Bay"
+ },
+ {
   "bay_type": "General Service",
   "docstatus": 0,
   "doctype": "Bay Type",

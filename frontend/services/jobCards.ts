@@ -231,6 +231,7 @@ export interface RoadTestTemplateOption {
   name: string;
   template_name: string;
   template_type?: string;
+  is_default?: number | boolean;
 }
 
 export async function fetchRoadTestTemplates(): Promise<RoadTestTemplateOption[]> {
@@ -291,6 +292,7 @@ export interface QCChecklistTemplateOption {
   name: string;
   checklist_name: string;
   checklist_type?: string;
+  is_default?: number | boolean;
 }
 
 export async function fetchQCChecklistTemplates(): Promise<QCChecklistTemplateOption[]> {

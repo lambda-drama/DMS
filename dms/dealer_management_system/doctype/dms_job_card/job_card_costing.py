@@ -120,4 +120,13 @@ def is_part_row_billable(row) -> bool:
 
 
 def part_issue_qty(row) -> float:
-	return flt(getattr(row, "quantity_issued", None) or getattr(row, "quantity_requested", None) or 0)
+	"""Billable quantity: net issued qty, or requested minus returns when not yet issued."""
+	issued = flt(getattr(row, "quantity_issued", None) or 0)
+	if issued > 0:
+		return issued
+
+	requested = flt(getattr(row, "quantity_requested", None) or 0)
+	returned = flt(getattr(row, "quantity_returned", None) or 0)
+	if returned > 0:
+		return max(0.0, requested - returned)
+	return requested

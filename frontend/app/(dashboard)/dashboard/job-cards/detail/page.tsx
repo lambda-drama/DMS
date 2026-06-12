@@ -2,11 +2,11 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useJobCard, useServiceBays, useTechnicians } from "@/hooks/use-dms";
+import { useJobCard, useServiceBays, useServiceEstimate, useTechnicians } from "@/hooks/use-dms";
 import { canEditJobCardAssignment } from "@/lib/job-card-workflow";
 import * as jobCardsSvc from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -64,9 +64,12 @@ import {
   Send,
   Plus,
   Trash2,
+  Headphones,
+  HardHat,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { JobCardStatus, DMSJobCard, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
+import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
+import { htmlToPlainText } from "@/lib/plain-text";
 import { StatusBadge } from "@/components/job-card/status-badge";
 import { WorkflowStepper } from "@/components/job-card/workflow-stepper";
 import {
@@ -91,6 +94,7 @@ import { PartsReturnSection } from "@/components/job-card/parts-return-section";
 import { AdditionalWorkSection } from "@/components/job-card/additional-work-section";
 import { AddExtraPartSection } from "@/components/job-card/add-extra-part-section";
 import * as partsRequestsSvc from "@/services/partsRequests";
+import type { AdditionalWorkRequestSummary } from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
 import * as invoicesSvc from "@/services/invoices";
 import type { SalesInvoiceDetail } from "@/types/dms";
@@ -118,10 +122,24 @@ function collectRepairTechnicians(jobCard: DMSJobCard): string[] {
   return technicians;
 }
 
+function jobItemComplaintText(item: JobCardItem): string {
+  return htmlToPlainText(item.complaint_description || item.complaint || "").trim();
+}
+
+function richTextBlock(value?: string | null) {
+  const text = htmlToPlainText(value || "").trim();
+  if (!text) {
+    return <p className="text-sm text-muted-foreground">Not recorded</p>;
+  }
+  return <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>;
+}
+
 export default function JobCardDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
   const { data: jobCard, isLoading, error, mutate } = useJobCard(id || null);
+  const { data: linkedEstimate } = useServiceEstimate(jobCard?.service_estimate || null);
+  const [additionalWorkRequests, setAdditionalWorkRequests] = useState<AdditionalWorkRequestSummary[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [busy, setBusy] = useState(false);
 
@@ -172,10 +190,21 @@ export default function JobCardDetailPage() {
 
   useEffect(() => {
     const tab = viewParams.get("tab");
-    if (tab && ["overview", "services", "parts", "timeline"].includes(tab)) {
+    if (tab && ["overview", "services", "parts", "timeline", "service-advisor", "workshop"].includes(tab)) {
       setActiveTab(tab);
     }
   }, [id, viewParams]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    void partsRequestsSvc.listAdditionalWorkRequests(id).then((rows) => {
+      if (!cancelled) setAdditionalWorkRequests(rows || []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, partsFlowRefreshKey]);
 
   useEffect(() => {
     if (!jobCard?.name) return;
@@ -714,6 +743,32 @@ export default function JobCardDetailPage() {
   const labourTotal = jobCard.total_labor_cost || jobCard.labour?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
   const partsTotal = jobCard.total_parts_cost || jobCard.parts?.reduce((sum, p) => sum + (p.total_amount || 0), 0) || 0;
   const grandTotal = jobCard.total_amount || labourTotal + partsTotal;
+
+  const labourEstimatedHours =
+    jobCard.labour?.reduce(
+      (sum, l) => sum + (Number((l as { estimated_hours?: number }).estimated_hours) || 0),
+      0
+    ) || jobCard.estimated_duration_hours || 0;
+  const labourActualHours =
+    jobCard.total_labor_hours ||
+    jobCard.labour?.reduce(
+      (sum, l) => sum + (Number((l as { actual_hours?: number }).actual_hours) || 0),
+      0
+    ) ||
+    jobCard.actual_duration_hours ||
+    0;
+
+  const labourDiagnosisBlocks = (jobCard.labour || [])
+    .map((line) => {
+      const svc = (line as { service_name?: string; vehicle_service_item?: string }).service_name
+        || (line as { vehicle_service_item?: string }).vehicle_service_item;
+      const text = htmlToPlainText((line as { diagnosis?: string }).diagnosis || "").trim();
+      return text ? { label: svc || "Labour line", text } : null;
+    })
+    .filter(Boolean) as Array<{ label: string; text: string }>;
+
+  const estimateDiagnosis = htmlToPlainText(linkedEstimate?.diagnosis_findings || "").trim();
+  const estimateRecommended = htmlToPlainText(linkedEstimate?.recommended_repairs || "").trim();
 
   const showApprovalSignature =
     status === "Estimation Pending" &&
@@ -1254,6 +1309,8 @@ export default function JobCardDetailPage() {
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="parts">Parts</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="service-advisor">Service Advisor</TabsTrigger>
+          <TabsTrigger value="workshop">Workshop</TabsTrigger>
         </TabsList>
         </div>
 
@@ -1520,42 +1577,71 @@ export default function JobCardDetailPage() {
 
             {/* Job Items */}
             <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5" />
-                  Job Items
-                </CardTitle>
+              <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5" />
+                    Customer complaints
+                    {jobCard.job_items?.length ? (
+                      <Badge variant="secondary" className="font-normal">
+                        {jobCard.job_items.length}
+                      </Badge>
+                    ) : null}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Copied from the vehicle inspection — complaint, category, and severity per line.
+                  </p>
+                </div>
+                {jobCard.inspection && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => navigate("inspection-detail", { id: jobCard.inspection! })}
+                  >
+                    <FileText className="mr-1 h-4 w-4" />
+                    Inspection {jobCard.inspection}
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {jobCard.job_items && jobCard.job_items.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Complaint</TableHead>
-                        <TableHead>Cause</TableHead>
-                        <TableHead>Correction</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Hours</TableHead>
+                        <TableHead>#</TableHead>
+                        <TableHead>Customer complaint</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Severity</TableHead>
+                        <TableHead>Labor operation</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {jobCard.job_items.map((item, idx) => (
-                        <TableRow key={item.name || idx}>
-                          <TableCell className="font-medium">{item.complaint}</TableCell>
-                          <TableCell>{item.cause || "–"}</TableCell>
-                          <TableCell>{item.correction || "–"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{item.status || "Pending"}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {item.actual_hours ?? item.estimated_hours ?? "–"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {jobCard.job_items.map((item, idx) => {
+                        const complaint = jobItemComplaintText(item);
+                        return (
+                          <TableRow key={item.name || idx}>
+                            <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+                            <TableCell className="font-medium max-w-md whitespace-pre-wrap">
+                              {complaint || "—"}
+                            </TableCell>
+                            <TableCell>{item.symptom_category || "—"}</TableCell>
+                            <TableCell>
+                              {item.severity ? (
+                                <Badge variant="outline">{item.severity}</Badge>
+                              ) : (
+                                "—"
+                              )}
+                            </TableCell>
+                            <TableCell>{item.labor_operation || "—"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-muted-foreground">No job items recorded</p>
+                  <p className="text-muted-foreground">No complaints recorded on this job card</p>
                 )}
               </CardContent>
             </Card>
@@ -1958,6 +2044,276 @@ export default function JobCardDetailPage() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        {/* Service Advisor Tab */}
+        <TabsContent value="service-advisor" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Headphones className="h-5 w-5" />
+                Service Advisor
+              </CardTitle>
+              <CardDescription>
+                Customer-facing intake — complaints, delivery promise, and advisor notes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Service advisor</p>
+                  <p className="font-medium">{jobCard.service_advisor || "Not assigned"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Promised delivery time</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                    {jobCard.promised_delivery_date_time
+                      ? new Date(jobCard.promised_delivery_date_time).toLocaleString()
+                      : "Not set"}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Customer complaint
+                  {jobCard.job_items?.length ? (
+                    <Badge variant="secondary" className="font-normal">
+                      {jobCard.job_items.length}
+                    </Badge>
+                  ) : null}
+                </p>
+                {jobCard.job_items && jobCard.job_items.length > 0 ? (
+                  <div className="space-y-3">
+                    {jobCard.job_items.map((item, idx) => {
+                      const complaint = jobItemComplaintText(item);
+                      return (
+                        <div key={item.name || idx} className="rounded-lg border bg-muted/20 p-4">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">
+                            Complaint {idx + 1}
+                            {item.symptom_category ? ` · ${item.symptom_category}` : ""}
+                            {item.severity ? ` · ${item.severity}` : ""}
+                          </p>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {complaint || "—"}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No customer complaints on this job card.</p>
+                )}
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="text-sm font-medium mb-2">Advisor notes</p>
+                {richTextBlock(jobCard.service_advisor_notes)}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Workshop Tab */}
+        <TabsContent value="workshop" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardHat className="h-5 w-5" />
+                Workshop
+              </CardTitle>
+              <CardDescription>
+                Technician assignment, diagnosis, labour time, and findings during repair.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <Wrench className="h-4 w-4" />
+                  Technician assigned
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Lead technician</p>
+                    <p className="font-medium">
+                      {jobCard.lead_technician_name || jobCard.lead_technician || "Not assigned"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Service bay</p>
+                    <p className="font-medium">{jobCard.assigned_bay || "Not assigned"}</p>
+                  </div>
+                </div>
+                {jobCard.assistant_technicians && jobCard.assistant_technicians.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-muted-foreground mb-2">Assistants</p>
+                    <div className="flex flex-wrap gap-2">
+                      {jobCard.assistant_technicians.map((a) => (
+                        <Badge key={a.name} variant="outline">
+                          {a.technician_name || a.technician}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="text-sm font-medium mb-2">Diagnosis</p>
+                {estimateDiagnosis && (
+                  <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      From service estimate
+                      {jobCard.service_estimate ? ` (${jobCard.service_estimate})` : ""}
+                    </p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{estimateDiagnosis}</p>
+                    {estimateRecommended && (
+                      <>
+                        <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">
+                          Recommended repairs
+                        </p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{estimateRecommended}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+                {labourDiagnosisBlocks.length > 0 ? (
+                  <div className="space-y-3">
+                    {labourDiagnosisBlocks.map((block, idx) => (
+                      <div key={idx} className="rounded-lg border p-4">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">{block.label}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{block.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : !estimateDiagnosis ? (
+                  <p className="text-sm text-muted-foreground">No diagnosis recorded yet.</p>
+                ) : null}
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Labor time
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Estimated (labour lines)</p>
+                    <p className="text-lg font-semibold">
+                      {labourEstimatedHours ? `${labourEstimatedHours.toFixed(1)} hrs` : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Actual (logged)</p>
+                    <p className="text-lg font-semibold">
+                      {labourActualHours ? `${Number(labourActualHours).toFixed(1)} hrs` : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Job duration</p>
+                    <p className="text-lg font-semibold">
+                      {jobCard.actual_duration_hours
+                        ? `${jobCard.actual_duration_hours} hrs`
+                        : jobCard.estimated_duration_hours
+                          ? `${jobCard.estimated_duration_hours} hrs est.`
+                          : "—"}
+                    </p>
+                  </div>
+                </div>
+                {jobCard.labour && jobCard.labour.length > 0 && (
+                  <div className="mt-4 dms-table-panel">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Operation</TableHead>
+                          <TableHead>Technician</TableHead>
+                          <TableHead className="text-right">Est. hrs</TableHead>
+                          <TableHead className="text-right">Actual hrs</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {jobCard.labour.map((line, idx) => (
+                          <TableRow key={line.name || idx}>
+                            <TableCell className="font-medium">
+                              {(line as { service_name?: string }).service_name
+                                || (line as { vehicle_service_item?: string }).vehicle_service_item
+                                || "—"}
+                            </TableCell>
+                            <TableCell>{line.technician || "—"}</TableCell>
+                            <TableCell className="text-right">
+                              {(line as { estimated_hours?: number }).estimated_hours ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(line as { actual_hours?: number }).actual_hours ?? "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Additional findings
+                </p>
+                <div className="space-y-4">
+                  {jobCard.internal_notes && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Workshop internal notes</p>
+                      {richTextBlock(jobCard.internal_notes)}
+                    </div>
+                  )}
+                  {jobCard.road_test_note && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Road test notes</p>
+                      {richTextBlock(jobCard.road_test_note)}
+                    </div>
+                  )}
+                  {additionalWorkRequests.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        Additional work discovered
+                      </p>
+                      <div className="space-y-2">
+                        {additionalWorkRequests.map((awr) => (
+                          <div key={awr.name} className="rounded-lg border p-3">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <span className="text-sm font-medium">{awr.name}</span>
+                              <Badge variant="outline">{awr.status}</Badge>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap">{awr.description || "—"}</p>
+                            {awr.reason && (
+                              <p className="text-xs text-muted-foreground mt-1">Reason: {awr.reason}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {!jobCard.internal_notes &&
+                    !jobCard.road_test_note &&
+                    additionalWorkRequests.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No additional findings recorded.</p>
+                    )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

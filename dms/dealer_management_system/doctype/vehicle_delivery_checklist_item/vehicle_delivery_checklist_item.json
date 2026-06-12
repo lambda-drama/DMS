@@ -11,9 +11,8 @@
 "fields": [
   {
    "fieldname": "check_item",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "label": "Check Item",
-   "options": "Vehicle interior cleaned\nVehicle exterior washed/wiped\nNo tools/parts left inside vehicle\nPersonal items returned to customer\nAll keys returned (quantity checked)\nRemote/key fob working\nOwner manual/service booklet in glovebox\nWarranty booklet stamped/updated\nService reminder sticker applied\nInvoice explained and copy given\nNext service due communicated\nVehicle damage explained (if any)\nFuel level confirmed\nAny warning lights on?\nTest drive completed with customer (if requested)\nCustomer satisfied with repair",
    "reqd": 1,
    "in_list_view": 1,
    "columns": 4

@@ -9,6 +9,7 @@
   "checklist_name",
   "checklist_type",
   "is_active",
+  "is_default",
   "applicable_vehicle_models",
   "column_break_header",
   "version",
@@ -45,6 +46,14 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Is Active"
+  },
+  {
+   "default": "0",
+   "description": "Only one template can be default. Auto-selected on new QC checklists.",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Default"
   },
   {
    "description": "Leave empty for all models",

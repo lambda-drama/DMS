@@ -769,9 +769,18 @@ function refresh_part_unit_price(frm, cdt, cdn) {
     });
 }
 
+function part_issue_qty_row(row) {
+    const issued = flt(row.quantity_issued || 0);
+    if (issued > 0) return issued;
+    const requested = flt(row.quantity_requested || 0);
+    const returned = flt(row.quantity_returned || 0);
+    if (returned > 0) return Math.max(0, requested - returned);
+    return requested;
+}
+
 function update_part_total(frm, cdt, cdn) {
     const row = frappe.get_doc(cdt, cdn);
-    const qty = flt(row.quantity_issued || row.quantity_requested || 0);
+    const qty = part_issue_qty_row(row);
     const rate = flt(row.unit_price || 0);
     frappe.model.set_value(cdt, cdn, "total_amount", flt(qty * rate, 2)).then(() => {
         update_job_card_parts_total(frm);
