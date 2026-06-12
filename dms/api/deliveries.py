@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 
+from dms.dealer_management_system.utils.template_defaults import get_default_template_name
 
 DEFAULT_DELIVERY_CHECKLIST_ITEMS = [
 	"Vehicle interior cleaned",
@@ -22,10 +23,51 @@ DEFAULT_DELIVERY_CHECKLIST_ITEMS = [
 ]
 
 
+def _checklist_items_from_template(template_name: str | None) -> tuple[str | None, list[str]]:
+	if not template_name:
+		template_name = get_default_template_name("Delivery Checklist Template")
+	if not template_name:
+		return None, list(DEFAULT_DELIVERY_CHECKLIST_ITEMS)
+
+	doc = frappe.get_doc("Delivery Checklist Template", template_name)
+	items = [row.check_item for row in doc.checklist_items or [] if (row.check_item or "").strip()]
+	if not items:
+		return template_name, list(DEFAULT_DELIVERY_CHECKLIST_ITEMS)
+	return template_name, items
+
+
+@frappe.whitelist()
+def get_delivery_checklist_templates():
+	"""Active delivery checklist templates for the UI picker."""
+	return frappe.get_all(
+		"Delivery Checklist Template",
+		filters={"is_active": 1},
+		fields=["name", "template_name", "is_default", "description", "version"],
+		order_by="is_default desc, template_name asc",
+	)
+
+
+@frappe.whitelist()
+def get_delivery_checklist_template_items(template=None):
+	"""Return checklist line labels for a template (default template if omitted)."""
+	template_name, items = _checklist_items_from_template(template)
+	display_name = None
+	if template_name:
+		display_name = frappe.db.get_value(
+			"Delivery Checklist Template", template_name, "template_name"
+		)
+	return {
+		"template": template_name,
+		"template_name": display_name,
+		"items": items,
+	}
+
+
 @frappe.whitelist()
 def get_delivery_checklist_items():
-	"""Default delivery checklist rows (matches Vehicle Delivery Checklist Item options)."""
-	return DEFAULT_DELIVERY_CHECKLIST_ITEMS
+	"""Backward-compatible: default template items as a plain list."""
+	_, items = _checklist_items_from_template(None)
+	return items
 
 
 @frappe.whitelist()
@@ -103,6 +145,10 @@ def create_delivery(data):
 		time_part = (data.get("delivery_time") or "00:00").strip()
 		delivery_dt = f"{data['delivery_date']} {time_part}:00"
 
+	template_name, template_items = _checklist_items_from_template(
+		data.get("delivery_checklist_template")
+	)
+
 	doc = frappe.get_doc({
 		"doctype": "Vehicle Delivery Note",
 		"job_card": job_card.name,
@@ -111,6 +157,7 @@ def create_delivery(data):
 		"delivered_by": data.get("delivered_by") or frappe.session.user,
 		"delivery_date_time": delivery_dt or frappe.utils.now_datetime(),
 		"status": data.get("status") or "Completed",
+		"delivery_checklist_template": template_name,
 		"final_odometer_km": data.get("final_odometer_km") or data.get("final_odometer"),
 		"final_fuel_level": data.get("final_fuel_level") or "1/2",
 		"vehicle_condition": data.get("vehicle_condition") or "Good",
@@ -150,7 +197,7 @@ def create_delivery(data):
 		if isinstance(completed, str):
 			import json
 			completed = json.loads(completed)
-		for item in DEFAULT_DELIVERY_CHECKLIST_ITEMS:
+		for item in template_items:
 			doc.append("delivery_checklist", {
 				"check_item": item,
 				"is_completed": 1 if completed.get(item) else 0,

@@ -73,7 +73,14 @@ export function RoadTestSection({ jobCard, onSaved, onChecklistState }: RoadTest
     jobCardsSvc
       .fetchRoadTestTemplates()
       .then((data) => {
-        if (!cancelled) setTemplates(data);
+        if (!cancelled) {
+          setTemplates(data);
+          if (!jobCard.road_test_template && !template && data.length) {
+            const defaultTpl =
+              data.find((t) => Boolean(t.is_default)) || data[0];
+            if (defaultTpl) setTemplate(defaultTpl.name);
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) toast.error("Failed to load road test templates");

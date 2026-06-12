@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useJobCards, useJobCard } from "@/hooks/use-dms";
-import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
+import { DetailSheet } from "@/components/detail-sheet";
+import { JobCardDetailSheetContent } from "@/components/job-card/job-card-detail-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -561,51 +562,18 @@ export default function JobCardsPage() {
         subtitle={selectedJobCard?.customer_name}
         badge={selectedJobCard ? { label: selectedJobCard.status } : undefined}
         isLoading={detailLoading}
+        contentScroll="inner"
         onOpenInDesk={() => window.open(`/app/dms-job-card/${selectedId}`, '_blank')}
       >
-        {selectedJobCard && (
-          <>
-            <DetailSection title="Customer & Vehicle">
-              <DetailRow label="Customer" value={selectedJobCard.customer_name} />
-              <DetailRow label="Vehicle" value={selectedJobCard.vehicle_model} />
-              <DetailRow label="License Plate" value={selectedJobCard.license_plate} />
-              <DetailRow label="VIN" value={selectedJobCard.vehicle_vin} />
-              <DetailRow label="Odometer" value={selectedJobCard.current_odometer ? `${selectedJobCard.current_odometer} km` : undefined} />
-            </DetailSection>
-            <DetailSection title="Service Details">
-              <DetailRow label="Type" value={selectedJobCard.job_card_type} />
-              <DetailRow label="Priority" value={selectedJobCard.priority} />
-              <DetailRow label="Service Advisor" value={selectedJobCard.service_advisor} />
-              <DetailRow label="Lead Technician" value={selectedJobCard.lead_technician_name || selectedJobCard.lead_technician} />
-              <DetailRow label="Service Bay" value={selectedJobCard.assigned_bay} />
-              <DetailRow label="Warranty" value={selectedJobCard.warranty_status} />
-            </DetailSection>
-            <DetailSection title="Timing">
-              <DetailRow label="Opened" value={selectedJobCard.opened_date_time ? new Date(selectedJobCard.opened_date_time).toLocaleString() : undefined} />
-              <DetailRow label="Promised Delivery" value={selectedJobCard.promised_delivery_date_time ? new Date(selectedJobCard.promised_delivery_date_time).toLocaleString() : undefined} />
-              <DetailRow label="Completed" value={selectedJobCard.completed_date_time ? new Date(selectedJobCard.completed_date_time).toLocaleString() : undefined} />
-              <DetailRow label="Est. Duration" value={selectedJobCard.estimated_duration_hours ? `${selectedJobCard.estimated_duration_hours} hrs` : undefined} />
-              <DetailRow label="Actual Duration" value={selectedJobCard.actual_duration_hours ? `${selectedJobCard.actual_duration_hours} hrs` : undefined} />
-            </DetailSection>
-            <DetailSection title="Financials">
-              <DetailRow label="Labor Cost" value={selectedJobCard.total_labor_cost?.toLocaleString()} />
-              <DetailRow label="Parts Cost" value={selectedJobCard.total_parts_cost?.toLocaleString()} />
-              <DetailRow label="Total Amount" value={selectedJobCard.total_amount?.toLocaleString()} />
-              <DetailRow label="Approval Status" value={selectedJobCard.customer_approval_status} />
-              <DetailRow label="Payment Status" value={selectedJobCard.payment_status} />
-              <DetailRow label="Invoice" value={selectedJobCard.invoice} />
-            </DetailSection>
-            {selectedJobCard.customer_complaint_summary && (
-              <DetailSection title="Customer Complaints">
-                <p className="text-sm">{selectedJobCard.customer_complaint_summary}</p>
-              </DetailSection>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => { setSelectedId(null); navigate('job-card-detail', { id: selectedId! }); }}>
-                Open Full Details
-              </Button>
-            </div>
-          </>
+        {selectedJobCard && selectedId && (
+          <JobCardDetailSheetContent
+            key={selectedId}
+            jobCard={selectedJobCard}
+            onOpenFullDetails={() => {
+              setSelectedId(null);
+              navigate("job-card-detail", { id: selectedId });
+            }}
+          />
         )}
       </DetailSheet>
     </div>

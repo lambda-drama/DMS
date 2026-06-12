@@ -26,6 +26,7 @@
   "new_damage_notes",
   "new_damage_photo",
   "section_delivery_checklist",
+  "delivery_checklist_template",
   "delivery_checklist",
   "section_parts_return",
   "replaced_parts",
@@ -186,6 +187,13 @@
    "fieldname": "section_delivery_checklist",
    "fieldtype": "Section Break",
    "label": "Delivery Checklist"
+  },
+  {
+   "description": "Template used for this delivery checklist",
+   "fieldname": "delivery_checklist_template",
+   "fieldtype": "Link",
+   "label": "Delivery Checklist Template",
+   "options": "Delivery Checklist Template"
   },
   {
    "description": "Confirm each item before delivery",

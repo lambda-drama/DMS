@@ -21,27 +21,9 @@ import {
 import { SignaturePad } from "@/components/signature-pad";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { uploadFile } from "@/services/common";
-import { ArrowLeft, Truck, Car, User, FileText, CheckCircle2, PenLine } from "lucide-react";
+import * as deliveriesSvc from "@/services/deliveries";
+import { ArrowLeft, Truck, Car, User, FileText, CheckCircle2, PenLine, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-const DELIVERY_CHECKLIST_ITEMS = [
-  "Vehicle interior cleaned",
-  "Vehicle exterior washed/wiped",
-  "No tools/parts left inside vehicle",
-  "Personal items returned to customer",
-  "All keys returned (quantity checked)",
-  "Remote/key fob working",
-  "Owner manual/service booklet in glovebox",
-  "Warranty booklet stamped/updated",
-  "Service reminder sticker applied",
-  "Invoice explained and copy given",
-  "Next service due communicated",
-  "Vehicle damage explained (if any)",
-  "Fuel level confirmed",
-  "Any warning lights on?",
-  "Test drive completed with customer (if requested)",
-  "Customer satisfied with repair",
-];
 
 const FUEL_LEVELS = ["Empty", "1/8", "1/4", "3/8", "1/2", "5/8", "3/4", "7/8", "Full"];
 const VEHICLE_CONDITIONS = ["Excellent", "Good", "Fair", "Customer Reported New Damage"];
@@ -119,9 +101,59 @@ export default function NewDeliveryPage() {
   const [deliveredBySignatureUrl, setDeliveredBySignatureUrl] = useState("");
   const [signatureUploading, setSignatureUploading] = useState<"customer" | "staff" | null>(null);
 
-  const [checklistItems, setChecklistItems] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(DELIVERY_CHECKLIST_ITEMS.map((item) => [item, false]))
-  );
+  const [checklistTemplates, setChecklistTemplates] = useState<
+    deliveriesSvc.DeliveryChecklistTemplateOption[]
+  >([]);
+  const [checklistTemplateId, setChecklistTemplateId] = useState("");
+  const [checklistItemLabels, setChecklistItemLabels] = useState<string[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(true);
+  const [checklistItems, setChecklistItems] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    setChecklistLoading(true);
+    Promise.all([
+      deliveriesSvc.fetchDeliveryChecklistTemplates(),
+      deliveriesSvc.fetchDeliveryChecklistTemplateItems(),
+    ])
+      .then(([templates, defaultItems]) => {
+        if (cancelled) return;
+        setChecklistTemplates(templates);
+        const defaultTpl =
+          templates.find((t) => Boolean(t.is_default)) || templates[0];
+        const templateId = defaultTpl?.name || defaultItems.template || "";
+        setChecklistTemplateId(templateId);
+        const labels = defaultItems.items || [];
+        setChecklistItemLabels(labels);
+        setChecklistItems(Object.fromEntries(labels.map((item) => [item, false])));
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Failed to load delivery checklist template");
+      })
+      .finally(() => {
+        if (!cancelled) setChecklistLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const loadChecklistFromTemplate = async (templateId: string) => {
+    setChecklistLoading(true);
+    try {
+      const result = await deliveriesSvc.fetchDeliveryChecklistTemplateItems(
+        templateId || undefined
+      );
+      const labels = result.items || [];
+      setChecklistItemLabels(labels);
+      setChecklistItems(Object.fromEntries(labels.map((item) => [item, false])));
+      setChecklistTemplateId(result.template || templateId);
+    } catch {
+      toast.error("Failed to load checklist from template");
+    } finally {
+      setChecklistLoading(false);
+    }
+  };
 
   const customerDisplayName = jobCard?.customer_name || jobCard?.customer || "";
   const customerMobile =
@@ -135,8 +167,10 @@ export default function NewDeliveryPage() {
   }, [jobCard?.name, jobCard?.current_odometer]);
 
   const allChecklistCompleted = useMemo(
-    () => Object.values(checklistItems).every(Boolean),
-    [checklistItems]
+    () =>
+      checklistItemLabels.length > 0 &&
+      checklistItemLabels.every((item) => checklistItems[item]),
+    [checklistItemLabels, checklistItems]
   );
 
   const canSubmit =
@@ -202,6 +236,7 @@ export default function NewDeliveryPage() {
         customer_signature: customerSignatureUrl,
         delivered_by_signature: deliveredBySignatureUrl,
         delivery_notes: deliveryNotes || undefined,
+        delivery_checklist_template: checklistTemplateId || undefined,
         checklist_completed: checklistItems,
         submit: true,
       });
@@ -489,28 +524,60 @@ export default function NewDeliveryPage() {
             </CardTitle>
             <CardDescription>Complete all items before handing over the vehicle</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-3">
-              {DELIVERY_CHECKLIST_ITEMS.map((item) => (
-                <label
-                  key={item}
-                  className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
-                >
-                  <Checkbox
-                    checked={checklistItems[item]}
-                    onCheckedChange={(checked) =>
-                      setChecklistItems((prev) => ({ ...prev, [item]: !!checked }))
-                    }
-                  />
-                  <span className="text-sm leading-snug">{item}</span>
-                </label>
-              ))}
+          <CardContent className="space-y-4">
+            <div className="space-y-2 max-w-lg">
+              <Label>Checklist template</Label>
+              <Select
+                value={checklistTemplateId}
+                onValueChange={(value) => {
+                  setChecklistTemplateId(value);
+                  void loadChecklistFromTemplate(value);
+                }}
+                disabled={checklistLoading || checklistTemplates.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select checklist template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {checklistTemplates.map((tpl) => (
+                    <SelectItem key={tpl.name} value={tpl.name}>
+                      {tpl.template_name}
+                      {tpl.is_default ? " (Default)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Separator className="my-4" />
-            <p className="text-sm text-muted-foreground">
-              {Object.values(checklistItems).filter(Boolean).length} of{" "}
-              {DELIVERY_CHECKLIST_ITEMS.length} completed
-            </p>
+            {checklistLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading checklist…
+              </div>
+            ) : (
+              <>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {checklistItemLabels.map((item) => (
+                    <label
+                      key={item}
+                      className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={checklistItems[item]}
+                        onCheckedChange={(checked) =>
+                          setChecklistItems((prev) => ({ ...prev, [item]: !!checked }))
+                        }
+                      />
+                      <span className="text-sm leading-snug">{item}</span>
+                    </label>
+                  ))}
+                </div>
+                <Separator className="my-4" />
+                <p className="text-sm text-muted-foreground">
+                  {Object.values(checklistItems).filter(Boolean).length} of{" "}
+                  {checklistItemLabels.length} completed
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 

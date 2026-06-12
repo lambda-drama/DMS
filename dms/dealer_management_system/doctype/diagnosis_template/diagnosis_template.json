@@ -9,6 +9,7 @@
   "template_name",
   "template_type",
   "is_active",
+  "is_default",
   "section_items",
   "diagnosis_items",
   "section_notes",
@@ -38,6 +39,14 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Is Active"
+  },
+  {
+   "default": "0",
+   "description": "Only one template can be default. Auto-selected on new diagnoses.",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Default"
   },
   {
    "fieldname": "section_items",

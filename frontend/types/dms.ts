@@ -515,7 +515,13 @@ export interface DMSServiceEstimate {
 
 export interface JobCardItem {
   name: string;
-  complaint: string;
+  /** Customer words from inspection (Job Card Item field) */
+  complaint_description?: string;
+  /** Legacy alias — prefer complaint_description */
+  complaint?: string;
+  symptom_category?: string;
+  severity?: string;
+  labor_operation?: string;
   cause?: string;
   correction?: string;
   labor_type?: string;

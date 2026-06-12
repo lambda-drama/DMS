@@ -1,5 +1,25 @@
 [
  {
+  "description": "Saturday 8:30am–12:30pm (no lunch break)",
+  "docstatus": 0,
+  "doctype": "Working Time",
+  "modified": "2026-05-20 03:35:45.972375",
+  "name": "Saturday Half Day",
+  "schedule": "Saturday Half Day",
+  "weekly_schedule": [
+   {
+    "day_of_week": "Saturday",
+    "end_time": "12:30:00",
+    "has_lunch_break": 0,
+    "is_half_day": 1,
+    "lunch_end": null,
+    "lunch_start": null,
+    "notes": null,
+    "start_time": "8:30:00"
+   }
+  ]
+ },
+ {
   "description": null,
   "docstatus": 0,
   "doctype": "Working Time",

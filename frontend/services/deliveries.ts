@@ -56,3 +56,29 @@ export async function submitDelivery(name: string): Promise<{ name: string; docs
     body: JSON.stringify({ name }),
   });
 }
+
+export interface DeliveryChecklistTemplateOption {
+  name: string;
+  template_name: string;
+  is_default?: number | boolean;
+  description?: string;
+  version?: string;
+}
+
+export async function fetchDeliveryChecklistTemplates(): Promise<DeliveryChecklistTemplateOption[]> {
+  return apiRequest(`/api/method/${API}.get_delivery_checklist_templates`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export async function fetchDeliveryChecklistTemplateItems(template?: string): Promise<{
+  template: string | null;
+  template_name?: string | null;
+  items: string[];
+}> {
+  return apiRequest(`/api/method/${API}.get_delivery_checklist_template_items`, {
+    method: 'POST',
+    body: JSON.stringify({ template: template || null }),
+  });
+}
