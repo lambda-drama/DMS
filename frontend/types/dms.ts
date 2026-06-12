@@ -331,6 +331,7 @@ export interface VehicleInspection {
   company_name?: string;
   appointment?: string;
   job_card?: string;
+  service_estimate?: string;
   inspection_date: string;
   inspection_completed_date?: string;
   customer_present: boolean;
@@ -440,6 +441,61 @@ export interface ServicePackageLinesResponse {
   parts: ServicePackagePartLine[];
 }
 
+// ============ DMS SERVICE ESTIMATE ============
+
+export type ServiceEstimateStatus =
+  | 'Draft'
+  | 'Diagnosis In Progress'
+  | 'Diagnosis Complete'
+  | 'Estimation In Progress'
+  | 'Pending Customer Approval'
+  | 'Accepted'
+  | 'Rejected'
+  | 'Cancelled';
+
+export type ServiceEstimateDecision = 'Pending' | 'Accepted' | 'Rejected';
+
+export interface DMSServiceEstimate {
+  name: string;
+  status: ServiceEstimateStatus;
+  posting_date?: string;
+  company?: string;
+  currency?: string;
+  inspection?: string;
+  appointment?: string;
+  job_card?: string;
+  diagnostic_invoice?: string;
+  customer: string;
+  customer_name?: string;
+  vehicle_vin: string;
+  vehicle_model?: string;
+  license_plate?: string;
+  service_advisor?: string;
+  diagnostic_fee?: number;
+  diagnostic_fee_voided?: number | boolean;
+  diagnosis_completed_date?: string;
+  /** Problems found during diagnosis */
+  diagnosis_findings?: string;
+  /** Recommended work to fix diagnosed problems */
+  recommended_repairs?: string;
+  labour?: VehicleLabourItem[];
+  parts?: JobCardPartItem[];
+  total_labor_cost?: number;
+  total_parts_cost?: number;
+  total_before_vat?: number;
+  vat_rate?: number;
+  vat_amount?: number;
+  grand_total?: number;
+  customer_decision?: ServiceEstimateDecision;
+  decision_date?: string;
+  customer_signature?: string;
+  rejection_signature?: string;
+  service_advisor_notes?: string;
+  internal_notes?: string;
+  creation?: string;
+  modified?: string;
+}
+
 // ============ DMS JOB CARD ============
 
 export interface JobCardItem {
@@ -547,6 +603,7 @@ export interface DMSJobCard {
   current_odometer?: number;
   appointment?: string;
   inspection: string;
+  service_estimate?: string;
   warranty_status?: string;
   warranty_expiry_date?: string;
   warranty_application_type?: WarrantyApplicationType;

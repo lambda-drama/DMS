@@ -278,7 +278,7 @@ and direct frappe.db operations for child table rows.
 import frappe
 import json
 from frappe import _
-from frappe.utils import get_datetime, now_datetime, flt
+from frappe.utils import add_to_date, get_datetime, now_datetime, flt
 
 
 def _time_log_has_active_end(end_time) -> bool:
@@ -362,11 +362,47 @@ def _technicians_from_time_log_payload(time_logs, doc):
 	return _repair_technicians(doc)
 
 
+def _validate_required_for_repair_submit(doc):
+	missing = []
+	if not doc.lead_technician:
+		missing.append(_("Lead Technician"))
+	if not doc.service_advisor:
+		missing.append(_("Service Advisor"))
+	if missing:
+		frappe.throw(
+			_("Please fill in the following before starting repair: {0}").format(", ".join(missing))
+		)
+
+
+def _ensure_job_card_submitted_for_repair(doc):
+	"""Submit draft job cards when repair starts (schedule times auto-filled if missing)."""
+	if doc.docstatus == 1:
+		return doc
+
+	doc.check_permission("submit")
+	_validate_required_for_repair_submit(doc)
+
+	if not doc.schedule_start_time:
+		doc.schedule_start_time = now_datetime()
+	if not doc.schedule_end_time:
+		end = doc.promised_delivery_date_time
+		if not end and flt(doc.estimated_duration_hours):
+			end = add_to_date(doc.schedule_start_time, hours=flt(doc.estimated_duration_hours))
+		if not end:
+			end = add_to_date(doc.schedule_start_time, hours=48)
+		doc.schedule_end_time = end
+
+	doc.save()
+	doc.submit()
+	doc.reload()
+	return doc
+
+
 @frappe.whitelist()
 def start_repair(job_card, time_logs=None):
 	doc = frappe.get_doc("DMS Job Card", job_card)
-	if doc.docstatus != 1:
-		frappe.throw(_("Job Card must be submitted before starting repair."))
+	doc.check_permission("write")
+	doc = _ensure_job_card_submitted_for_repair(doc)
 
 	if isinstance(time_logs, str):
 		time_logs = json.loads(time_logs) if time_logs else []
@@ -414,8 +450,8 @@ def start_repair(job_card, time_logs=None):
 def resume_repair(job_card):
 	"""Resume repair after pause — append new open time logs without deleting history."""
 	doc = frappe.get_doc("DMS Job Card", job_card)
-	if doc.docstatus != 1:
-		frappe.throw(_("Job Card must be submitted before resuming repair."))
+	doc.check_permission("write")
+	doc = _ensure_job_card_submitted_for_repair(doc)
 
 	technicians = _repair_technicians(doc)
 	if not technicians:

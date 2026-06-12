@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { PermittedCreateButton } from '@/components/permitted-create-button';
 import { useInspections, useInspection } from '@/hooks/use-dms';
@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import * as estimatesSvc from '@/services/serviceEstimates';
+import { canStartDiagnosis, normalizeInspectionDocstatus } from '@/lib/inspection-workflow';
 import {
   Select,
   SelectContent,
@@ -44,6 +47,7 @@ import {
   FileText,
   ChevronDown,
   BarChart3,
+  Stethoscope,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ListRowActions } from '@/components/list-row-actions';
@@ -57,6 +61,24 @@ export default function InspectionsPage() {
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const [startingDiagnosisId, setStartingDiagnosisId] = useState<string | null>(null);
+
+  const handleStartDiagnosis = useCallback(
+    async (inspectionId: string) => {
+      setStartingDiagnosisId(inspectionId);
+      try {
+        const estimateName = await estimatesSvc.makeFromInspection(inspectionId);
+        toast.success('Service estimate created — add diagnosis findings');
+        setSelectedId(null);
+        navigate('estimate-detail', { id: estimateName });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Failed to start diagnosis');
+      } finally {
+        setStartingDiagnosisId(null);
+      }
+    },
+    [navigate]
+  );
 
   const { data: selectedInspection, isLoading: detailLoading } = useInspection(selectedId);
 
@@ -80,8 +102,8 @@ export default function InspectionsPage() {
 
     const matchesStatus =
       statusFilter === 'all' ||
-      (statusFilter === 'draft' && insp.docstatus === 0) ||
-      (statusFilter === 'submitted' && insp.docstatus === 1);
+      (statusFilter === 'draft' && normalizeInspectionDocstatus(insp.docstatus) === 0) ||
+      (statusFilter === 'submitted' && normalizeInspectionDocstatus(insp.docstatus) === 1);
 
     return matchesSearch && matchesStatus;
   });
@@ -91,7 +113,7 @@ export default function InspectionsPage() {
       format(new Date(insp.inspection_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   ).length;
 
-  const pendingCount = inspections.filter((insp) => insp.docstatus === 0).length;
+  const pendingCount = inspections.filter((insp) => normalizeInspectionDocstatus(insp.docstatus) === 0).length;
   const issuesCount = inspections.reduce(
     (acc, insp) => acc + (insp.customer_complaints?.length || 0),
     0
@@ -190,12 +212,12 @@ export default function InspectionsPage() {
                       <Badge
                         variant="outline"
                         className={
-                          insp.docstatus === 1
+                          normalizeInspectionDocstatus(insp.docstatus) === 1
                             ? 'bg-chart-3/10 text-chart-3 border-chart-3/20'
                             : 'bg-chart-4/10 text-chart-4 border-chart-4/20'
                         }
                       >
-                        {insp.docstatus === 1 ? 'Submitted' : 'Draft'}
+                        {normalizeInspectionDocstatus(insp.docstatus) === 1 ? 'Submitted' : 'Draft'}
                       </Badge>
                       {(insp.warning_lights?.length || 0) > 0 ? (
                         <Badge
@@ -208,7 +230,7 @@ export default function InspectionsPage() {
                       ) : null}
                       <div className="mt-auto">
                         <ListRowActions doctype="Vehicle Inspection" docName={insp.name}>
-                          {(insp.docstatus === 0 || (insp.docstatus === 1 && !insp.job_card)) && (
+                          {(normalizeInspectionDocstatus(insp.docstatus) === 0 || (normalizeInspectionDocstatus(insp.docstatus) === 1 && !insp.job_card)) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="shrink-0">
@@ -216,7 +238,7 @@ export default function InspectionsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {insp.docstatus === 0 && (
+                                {normalizeInspectionDocstatus(insp.docstatus) === 0 && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       navigate('inspection-detail', { id: insp.name, mode: 'edit' })
@@ -225,14 +247,21 @@ export default function InspectionsPage() {
                                     Continue Editing
                                   </DropdownMenuItem>
                                 )}
-                                {insp.docstatus === 1 && !insp.job_card && (
+                                {canStartDiagnosis(insp) && (
                                   <DropdownMenuItem
                                     className="text-primary"
+                                    onClick={() => handleStartDiagnosis(insp.name)}
+                                  >
+                                    Start diagnosis
+                                  </DropdownMenuItem>
+                                )}
+                                {insp.service_estimate && (
+                                  <DropdownMenuItem
                                     onClick={() =>
-                                      navigate('job-card-new', { inspection: insp.name })
+                                      navigate('estimate-detail', { id: insp.service_estimate! })
                                     }
                                   >
-                                    Create Job Card
+                                    View service estimate
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
@@ -251,6 +280,27 @@ export default function InspectionsPage() {
                       <FileText className="h-4 w-4" />
                       {insp.job_card}
                     </button>
+                  ) : null}
+                  {canStartDiagnosis(insp) ? (
+                    <Button
+                      size="sm"
+                      className="mt-3 w-full"
+                      disabled={startingDiagnosisId === insp.name}
+                      onClick={() => handleStartDiagnosis(insp.name)}
+                    >
+                      <Stethoscope className="mr-2 h-4 w-4" />
+                      {startingDiagnosisId === insp.name ? 'Creating…' : 'Start diagnosis'}
+                    </Button>
+                  ) : null}
+                  {insp.service_estimate && !insp.job_card ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 w-full"
+                      onClick={() => navigate('estimate-detail', { id: insp.service_estimate! })}
+                    >
+                      View service estimate
+                    </Button>
                   ) : null}
                 </div>
                 ))}
@@ -348,12 +398,12 @@ export default function InspectionsPage() {
                       <Badge
                         variant="outline"
                         className={
-                          insp.docstatus === 1
+                          normalizeInspectionDocstatus(insp.docstatus) === 1
                             ? 'bg-chart-3/10 text-chart-3 border-chart-3/20'
                             : 'bg-chart-4/10 text-chart-4 border-chart-4/20'
                         }
                       >
-                        {insp.docstatus === 1 ? 'Submitted' : 'Draft'}
+                        {normalizeInspectionDocstatus(insp.docstatus) === 1 ? 'Submitted' : 'Draft'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -371,7 +421,7 @@ export default function InspectionsPage() {
                     </TableCell>
                     <TableCell>
                       <ListRowActions doctype="Vehicle Inspection" docName={insp.name}>
-                        {(insp.docstatus === 0 || (insp.docstatus === 1 && !insp.job_card)) && (
+                        {(normalizeInspectionDocstatus(insp.docstatus) === 0 || (normalizeInspectionDocstatus(insp.docstatus) === 1 && !insp.job_card)) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
@@ -379,17 +429,26 @@ export default function InspectionsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {insp.docstatus === 0 && (
+                              {normalizeInspectionDocstatus(insp.docstatus) === 0 && (
                                 <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name, mode: 'edit' })}>
                                   Continue Editing
                                 </DropdownMenuItem>
                               )}
-                              {insp.docstatus === 1 && !insp.job_card && (
+                              {canStartDiagnosis(insp) && (
                                 <DropdownMenuItem
                                   className="text-primary"
-                                  onClick={() => navigate('job-card-new', { inspection: insp.name })}
+                                  onClick={() => handleStartDiagnosis(insp.name)}
                                 >
-                                  Create Job Card
+                                  Start diagnosis
+                                </DropdownMenuItem>
+                              )}
+                              {insp.service_estimate && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate('estimate-detail', { id: insp.service_estimate! })
+                                  }
+                                >
+                                  View service estimate
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
@@ -511,7 +570,7 @@ export default function InspectionsPage() {
         onOpenChange={(open) => { if (!open) setSelectedId(null); }}
         title={selectedId || ""}
         subtitle={selectedInspection?.customer}
-        badge={selectedInspection ? { label: selectedInspection.docstatus === 1 ? "Submitted" : "Draft" } : undefined}
+        badge={selectedInspection ? { label: normalizeInspectionDocstatus(selectedInspection.docstatus) === 1 ? "Submitted" : "Draft" } : undefined}
         isLoading={detailLoading}
         onOpenInDesk={() => window.open(`/app/vehicle-inspection/${selectedId}`, '_blank')}
       >
@@ -522,6 +581,7 @@ export default function InspectionsPage() {
               <DetailRow label="Company" value={selectedInspection.company_name || selectedInspection.company} />
               <DetailRow label="Service Advisor" value={selectedInspection.service_advisor} />
               <DetailRow label="Job Card" value={selectedInspection.job_card} />
+              <DetailRow label="Service Estimate" value={selectedInspection.service_estimate} />
             </DetailSection>
             <DetailSection title="Customer & Vehicle">
               <DetailRow label="Customer" value={selectedInspection.customer} />
@@ -551,16 +611,28 @@ export default function InspectionsPage() {
                 </div>
               </DetailSection>
             ) : null}
-            {selectedInspection.docstatus === 1 && !selectedInspection.job_card ? (
+            {selectedInspection && canStartDiagnosis(selectedInspection) ? (
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
+                <Button
+                  disabled={startingDiagnosisId === selectedId}
+                  onClick={() => handleStartDiagnosis(selectedId!)}
+                >
+                  <Stethoscope className="mr-2 h-4 w-4" />
+                  {startingDiagnosisId === selectedId ? 'Creating…' : 'Start diagnosis'}
+                </Button>
+              </div>
+            ) : null}
+            {selectedInspection.service_estimate ? (
               <div className="flex justify-end pt-2">
                 <Button
+                  variant="outline"
                   onClick={() => {
-                    const id = selectedId!;
+                    const est = selectedInspection.service_estimate!;
                     setSelectedId(null);
-                    navigate('job-card-new', { inspection: id });
+                    navigate('estimate-detail', { id: est });
                   }}
                 >
-                  Create Job Card
+                  View service estimate
                 </Button>
               </div>
             ) : null}

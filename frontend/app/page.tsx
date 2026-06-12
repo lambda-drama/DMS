@@ -17,6 +17,8 @@ const AppointmentNewPage = dynamic(() => import('./(dashboard)/dashboard/appoint
 const InspectionsPage = dynamic(() => import('./(dashboard)/dashboard/inspections/page'));
 const InspectionDetailPage = dynamic(() => import('./(dashboard)/dashboard/inspections/detail/page'));
 const InspectionNewPage = dynamic(() => import('./(dashboard)/dashboard/inspections/new/page'));
+const ServiceEstimatesPage = dynamic(() => import('./(dashboard)/dashboard/service-estimates/page'));
+const ServiceEstimateDetailPage = dynamic(() => import('./(dashboard)/dashboard/service-estimates/detail/page'));
 const JobCardsPage = dynamic(() => import('./(dashboard)/dashboard/job-cards/page'));
 const JobCardDetailPage = dynamic(() => import('./(dashboard)/dashboard/job-cards/detail/page'));
 const JobCardNewPage = dynamic(() => import('./(dashboard)/dashboard/job-cards/new/page'));
@@ -60,6 +62,8 @@ function AppContent() {
       case 'inspections':        return <InspectionsPage />;
       case 'inspection-detail':  return <InspectionDetailPage />;
       case 'inspection-new':     return <InspectionNewPage />;
+      case 'service-estimates':  return <ServiceEstimatesPage />;
+      case 'estimate-detail':    return <ServiceEstimateDetailPage />;
       case 'job-cards':          return <JobCardsPage />;
       case 'job-card-detail':    return <JobCardDetailPage />;
       case 'job-card-new':       return <JobCardNewPage />;

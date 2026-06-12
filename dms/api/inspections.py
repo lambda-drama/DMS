@@ -147,6 +147,7 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 			"name", "customer", "vin_chassis",
 			"license_plate", "model_year", "inspection_date",
 			"service_advisor", "customer_vehicle", "company",
+			"job_card", "service_estimate",
 			"docstatus", "creation", "modified",
 		],
 		limit=int(limit),

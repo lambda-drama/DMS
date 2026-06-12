@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 import * as appointmentsSvc from '@/services/appointments';
 import * as inspectionsSvc from '@/services/inspections';
+import * as serviceEstimatesSvc from '@/services/serviceEstimates';
 import * as jobCardsSvc from '@/services/jobCards';
 import * as deliveriesSvc from '@/services/deliveries';
 import * as invoicesSvc from '@/services/invoices';
@@ -15,6 +16,7 @@ import * as dashboardSvc from '@/services/dashboard';
 import type {
   ServiceAppointment,
   VehicleInspection,
+  DMSServiceEstimate,
   DMSJobCard,
   Delivery,
   SalesInvoiceListItem,
@@ -133,6 +135,29 @@ export function useUpdateInspection(name: string) {
 export function useSubmitInspection(name: string) {
   return useSWRMutation(['inspection', name], () =>
     inspectionsSvc.submitInspection(name)
+  );
+}
+
+// ============ SERVICE ESTIMATES ============
+
+export function useServiceEstimates(options?: {
+  status?: string;
+  customer?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR<PaginatedResponse<DMSServiceEstimate>>(
+    ['service-estimates', options],
+    () => serviceEstimatesSvc.listServiceEstimates(options),
+    { refreshInterval: 30000 }
+  );
+}
+
+export function useServiceEstimate(name: string | null) {
+  return useSWR(
+    name ? ['service-estimate', name] : null,
+    () => serviceEstimatesSvc.getServiceEstimate(name!)
   );
 }
 

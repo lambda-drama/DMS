@@ -10,6 +10,7 @@
   "naming_series",
   "appointment",
   "job_card",
+  "service_estimate",
   "inspection_date",
   "inspection_completed_date",
   "column_break_3",
@@ -101,6 +102,14 @@
    "fieldtype": "Link",
    "label": "Job Card",
    "options": "DMS Job Card",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "service_estimate",
+   "fieldtype": "Link",
+   "label": "Service Estimate",
+   "options": "DMS Service Estimate",
    "read_only": 1
   },
   {

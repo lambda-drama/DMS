@@ -1,0 +1,82 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-08 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sequence",
+  "category",
+  "check_item",
+  "instructions",
+  "column_break_1",
+  "result",
+  "finding",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sequence"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "Engine\nTransmission\nElectrical\nBrakes\nSuspension\nSteering\nAC/HVAC\nBody\nInterior\nTires\nFluids\nComputer Scan\nRoad Test\nOther"
+  },
+  {
+   "fieldname": "check_item",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Check Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "instructions",
+   "fieldtype": "Small Text",
+   "label": "Instructions"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Not Checked",
+   "fieldname": "result",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Result",
+   "options": "OK\nIssue Found\nN/A\nNot Checked"
+  },
+  {
+   "fieldname": "finding",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Finding"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-08 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Service Estimate Diagnosis Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
