@@ -175,7 +175,13 @@ export async function startRepair(
 export async function pauseRepair(
   name: string,
   newStatus: 'Waiting Parts' | 'Waiting Customer Approval',
-  openLogs?: Array<{ name: string; end_time: string; duration_hours: number; pause_reason?: string }>
+  openLogs?: Array<{
+    name: string;
+    end_time: string;
+    duration_hours: number;
+    pause_reason?: string;
+    notes?: string;
+  }>
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${DT_PATH}.pause_repair`, {
     method: 'POST',

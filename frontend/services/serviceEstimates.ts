@@ -103,6 +103,8 @@ export async function acceptEstimate(
     customer_signature: string;
     lead_technician?: string;
     assigned_bay?: string;
+    schedule_start_time?: string;
+    schedule_end_time?: string;
     start_repair?: boolean;
   }
 ): Promise<{ name: string; status: string; job_card: string }> {
@@ -113,6 +115,8 @@ export async function acceptEstimate(
       customer_signature: payload.customer_signature,
       lead_technician: payload.lead_technician || null,
       assigned_bay: payload.assigned_bay || null,
+      schedule_start_time: payload.schedule_start_time || null,
+      schedule_end_time: payload.schedule_end_time || null,
       start_repair: payload.start_repair ? 1 : 0,
     }),
   });

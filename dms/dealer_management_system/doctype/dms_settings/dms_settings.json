@@ -4,12 +4,13 @@
  "creation": "2026-05-10 22:36:35.540127",
  "doctype": "DocType",
  "engine": "InnoDB",
-  "field_order": [
+ "field_order": [
   "posting_date",
   "spare_part_markup",
   "diagnostic_section",
   "default_diagnostic_fee",
   "diagnostic_fee_item",
+  "column_break_kpou",
   "default_vat_rate",
   "serial_vin_no_section",
   "auto_create_vin_from_serial",
@@ -45,13 +46,11 @@
   },
   {
    "default": "3000",
-   "description": "Fixed diagnostic fee charged when customer declines the repair estimate",
    "fieldname": "default_diagnostic_fee",
    "fieldtype": "Currency",
    "label": "Default Diagnostic Fee"
   },
   {
-   "description": "ERPNext Item used on the diagnostic-only Sales Invoice when customer rejects the estimate",
    "fieldname": "diagnostic_fee_item",
    "fieldtype": "Link",
    "label": "Diagnostic Fee Item",
@@ -135,13 +134,17 @@
    "fieldname": "send_reminders_for_servicing",
    "fieldtype": "Check",
    "label": "Send Reminders for Servicing"
+  },
+  {
+   "fieldname": "column_break_kpou",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-28 14:05:47.594008",
+ "modified": "2026-06-12 13:53:55.029363",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

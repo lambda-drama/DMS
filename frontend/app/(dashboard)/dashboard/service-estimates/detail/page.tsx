@@ -10,6 +10,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/searchable-select";
 import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
@@ -28,7 +44,45 @@ import {
 import { toast } from "sonner";
 import * as estimatesSvc from "@/services/serviceEstimates";
 import { fetchSparePartPrice, fetchLabourRate, uploadFile } from "@/services/common";
-import { useServiceEstimate, useSpareParts, useVehicleServiceItems } from "@/hooks/use-dms";
+import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems } from "@/hooks/use-dms";
+import { GroupDiscountFields } from "@/components/group-discount-fields";
+import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
+import { AmountSummaryPopover } from "@/components/amount-summary-popover";
+import {
+  buildGroupDiscountPayload,
+  groupDiscountAmount,
+  parseDiscountValue,
+  type InvoiceDiscountMode,
+} from "@/lib/invoice-discount";
+import * as vehiclesSvc from "@/services/vehicles";
+import type { VehicleWarrantySummary } from "@/types/dms";
+
+function discountModeFromBackend(type?: string | null): InvoiceDiscountMode {
+  if (!type) return "none";
+  const t = type.toLowerCase();
+  if (t === "percentage") return "percentage";
+  if (t === "amount") return "amount";
+  return "none";
+}
+
+function toFrappeDatetime(local: string) {
+  if (!local) return "";
+  return `${local.replace("T", " ")}:00`;
+}
+
+function defaultScheduleStartLocal() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function defaultScheduleEndLocal(startLocal: string) {
+  const d = startLocal ? new Date(startLocal) : new Date();
+  if (Number.isNaN(d.getTime())) return defaultScheduleStartLocal();
+  d.setHours(d.getHours() + 48);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 type EstimateLabourRow = {
   vehicle_service_item: string;
@@ -75,9 +129,29 @@ export default function ServiceEstimateDetailPage() {
   const [rejectSignature, setRejectSignature] = useState("");
   const [signatureUploading, setSignatureUploading] = useState(false);
   const [startRepair, setStartRepair] = useState(false);
+  const [showStartRepairDialog, setShowStartRepairDialog] = useState(false);
+  const [acceptLeadTechnician, setAcceptLeadTechnician] = useState("");
+  const [acceptScheduleStart, setAcceptScheduleStart] = useState("");
+  const [acceptScheduleEnd, setAcceptScheduleEnd] = useState("");
+  const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+  const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
+  const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>("none");
+  const [labourDiscountInput, setLabourDiscountInput] = useState("");
+  const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>("none");
+  const [partsDiscountInput, setPartsDiscountInput] = useState("");
+  const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
 
   useEffect(() => {
     if (!estimate) return;
+    setWarrantyApplicationType(estimate.warranty_application_type || "");
+    setLabourDiscountMode(discountModeFromBackend(estimate.labour_discount_type));
+    setLabourDiscountInput(
+      estimate.labour_discount_value ? String(estimate.labour_discount_value) : ""
+    );
+    setPartsDiscountMode(discountModeFromBackend(estimate.parts_discount_type));
+    setPartsDiscountInput(
+      estimate.parts_discount_value ? String(estimate.parts_discount_value) : ""
+    );
     setDiagnosisFindings(estimate.diagnosis_findings || "");
     setRecommendedRepairs(estimate.recommended_repairs || "");
     setLabourRows(
@@ -98,6 +172,17 @@ export default function ServiceEstimateDetailPage() {
       }))
     );
   }, [estimate]);
+
+  useEffect(() => {
+    if (!estimate?.vehicle_vin) {
+      setWarrantySummary(null);
+      return;
+    }
+    void vehiclesSvc.getVehicle(estimate.vehicle_vin).then(
+      (full) => setWarrantySummary(full.warranty_summary || null),
+      () => setWarrantySummary(null)
+    );
+  }, [estimate?.vehicle_vin]);
 
   const editable = useMemo(
     () => estimate && !["Accepted", "Rejected", "Cancelled"].includes(estimate.status),
@@ -120,6 +205,99 @@ export default function ServiceEstimateDetailPage() {
     [mutate]
   );
 
+  const isSupplementary = estimate?.estimate_type === "Supplementary";
+
+  const acceptEstimateAndNavigate = useCallback(
+    async (payload: {
+      customer_signature: string;
+      lead_technician?: string;
+      schedule_start_time?: string;
+      schedule_end_time?: string;
+      start_repair?: boolean;
+    }) => {
+      setBusy(true);
+      try {
+        const res = await estimatesSvc.acceptEstimate(id, payload);
+        setShowStartRepairDialog(false);
+        toast.success(
+          isSupplementary
+            ? "Supplementary estimate accepted — job card updated"
+            : "Estimate accepted — job card created"
+        );
+        navigate("job-card-detail", {
+          id: isSupplementary ? estimate?.parent_job_card || res.job_card : res.job_card,
+        });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to accept estimate");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [id, navigate, isSupplementary, estimate?.parent_job_card]
+  );
+
+  const openStartRepairDialog = () => {
+    const start = defaultScheduleStartLocal();
+    setAcceptScheduleStart(start);
+    setAcceptScheduleEnd(defaultScheduleEndLocal(start));
+    setAcceptLeadTechnician("");
+    setShowStartRepairDialog(true);
+  };
+
+  const handleAcceptClick = () => {
+    if (!acceptSignature) {
+      toast.error("Customer signature is required");
+      return;
+    }
+    if (startRepair) {
+      openStartRepairDialog();
+      return;
+    }
+    void acceptEstimateAndNavigate({
+      customer_signature: acceptSignature,
+      start_repair: false,
+    });
+  };
+
+  const handleConfirmAcceptWithRepair = () => {
+    if (!acceptLeadTechnician) {
+      toast.error("Lead technician is required");
+      return;
+    }
+    if (!acceptScheduleStart) {
+      toast.error("Schedule start time is required");
+      return;
+    }
+    if (!acceptScheduleEnd) {
+      toast.error("Schedule end time is required");
+      return;
+    }
+    if (new Date(acceptScheduleEnd) <= new Date(acceptScheduleStart)) {
+      toast.error("Schedule end must be after schedule start");
+      return;
+    }
+    void acceptEstimateAndNavigate({
+      customer_signature: acceptSignature,
+      lead_technician: acceptLeadTechnician,
+      schedule_start_time: toFrappeDatetime(acceptScheduleStart),
+      schedule_end_time: toFrappeDatetime(acceptScheduleEnd),
+      start_repair: true,
+    });
+  };
+
+  const buildWarrantyPayload = () => ({
+    warranty_application_type:
+      warrantyApplicationType && warrantyApplicationType !== "none"
+        ? warrantyApplicationType
+        : undefined,
+    ...(warrantyApplicationType === "Discount"
+      ? {
+          labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
+          parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
+        }
+      : {}),
+  });
+
   const saveEstimate = async () => {
     if (!id) return;
     setBusy(true);
@@ -127,6 +305,7 @@ export default function ServiceEstimateDetailPage() {
       await estimatesSvc.updateServiceEstimate(id, {
         diagnosis_findings: diagnosisFindings,
         recommended_repairs: recommendedRepairs,
+        ...buildWarrantyPayload(),
         labour: labourRows.map((row) => ({
           vehicle_service_item: row.vehicle_service_item,
           service_name: row.vehicle_service_item_name,
@@ -256,6 +435,43 @@ export default function ServiceEstimateDetailPage() {
     (sum, row) => sum + (row.quantity_requested || 0) * (row.unit_price || 0),
     0
   );
+  const grossTotal = labourTotal + partsTotal;
+  const labourDiscountValue = parseDiscountValue(labourDiscountMode, labourDiscountInput);
+  const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
+  const labourDiscountTotal = groupDiscountAmount(labourTotal, labourDiscountMode, labourDiscountValue);
+  const partsDiscountTotal = groupDiscountAmount(partsTotal, partsDiscountMode, partsDiscountValue);
+  const combinedDiscountTotal = labourDiscountTotal + partsDiscountTotal;
+  const netBeforeVat = (() => {
+    if (warrantyApplicationType === "All Invoice") return 0;
+    if (warrantyApplicationType === "Spare Part") return labourTotal;
+    if (warrantyApplicationType === "Labour") return partsTotal;
+    if (warrantyApplicationType === "Discount") {
+      return Math.max(grossTotal - combinedDiscountTotal, 0);
+    }
+    return grossTotal;
+  })();
+  const vatRate = estimate.vat_rate ?? 15;
+  const previewVat = netBeforeVat * (vatRate / 100);
+  const previewGrandTotal = netBeforeVat + previewVat;
+
+  const handleWarrantyApplicationChange = (value: string) => {
+    setWarrantyApplicationType(value);
+    if (value !== "Discount") {
+      setLabourDiscountMode("none");
+      setLabourDiscountInput("");
+      setPartsDiscountMode("none");
+      setPartsDiscountInput("");
+    }
+  };
+
+  const validateWarrantyBeforeSubmit = () => {
+    if (warrantyApplicationType !== "Discount") return true;
+    if (combinedDiscountTotal < 1 && grossTotal > 0) {
+      toast.error("Set a labour and/or parts discount (total at least 1)");
+      return false;
+    }
+    return true;
+  };
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
@@ -271,6 +487,9 @@ export default function ServiceEstimateDetailPage() {
               {estimate.diagnostic_fee_voided ? (
                 <Badge className="bg-green-600">Diagnostic fee voided</Badge>
               ) : null}
+              {estimate.warranty_application_type ? (
+                <Badge variant="secondary">Warranty: {estimate.warranty_application_type}</Badge>
+              ) : null}
             </div>
             <p className="mt-1 truncate text-muted-foreground">
               {estimate.customer_name || estimate.customer} — {estimate.license_plate || estimate.vehicle_vin}
@@ -278,6 +497,28 @@ export default function ServiceEstimateDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <AmountSummaryPopover
+            title="Estimate totals"
+            lines={[
+              {
+                label: "Diagnostic fee",
+                value: `${(estimate.diagnostic_fee || 0).toLocaleString()} ETB`,
+              },
+              {
+                label: "Customer net (before VAT)",
+                value: `${(estimate.total_before_vat || 0).toLocaleString()} ETB`,
+              },
+              {
+                label: `VAT (${estimate.vat_rate || 15}%)`,
+                value: `${(estimate.vat_amount || 0).toLocaleString()} ETB`,
+              },
+              {
+                label: "Grand total",
+                value: `${(estimate.grand_total || 0).toLocaleString()} ETB`,
+                highlight: true,
+              },
+            ]}
+          />
           <PrintFormatDropdown doctype="DMS Service Estimate" docName={id} />
           {estimate.job_card && (
             <Button variant="outline" size="sm" onClick={() => navigate("job-card-detail", { id: estimate.job_card! })}>
@@ -290,33 +531,6 @@ export default function ServiceEstimateDetailPage() {
             </Button>
           )}
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Diagnostic fee</p>
-            <p className="text-lg font-semibold">{(estimate.diagnostic_fee || 0).toLocaleString()} ETB</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Before VAT</p>
-            <p className="text-lg font-semibold">{(estimate.total_before_vat || 0).toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">VAT ({estimate.vat_rate || 15}%)</p>
-            <p className="text-lg font-semibold">{(estimate.vat_amount || 0).toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Grand total</p>
-            <p className="text-lg font-semibold">{(estimate.grand_total || 0).toLocaleString()}</p>
-          </CardContent>
-        </Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -405,6 +619,68 @@ export default function ServiceEstimateDetailPage() {
         </TabsContent>
 
         <TabsContent value="estimation" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Warranty application</CardTitle>
+              <CardDescription>
+                Choose how warranty applies to this estimate — same options as on the job card invoice.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {warrantySummary && <WarrantyStatusBanner summary={warrantySummary} />}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="estimate-warranty-type">Warranty application type</Label>
+                  <Select
+                    value={warrantyApplicationType || "none"}
+                    onValueChange={handleWarrantyApplicationChange}
+                    disabled={!editable}
+                  >
+                    <SelectTrigger id="estimate-warranty-type">
+                      <SelectValue placeholder="None (customer pays all)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (customer pays all)</SelectItem>
+                      <SelectItem value="All Invoice">All Invoice</SelectItem>
+                      <SelectItem value="Labour">Labour</SelectItem>
+                      <SelectItem value="Spare Part">Spare Part</SelectItem>
+                      <SelectItem value="Discount">Discount</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="text-muted-foreground">Vehicle warranty status</p>
+                  <p className="font-medium">{estimate.warranty_status || "—"}</p>
+                  {estimate.warranty_expiry_date && (
+                    <p className="text-xs text-muted-foreground">
+                      Expires: {new Date(estimate.warranty_expiry_date).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {editable && warrantyApplicationType === "Discount" && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <GroupDiscountFields
+                    label="Labour"
+                    mode={labourDiscountMode}
+                    onModeChange={setLabourDiscountMode}
+                    value={labourDiscountInput}
+                    onValueChange={setLabourDiscountInput}
+                    subtotal={labourTotal}
+                  />
+                  <GroupDiscountFields
+                    label="Parts"
+                    mode={partsDiscountMode}
+                    onModeChange={setPartsDiscountMode}
+                    value={partsDiscountInput}
+                    onValueChange={setPartsDiscountInput}
+                    subtotal={partsTotal}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -668,24 +944,80 @@ export default function ServiceEstimateDetailPage() {
           </Card>
 
           <Card>
-            <CardContent className="grid gap-3 p-4 sm:grid-cols-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Labour</p>
-                <p className="text-lg font-semibold">
-                  {labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
+            <CardContent className="space-y-4 p-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Labour</p>
+                  <p className="text-lg font-semibold">
+                    {labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Parts</p>
+                  <p className="text-lg font-semibold">
+                    {partsTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Gross subtotal</p>
+                  <p className="text-lg font-semibold">
+                    {grossTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Parts</p>
-                <p className="text-lg font-semibold">
-                  {partsTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Before VAT</p>
-                <p className="text-lg font-semibold">
-                  {(labourTotal + partsTotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
+              {warrantyApplicationType && warrantyApplicationType !== "none" && (
+                <>
+                  <Separator />
+                  <div className="flex flex-col items-end gap-2 text-sm">
+                    <div className="flex w-full max-w-xs justify-between">
+                      <span className="text-muted-foreground">
+                        Warranty ({warrantyApplicationType})
+                      </span>
+                      <span className="font-medium text-orange-600">
+                        -{(grossTotal - netBeforeVat).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    {warrantyApplicationType === "Discount" && labourDiscountTotal > 0 && (
+                      <div className="flex w-full max-w-xs justify-between">
+                        <span className="text-muted-foreground">Labour discount</span>
+                        <span className="font-medium text-orange-600">
+                          -{labourDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+                    {warrantyApplicationType === "Discount" && partsDiscountTotal > 0 && (
+                      <div className="flex w-full max-w-xs justify-between">
+                        <span className="text-muted-foreground">Parts discount</span>
+                        <span className="font-medium text-orange-600">
+                          -{partsDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+              <Separator />
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Customer net (before VAT)</p>
+                  <p className="text-lg font-semibold text-primary">
+                    {netBeforeVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">VAT ({vatRate}%)</p>
+                  <p className="text-lg font-semibold">
+                    {previewVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Grand total</p>
+                  <p className="text-lg font-bold">
+                    {previewGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -696,13 +1028,14 @@ export default function ServiceEstimateDetailPage() {
                 Save estimation
               </Button>
               <Button
-                onClick={() =>
-                  runAction("Sent to customer", async () => {
+                onClick={() => {
+                  if (!validateWarrantyBeforeSubmit()) return;
+                  void runAction("Sent to customer", async () => {
                     await saveEstimate();
                     await estimatesSvc.submitForCustomerApproval(id);
                     setActiveTab("approval");
-                  })
-                }
+                  });
+                }}
                 disabled={busy}
               >
                 Submit for customer approval
@@ -719,8 +1052,13 @@ export default function ServiceEstimateDetailPage() {
                   <CardTitle>Estimate summary for customer</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
+                  {estimate.warranty_application_type && (
+                    <p className="text-muted-foreground">
+                      Warranty application: <strong>{estimate.warranty_application_type}</strong>
+                    </p>
+                  )}
                   <p>
-                    Repair estimate (before VAT):{" "}
+                    Customer amount (before VAT):{" "}
                     <strong>{(estimate.total_before_vat || 0).toLocaleString()} ETB</strong>
                   </p>
                   <p>
@@ -729,10 +1067,17 @@ export default function ServiceEstimateDetailPage() {
                   <p>
                     Grand total: <strong>{(estimate.grand_total || 0).toLocaleString()} ETB</strong>
                   </p>
-                  <p className="text-muted-foreground">
-                    If accepted, the diagnostic fee of {(estimate.diagnostic_fee || 0).toLocaleString()}{" "}
-                    ETB will be voided and not added to the final invoice.
-                  </p>
+                  {!isSupplementary && (
+                    <p className="text-muted-foreground">
+                      If accepted, the diagnostic fee of {(estimate.diagnostic_fee || 0).toLocaleString()}{" "}
+                      ETB will be voided and not added to the final invoice.
+                    </p>
+                  )}
+                  {isSupplementary && estimate.parent_job_card && (
+                    <p className="text-muted-foreground">
+                      Approved lines will be added to job card {estimate.parent_job_card}.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -759,31 +1104,23 @@ export default function ServiceEstimateDetailPage() {
                     onClear={() => setAcceptSignature("")}
                     className="max-w-full"
                   />
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="start-repair"
-                      checked={startRepair}
-                      onCheckedChange={(v) => setStartRepair(Boolean(v))}
-                    />
-                    <Label htmlFor="start-repair">Start repair immediately on job card</Label>
-                  </div>
-                  <Button
-                    disabled={!acceptSignature || busy}
-                    onClick={() =>
-                      runAction("Estimate accepted — job card created", async () => {
-                        const res = await estimatesSvc.acceptEstimate(id, {
-                          customer_signature: acceptSignature,
-                          start_repair: startRepair,
-                        });
-                        navigate("job-card-detail", { id: res.job_card });
-                      })
-                    }
-                  >
-                    Accept & create job card
+                  {!isSupplementary && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="start-repair"
+                        checked={startRepair}
+                        onCheckedChange={(v) => setStartRepair(Boolean(v))}
+                      />
+                      <Label htmlFor="start-repair">Start repair immediately on job card</Label>
+                    </div>
+                  )}
+                  <Button disabled={!acceptSignature || busy} onClick={handleAcceptClick}>
+                    {isSupplementary ? "Accept & update job card" : "Accept & create job card"}
                   </Button>
                 </CardContent>
               </Card>
 
+              {!isSupplementary && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
@@ -824,6 +1161,7 @@ export default function ServiceEstimateDetailPage() {
                   </Button>
                 </CardContent>
               </Card>
+              )}
             </>
           )}
 
@@ -831,9 +1169,20 @@ export default function ServiceEstimateDetailPage() {
             <Card>
               <CardContent className="flex flex-col items-start gap-3 p-6">
                 <Badge className="bg-green-600">Accepted</Badge>
-                <p>Job card: {estimate.job_card || "—"}</p>
-                {estimate.job_card && (
-                  <Button onClick={() => navigate("job-card-detail", { id: estimate.job_card! })}>
+                <p>
+                  Job card:{" "}
+                  {isSupplementary
+                    ? estimate.parent_job_card || estimate.job_card || "—"
+                    : estimate.job_card || "—"}
+                </p>
+                {(isSupplementary ? estimate.parent_job_card : estimate.job_card) && (
+                  <Button
+                    onClick={() =>
+                      navigate("job-card-detail", {
+                        id: (isSupplementary ? estimate.parent_job_card : estimate.job_card)!,
+                      })
+                    }
+                  >
                     Open job card
                   </Button>
                 )}
@@ -860,6 +1209,68 @@ export default function ServiceEstimateDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showStartRepairDialog} onOpenChange={setShowStartRepairDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Start repair on job card</DialogTitle>
+            <DialogDescription>
+              Assign a lead technician and schedule before the job card is submitted and repair
+              begins.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Lead technician *</Label>
+              <SearchableSelect
+                options={
+                  technicians?.map((t) => ({
+                    value: t.name,
+                    label: t.full_name || t.name,
+                  })) || []
+                }
+                value={acceptLeadTechnician}
+                onValueChange={setAcceptLeadTechnician}
+                placeholder="Search technicians..."
+                isLoading={techniciansLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="accept-schedule-start">Schedule start *</Label>
+              <Input
+                id="accept-schedule-start"
+                type="datetime-local"
+                value={acceptScheduleStart}
+                onChange={(e) => setAcceptScheduleStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="accept-schedule-end">Schedule end *</Label>
+              <Input
+                id="accept-schedule-end"
+                type="datetime-local"
+                value={acceptScheduleEnd}
+                onChange={(e) => setAcceptScheduleEnd(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStartRepairDialog(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmAcceptWithRepair} disabled={busy}>
+              {busy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating…
+                </>
+              ) : (
+                "Accept & start repair"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

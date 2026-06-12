@@ -16,6 +16,8 @@
   "total_amount",
   "stock_available",
   "warehouse",
+  "line_status",
+  "parts_request",
   "material_request",
   "is_warranty",
   "old_part_return_required",
@@ -102,6 +104,21 @@
    "ignore_user_permissions": 1,
    "label": "Warehouse",
    "options": "Warehouse"
+  },
+  {
+   "default": "Requested",
+   "fieldname": "line_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Requested\nPending Approval\nReserved\nReady for Issue\nIssued\nReceived\nReturned\nBackordered"
+  },
+  {
+   "fieldname": "parts_request",
+   "fieldtype": "Link",
+   "label": "Parts Request",
+   "options": "DMS Parts Request",
+   "read_only": 1
   },
   {
    "fieldname": "material_request",

@@ -96,6 +96,7 @@ export type JobCardStatus =
   | 'Open' 
   | 'Estimation Pending' 
   | 'Estimation Approved' 
+  | 'Assigned'
   | 'Waiting Customer Approval' 
   | 'Scheduled' 
   | 'Repair In Progress' 
@@ -453,11 +454,17 @@ export type ServiceEstimateStatus =
   | 'Rejected'
   | 'Cancelled';
 
-export type ServiceEstimateDecision = 'Pending' | 'Accepted' | 'Rejected';
+export type ServiceEstimateDecision = 'Pending' | 'Accepted' | 'Rejected' | 'Partially Accepted';
+
+export type ServiceEstimateType = 'Original' | 'Supplementary';
 
 export interface DMSServiceEstimate {
   name: string;
   status: ServiceEstimateStatus;
+  estimate_type?: ServiceEstimateType;
+  parent_job_card?: string;
+  parent_estimate?: string;
+  additional_work_request?: string;
   posting_date?: string;
   company?: string;
   currency?: string;
@@ -486,6 +493,14 @@ export interface DMSServiceEstimate {
   vat_rate?: number;
   vat_amount?: number;
   grand_total?: number;
+  warranty_status?: string;
+  warranty_expiry_date?: string;
+  warranty_application_type?: WarrantyApplicationType | '';
+  labour_discount_type?: string;
+  labour_discount_value?: number;
+  parts_discount_type?: string;
+  parts_discount_value?: number;
+  discount_amount?: number;
   customer_decision?: ServiceEstimateDecision;
   decision_date?: string;
   customer_signature?: string;
@@ -513,13 +528,28 @@ export interface JobCardItem {
 
 export interface JobCardPartItem {
   name: string;
-  part_code: string;
+  part_code?: string;
+  item_code?: string;
   part_name: string;
-  quantity: number;
+  quantity?: number;
+  quantity_requested?: number;
+  quantity_issued?: number;
+  quantity_returned?: number;
   unit_price: number;
-  total_price: number;
+  total_price?: number;
+  total_amount?: number;
   is_warranty?: boolean;
+  line_status?:
+    | 'Requested'
+    | 'Pending Approval'
+    | 'Reserved'
+    | 'Ready for Issue'
+    | 'Issued'
+    | 'Received'
+    | 'Returned'
+    | 'Backordered';
   status?: 'Requested' | 'Reserved' | 'Issued' | 'Returned';
+  parts_request?: string;
   warehouse?: string;
 }
 
@@ -635,6 +665,12 @@ export interface DMSJobCard {
   
   // Parts
   parts?: JobCardPartItem[];
+  parts_requests?: Array<{
+    name: string;
+    status: string;
+    pick_slip?: string;
+    stock_entry?: string;
+  }>;
   
   // Estimate & Approval
   total_labor_cost?: number;

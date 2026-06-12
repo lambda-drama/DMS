@@ -432,14 +432,6 @@ def start_repair(job_card, time_logs=None):
 
 	frappe.db.commit()
 
-	# Parts transfer after time logs are saved so technician logs persist even if stock fails.
-	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
-		transfer_job_card_parts_to_wip,
-	)
-
-	doc.reload()
-	transfer_job_card_parts_to_wip(doc)
-
 	return {
 		"status": "ok",
 		"repair_session_start_ms": int(repair_started_at.timestamp() * 1000),
@@ -479,14 +471,18 @@ def pause_repair(job_card, new_status, open_logs=None):
         open_logs = json.loads(open_logs) if open_logs else []
 
     for log in (open_logs or []):
+        row_update = {
+            "end_time": log.get("end_time"),
+            "duration_hours": flt(log.get("duration_hours")),
+            "pause_reason": log.get("pause_reason"),
+        }
+        if log.get("notes"):
+            row_update["notes"] = log.get("notes")
         frappe.db.set_value(
-            "DMS Job Card Time Log", log.get("name"),
-            {
-                "end_time": log.get("end_time"),
-                "duration_hours": flt(log.get("duration_hours")),
-                "pause_reason": log.get("pause_reason"),
-            },
-            update_modified=False
+            "DMS Job Card Time Log",
+            log.get("name"),
+            row_update,
+            update_modified=False,
         )
 
     frappe.db.set_value("DMS Job Card", job_card, "status", new_status, update_modified=True)

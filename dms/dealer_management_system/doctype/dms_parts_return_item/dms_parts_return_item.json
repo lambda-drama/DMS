@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "creation": "2026-06-12 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "job_card_part_row",
+  "item_code",
+  "part_name",
+  "quantity_issued",
+  "quantity_returned",
+  "line_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "job_card_part_row",
+   "fieldtype": "Data",
+   "label": "Job Card Part Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Part Number",
+   "options": "Spare Part",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "part_name",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Part Name"
+  },
+  {
+   "fieldname": "quantity_issued",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty Issued",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "quantity_returned",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty Returned",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "line_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nSubmitted\nApproved\nCompleted"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-12 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "DMS Parts Return Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -13,6 +13,8 @@ import * as techniciansSvc from '@/services/technicians';
 import * as vehiclesSvc from '@/services/vehicles';
 import * as servicePackagesSvc from '@/services/service-packages';
 import * as dashboardSvc from '@/services/dashboard';
+import * as partsRequestsSvc from '@/services/partsRequests';
+import type { PartsRequestDetail, PartsRequestListItem } from '@/services/partsRequests';
 import type {
   ServiceAppointment,
   VehicleInspection,
@@ -503,5 +505,29 @@ export function useVehicleItems(search?: string) {
     ['vehicle-items', search],
     () => vehiclesSvc.getVehicleItems(search),
     { dedupingInterval: 5000 }
+  );
+}
+
+// ============ PARTS REQUISITIONS ============
+
+export function usePartsRequisitions(options?: {
+  status?: string;
+  filter?: 'active' | 'pending_approval' | 'ready_for_issue';
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR<PaginatedResponse<PartsRequestListItem>>(
+    ['parts-requisitions', options],
+    () => partsRequestsSvc.listAllPartsRequests(options),
+    { refreshInterval: 15000 }
+  );
+}
+
+export function usePartsRequisition(name: string | null) {
+  return useSWR<PartsRequestDetail>(
+    name ? ['parts-requisition', name] : null,
+    () => partsRequestsSvc.getPartsRequest(name!),
+    { refreshInterval: 10000 }
   );
 }

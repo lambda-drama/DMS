@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useJobCard, useServiceBays, useTechnicians } from "@/hooks/use-dms";
 import { canEditJobCardAssignment } from "@/lib/job-card-workflow";
@@ -80,10 +80,17 @@ import { RoadTestSection } from "@/components/job-card/road-test-section";
 import { QCSection } from "@/components/job-card/qc-section";
 import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
+import { AmountSummaryPopover } from "@/components/amount-summary-popover";
 import { fetchServiceBayDetail, uploadFile } from "@/services/common";
 import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
 import { CreateInvoiceDialog } from "@/components/invoices/create-invoice-dialog";
+import { PartsRequestSection } from "@/components/job-card/parts-request-section";
+import { PartsAcquisitionFlowBanner } from "@/components/job-card/parts-acquisition-flow-banner";
+import { PartsReturnSection } from "@/components/job-card/parts-return-section";
+import { AdditionalWorkSection } from "@/components/job-card/additional-work-section";
+import { AddExtraPartSection } from "@/components/job-card/add-extra-part-section";
+import * as partsRequestsSvc from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
 import * as invoicesSvc from "@/services/invoices";
 import type { SalesInvoiceDetail } from "@/types/dms";
@@ -123,7 +130,10 @@ export default function JobCardDetailPage() {
   const [approvalReference, setApprovalReference] = useState("");
   const [approvedAmount, setApprovedAmount] = useState("");
   const [showPauseDialog, setShowPauseDialog] = useState(false);
-  const [pauseReason, setPauseReason] = useState<"Waiting Parts" | "Waiting Customer Approval">("Waiting Parts");
+  const [pauseReason, setPauseReason] = useState<
+    "Waiting Parts" | "Waiting Customer Approval" | "Other"
+  >("Waiting Parts");
+  const [pauseOtherNotes, setPauseOtherNotes] = useState("");
   const [showRoadTestFailDialog, setShowRoadTestFailDialog] = useState(false);
   const [roadTestFailReason, setRoadTestFailReason] = useState("");
   const [showRoadTestPassDialog, setShowRoadTestPassDialog] = useState(false);
@@ -131,6 +141,7 @@ export default function JobCardDetailPage() {
   const [showQCFailDialog, setShowQCFailDialog] = useState(false);
   const [qcFailReason, setQcFailReason] = useState("");
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
+  const [partsFlowRefreshKey, setPartsFlowRefreshKey] = useState(0);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
   const [signatureUploading, setSignatureUploading] = useState(false);
@@ -154,6 +165,31 @@ export default function JobCardDetailPage() {
   const [repairTimerOffsetSeconds, setRepairTimerOffsetSeconds] = useState(0);
   const [bayLinkedWorkshop, setBayLinkedWorkshop] = useState<string>("");
   const [bayLinkedWarehouse, setBayLinkedWarehouse] = useState<string>("");
+  const autoPartsTabJobRef = useRef<string | null>(null);
+
+  const hasActivePartsRequest = (requests?: Array<{ status: string }>) =>
+    !!requests?.some((pr) => pr.status !== "Received" && pr.status !== "Cancelled");
+
+  useEffect(() => {
+    const tab = viewParams.get("tab");
+    if (tab && ["overview", "services", "parts", "timeline"].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [id, viewParams]);
+
+  useEffect(() => {
+    if (!jobCard?.name) return;
+    if (!hasActivePartsRequest(jobCard.parts_requests)) {
+      if (autoPartsTabJobRef.current === jobCard.name) {
+        autoPartsTabJobRef.current = null;
+      }
+      return;
+    }
+    if (autoPartsTabJobRef.current !== jobCard.name) {
+      autoPartsTabJobRef.current = jobCard.name;
+      setActiveTab("parts");
+    }
+  }, [jobCard?.name, jobCard?.parts_requests]);
 
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
   const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
@@ -306,6 +342,18 @@ export default function JobCardDetailPage() {
   const hasWorkshopWarehouse = Boolean(displayWarehouse.trim());
   const needsWorkshopWarehouse =
     status === "Estimation Approved" && !hasWorkshopWarehouse;
+  const canRequestParts =
+    !!jobCard.parts?.length &&
+    !["Cancelled", "Delivered", "Completed"].includes(status);
+  const canAddExtraPart = [
+    "Open",
+    "Assigned",
+    "Estimation Approved",
+    "Repair In Progress",
+    "Waiting Parts",
+    "Waiting Customer Approval",
+    "Rework",
+  ].includes(status);
 
   const assignmentDirty =
     leadTechnician !== (jobCard.lead_technician || "") ||
@@ -338,10 +386,14 @@ export default function JobCardDetailPage() {
       return;
     }
     runAction("Assignment updated", async () => {
-      await jobCardsSvc.updateJobCard(id, {
-        lead_technician: leadTechnician,
-        assigned_bay: assignedBay,
-      });
+      if (status === "Open" || status === "Estimation Approved") {
+        await partsRequestsSvc.assignJobCardWorkshop(id, leadTechnician, assignedBay);
+      } else {
+        await jobCardsSvc.updateJobCard(id, {
+          lead_technician: leadTechnician,
+          assigned_bay: assignedBay,
+        });
+      }
       setBayLinkedWorkshop("");
       setBayLinkedWarehouse("");
     });
@@ -445,7 +497,44 @@ export default function JobCardDetailPage() {
     }
   };
 
+  const handleRequestParts = () =>
+    runAction("Parts request created", async () => {
+      await partsRequestsSvc.createPartsRequest(id, jobCard.lead_technician);
+      setPartsFlowRefreshKey((k) => k + 1);
+      autoPartsTabJobRef.current = id;
+      setActiveTab("parts");
+    });
+
+  const buildPausePayload = () => {
+    if (pauseReason === "Waiting Parts") {
+      return {
+        status: "Waiting Parts" as const,
+        pause_reason: "Waiting Parts",
+        label: "Waiting for Parts",
+      };
+    }
+    if (pauseReason === "Waiting Customer Approval") {
+      return {
+        status: "Waiting Customer Approval" as const,
+        pause_reason: "Waiting Approval",
+        label: "Waiting for Customer Approval",
+      };
+    }
+    return {
+      status: "Waiting Customer Approval" as const,
+      pause_reason: "Other",
+      label: pauseOtherNotes.trim(),
+      notes: pauseOtherNotes.trim(),
+    };
+  };
+
   const handlePauseRepair = () => {
+    if (pauseReason === "Other" && !pauseOtherNotes.trim()) {
+      toast.error("Please describe the pause reason");
+      return;
+    }
+
+    const { status, pause_reason, label, notes } = buildPausePayload();
     const segmentSeconds =
       repairTimerAnchorMs !== null
         ? Math.max(0, Math.floor((Date.now() - repairTimerAnchorMs) / 1000))
@@ -461,12 +550,12 @@ export default function JobCardDetailPage() {
       name: l.name,
       end_time: now,
       duration_hours: (Date.now() - new Date(l.start_time).getTime()) / 3600000,
-      pause_reason: pauseReason,
+      pause_reason,
+      ...(notes ? { notes } : {}),
     }));
-    runAction(`Paused – ${pauseReason}`, () =>
-      jobCardsSvc.pauseRepair(id, pauseReason, closedLogs)
-    );
+    runAction(`Paused – ${label}`, () => jobCardsSvc.pauseRepair(id, status, closedLogs));
     setShowPauseDialog(false);
+    setPauseOtherNotes("");
   };
 
   const handleCompleteRepair = () => {
@@ -674,6 +763,30 @@ export default function JobCardDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <AmountSummaryPopover
+            title="Job card totals"
+            lines={[
+              {
+                label: "Labour",
+                value: labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+              },
+              {
+                label: "Parts",
+                value: partsTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+              },
+              {
+                label: "Grand total",
+                value: grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+                highlight: true,
+              },
+              {
+                label: "Est. hours",
+                value: jobCard.estimated_duration_hours
+                  ? `${jobCard.estimated_duration_hours} hrs`
+                  : "–",
+              },
+            ]}
+          />
           <PrintFormatDropdown doctype="DMS Job Card" docName={id} />
           {status === "Draft" && (
             <Button variant="outline" size="sm" onClick={() => navigate("job-card-detail", { id, mode: "edit" })}>
@@ -692,6 +805,19 @@ export default function JobCardDetailPage() {
         running={status === "Repair In Progress"}
         startedAtMs={repairTimerAnchorMs}
         offsetSeconds={repairTimerOffsetSeconds}
+      />
+
+      {/* Parts acquisition — visible progress while a request is in flight */}
+      <PartsAcquisitionFlowBanner
+        jobCardId={id}
+        requests={jobCard.parts_requests}
+        leadTechnician={jobCard.lead_technician}
+        refreshKey={partsFlowRefreshKey}
+        onUpdated={() => {
+          setPartsFlowRefreshKey((k) => k + 1);
+          void mutate();
+        }}
+        onViewDetails={() => setActiveTab("parts")}
       />
 
       {status === "Road Test In Progress" && (
@@ -850,16 +976,24 @@ export default function JobCardDetailPage() {
               </div>
             )}
 
-            {/* Estimation Approved → auto starts repair on submit */}
-            {status === "Estimation Approved" && (
-              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-                <Button
-                  onClick={handleStartRepair}
-                  disabled={busy || needsWorkshopWarehouse}
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Repair
-                </Button>
+            {/* Open / Assigned → request parts + start repair side by side */}
+            {(status === "Estimation Approved" || status === "Open" || status === "Assigned") && (
+              <div className="flex w-full flex-col gap-2">
+                <div className="flex flex-row flex-wrap items-center gap-2">
+                  {canRequestParts && (
+                    <Button variant="outline" onClick={handleRequestParts} disabled={busy}>
+                      <Package className="h-4 w-4 mr-2" />
+                      Request parts
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleStartRepair}
+                    disabled={busy || needsWorkshopWarehouse}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Repair
+                  </Button>
+                </div>
                 {needsWorkshopWarehouse && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
                     <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -873,7 +1007,13 @@ export default function JobCardDetailPage() {
 
             {/* Repair In Progress → Pause / Complete */}
             {status === "Repair In Progress" && (
-              <>
+              <div className="flex flex-row flex-wrap items-center gap-2">
+                {canRequestParts && (
+                  <Button variant="outline" onClick={handleRequestParts} disabled={busy}>
+                    <Package className="h-4 w-4 mr-2" />
+                    Request parts
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setShowPauseDialog(true)} disabled={busy}>
                   <Pause className="h-4 w-4 mr-2" />
                   Pause Repair
@@ -882,15 +1022,23 @@ export default function JobCardDetailPage() {
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Complete Repair
                 </Button>
-              </>
+              </div>
             )}
 
-            {/* Waiting Parts → Parts Arrived */}
+            {/* Waiting Parts → request more / resume when received */}
             {status === "Waiting Parts" && (
-              <Button onClick={handlePartsArrived} disabled={busy}>
-                <Package className="h-4 w-4 mr-2" />
-                Parts Arrived
-              </Button>
+              <div className="flex flex-row flex-wrap items-center gap-2">
+                {canRequestParts && (
+                  <Button variant="outline" onClick={handleRequestParts} disabled={busy}>
+                    <Package className="h-4 w-4 mr-2" />
+                    Request parts
+                  </Button>
+                )}
+                <Button onClick={handlePartsArrived} disabled={busy}>
+                  <Play className="h-4 w-4 mr-2" />
+                  Resume repair (parts received)
+                </Button>
+              </div>
             )}
 
             {/* Waiting Customer Approval → Customer Approved */}
@@ -1097,70 +1245,6 @@ export default function JobCardDetailPage() {
           </CardContent>
         </Card>
       )}
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Labour</p>
-                <p className="text-lg font-semibold">
-                  {labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Package className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Parts</p>
-                <p className="text-lg font-semibold">
-                  {partsTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#2E7D32]/10">
-                <DollarSign className="h-5 w-5 text-[#2E7D32]" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Grand Total</p>
-                <p className="text-lg font-semibold">
-                  {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Timer className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Est. Hours</p>
-                <p className="text-lg font-semibold">
-                  {jobCard.estimated_duration_hours || "–"} hrs
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
@@ -1565,7 +1649,23 @@ export default function JobCardDetailPage() {
         </TabsContent>
 
         {/* Parts Tab */}
-        <TabsContent value="parts" className="mt-6">
+        <TabsContent value="parts" className="mt-6 space-y-6">
+          {canAddExtraPart && (
+            <AddExtraPartSection
+              jobCardId={id}
+              leadTechnician={jobCard.lead_technician}
+              onAdded={(result) => {
+                setPartsFlowRefreshKey((k) => k + 1);
+                autoPartsTabJobRef.current = id;
+                setActiveTab("parts");
+                void mutate();
+                if (result?.parts_request) {
+                  toast.success("Parts request started — track progress at the top");
+                }
+              }}
+            />
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1593,7 +1693,7 @@ export default function JobCardDetailPage() {
                         <TableRow key={part.name || idx}>
                           <TableCell className="font-mono text-sm">{part.item_code}</TableCell>
                           <TableCell className="font-medium">{part.part_name || part.item_code}</TableCell>
-                          <TableCell className="text-right">{part.quantity_issued || part.quantity_requested || 0}</TableCell>
+                          <TableCell className="text-right">{part.quantity_requested ?? part.quantity ?? 0}</TableCell>
                           <TableCell className="text-right">
                             {(part.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </TableCell>
@@ -1601,7 +1701,9 @@ export default function JobCardDetailPage() {
                             {(part.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{part.status || "Requested"}</Badge>
+                            <Badge variant="outline">
+                              {part.line_status || part.status || "Requested"}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {part.is_warranty ? (
@@ -1629,6 +1731,38 @@ export default function JobCardDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          <div className="mt-6 space-y-6">
+            <PartsRequestSection
+              jobCardId={id}
+              leadTechnician={jobCard.lead_technician}
+              canRequest={canRequestParts}
+              onUpdated={() => {
+                setPartsFlowRefreshKey((k) => k + 1);
+                void mutate();
+              }}
+            />
+            <PartsReturnSection
+              jobCardId={id}
+              parts={jobCard.parts}
+              leadTechnician={jobCard.lead_technician}
+              canCreate={
+                !["Cancelled", "Delivered", "Completed", "Draft"].includes(status)
+              }
+              onUpdated={() => mutate()}
+            />
+            <AdditionalWorkSection
+              jobCardId={id}
+              leadTechnician={jobCard.lead_technician}
+              canCreate={[
+                "Repair In Progress",
+                "Waiting Parts",
+                "Assigned",
+                "Open",
+              ].includes(status)}
+              onUpdated={() => mutate()}
+            />
+          </div>
 
           <Card className="mt-6">
             <CardContent className="p-6">
@@ -1877,25 +2011,53 @@ export default function JobCardDetailPage() {
       </Dialog>
 
       {/* Pause Repair Dialog */}
-      <Dialog open={showPauseDialog} onOpenChange={setShowPauseDialog}>
+      <Dialog
+        open={showPauseDialog}
+        onOpenChange={(open) => {
+          setShowPauseDialog(open);
+          if (!open) setPauseOtherNotes("");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Pause Repair</DialogTitle>
             <DialogDescription>
-              Select the reason for pausing the repair.
+              Stop the repair timer until you resume. Use Request parts separately when you need
+              warehouse stock.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label>Reason</Label>
-            <Select value={pauseReason} onValueChange={(v) => setPauseReason(v as typeof pauseReason)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Waiting Parts">Waiting for Parts</SelectItem>
-                <SelectItem value="Waiting Customer Approval">Waiting for Customer Approval</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Select
+                value={pauseReason}
+                onValueChange={(v) => {
+                  setPauseReason(v as typeof pauseReason);
+                  if (v !== "Other") setPauseOtherNotes("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Waiting Parts">Waiting for Parts</SelectItem>
+                  <SelectItem value="Waiting Customer Approval">Waiting for Customer Approval</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {pauseReason === "Other" && (
+              <div className="space-y-2">
+                <Label htmlFor="pause-other-notes">Details</Label>
+                <Textarea
+                  id="pause-other-notes"
+                  placeholder="e.g. Lunch break, waiting for tool, technical support…"
+                  value={pauseOtherNotes}
+                  onChange={(e) => setPauseOtherNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPauseDialog(false)}>

@@ -179,6 +179,12 @@ def get_job_card(name):
 			data["workshop"] = doc.workshop
 			data["warehouse"] = doc.warehouse
 
+	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
+		list_parts_requests_for_job_card,
+	)
+
+	data["parts_requests"] = list_parts_requests_for_job_card(name)
+
 	return data
 
 
