@@ -365,12 +365,15 @@ export default function JobCardDetailPage() {
 
   const status = jobCard.status;
   const docstatus = jobCard.docstatus ?? 0;
+  const isInternal = jobCard.job_card_type === "Internal";
   const assignmentEditable = canEditJobCardAssignment(status);
   const displayWorkshop = bayLinkedWorkshop || jobCard.workshop || "";
   const displayWarehouse = bayLinkedWarehouse || jobCard.warehouse || "";
   const hasWorkshopWarehouse = Boolean(displayWarehouse.trim());
   const needsWorkshopWarehouse =
-    status === "Estimation Approved" && !hasWorkshopWarehouse;
+    !hasWorkshopWarehouse &&
+    (status === "Estimation Approved" ||
+      (isInternal && ["Draft", "Open", "Assigned"].includes(status)));
   const canRequestParts =
     !!jobCard.parts?.length &&
     !["Cancelled", "Delivered", "Completed"].includes(status);
@@ -702,10 +705,13 @@ export default function JobCardDetailPage() {
       toast.error("Mandatory item(s) failed — cannot pass QC");
       return;
     }
-    runAction("QC Passed – Completed", async () => {
-      await persistQCResults();
-      await jobCardsSvc.passQC(id);
-    });
+    runAction(
+      isInternal ? "Completed — materials consumed from stock" : "QC Passed – Completed",
+      async () => {
+        await persistQCResults();
+        await jobCardsSvc.passQC(id);
+      }
+    );
   };
 
   const handleFailQC = () => {
@@ -771,6 +777,7 @@ export default function JobCardDetailPage() {
   const estimateRecommended = htmlToPlainText(linkedEstimate?.recommended_repairs || "").trim();
 
   const showApprovalSignature =
+    !isInternal &&
     status === "Estimation Pending" &&
     jobCard.customer_approval_status !== "Approved" &&
     docstatus === 0;
@@ -853,7 +860,7 @@ export default function JobCardDetailPage() {
       </div>
 
       {/* Workflow Stepper */}
-      <WorkflowStepper status={status} />
+      <WorkflowStepper status={status} jobCardType={jobCard.job_card_type} />
 
       {/* Repair Timer */}
       <RepairTimer
@@ -1004,11 +1011,24 @@ export default function JobCardDetailPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Draft → Submit for Estimation */}
-            {status === "Draft" && (
+            {/* Draft → Submit for Estimation (customer jobs only) */}
+            {status === "Draft" && !isInternal && (
               <Button onClick={handleSubmitForEstimation} disabled={busy}>
                 <Send className="h-4 w-4 mr-2" />
                 Submit for Estimation
+              </Button>
+            )}
+            {status === "Draft" && isInternal && docstatus === 0 && (
+              <Button
+                onClick={() =>
+                  runAction("Repair started", async () => {
+                    await jobCardsSvc.submitJobCard(id);
+                  })
+                }
+                disabled={busy || !jobCard.lead_technician || !jobCard.service_advisor}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Start Repair
               </Button>
             )}
 
@@ -1032,7 +1052,9 @@ export default function JobCardDetailPage() {
             )}
 
             {/* Open / Assigned → request parts + start repair side by side */}
-            {(status === "Estimation Approved" || status === "Open" || status === "Assigned") && (
+            {(status === "Estimation Approved" ||
+              status === "Open" ||
+              status === "Assigned") && (
               <div className="flex w-full flex-col gap-2">
                 <div className="flex flex-row flex-wrap items-center gap-2">
                   {canRequestParts && (
@@ -1186,8 +1208,8 @@ export default function JobCardDetailPage() {
               </Button>
             )}
 
-            {/* Completed → Create Invoice / Create Delivery */}
-            {(status === "Completed" || status === "Delivered") && (
+            {/* Completed → Invoice (customer jobs) / Delivery */}
+            {(status === "Completed" || status === "Delivered") && !isInternal && (
               <>
                 {!jobCard.invoice && (
                   <Button onClick={() => setShowCreateInvoiceDialog(true)} disabled={busy}>
@@ -1211,17 +1233,29 @@ export default function JobCardDetailPage() {
                     )}
                   </>
                 )}
-                {status === "Completed" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("delivery-new", { jobcard: id })}
-                    disabled={busy}
-                  >
-                    <Truck className="h-4 w-4 mr-2" />
-                    Vehicle Delivery Note
-                  </Button>
-                )}
               </>
+            )}
+            {status === "Completed" && (
+              <Button
+                variant="outline"
+                onClick={() => navigate("delivery-new", { jobcard: id })}
+                disabled={busy}
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                Vehicle Delivery Note
+              </Button>
+            )}
+            {isInternal && jobCard.material_issue && (
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href={`/app/stock-entry/${jobCard.material_issue}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  View Material Issue
+                </a>
+              </Button>
             )}
           </div>
         </CardContent>

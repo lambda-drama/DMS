@@ -828,9 +828,19 @@ export default function NewJobCardPage() {
       toast.error("Please select a vehicle VIN");
       return;
     }
-    if (!inspectionId) {
+    if (jobCardType !== "Internal" && !inspectionId) {
       toast.error("Please select a vehicle inspection");
       return;
+    }
+    if (jobCardType === "Internal") {
+      if (!serviceAdvisor) {
+        toast.error("Service advisor is required for internal job cards");
+        return;
+      }
+      if (!leadTechnician) {
+        toast.error("Lead technician is required to start repair");
+        return;
+      }
     }
     if (jobItems.length === 0) {
       toast.error("Please add at least one job item");
@@ -933,7 +943,15 @@ export default function NewJobCardPage() {
 
     try {
       const result = await createJobCard(payload);
-      toast.success("Job card created successfully");
+      if (jobCardType === "Internal") {
+        toast.success(
+          result.status === "Repair In Progress"
+            ? "Internal job card created — repair in progress"
+            : "Internal job card created"
+        );
+      } else {
+        toast.success("Job card created successfully");
+      }
       navigate("job-card-detail", { id: result.name });
     } catch {
       toast.error("Failed to create job card");
@@ -989,6 +1007,12 @@ export default function NewJobCardPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {jobCardType === "Internal" && (
+                  <p className="text-xs text-muted-foreground">
+                    Company / fleet vehicle — no estimate or approval. Assign service advisor and lead
+                    technician; repair starts automatically when you save.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1146,7 +1170,9 @@ export default function NewJobCardPage() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Vehicle Inspection *</Label>
+                <Label>
+                  Vehicle Inspection{jobCardType === "Internal" ? " (optional)" : " *"}
+                </Label>
                 <SearchableSelect
                   options={inspectionSelectOptions}
                   value={inspectionId}
@@ -1154,7 +1180,9 @@ export default function NewJobCardPage() {
                   placeholder={
                     isLoadingInspectionComplaints
                       ? "Loading complaints…"
-                      : "Search inspections..."
+                      : jobCardType === "Internal"
+                        ? "Optional — link an inspection if available"
+                        : "Search inspections..."
                   }
                   isLoading={isLoadingInspectionComplaints}
                 />

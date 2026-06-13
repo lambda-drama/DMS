@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { JobCardStatus } from "@/types/dms";
 
-const workflowStages: { key: string; label: string; icon: React.ElementType }[] = [
+const customerWorkflowStages: { key: string; label: string; icon: React.ElementType }[] = [
   { key: "Open", label: "Open", icon: Clock },
   { key: "Estimation", label: "Estimation", icon: ClipboardList },
   { key: "Approval", label: "Approval", icon: Shield },
@@ -22,7 +22,14 @@ const workflowStages: { key: string; label: string; icon: React.ElementType }[] 
   { key: "Completed", label: "Completed", icon: CheckCircle2 },
 ];
 
-function getStageIndex(status: JobCardStatus): number {
+const internalWorkflowStages: { key: string; label: string; icon: React.ElementType }[] = [
+  { key: "Repair", label: "Repair", icon: Wrench },
+  { key: "Road Test", label: "Road Test", icon: Car },
+  { key: "QC", label: "QC", icon: Settings2 },
+  { key: "Completed", label: "Completed", icon: CheckCircle2 },
+];
+
+function getCustomerStageIndex(status: JobCardStatus): number {
   const stageMap: Record<string, number> = {
     Draft: -1,
     Open: 0,
@@ -30,6 +37,7 @@ function getStageIndex(status: JobCardStatus): number {
     "Estimation Approved": 2,
     "Waiting Customer Approval": 2,
     Scheduled: 2,
+    Assigned: 2,
     "Repair In Progress": 3,
     "Repair Completed": 3,
     "Waiting Parts": 3,
@@ -45,8 +53,42 @@ function getStageIndex(status: JobCardStatus): number {
   return stageMap[status] ?? -1;
 }
 
-export function WorkflowStepper({ status }: { status: JobCardStatus }) {
-  const currentIndex = getStageIndex(status);
+function getInternalStageIndex(status: JobCardStatus): number {
+  const stageMap: Record<string, number> = {
+    Draft: 0,
+    Open: 0,
+    Assigned: 0,
+    Scheduled: 0,
+    "Estimation Pending": 0,
+    "Estimation Approved": 0,
+    "Waiting Customer Approval": 0,
+    "Repair In Progress": 0,
+    "Repair Completed": 0,
+    "Waiting Parts": 0,
+    Rework: 0,
+    "Road Test In Progress": 1,
+    "Road Test Completed": 1,
+    "QC In Progress": 2,
+    "QC Failed": 2,
+    Completed: 3,
+    Delivered: 3,
+    Cancelled: -2,
+  };
+  return stageMap[status] ?? 0;
+}
+
+export function WorkflowStepper({
+  status,
+  jobCardType,
+}: {
+  status: JobCardStatus;
+  jobCardType?: string;
+}) {
+  const isInternal = jobCardType === "Internal";
+  const workflowStages = isInternal ? internalWorkflowStages : customerWorkflowStages;
+  const currentIndex = isInternal
+    ? getInternalStageIndex(status)
+    : getCustomerStageIndex(status);
 
   if (status === "Draft" || status === "Cancelled") {
     return null;
@@ -102,4 +144,4 @@ export function WorkflowStepper({ status }: { status: JobCardStatus }) {
   );
 }
 
-export { getStageIndex };
+export { getCustomerStageIndex as getStageIndex };

@@ -456,6 +456,13 @@ def create_sales_invoice_from_dms_job_card(
 	if not jc.company:
 		frappe.throw(_("Set Company on the Job Card before creating a Sales Invoice."))
 
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import is_internal_job_card
+
+	if is_internal_job_card(jc):
+		frappe.throw(
+			_("Internal job cards are not invoiced. Parts are consumed via Material Issue when QC is passed.")
+		)
+
 	warranty_type = normalize_warranty_application_type(jc.warranty_application_type)
 	preview = build_invoice_preview_from_job_card(job_card_name)
 	has_labour = preview.get("has_labour")

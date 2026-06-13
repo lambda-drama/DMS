@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Save, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import type { DMSJobCard, JobCardQCResult } from "@/types/dms";
@@ -52,11 +52,47 @@ export function QCSection({ jobCard, onSaved, onChecklistState }: QCSectionProps
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState(false);
   const [uploadingPhotoIndex, setUploadingPhotoIndex] = useState<number | null>(null);
+  const autoAppliedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    autoAppliedRef.current = null;
+  }, [jobCard.name]);
 
   useEffect(() => {
     setTemplate(jobCard.qc_checklist_template || "");
     setRows(jobCard.qc_results || []);
   }, [jobCard.name, jobCard.qc_checklist_template, jobCard.qc_results]);
+
+  const applyTemplate = useCallback(
+    async (selected: string, force = false, silent = false) => {
+      if (!selected) return;
+      setApplying(true);
+      try {
+        const result = await jobCardsSvc.applyQCChecklistTemplate(
+          jobCard.name,
+          selected,
+          force
+        );
+        setTemplate(result.qc_checklist_template || selected);
+        setRows(result.qc_results || []);
+        if (!silent) toast.success("QC checklist loaded from template");
+        await onSaved();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to apply template";
+        if (!force && message.toLowerCase().includes("already has")) {
+          if (window.confirm("Replace existing QC results with this template?")) {
+            await applyTemplate(selected, true, silent);
+            return;
+          }
+        } else {
+          toast.error(message);
+        }
+      } finally {
+        setApplying(false);
+      }
+    },
+    [jobCard.name, onSaved]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -84,48 +120,30 @@ export function QCSection({ jobCard, onSaved, onChecklistState }: QCSectionProps
     };
   }, []);
 
-  const applyTemplate = useCallback(
-    async (selected: string, force = false) => {
-      if (!selected) return;
-      setApplying(true);
-      try {
-        const result = await jobCardsSvc.applyQCChecklistTemplate(
-          jobCard.name,
-          selected,
-          force
-        );
-        setTemplate(result.qc_checklist_template || selected);
-        setRows(result.qc_results || []);
-        toast.success("QC checklist loaded from template");
-        await onSaved();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to apply template";
-        if (!force && message.toLowerCase().includes("already has")) {
-          if (window.confirm("Replace existing QC results with this template?")) {
-            await applyTemplate(selected, true);
-            return;
-          }
-        } else {
-          toast.error(message);
-        }
-      } finally {
-        setApplying(false);
-      }
-    },
-    [jobCard.name, onSaved]
-  );
-
   useEffect(() => {
-    if (
-      jobCard.status === "QC In Progress" &&
-      jobCard.qc_checklist_template &&
-      !(jobCard.qc_results || []).length &&
-      !rows.length
-    ) {
-      void applyTemplate(jobCard.qc_checklist_template, false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobCard.name, jobCard.status]);
+    if (applying || templatesLoading) return;
+    if (rows.length > 0 || (jobCard.qc_results || []).length) return;
+    if (jobCard.status !== "QC In Progress") return;
+
+    const templateToApply = jobCard.qc_checklist_template || template;
+    if (!templateToApply) return;
+
+    const key = `${jobCard.name}:${templateToApply}`;
+    if (autoAppliedRef.current === key) return;
+    autoAppliedRef.current = key;
+
+    void applyTemplate(templateToApply, false, true);
+  }, [
+    applying,
+    templatesLoading,
+    jobCard.name,
+    jobCard.status,
+    jobCard.qc_checklist_template,
+    jobCard.qc_results,
+    template,
+    rows.length,
+    applyTemplate,
+  ]);
 
   const handleTemplateChange = (value: string) => {
     setTemplate(value);
