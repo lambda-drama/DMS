@@ -117,7 +117,8 @@
   "rework_job_item",
   "qc_checked_date",
   "more_information_tab",
-  "wip_material_transfer"
+  "wip_material_transfer",
+  "material_issue"
  ],
  "fields": [
   {
@@ -271,12 +272,11 @@
    "options": "Service Appointment"
   },
   {
-   "description": "Must complete inspection before job card",
+   "description": "Required for customer jobs. Optional for Internal (company fleet) job cards.",
    "fieldname": "inspection",
    "fieldtype": "Link",
    "label": "Vehicle Inspection",
-   "options": "Vehicle Inspection",
-   "reqd": 1
+   "options": "Vehicle Inspection"
   },
   {
    "fieldname": "service_estimate",
@@ -850,6 +850,15 @@
    "ignore_user_permissions": 1,
    "label": "WIP Material Transfer",
    "options": "Stock Entry"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "material_issue",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Material Issue",
+   "options": "Stock Entry",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

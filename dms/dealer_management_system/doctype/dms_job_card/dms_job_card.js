@@ -475,7 +475,12 @@ function refresh_qc_dashboard(frm) {
 const VEHICLE_DELIVERY_NOTE_DOCTYPE = "Vehicle Delivery Note";
 const ACTIONS_GROUP = __("Action");
 
+function is_internal_job_card(frm) {
+    return frm.doc.job_card_type === "Internal";
+}
+
 function add_sales_invoice_button(frm) {
+    if (is_internal_job_card(frm)) return;
     if (
         frm.doc.docstatus !== 1 ||
         frm.is_new() ||
@@ -895,13 +900,27 @@ function add_status_flow_buttons(frm) {
 
     const status = frm.doc.status;
 
-    // ── Estimation ──────────────────────────────────────────
+    // ── Estimation / Internal submit ──────────────────────────
     if (status === "Draft") {
-        frm.add_custom_button(__("Submit for Estimation"), () => {
-            save_submitted_doc(frm, { status: "Estimation Pending" }, () => {
-                frappe.show_alert(__("Job Card sent for estimation."), 3);
-            });
-        }, __("Status"));
+        if (is_internal_job_card(frm)) {
+            frm.add_custom_button(__("Start Repair"), () => {
+                frappe.call({
+                    method: "dms.api.job_cards.submit_job_card",
+                    args: { name: frm.doc.name },
+                    freeze: true,
+                    callback: () => {
+                        frm.reload_doc();
+                        frappe.show_alert(__("Repair started."), 3);
+                    }
+                });
+            }, __("Status"));
+        } else {
+            frm.add_custom_button(__("Submit for Estimation"), () => {
+                save_submitted_doc(frm, { status: "Estimation Pending" }, () => {
+                    frappe.show_alert(__("Job Card sent for estimation."), 3);
+                });
+            }, __("Status"));
+        }
     }
 
     // ── Repair ──────────────────────────────────────────────
@@ -1016,6 +1035,21 @@ function add_status_flow_buttons(frm) {
 
     if (status === "QC In Progress") {
         frm.add_custom_button(__("Pass QC"), () => {
+            if (is_internal_job_card(frm)) {
+                frappe.call({
+                    method: "dms.api.job_cards.pass_job_card_qc",
+                    args: { name: frm.doc.name },
+                    freeze: true,
+                    callback: (r) => {
+                        frm.reload_doc();
+                        const msg = r.message?.material_issue
+                            ? __("QC Passed. Material Issue {0} created.", [r.message.material_issue])
+                            : __("QC Passed. Job Completed.");
+                        frappe.show_alert(msg, 5);
+                    }
+                });
+                return;
+            }
             save_submitted_doc(frm, {
                 qc_result: "Pass",
                 status: "Completed",

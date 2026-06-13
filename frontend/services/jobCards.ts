@@ -40,7 +40,13 @@ export async function getJobCard(name: string): Promise<DMSJobCard> {
 
 // ─── Create & Update ─────────────────────────────────────────
 
-export async function createJobCard(data: Partial<DMSJobCard>): Promise<{ name: string; status: string; customer: string; customer_name: string }> {
+export async function createJobCard(data: Partial<DMSJobCard>): Promise<{
+  name: string;
+  status: string;
+  customer: string;
+  customer_name: string;
+  repair_started?: boolean;
+}> {
   return apiRequest(`/api/method/${API}.create_job_card`, {
     method: 'POST',
     body: JSON.stringify({ data }),
@@ -331,11 +337,10 @@ export async function saveQCResults(
   });
 }
 
-export async function passQC(name: string): Promise<void> {
-  await setMultipleFields(name, {
-    qc_result: 'Pass',
-    qc_checked_date: new Date().toISOString().replace('T', ' ').slice(0, 19),
-    status: 'Completed',
+export async function passQC(name: string): Promise<{ status: string; material_issue?: string | null }> {
+  return apiRequest(`/api/method/${API}.pass_job_card_qc`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
   });
 }
 

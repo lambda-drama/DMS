@@ -45,7 +45,28 @@ class DMSJobCard(Document):
 		self.apply_job_card_warehouse_to_parts()
 		self.ensure_qc_results_from_template()
 		self.validate_qc_measurements()
+		self.validate_inspection_for_job_type()
+		self.validate_internal_workflow()
 		self.calculate_costing_and_totals()
+
+	def validate_internal_workflow(self):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+			is_internal_job_card,
+			prepare_internal_job_card,
+		)
+
+		if is_internal_job_card(self):
+			prepare_internal_job_card(self)
+
+	def validate_inspection_for_job_type(self):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+			is_internal_job_card,
+		)
+
+		if is_internal_job_card(self):
+			return
+		if not (self.inspection or "").strip():
+			frappe.throw(_("Vehicle Inspection is required for this job card type."))
 
 	def normalize_job_item_severity(self):
 		"""Backfill legacy severity values (e.g. 'Low') to current select options."""
@@ -104,6 +125,16 @@ class DMSJobCard(Document):
 		self.total_labor_cost = round(total_labor, 2)
 		self.total_parts_cost = round(total_parts, 2)
 		self.total_amount = round(total_labor + total_parts, 2)
+
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+			apply_internal_job_card_billing,
+			is_internal_job_card,
+		)
+
+		if is_internal_job_card(self):
+			apply_internal_job_card_billing(self)
+			return
+
 		self.apply_warranty_application()
 
 	def apply_warranty_application(self):
@@ -376,11 +407,19 @@ def _validate_required_for_repair_submit(doc):
 
 def _ensure_job_card_submitted_for_repair(doc):
 	"""Submit draft job cards when repair starts (schedule times auto-filled if missing)."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+		prepare_internal_job_card,
+	)
+
 	if doc.docstatus == 1:
 		return doc
 
 	doc.check_permission("submit")
 	_validate_required_for_repair_submit(doc)
+
+	if is_internal_job_card(doc):
+		prepare_internal_job_card(doc)
 
 	if not doc.schedule_start_time:
 		doc.schedule_start_time = now_datetime()

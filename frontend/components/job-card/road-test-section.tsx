@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Car, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { DMSJobCard, RoadTestItemResult } from "@/types/dms";
@@ -48,24 +48,43 @@ export function RoadTestSection({ jobCard, onSaved, onChecklistState }: RoadTest
   const [rows, setRows] = useState<RoadTestItemResult[]>(jobCard.road_test_results || []);
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState(false);
+  const autoAppliedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    autoAppliedRef.current = null;
+  }, [jobCard.name]);
 
   useEffect(() => {
     setTemplate(jobCard.road_test_template || "");
     setRows(jobCard.road_test_results || []);
   }, [jobCard.name, jobCard.road_test_template, jobCard.road_test_results]);
 
-  useEffect(() => {
-    if (
-      jobCard.status === "Road Test In Progress" &&
-      jobCard.road_test_template &&
-      !(jobCard.road_test_results || []).length &&
-      !rows.length
-    ) {
-      void applyTemplate(jobCard.road_test_template, false);
-    }
-    // Only auto-load when job card loads without results
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobCard.name, jobCard.status]);
+  const applyTemplate = useCallback(
+    async (selected: string, force = false, silent = false) => {
+      if (!selected) return;
+      setApplying(true);
+      try {
+        const result = await jobCardsSvc.applyRoadTestTemplate(jobCard.name, selected, force);
+        setTemplate(result.road_test_template || selected);
+        setRows(result.road_test_results || []);
+        if (!silent) toast.success("Road test checklist loaded from template");
+        await onSaved();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to apply template";
+        if (!force && message.toLowerCase().includes("already has")) {
+          if (window.confirm("Replace existing road test results with this template?")) {
+            await applyTemplate(selected, true, silent);
+            return;
+          }
+        } else {
+          toast.error(message);
+        }
+      } finally {
+        setApplying(false);
+      }
+    },
+    [jobCard.name, onSaved]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -93,32 +112,30 @@ export function RoadTestSection({ jobCard, onSaved, onChecklistState }: RoadTest
     };
   }, []);
 
-  const applyTemplate = useCallback(
-    async (selected: string, force = false) => {
-      if (!selected) return;
-      setApplying(true);
-      try {
-        const result = await jobCardsSvc.applyRoadTestTemplate(jobCard.name, selected, force);
-        setTemplate(result.road_test_template || selected);
-        setRows(result.road_test_results || []);
-        toast.success("Road test checklist loaded from template");
-        await onSaved();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to apply template";
-        if (!force && message.toLowerCase().includes("already has")) {
-          if (window.confirm("Replace existing road test results with this template?")) {
-            await applyTemplate(selected, true);
-            return;
-          }
-        } else {
-          toast.error(message);
-        }
-      } finally {
-        setApplying(false);
-      }
-    },
-    [jobCard.name, onSaved]
-  );
+  useEffect(() => {
+    if (applying || templatesLoading) return;
+    if (rows.length > 0 || (jobCard.road_test_results || []).length) return;
+    if (jobCard.status !== "Road Test In Progress") return;
+
+    const templateToApply = jobCard.road_test_template || template;
+    if (!templateToApply) return;
+
+    const key = `${jobCard.name}:${templateToApply}`;
+    if (autoAppliedRef.current === key) return;
+    autoAppliedRef.current = key;
+
+    void applyTemplate(templateToApply, false, true);
+  }, [
+    applying,
+    templatesLoading,
+    jobCard.name,
+    jobCard.status,
+    jobCard.road_test_template,
+    jobCard.road_test_results,
+    template,
+    rows.length,
+    applyTemplate,
+  ]);
 
   const handleTemplateChange = (value: string) => {
     setTemplate(value);

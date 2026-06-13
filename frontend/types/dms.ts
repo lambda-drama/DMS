@@ -711,6 +711,8 @@ export interface DMSJobCard {
   
   // Billing & Payment
   invoice?: string;
+  material_issue?: string;
+  wip_material_transfer?: string;
   payment_status: PaymentStatus;
   payment_reference?: string;
   release_blocked?: boolean;

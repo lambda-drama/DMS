@@ -275,15 +275,34 @@ def create_job_card(data):
 	if data.get("assigned_bay"):
 		_sync_workshop_warehouse_from_bay(doc, data.get("assigned_bay"))
 
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+		prepare_internal_job_card,
+	)
+
+	if is_internal_job_card(doc):
+		prepare_internal_job_card(doc)
+
 	doc.insert()
 	frappe.db.commit()
 
-	return {
+	result = {
 		"name": doc.name,
 		"status": doc.status,
 		"customer": doc.customer,
 		"customer_name": doc.customer_name,
 	}
+
+	if is_internal_job_card(doc):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+			bootstrap_internal_job_card_to_repair,
+		)
+
+		boot = bootstrap_internal_job_card_to_repair(doc.name)
+		result["status"] = boot["status"]
+		result["repair_started"] = boot.get("repair_started")
+
+	return result
 
 
 @frappe.whitelist()
@@ -360,7 +379,29 @@ def update_job_card(name, data):
 def submit_job_card(name):
 	doc = frappe.get_doc("DMS Job Card", name)
 	doc.check_permission("submit")
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+		prepare_internal_job_card,
+	)
+
+	if is_internal_job_card(doc):
+		prepare_internal_job_card(doc)
+		doc.save()
+
 	doc.submit()
+
+	if is_internal_job_card(doc):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+			bootstrap_internal_job_card_to_repair,
+		)
+
+		bootstrap_internal_job_card_to_repair(doc.name)
+		doc.reload()
+	else:
+		frappe.db.commit()
+		return {"name": doc.name, "status": doc.status, "docstatus": doc.docstatus}
+
 	frappe.db.commit()
 
 	return {"name": doc.name, "status": doc.status, "docstatus": doc.docstatus}
@@ -683,3 +724,29 @@ def save_road_test_results(name, road_test_template=None, results=None):
 	frappe.db.commit()
 
 	return {"road_test_template": doc.road_test_template, "road_test_results": doc.road_test_results}
+
+
+@frappe.whitelist()
+def pass_job_card_qc(name):
+	"""Pass QC and complete the job card. Internal jobs also create a Material Issue."""
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		complete_internal_job_card,
+		is_internal_job_card,
+	)
+
+	if is_internal_job_card(doc):
+		return complete_internal_job_card(doc)
+
+	doc.qc_result = "Pass"
+	doc.qc_checked_date = frappe.utils.now_datetime()
+	doc.status = "Completed"
+	doc.flags.ignore_validate_update_after_submit = True
+	doc.save(ignore_permissions=True)
+	frappe.db.commit()
+	return {"status": doc.status, "material_issue": doc.material_issue}

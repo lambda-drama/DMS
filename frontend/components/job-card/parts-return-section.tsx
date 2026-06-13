@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, RotateCcw } from "lucide-react";
+import { Loader2, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import * as returnsSvc from "@/services/partsReturns";
 import type { JobCardPartItem } from "@/types/dms";
@@ -171,17 +171,19 @@ export function PartsReturnSection({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-            {returnableParts.map((p) => {
+            {returnableParts
+              .filter((p) => p.name && p.name in quantities)
+              .map((p) => {
               const max = (p.quantity_issued ?? 0) - (p.quantity_returned ?? 0);
               return (
-                <div key={p.name} className="flex items-center justify-between gap-4 rounded border p-3">
-                  <div className="min-w-0">
+                <div key={p.name} className="flex items-center gap-2 rounded border p-3">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm">{p.part_name || p.item_code}</p>
                     <p className="text-xs text-muted-foreground">
                       Issued: {p.quantity_issued} · Already returned: {p.quantity_returned ?? 0} · Max: {max}
                     </p>
                   </div>
-                  <div className="w-24">
+                  <div className="w-24 shrink-0">
                     <Label className="sr-only">Qty to return</Label>
                     <Input
                       type="number"
@@ -197,16 +199,40 @@ export function PartsReturnSection({
                       }
                     />
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    aria-label={`Remove ${p.part_name || p.item_code} from return`}
+                    onClick={() =>
+                      setQuantities((prev) => {
+                        const next = { ...prev };
+                        delete next[p.name!];
+                        return next;
+                      })
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               );
             })}
+            {returnableParts.filter((p) => p.name && p.name in quantities).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No parts selected. Close and reopen to start over.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>
               Cancel
             </Button>
             <Button
-              disabled={busy || !Object.values(quantities).some((q) => q > 0)}
+              disabled={
+                busy ||
+                !Object.entries(quantities).some(([, qty]) => qty > 0)
+              }
               onClick={() => {
                 const items = Object.entries(quantities)
                   .filter(([, qty]) => qty > 0)
