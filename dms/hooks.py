@@ -53,6 +53,12 @@ fixtures = [
                     "Vehicle Service Item-custom_category",
                     "Vehicle Service Item-custom_column_break_cgzhn",
                     "Vehicle Service Item-custom_vehicle_model",
+                    "Item Group-custom_auto_generate_spare_parts",
+                    "Purchase Receipt-custom_sparepart_receipt",
+                    "Supplier-custom_spare_parts_supplier_",
+                    "Stock Reconciliation-custom_sparepart_stock",
+                    "Stock Entry-custom_sparepart_stock",
+                    
                 ]
             ]
         ]
@@ -115,7 +121,9 @@ fixtures = [
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Item Group": "public/js/item_group.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -205,6 +213,10 @@ fixtures = [
 # Hook on document methods and events
 
 doc_events = {
+	"Item": {
+		"after_insert": "dms.utils.spare_part_auto_create.auto_create_spare_part_on_item_insert",
+		"on_update": "dms.utils.spare_part_auto_create.auto_create_spare_part_on_item_update",
+	},
 	"Vehicle Service Item": {
 		"validate": "dms.overrides.vehicle_service_item.validate_vehicle_service_item",
 	},

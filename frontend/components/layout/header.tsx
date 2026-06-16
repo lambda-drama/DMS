@@ -39,6 +39,9 @@ const viewTitles: Record<string, string> = {
   vehicles: 'Vehicles',
   'vehicle-new': 'New Vehicle',
   reports: 'Reports & Analytics',
+  'stock-entry': 'Stock Entry',
+  'stock-reconciliation': 'Stock Reconciliation',
+  'purchase-receipt': 'Purchase Receipt',
 };
 
 interface HeaderProps {

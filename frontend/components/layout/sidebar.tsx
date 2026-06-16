@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   BarChart3,
   Calendar,
   Car,
+  ChevronDown,
   ClipboardCheck,
   FileSpreadsheet,
   FileText,
@@ -17,6 +19,9 @@ import {
   Users,
   Wrench,
   Package,
+  ArrowDownUp,
+  ClipboardList,
+  PackageCheck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
@@ -24,6 +29,10 @@ import { usePermissions } from '@/contexts/permissions-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+const MASTER_VIEWS = ['stock-entry', 'stock-reconciliation', 'purchase-receipt'];
+const MASTER_OPEN_STORAGE_KEY = 'dms-sidebar-master-open';
 
 const navigation = [
   {
@@ -54,6 +63,15 @@ const navigation = [
       { name: 'Reports', view: 'reports', icon: BarChart3 },
     ],
   },
+  {
+    title: 'Master',
+    collapsible: true,
+    items: [
+      { name: 'Stock Entry', view: 'stock-entry', icon: ArrowDownUp },
+      { name: 'Stock Reconciliation', view: 'stock-reconciliation', icon: ClipboardList },
+      { name: 'Purchase Receipt', view: 'purchase-receipt', icon: PackageCheck },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -64,6 +82,58 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, navigate } = useNavigation();
   const { canAccessView } = usePermissions();
+  const [masterOpen, setMasterOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(MASTER_OPEN_STORAGE_KEY);
+    if (stored !== null) {
+      setMasterOpen(stored === 'true');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (MASTER_VIEWS.includes(viewGroup)) {
+      setMasterOpen(true);
+    }
+  }, [viewGroup]);
+
+  const handleMasterOpenChange = (open: boolean) => {
+    setMasterOpen(open);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(MASTER_OPEN_STORAGE_KEY, String(open));
+    }
+  };
+
+  const renderNavItems = (
+    items: (typeof navigation)[number]['items']
+  ) => (
+    <div className="space-y-1">
+      {items.map((item) => {
+        const isActive = viewGroup === item.view;
+        return (
+          <a
+            key={item.name}
+            href={`#${item.view}`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(item.view);
+              onNavigate?.();
+            }}
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.name}
+          </a>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
@@ -91,34 +161,29 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             .filter((section) => section.items.length > 0)
             .map((section) => (
             <div key={section.title}>
-              <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
-                {section.title}
-              </p>
-              <div className="space-y-1">
-                {section.items.map((item) => {
-                  const isActive = viewGroup === item.view;
-                  return (
-                    <a
-                      key={item.name}
-                      href={`#${item.view}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate(item.view);
-                        onNavigate?.();
-                      }}
+              {'collapsible' in section && section.collapsible ? (
+                <Collapsible open={masterOpen} onOpenChange={handleMasterOpenChange}>
+                  <CollapsibleTrigger className="mb-2 flex w-full items-center justify-between rounded-md px-3 py-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80">
+                    <span>{section.title}</span>
+                    <ChevronDown
                       className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                        'h-4 w-4 transition-transform',
+                        masterOpen && 'rotate-180'
                       )}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
-                    </a>
-                  );
-                })}
-              </div>
+                    />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
+                    {renderNavItems(section.items)}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <>
+                  <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
+                    {section.title}
+                  </p>
+                  {renderNavItems(section.items)}
+                </>
+              )}
             </div>
           ))}
         </nav>

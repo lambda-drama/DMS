@@ -16,6 +16,10 @@
   "marka",
   "project",
   "additions_section",
+  "parts_warehouse",
+  "purchase_receipt_warehouse",
+  "default_supplier",
+  "stock_adjustment_account",
   "work_in_progress"
  ],
  "fields": [
@@ -81,15 +85,44 @@
    "options": "Project"
   },
   {
+   "fieldname": "additions_section",
+   "fieldtype": "Section Break",
+   "label": "Stock & Warehouses"
+  },
+  {
+   "description": "Primary spare-parts / workshop store used in DMS stock screens",
+   "fieldname": "parts_warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Parts Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "description": "Default warehouse for spare-parts purchase receipts from DMS (falls back to Parts Warehouse)",
+   "fieldname": "purchase_receipt_warehouse",
+   "fieldtype": "Link",
+   "label": "Purchase Receipt Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "description": "Spare-parts supplier for this company on DMS purchase receipt (overrides DMS Settings default)",
+   "fieldname": "default_supplier",
+   "fieldtype": "Link",
+   "label": "Default Supplier",
+   "options": "Supplier"
+  },
+  {
    "fieldname": "work_in_progress",
    "fieldtype": "Link",
    "label": "Work In Progress",
    "options": "Warehouse"
   },
   {
-   "fieldname": "additions_section",
-   "fieldtype": "Section Break",
-   "label": "Additions"
+   "description": "Default expense / difference account for stock entry (issue) and stock reconciliation",
+   "fieldname": "stock_adjustment_account",
+   "fieldtype": "Link",
+   "label": "Stock Adjustment Account",
+   "options": "Account"
   }
  ],
  "grid_page_length": 50,
