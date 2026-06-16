@@ -155,7 +155,53 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 		order_by="inspection_date desc",
 	)
 
+	inspections = _enrich_inspection_list_rows(inspections)
+
 	return {"data": inspections, "total": total}
+
+
+def _enrich_inspection_list_rows(rows: list[dict]) -> list[dict]:
+	"""Attach warning-light and complaint summaries for the DMS list UI."""
+	if not rows:
+		return rows
+
+	names = [row["name"] for row in rows if row.get("name")]
+	if not names:
+		return rows
+
+	warnings_by_parent: dict[str, list[str]] = {name: [] for name in names}
+	for row in frappe.get_all(
+		"Vehicle Warning Light TB",
+		filters={"parent": ["in", names], "parenttype": "Vehicle Inspection"},
+		fields=["parent", "vehicle_warning_light"],
+		order_by="idx asc",
+	):
+		parent = row.get("parent")
+		light = (row.get("vehicle_warning_light") or "").strip()
+		if parent and light:
+			warnings_by_parent.setdefault(parent, []).append(light)
+
+	complaints_by_parent: dict[str, int] = {name: 0 for name in names}
+	for row in frappe.get_all(
+		"Vehicle Customer Complaint",
+		filters={"parent": ["in", names], "parenttype": "Vehicle Inspection"},
+		fields=["parent"],
+	):
+		parent = row.get("parent")
+		if parent:
+			complaints_by_parent[parent] = complaints_by_parent.get(parent, 0) + 1
+
+	for row in rows:
+		name = row.get("name")
+		lights = warnings_by_parent.get(name, [])
+		complaint_count = complaints_by_parent.get(name, 0)
+		row["warning_lights"] = [{"vehicle_warning_light": light} for light in lights]
+		row["warning_lights_count"] = len(lights)
+		row["customer_complaints_count"] = complaint_count
+		# Keep length-compatible shape for list UI without loading full child rows.
+		row["customer_complaints"] = [{}] * complaint_count
+
+	return rows
 
 
 @frappe.whitelist()

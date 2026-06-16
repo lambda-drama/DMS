@@ -20,6 +20,10 @@
   "default_supplier_group",
   "default_supplier",
   "company_defaults",
+  "ui_navigation_section",
+  "hide_stock_entry",
+  "hide_stock_reconciliation",
+  "hide_purchase_receipt",
   "section_break_nwax",
   "warranty_period",
   "warranty_mileage",
@@ -114,6 +118,32 @@
    "fieldtype": "Table",
    "label": "Company Defaults",
    "options": "DMS Company Defaults"
+  },
+  {
+   "fieldname": "ui_navigation_section",
+   "fieldtype": "Section Break",
+   "label": "DMS UI Navigation"
+  },
+  {
+   "default": "0",
+   "description": "Hide Stock Entry from the DMS sidebar Master section",
+   "fieldname": "hide_stock_entry",
+   "fieldtype": "Check",
+   "label": "Hide Stock Entry"
+  },
+  {
+   "default": "0",
+   "description": "Hide Stock Reconciliation from the DMS sidebar Master section",
+   "fieldname": "hide_stock_reconciliation",
+   "fieldtype": "Check",
+   "label": "Hide Stock Reconciliation"
+  },
+  {
+   "default": "0",
+   "description": "Hide Purchase Receipt from the DMS sidebar Master section",
+   "fieldname": "hide_purchase_receipt",
+   "fieldtype": "Check",
+   "label": "Hide Purchase Receipt"
   },
   {
    "fieldname": "section_break_nwax",

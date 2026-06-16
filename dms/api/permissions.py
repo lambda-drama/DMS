@@ -28,6 +28,12 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 # Views backed by a DocType (excludes dashboard / reports / settings)
 DOCTYPE_VIEWS = tuple(v for v, dt in DMS_VIEW_DOCTYPES.items() if dt)
 
+DMS_NAV_HIDE_FIELDS = {
+	"stock-entry": "hide_stock_entry",
+	"stock-reconciliation": "hide_stock_reconciliation",
+	"purchase-receipt": "hide_purchase_receipt",
+}
+
 
 def _flags_for_doctype(doctype: str, user: str | None = None) -> dict:
 	meta = frappe.get_meta(doctype)
@@ -49,6 +55,31 @@ def _flags_for_doctype(doctype: str, user: str | None = None) -> dict:
 		"export": cint(perms.get("export", 0)),
 		"visible": bool(read or select),
 	}
+
+
+def _apply_dms_nav_visibility(out: dict) -> dict:
+	"""Hide Master screens when toggled on DMS Settings."""
+	try:
+		settings = frappe.get_single("DMS Settings")
+		meta = frappe.get_meta("DMS Settings")
+	except Exception:
+		return out
+
+	for view, fieldname in DMS_NAV_HIDE_FIELDS.items():
+		module = out.get(view)
+		if not module or not meta.has_field(fieldname):
+			continue
+		if not cint(getattr(settings, fieldname, 0)):
+			continue
+		module["visible"] = False
+		module["read"] = 0
+		module["select"] = 0
+		module["create"] = 0
+		module["write"] = 0
+		module["submit"] = 0
+		module["cancel"] = 0
+		module["delete"] = 0
+	return out
 
 
 @frappe.whitelist()
@@ -101,4 +132,4 @@ def get_dms_ui_permissions():
 		"delete": 0,
 	}
 
-	return out
+	return _apply_dms_nav_visibility(out)

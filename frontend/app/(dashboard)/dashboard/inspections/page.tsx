@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { PermittedCreateButton } from '@/components/permitted-create-button';
 import { useInspections, useInspection } from '@/hooks/use-dms';
-import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
+import { DetailSheet } from '@/components/detail-sheet';
+import { InspectionDetailSheetContent } from '@/components/inspection/inspection-detail-sheet';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -222,7 +223,7 @@ export default function InspectionsPage() {
                       {(insp.warning_lights?.length || 0) > 0 ? (
                         <Badge
                           variant="outline"
-                          className="max-w-36 justify-end text-[11px] leading-tight bg-destructive/10 text-destructive border-destructive/20"
+                          className="max-w-36 justify-end text-[11px] leading-tight border-destructive bg-transparent text-foreground"
                         >
                           {insp.warning_lights!.length} warning
                           {insp.warning_lights!.length > 1 ? 's' : ''}
@@ -376,7 +377,7 @@ export default function InspectionsPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           {(insp.warning_lights?.length || 0) > 0 ? (
-                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+                            <Badge variant="outline" className="bg-transparent text-foreground border-destructive">
                               {insp.warning_lights.length} Warning Light
                               {insp.warning_lights.length > 1 ? 's' : ''}
                             </Badge>
@@ -569,74 +570,19 @@ export default function InspectionsPage() {
         open={!!selectedId}
         onOpenChange={(open) => { if (!open) setSelectedId(null); }}
         title={selectedId || ""}
-        subtitle={selectedInspection?.customer}
+        subtitle={selectedInspection?.customer_vehicle || selectedInspection?.customer}
         badge={selectedInspection ? { label: normalizeInspectionDocstatus(selectedInspection.docstatus) === 1 ? "Submitted" : "Draft" } : undefined}
         isLoading={detailLoading}
+        contentScroll="inner"
         onOpenInDesk={() => window.open(`/app/vehicle-inspection/${selectedId}`, '_blank')}
       >
-        {selectedInspection && (
-          <>
-            <DetailSection title="Inspection Info">
-              <DetailRow label="Date" value={selectedInspection.inspection_date ? new Date(selectedInspection.inspection_date).toLocaleDateString() : undefined} />
-              <DetailRow label="Company" value={selectedInspection.company_name || selectedInspection.company} />
-              <DetailRow label="Service Advisor" value={selectedInspection.service_advisor} />
-              <DetailRow label="Job Card" value={selectedInspection.job_card} />
-              <DetailRow label="Service Estimate" value={selectedInspection.service_estimate} />
-            </DetailSection>
-            <DetailSection title="Customer & Vehicle">
-              <DetailRow label="Customer" value={selectedInspection.customer} />
-              <DetailRow label="VIN / Chassis" value={selectedInspection.vin_chassis} />
-              <DetailRow label="Model Year" value={selectedInspection.model_year?.toString()} />
-              <DetailRow label="License Plate" value={selectedInspection.license_plate} />
-              <DetailRow label="Odometer" value={selectedInspection.odometer ? `${selectedInspection.odometer} ${selectedInspection.odometer_unit || 'km'}` : undefined} />
-              <DetailRow label="Fuel Level" value={selectedInspection.fuel_level} />
-            </DetailSection>
-            {selectedInspection.customer_complaints?.length ? (
-              <DetailSection title="Customer Complaints">
-                <div className="space-y-3">
-                  {selectedInspection.customer_complaints.map((complaint, idx) => (
-                    <div key={complaint.name || idx} className="text-sm">
-                      <p className="font-medium">
-                        {complaint.customer_exact_words || complaint.complaint || '—'}
-                      </p>
-                      {(complaint.symptom_category || complaint.category || complaint.severity) ? (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {[complaint.symptom_category || complaint.category, complaint.severity]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              </DetailSection>
-            ) : null}
-            {selectedInspection && canStartDiagnosis(selectedInspection) ? (
-              <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
-                <Button
-                  disabled={startingDiagnosisId === selectedId}
-                  onClick={() => handleStartDiagnosis(selectedId!)}
-                >
-                  <Stethoscope className="mr-2 h-4 w-4" />
-                  {startingDiagnosisId === selectedId ? 'Creating…' : 'Start diagnosis'}
-                </Button>
-              </div>
-            ) : null}
-            {selectedInspection.service_estimate ? (
-              <div className="flex justify-end pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const est = selectedInspection.service_estimate!;
-                    setSelectedId(null);
-                    navigate('estimate-detail', { id: est });
-                  }}
-                >
-                  View service estimate
-                </Button>
-              </div>
-            ) : null}
-          </>
+        {selectedInspection && selectedId && (
+          <InspectionDetailSheetContent
+            key={selectedId}
+            inspection={selectedInspection}
+            onStartDiagnosis={() => handleStartDiagnosis(selectedId)}
+            startingDiagnosis={startingDiagnosisId === selectedId}
+          />
         )}
       </DetailSheet>
     </div>
