@@ -17,6 +17,9 @@ const ALL_VIEWS = [
   'customers',
   'vehicles', 'vehicle-new',
   'reports',
+  'stock-entry',
+  'stock-reconciliation',
+  'purchase-receipt',
 ];
 
 const VIEW_GROUPS: Record<string, string> = {
@@ -45,6 +48,9 @@ const VIEW_GROUPS: Record<string, string> = {
   'vehicles': 'vehicles',
   'vehicle-new': 'vehicles',
   'reports': 'reports',
+  'stock-entry': 'stock-entry',
+  'stock-reconciliation': 'stock-reconciliation',
+  'purchase-receipt': 'purchase-receipt',
 };
 
 interface NavigationContextType {

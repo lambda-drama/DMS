@@ -15,6 +15,9 @@ export type DmsPermissionModule =
   | 'customers'
   | 'vehicles'
   | 'invoices'
+  | 'stock-entry'
+  | 'stock-reconciliation'
+  | 'purchase-receipt'
   | 'reports'
   | 'settings';
 
@@ -60,6 +63,9 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'vehicle-new': 'vehicles',
   invoices: 'invoices',
   'invoice-new': 'invoices',
+  'stock-entry': 'stock-entry',
+  'stock-reconciliation': 'stock-reconciliation',
+  'purchase-receipt': 'purchase-receipt',
   reports: 'reports',
   settings: 'settings',
 };

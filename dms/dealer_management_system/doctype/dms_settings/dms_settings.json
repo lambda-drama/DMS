@@ -16,6 +16,9 @@
   "auto_create_vin_from_serial",
   "company",
   "defaults_section",
+  "default_item_group",
+  "default_supplier_group",
+  "default_supplier",
   "company_defaults",
   "section_break_nwax",
   "warranty_period",
@@ -84,6 +87,27 @@
    "fieldname": "defaults_section",
    "fieldtype": "Section Break",
    "label": "Defaults"
+  },
+  {
+   "description": "Item group used when creating stock items from DMS (Purchase Receipt, Stock Entry, etc.). Enable Auto Generate Spare Parts on the Item Group for automatic Spare Part creation.",
+   "fieldname": "default_item_group",
+   "fieldtype": "Link",
+   "label": "Default Item Group",
+   "options": "Item Group"
+  },
+  {
+   "description": "Supplier group used when creating suppliers from DMS purchase receipt UI",
+   "fieldname": "default_supplier_group",
+   "fieldtype": "Link",
+   "label": "Default Supplier Group",
+   "options": "Supplier Group"
+  },
+  {
+   "description": "Spare-parts supplier auto-selected on DMS purchase receipt when none is chosen (company default takes priority)",
+   "fieldname": "default_supplier",
+   "fieldtype": "Link",
+   "label": "Default Supplier",
+   "options": "Supplier"
   },
   {
    "fieldname": "company_defaults",
