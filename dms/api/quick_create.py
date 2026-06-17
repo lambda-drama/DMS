@@ -8,10 +8,18 @@ from frappe import _
 from frappe.utils import today
 
 from dms.api.common import get_color_display_label
-from dms.api.utils import get_vehicle_customer_groups
+from dms.api.utils import get_vehicle_customer_groups, resolve_dms_customer_group
 
 ALLOWED_DOCTYPES = frozenset(
-	{"Customer", "Color", "Service Advisor", "Vehicle Service Type", "Technician"}
+	{
+		"Customer",
+		"Color",
+		"Service Advisor",
+		"Parts Advisor",
+		"DMS Internal Employee",
+		"Vehicle Service Type",
+		"Technician",
+	}
 )
 
 
@@ -42,6 +50,10 @@ def quick_create_doc(doctype, values=None):
 		doc_dict = _quick_create_color(values)
 	elif doctype == "Service Advisor":
 		doc_dict = _quick_create_service_advisor(values)
+	elif doctype == "Parts Advisor":
+		doc_dict = _quick_create_parts_advisor(values)
+	elif doctype == "DMS Internal Employee":
+		doc_dict = _quick_create_internal_employee(values)
 	elif doctype == "Vehicle Service Type":
 		doc_dict = _quick_create_vehicle_service_type(values)
 	else:
@@ -74,7 +86,13 @@ def _quick_create_customer(values):
 			)
 		)
 
-	group = (values.get("customer_group") or "").strip() or groups[0]
+	group = resolve_dms_customer_group(values.get("customer_group"), groups)
+	if not group:
+		frappe.throw(
+			_(
+				"Configure at least one Customer Group with custom_is_vehicle_customer before adding customers."
+			)
+		)
 	if group not in groups:
 		frappe.throw(_("Choose a valid vehicle customer group."))
 
@@ -153,6 +171,50 @@ def _quick_create_service_advisor(values):
 		"phone": ph,
 		"email": em,
 	}
+
+
+def _quick_create_parts_advisor(values):
+	fn = (values.get("first_name") or "").strip()
+	ln = (values.get("last_name") or "").strip()
+	ph = (values.get("phone") or "").strip()
+	em = (values.get("email") or "").strip()
+	internal_employee = (values.get("internal_employee") or "").strip()
+	if not fn or not ln:
+		frappe.throw(_("First name and last name are required"))
+	if not ph or not em:
+		frappe.throw(_("Phone and email are required"))
+	doc = {
+		"doctype": "Parts Advisor",
+		"first_name": fn,
+		"last_name": ln,
+		"phone": ph,
+		"email": em,
+	}
+	if internal_employee:
+		doc["internal_employee"] = internal_employee
+	return doc
+
+
+def _quick_create_internal_employee(values):
+	fn = (values.get("first_name") or "").strip()
+	ln = (values.get("last_name") or "").strip()
+	if not fn or not ln:
+		frappe.throw(_("First name and last name are required"))
+	doc = {
+		"doctype": "DMS Internal Employee",
+		"first_name": fn,
+		"last_name": ln,
+	}
+	employee = (values.get("employee") or "").strip()
+	phone = (values.get("phone") or "").strip()
+	email = (values.get("email") or "").strip()
+	if employee:
+		doc["employee"] = employee
+	if phone:
+		doc["phone"] = phone
+	if email:
+		doc["email"] = email
+	return doc
 
 
 def _quick_create_vehicle_service_type(values):

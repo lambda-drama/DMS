@@ -298,7 +298,7 @@ export default function InvoicesPage() {
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Outstanding</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right w-[88px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

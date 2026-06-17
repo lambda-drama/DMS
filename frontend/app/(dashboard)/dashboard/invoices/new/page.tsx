@@ -5,6 +5,8 @@ import { useNavigation } from "@/contexts/navigation-context";
 import {
   useCompanies,
   useAutofillSingleCompany,
+  useAutofillDefaultCustomer,
+  useDmsCustomerDefaults,
   useCustomers,
   useJobCard,
   useSpareParts,
@@ -12,7 +14,7 @@ import {
   useWarehouses,
   useCurrencies,
 } from "@/hooks/use-dms";
-import { SearchableSelect } from "@/components/searchable-select";
+import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { Button } from "@/components/ui/button";
@@ -75,6 +77,7 @@ export default function NewInvoicePage() {
   const [sparePartSearch, setSparePartSearch] = useState("");
 
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
+  const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const [company, setCompany] = useState("");
   const [warehouse, setWarehouse] = useState("");
@@ -126,6 +129,19 @@ export default function NewInvoicePage() {
     { search: companySearch, enabled: !jobCardId }
   );
 
+  useAutofillDefaultCustomer(
+    customer,
+    (d) => {
+      setCustomer(d.default_customer!);
+      setCustomerMeta({
+        name: d.default_customer!,
+        customer_name: d.customer_name || d.default_customer!,
+        mobile_no: d.mobile_no || undefined,
+      });
+    },
+    { enabled: !jobCardId }
+  );
+
   useEffect(() => {
     if (!jobCard) return;
     if (jobCard.customer) {
@@ -152,25 +168,10 @@ export default function NewInvoicePage() {
     setPartRows(parts);
   }, [jobCard]);
 
-  const customerSelectOptions = useMemo(() => {
-    const mapped =
-      customers?.map((c) => ({
-        value: c.name,
-        label: c.customer_name,
-        description: c.mobile_no || undefined,
-      })) || [];
-    if (customer && customerMeta && !mapped.some((o) => o.value === customer)) {
-      return [
-        {
-          value: customerMeta.name,
-          label: customerMeta.customer_name,
-          description: customerMeta.mobile_no,
-        },
-        ...mapped,
-      ];
-    }
-    return mapped;
-  }, [customers, customer, customerMeta]);
+  const customerSelectOptions = useMemo(
+    () => buildCustomerSelectOptions(customers, customer, customerMeta),
+    [customers, customer, customerMeta]
+  );
 
   const labourTotal = labourRows.reduce(
     (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
@@ -195,19 +196,9 @@ export default function NewInvoicePage() {
   const isStandalone = !jobCardId;
 
   const handleCustomerChange = (id: string) => {
-    setCustomer(id);
-    if (!id) {
-      setCustomerMeta(null);
-      return;
-    }
-    const match = customers?.find((c) => c.name === id);
-    if (match) {
-      setCustomerMeta({
-        name: match.name,
-        customer_name: match.customer_name,
-        mobile_no: match.mobile_no,
-      });
-    }
+    const next = resolveCustomerFieldChange(id, customers, dmsCustomerDefaults);
+    setCustomer(next.customer);
+    setCustomerMeta(next.meta);
   };
 
   const handleCustomerCreated = (name: string, label?: string) => {

@@ -1006,9 +1006,11 @@ def append_si_items(si, jc, warranty_application_type: str = ""):
 
 
 def mark_sales_invoice_as_dms_ui_transaction(si) -> None:
-	"""Flag invoices created from the DMS frontend (standalone)."""
+	"""Flag standalone invoices from the DMS frontend (no job card)."""
 	if frappe.get_meta("Sales Invoice").has_field("custom_is_dms_transaction"):
 		si.custom_is_dms_transaction = 1
+	if frappe.get_meta("Sales Invoice").has_field("custom_spare_parts"):
+		si.custom_spare_parts = 1
 
 
 def _normalize_standalone_discount(discount) -> dict | None:

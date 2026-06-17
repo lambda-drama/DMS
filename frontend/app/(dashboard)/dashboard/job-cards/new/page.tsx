@@ -15,10 +15,12 @@ import {
   useInspections,
   useCompanies,
   useAutofillSingleCompany,
+  useAutofillDefaultCustomer,
+  useDmsCustomerDefaults,
   useCurrencies,
   useServicePackagesForVin,
 } from "@/hooks/use-dms";
-import { SearchableSelect } from "@/components/searchable-select";
+import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import {
@@ -141,6 +143,7 @@ export default function NewJobCardPage() {
     company || undefined
   );
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { data: currencies } = useCurrencies();
 
   useAutofillSingleCompany(
@@ -177,6 +180,16 @@ export default function NewJobCardPage() {
     customer_name: string;
     mobile_no?: string;
   } | null>(null);
+
+  useAutofillDefaultCustomer(customer, (d) => {
+    setCustomer(d.default_customer!);
+    setSelectedCustomer({
+      name: d.default_customer!,
+      customer_name: d.customer_name || d.default_customer!,
+      mobile_no: d.mobile_no || undefined,
+    });
+  });
+
   const [licensePlate, setLicensePlate] = useState("");
   const [currentOdometer, setCurrentOdometer] = useState<number>(0);
   const [warrantyStatus, setWarrantyStatus] = useState("");
@@ -327,19 +340,9 @@ export default function NewJobCardPage() {
   };
 
   const handleCustomerChange = (customerId: string) => {
-    setCustomer(customerId);
-    if (!customerId) {
-      setSelectedCustomer(null);
-      return;
-    }
-    const match = customers?.find((c) => c.name === customerId);
-    if (match) {
-      setSelectedCustomer({
-        name: match.name,
-        customer_name: match.customer_name,
-        mobile_no: match.mobile_no,
-      });
-    }
+    const next = resolveCustomerFieldChange(customerId, customers, dmsCustomerDefaults);
+    setCustomer(next.customer);
+    setSelectedCustomer(next.meta);
     // Never clear VIN — user may override owner for this visit
   };
 
@@ -351,30 +354,10 @@ export default function NewJobCardPage() {
     });
   };
 
-  const customerSelectOptions = useMemo(() => {
-    const mapped =
-      customers?.map((c) => ({
-        value: c.name,
-        label: c.customer_name,
-        description: c.mobile_no || undefined,
-      })) || [];
-
-    if (
-      customer &&
-      selectedCustomer &&
-      !mapped.some((o) => o.value === customer)
-    ) {
-      return [
-        {
-          value: selectedCustomer.name,
-          label: selectedCustomer.customer_name,
-          description: selectedCustomer.mobile_no,
-        },
-        ...mapped,
-      ];
-    }
-    return mapped;
-  }, [customers, customer, selectedCustomer]);
+  const customerSelectOptions = useMemo(
+    () => buildCustomerSelectOptions(customers, customer, selectedCustomer),
+    [customers, customer, selectedCustomer]
+  );
 
   const vinSelectOptions = useMemo(() => {
     const mapped =

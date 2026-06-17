@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from dms.api.utils import get_dms_companies
+from dms.api.utils import get_dms_companies, resolve_dms_customer
 
 
 @frappe.whitelist()
@@ -126,7 +126,7 @@ def create_vehicle(data):
 		"exterior_color": data.get("exterior_color"),
 		"interior_color": data.get("interior_color"),
 		"interior_material": data.get("interior_material"),
-		"current_customer": data.get("current_customer"),
+		"current_customer": resolve_dms_customer(data.get("current_customer")),
 		"current_odometer": data.get("current_odometer"),
 		"odometer_unit": data.get("odometer_unit", "km"),
 		"warranty_start_date": data.get("warranty_start_date"),

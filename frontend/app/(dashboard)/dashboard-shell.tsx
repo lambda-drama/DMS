@@ -1,13 +1,24 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { cn } from '@/lib/utils';
 import { resetAppScroll } from '@/lib/reset-app-scroll';
+import { fetchDmsCustomerDefaults } from '@/services/common';
 import { Loader2 } from 'lucide-react';
+
+function DmsCustomerDefaultsPrefetch() {
+  useSWR('dms-customer-defaults', fetchDmsCustomerDefaults, {
+    dedupingInterval: 2000,
+    revalidateOnFocus: true,
+    revalidateOnMount: true,
+  });
+  return null;
+}
 
 export default function DashboardShell({
   children,
@@ -46,6 +57,7 @@ export default function DashboardShell({
 
   return (
     <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
+      <DmsCustomerDefaultsPrefetch />
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden"

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { UserMenu } from './user-menu';
+import { BrandLogo } from '@/components/brand-logo';
 import { useNavigation } from '@/contexts/navigation-context';
 
 const viewTitles: Record<string, string> = {
@@ -35,6 +36,7 @@ const viewTitles: Record<string, string> = {
   technicians: 'Technicians',
   'technician-detail': 'Technician Details',
   'service-advisors': 'Service Advisors',
+  'parts-advisors': 'Parts Advisors',
   customers: 'Customers',
   vehicles: 'Vehicles',
   'vehicle-new': 'New Vehicle',
@@ -42,6 +44,7 @@ const viewTitles: Record<string, string> = {
   'stock-entry': 'Stock Entry',
   'stock-reconciliation': 'Stock Reconciliation',
   'purchase-receipt': 'Purchase Receipt',
+  'spare-part-sales': 'Spare Part Sales',
 };
 
 interface HeaderProps {
@@ -64,6 +67,8 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
+
+        <BrandLogo size="sm" showText={false} className="shrink-0 lg:hidden" imageClassName="h-8 w-8" />
 
         <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{title}</h1>
       </div>

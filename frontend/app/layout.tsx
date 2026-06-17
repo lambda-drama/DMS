@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
+import { APP_SHORT_NAME, APP_TITLE } from '@/lib/branding'
 import './globals.css'
 
 const inter = Inter({ 
@@ -16,10 +17,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AutoService DMS - Dealer Management System',
-  description: 'Enterprise automotive workshop management system for appointments, inspections, job cards, and vehicle delivery',
-  keywords: ['DMS', 'dealer management', 'automotive', 'workshop', 'job card', 'vehicle service'],
-  authors: [{ name: 'AutoService' }],
+  title: `${APP_TITLE} - Dealer Management System`,
+  description: 'Enterprise automotive workshop management for Suweys Motors — appointments, inspections, job cards, and vehicle delivery',
+  keywords: ['DMS', 'dealer management', 'automotive', 'workshop', 'job card', 'vehicle service', 'Suweys Motors'],
+  authors: [{ name: APP_SHORT_NAME }],
 }
 
 export const viewport: Viewport = {

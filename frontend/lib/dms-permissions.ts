@@ -11,6 +11,7 @@ export type DmsPermissionModule =
   | 'parts-requisitions'
   | 'technicians'
   | 'service-advisors'
+  | 'parts-advisors'
   | 'deliveries'
   | 'customers'
   | 'vehicles'
@@ -18,6 +19,7 @@ export type DmsPermissionModule =
   | 'stock-entry'
   | 'stock-reconciliation'
   | 'purchase-receipt'
+  | 'spare-part-sales'
   | 'reports'
   | 'settings';
 
@@ -56,6 +58,7 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   technicians: 'technicians',
   'technician-detail': 'technicians',
   'service-advisors': 'service-advisors',
+  'parts-advisors': 'parts-advisors',
   deliveries: 'deliveries',
   'delivery-new': 'deliveries',
   customers: 'customers',
@@ -66,6 +69,7 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'stock-entry': 'stock-entry',
   'stock-reconciliation': 'stock-reconciliation',
   'purchase-receipt': 'purchase-receipt',
+  'spare-part-sales': 'spare-part-sales',
   reports: 'reports',
   settings: 'settings',
 };

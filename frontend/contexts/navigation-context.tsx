@@ -14,12 +14,14 @@ const ALL_VIEWS = [
   'invoices', 'invoice-new',
   'technicians', 'technician-detail',
   'service-advisors',
+  'parts-advisors',
   'customers',
   'vehicles', 'vehicle-new',
   'reports',
   'stock-entry',
   'stock-reconciliation',
   'purchase-receipt',
+  'spare-part-sales',
 ];
 
 const VIEW_GROUPS: Record<string, string> = {
@@ -44,6 +46,7 @@ const VIEW_GROUPS: Record<string, string> = {
   'technicians': 'technicians',
   'technician-detail': 'technicians',
   'service-advisors': 'service-advisors',
+  'parts-advisors': 'parts-advisors',
   'customers': 'customers',
   'vehicles': 'vehicles',
   'vehicle-new': 'vehicles',
@@ -51,6 +54,7 @@ const VIEW_GROUPS: Record<string, string> = {
   'stock-entry': 'stock-entry',
   'stock-reconciliation': 'stock-reconciliation',
   'purchase-receipt': 'purchase-receipt',
+  'spare-part-sales': 'spare-part-sales',
 };
 
 interface NavigationContextType {

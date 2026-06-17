@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Car, Loader2 } from 'lucide-react';
+import { BrandLogo } from '@/components/brand-logo';
+import { APP_TITLE } from '@/lib/branding';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
@@ -37,12 +39,10 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-secondary p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center space-y-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary">
-            <Car className="h-8 w-8 text-primary-foreground" />
-          </div>
+          <BrandLogo size="lg" showText={false} />
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight text-secondary-foreground">
-              AutoService DMS
+              {APP_TITLE}
             </h1>
             <p className="mt-2 text-sm text-secondary-foreground/70">
               Dealer Management System

@@ -3,15 +3,42 @@ import re
 import frappe
 from frappe import _
 from frappe.utils import strip_html
-from dms.api.utils import get_dms_companies, get_vehicle_customer_groups
+from dms.api.utils import get_dms_companies, get_dms_default_customer, get_dms_default_customer_group, get_vehicle_customer_groups
 
 _COLOR_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
 
 
 @frappe.whitelist()
 def get_vehicle_customer_group_options():
-	"""Customer Groups marked as vehicle customers (for quick-create / forms)."""
-	return get_vehicle_customer_groups()
+	"""Vehicle customer groups and DMS Settings default for quick-create."""
+	groups = get_vehicle_customer_groups()
+	default = get_dms_default_customer_group()
+	if not default and groups:
+		default = groups[0]
+	return {
+		"groups": groups,
+		"default_customer_group": default,
+	}
+
+
+@frappe.whitelist()
+def get_dms_customer_defaults():
+	"""Default customer for DMS UI forms (DMS Settings → Default Customer)."""
+	customer = get_dms_default_customer()
+	if not customer:
+		return {"default_customer": None, "customer_name": None, "mobile_no": None}
+
+	row = frappe.db.get_value(
+		"Customer",
+		customer,
+		["customer_name", "mobile_no"],
+		as_dict=True,
+	) or {}
+	return {
+		"default_customer": customer,
+		"customer_name": row.get("customer_name") or customer,
+		"mobile_no": row.get("mobile_no"),
+	}
 
 
 @frappe.whitelist()
@@ -455,7 +482,7 @@ def get_print_formats(doctype):
 	if not doctype:
 		return ["Standard"]
 
-	from dms.api.utils import get_dms_sales_print_formats
+	from dms.api.utils import get_dms_purchase_receipt_print_formats, get_dms_sales_print_formats
 
 	formats = frappe.get_all(
 		"Print Format",
@@ -466,6 +493,13 @@ def get_print_formats(doctype):
 
 	if doctype == "Sales Invoice":
 		allowed = get_dms_sales_print_formats()
+		if allowed:
+			valid = set(formats)
+			filtered = [name for name in allowed if name in valid]
+			return filtered if filtered else ["Standard"]
+
+	if doctype == "Purchase Receipt":
+		allowed = get_dms_purchase_receipt_print_formats()
 		if allowed:
 			valid = set(formats)
 			filtered = [name for name in allowed if name in valid]

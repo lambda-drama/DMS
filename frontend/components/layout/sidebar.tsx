@@ -22,7 +22,9 @@ import {
   ArrowDownUp,
   ClipboardList,
   PackageCheck,
+  ShoppingCart,
 } from 'lucide-react';
+import { BrandLogo } from '@/components/brand-logo';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
@@ -31,7 +33,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-const MASTER_VIEWS = ['stock-entry', 'stock-reconciliation', 'purchase-receipt'];
+const MASTER_VIEWS = [
+  'stock-entry',
+  'stock-reconciliation',
+  'purchase-receipt',
+  'spare-part-sales',
+  'service-advisors',
+  'parts-advisors',
+];
 const MASTER_OPEN_STORAGE_KEY = 'dms-sidebar-master-open';
 
 const navigation = [
@@ -50,7 +59,6 @@ const navigation = [
       { name: 'Job Cards', view: 'job-cards', icon: Wrench },
       { name: 'Parts Requisition', view: 'parts-requisitions', icon: Package },
       { name: 'Technicians', view: 'technicians', icon: HardHat },
-      { name: 'Service Advisors', view: 'service-advisors', icon: Headphones },
       { name: 'Delivery', view: 'deliveries', icon: Truck },
     ],
   },
@@ -67,9 +75,12 @@ const navigation = [
     title: 'Master',
     collapsible: true,
     items: [
+      { name: 'Service Advisors', view: 'service-advisors', icon: Headphones },
+      { name: 'Parts Advisors', view: 'parts-advisors', icon: Users },
       { name: 'Stock Entry', view: 'stock-entry', icon: ArrowDownUp },
       { name: 'Stock Reconciliation', view: 'stock-reconciliation', icon: ClipboardList },
       { name: 'Purchase Receipt', view: 'purchase-receipt', icon: PackageCheck },
+      { name: 'Spare Part Sales', view: 'spare-part-sales', icon: ShoppingCart },
     ],
   },
 ];
@@ -138,14 +149,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-          <Car className="h-5 w-5 text-sidebar-primary-foreground" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold">AutoService</span>
-          <span className="text-xs text-sidebar-foreground/70">DMS</span>
-        </div>
+      <div className="flex h-16 items-center px-6">
+        <BrandLogo size="sm" variant="sidebar" className="min-w-0" />
       </div>
 
       <Separator className="bg-sidebar-border" />

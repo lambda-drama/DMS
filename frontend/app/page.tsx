@@ -31,6 +31,7 @@ const InvoiceNewPage = dynamic(() => import('./(dashboard)/dashboard/invoices/ne
 const TechniciansPage = dynamic(() => import('./(dashboard)/dashboard/technicians/page'));
 const TechnicianDetailPage = dynamic(() => import('./(dashboard)/dashboard/technicians/detail/page'));
 const ServiceAdvisorsPage = dynamic(() => import('./(dashboard)/dashboard/service-advisors/page'));
+const PartsAdvisorsPage = dynamic(() => import('./(dashboard)/dashboard/parts-advisors/page'));
 const CustomersPage = dynamic(() => import('./(dashboard)/dashboard/customers/page'));
 const VehiclesPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/page'));
 const VehicleNewPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/new/page'));
@@ -38,6 +39,7 @@ const ReportsPage = dynamic(() => import('./(dashboard)/dashboard/reports/page')
 const StockEntryPage = dynamic(() => import('./(dashboard)/dashboard/stock-entry/page'));
 const StockReconciliationPage = dynamic(() => import('./(dashboard)/dashboard/stock-reconciliation/page'));
 const PurchaseReceiptPage = dynamic(() => import('./(dashboard)/dashboard/purchase-receipt/page'));
+const SparePartSalesPage = dynamic(() => import('./(dashboard)/dashboard/spare-part-sales/page'));
 
 function LoadingScreen() {
   return (
@@ -81,6 +83,7 @@ function AppContent() {
       case 'technicians':        return <TechniciansPage />;
       case 'technician-detail':  return <TechnicianDetailPage />;
       case 'service-advisors':   return <ServiceAdvisorsPage />;
+      case 'parts-advisors':     return <PartsAdvisorsPage />;
       case 'customers':          return <CustomersPage />;
       case 'vehicles':           return <VehiclesPage />;
       case 'vehicle-new':        return <VehicleNewPage />;
@@ -88,6 +91,7 @@ function AppContent() {
       case 'stock-entry':        return <StockEntryPage />;
       case 'stock-reconciliation': return <StockReconciliationPage />;
       case 'purchase-receipt':   return <PurchaseReceiptPage />;
+      case 'spare-part-sales':   return <SparePartSalesPage />;
       default:                   return <DashboardMain />;
     }
   };

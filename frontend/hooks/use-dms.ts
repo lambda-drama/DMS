@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 import * as appointmentsSvc from '@/services/appointments';
@@ -315,6 +315,28 @@ export function useServiceAdvisorDetail(name: string | null) {
   );
 }
 
+export function usePartsAdvisorsList(search?: string, status?: string) {
+  return useSWR(
+    ['parts-advisors-list', search, status],
+    () =>
+      import('@/services/partsAdvisors').then((m) =>
+        m.listPartsAdvisors({ search, status: status ?? 'Active' })
+      ),
+    { dedupingInterval: 30000 }
+  );
+}
+
+export function usePartsAdvisorDetail(name: string | null) {
+  return useSWR(
+    name ? ['parts-advisor', name] : null,
+    () =>
+      name
+        ? import('@/services/partsAdvisors').then((m) => m.getPartsAdvisor(name))
+        : null,
+    { dedupingInterval: 30000 }
+  );
+}
+
 export function useTechnicians() {
   return useSWR<Technician[]>(
     'technicians',
@@ -402,6 +424,39 @@ export function useAutofillSingleCompany(
 
     onAutofill(companies[0]);
   }, [companies, isLoading, currentValue, onAutofill, enabled, search]);
+}
+
+/** Cached DMS Settings default customer (prefetch early so forms autofill on open). */
+export function useDmsCustomerDefaults(enabled = true) {
+  return useSWR(
+    enabled ? 'dms-customer-defaults' : null,
+    () => commonSvc.fetchDmsCustomerDefaults(),
+    {
+      dedupingInterval: 2000,
+      revalidateOnFocus: true,
+      revalidateOnMount: true,
+    }
+  );
+}
+
+/** Auto-select default customer from DMS Settings whenever the field is empty. */
+export function useAutofillDefaultCustomer(
+  currentCustomer: string,
+  onAutofill: (defaults: commonSvc.DmsCustomerDefaults) => void,
+  options?: { enabled?: boolean }
+) {
+  const enabled = options?.enabled ?? true;
+  const { data, isLoading } = useDmsCustomerDefaults(enabled);
+  const onAutofillRef = useRef(onAutofill);
+  onAutofillRef.current = onAutofill;
+
+  useEffect(() => {
+    if (!enabled) return;
+    if (isLoading || !data?.default_customer) return;
+    if (currentCustomer) return;
+
+    onAutofillRef.current(data);
+  }, [data, isLoading, currentCustomer, enabled]);
 }
 
 export function useCurrencies() {

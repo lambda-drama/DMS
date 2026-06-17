@@ -14,7 +14,7 @@ app_license = "mit"
 add_to_apps_screen = [
 	{
 		"name": "dms",
-		"logo": "/assets/dms/image/logo_t.jpg",
+		"logo": "/assets/dms/image/suwey_logo.png",
 		"title": "DMS",
 		"route": "/dms",
 	}
@@ -58,6 +58,7 @@ fixtures = [
                     "Supplier-custom_spare_parts_supplier_",
                     "Stock Reconciliation-custom_sparepart_stock",
                     "Stock Entry-custom_sparepart_stock",
+                    "Sales Invoice-custom_spare_parts",
                     
                 ]
             ]
