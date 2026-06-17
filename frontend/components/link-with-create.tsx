@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { fetchVehicleCustomerGroups } from '@/services/common';
+import { fetchVehicleCustomerGroupOptions } from '@/services/common';
 import { quickCreateDoc, type QuickCreateDocType } from '@/services/quickCreate';
 
 function invalidateAfterCreate(
@@ -132,10 +132,10 @@ export function LinkWithCreate({
       let cancelled = false;
       (async () => {
         try {
-          const g = await fetchVehicleCustomerGroups();
+          const opts = await fetchVehicleCustomerGroupOptions();
           if (cancelled) return;
-          setCustomerGroups(g);
-          setCustomerGroup(g[0] || '');
+          setCustomerGroups(opts.groups);
+          setCustomerGroup(opts.default_customer_group || opts.groups[0] || '');
         } catch {
           if (!cancelled) {
             setCustomerGroups([]);

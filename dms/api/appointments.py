@@ -4,7 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, get_datetime, now_datetime
 
-from dms.api.utils import get_dms_companies
+from dms.api.utils import get_dms_companies, resolve_dms_customer
 
 _TERMINAL_STATUSES = frozenset({
 	"Completed", "Cancelled", "No-Show",
@@ -216,7 +216,7 @@ def create_appointment(data):
 		"company": company or None,
 		"estimated_duration_hours": data.get("estimated_duration_hours"),
 		"priority": data.get("priority", "Normal"),
-		"customer": data.get("customer"),
+		"customer": resolve_dms_customer(data.get("customer")),
 		"vehicle": vehicle,
 		"vin_chassis": vin_chassis,
 		"license_plate": data.get("license_plate"),

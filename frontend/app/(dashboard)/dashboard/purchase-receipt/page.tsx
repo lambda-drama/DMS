@@ -21,6 +21,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
+import { ListRowActions } from '@/components/list-row-actions';
+import { PrintFormatDropdown } from '@/components/print-format-dropdown';
 import * as stockSvc from '@/services/stockOperations';
 import { Loader2, PackageCheck, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -480,6 +482,7 @@ export default function PurchaseReceiptPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right w-[52px]">Print</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -498,6 +501,9 @@ export default function PurchaseReceiptPage() {
                       <Badge variant={row.docstatus === 1 ? 'default' : 'secondary'}>
                         {docStatusLabel(row.docstatus)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ListRowActions doctype="Purchase Receipt" docName={row.name} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -522,14 +528,21 @@ export default function PurchaseReceiptPage() {
         isLoading={detailLoading}
         footer={
           selectedReceiptId ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => window.open(`/app/purchase-receipt/${selectedReceiptId}`, '_blank')}
-            >
-              Open in ERPNext
-            </Button>
+            <div className="flex flex-col gap-2 w-full">
+              <PrintFormatDropdown
+                doctype="Purchase Receipt"
+                docName={selectedReceiptId}
+                className="w-full"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open(`/app/purchase-receipt/${selectedReceiptId}`, '_blank')}
+              >
+                Open in ERPNext
+              </Button>
+            </div>
           ) : undefined
         }
       >

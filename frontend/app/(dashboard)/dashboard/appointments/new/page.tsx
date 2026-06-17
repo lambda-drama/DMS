@@ -43,7 +43,10 @@ import {
   useCreateAppointment,
   useCompanies,
   useAutofillSingleCompany,
+  useAutofillDefaultCustomer,
+  useDmsCustomerDefaults,
 } from '@/hooks/use-dms';
+import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
 import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
 import * as vehiclesSvc from '@/services/vehicles';
 import type {
@@ -131,6 +134,7 @@ export default function NewAppointmentPage() {
   const { data: advisors } = useServiceAdvisors();
   const { data: bays } = useServiceBays();
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { trigger: createAppointment, isMutating } = useCreateAppointment();
 
   useAutofillSingleCompany(
@@ -140,6 +144,15 @@ export default function NewAppointmentPage() {
     (c) => setForm((prev) => ({ ...prev, company: c.name })),
     { search: companySearch }
   );
+
+  useAutofillDefaultCustomer(form.customer, (d) => {
+    setForm((prev) => ({ ...prev, customer: d.default_customer! }));
+    setSelectedCustomerMeta({
+      name: d.default_customer!,
+      customer_name: d.customer_name || d.default_customer!,
+      mobile_no: d.mobile_no || undefined,
+    });
+  });
 
   const handleVinSelect = async (vinName: string) => {
     setWarrantySummary(null);
@@ -211,19 +224,9 @@ export default function NewAppointmentPage() {
   };
 
   const handleCustomerChange = (customerId: string) => {
-    setForm((prev) => ({ ...prev, customer: customerId }));
-    if (!customerId) {
-      setSelectedCustomerMeta(null);
-      return;
-    }
-    const match = customers?.find((c) => c.name === customerId);
-    if (match) {
-      setSelectedCustomerMeta({
-        name: match.name,
-        customer_name: match.customer_name,
-        mobile_no: match.mobile_no,
-      });
-    }
+    const next = resolveCustomerFieldChange(customerId, customers, dmsCustomerDefaults);
+    setForm((prev) => ({ ...prev, customer: next.customer }));
+    setSelectedCustomerMeta(next.meta);
   };
 
   const handleCustomerCreated = (name: string, label?: string) => {
@@ -234,30 +237,10 @@ export default function NewAppointmentPage() {
     });
   };
 
-  const customerSelectOptions = useMemo(() => {
-    const mapped =
-      customers?.map((c) => ({
-        value: c.name,
-        label: c.customer_name,
-        description: c.mobile_no,
-      })) || [];
-
-    if (
-      form.customer &&
-      selectedCustomerMeta &&
-      !mapped.some((o) => o.value === form.customer)
-    ) {
-      return [
-        {
-          value: selectedCustomerMeta.name,
-          label: selectedCustomerMeta.customer_name,
-          description: selectedCustomerMeta.mobile_no,
-        },
-        ...mapped,
-      ];
-    }
-    return mapped;
-  }, [customers, form.customer, selectedCustomerMeta]);
+  const customerSelectOptions = useMemo(
+    () => buildCustomerSelectOptions(customers, form.customer, selectedCustomerMeta),
+    [customers, form.customer, selectedCustomerMeta]
+  );
 
   const vinSelectOptions = useMemo(() => {
     const mapped =

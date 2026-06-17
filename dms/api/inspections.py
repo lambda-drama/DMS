@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import today
 
-from dms.api.utils import get_dms_companies
+from dms.api.utils import get_dms_companies, resolve_dms_customer
 
 # Frontend warning-light labels → Vehicle Warning Light.select option
 EXTERIOR_COMPONENT_ALIASES = {
@@ -245,7 +245,7 @@ def create_inspection(data):
 
 	doc = frappe.get_doc({
 		"doctype": "Vehicle Inspection",
-		"customer": data.get("customer"),
+		"customer": resolve_dms_customer(data.get("customer")),
 		"service_advisor": service_advisor,
 		"customer_vehicle": customer_vehicle,
 		"vin_chassis": data.get("vin_chassis") or data.get("vehicle_vin"),

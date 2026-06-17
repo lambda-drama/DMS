@@ -72,7 +72,30 @@ export async function updateCustomerContact(
 }
 
 export async function fetchVehicleCustomerGroups(): Promise<string[]> {
-  return apiRequest<string[]>(`/api/method/${API}.get_vehicle_customer_group_options`, {
+  const result = await fetchVehicleCustomerGroupOptions();
+  return result.groups;
+}
+
+export interface VehicleCustomerGroupOptions {
+  groups: string[];
+  default_customer_group: string | null;
+}
+
+export async function fetchVehicleCustomerGroupOptions(): Promise<VehicleCustomerGroupOptions> {
+  return apiRequest<VehicleCustomerGroupOptions>(`/api/method/${API}.get_vehicle_customer_group_options`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export interface DmsCustomerDefaults {
+  default_customer: string | null;
+  customer_name: string | null;
+  mobile_no: string | null;
+}
+
+export async function fetchDmsCustomerDefaults(): Promise<DmsCustomerDefaults> {
+  return apiRequest<DmsCustomerDefaults>(`/api/method/${API}.get_dms_customer_defaults`, {
     method: 'POST',
     body: JSON.stringify({}),
   });

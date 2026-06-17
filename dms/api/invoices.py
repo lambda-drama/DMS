@@ -3,7 +3,7 @@ from frappe import _
 from frappe.query_builder import DocType, Order
 from frappe.utils import cint, flt, today
 
-from dms.api.utils import add_company_filter, get_dms_companies
+from dms.api.utils import add_company_filter, get_dms_companies, resolve_dms_customer
 
 
 def _ensure_erpnext():
@@ -17,23 +17,29 @@ def _is_dms_sales_invoice(si) -> bool:
 	meta = frappe.get_meta("Sales Invoice")
 	if meta.has_field("custom_dms_job_card") and si.get("custom_dms_job_card"):
 		return True
+	if meta.has_field("custom_spare_parts") and cint(si.get("custom_spare_parts")):
+		return True
 	if meta.has_field("custom_is_dms_transaction") and cint(si.get("custom_is_dms_transaction")):
 		return True
 	return False
 
 
 def _dms_sales_invoice_condition():
-	"""Invoices from a DMS job card and/or created from the DMS UI."""
+	"""Invoices linked to a DMS job card and/or standalone DMS spare-parts invoices."""
 	si_meta = frappe.get_meta("Sales Invoice")
 	has_jc = si_meta.has_field("custom_dms_job_card")
+	has_spare = si_meta.has_field("custom_spare_parts")
 	has_ui = si_meta.has_field("custom_is_dms_transaction")
-	if not has_jc and not has_ui:
+	if not has_jc and not has_spare and not has_ui:
 		return None
 
 	SI = DocType("Sales Invoice")
 	cond = None
 	if has_jc:
 		cond = (SI.custom_dms_job_card != "") & (SI.custom_dms_job_card.isnotnull())
+	if has_spare:
+		spare_cond = SI.custom_spare_parts == 1
+		cond = spare_cond if cond is None else (cond | spare_cond)
 	if has_ui:
 		ui_cond = SI.custom_is_dms_transaction == 1
 		cond = ui_cond if cond is None else (cond | ui_cond)
@@ -129,7 +135,7 @@ def create_standalone_invoice(data):
 	)
 
 	name = create_standalone_dms_sales_invoice(
-		customer=data.get("customer"),
+		customer=resolve_dms_customer(data.get("customer")),
 		company=data.get("company"),
 		labour_lines=data.get("labour") or data.get("labour_lines") or [],
 		parts_lines=data.get("parts") or data.get("parts_lines") or [],
@@ -193,6 +199,8 @@ def get_sales_invoice_detail(sales_invoice):
 	}
 	if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
 		result["dms_job_card"] = si.get("custom_dms_job_card")
+	if frappe.get_meta("Sales Invoice").has_field("custom_spare_parts"):
+		result["custom_spare_parts"] = cint(si.get("custom_spare_parts"))
 	if frappe.get_meta("Sales Invoice").has_field("custom_is_dms_transaction"):
 		result["is_dms_transaction"] = cint(si.get("custom_is_dms_transaction"))
 	return result

@@ -26,7 +26,10 @@ import {
   useCompanies,
   useAppointment,
   useAutofillSingleCompany,
+  useAutofillDefaultCustomer,
+  useDmsCustomerDefaults,
 } from '@/hooks/use-dms';
+import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -293,6 +296,7 @@ export default function NewInspectionPage() {
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
   const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { data: linkedAppointment } = useAppointment(appointmentId);
   const { data: advisors } = useServiceAdvisors();
   const { trigger: createInspection } = useCreateInspection();
@@ -326,6 +330,15 @@ export default function NewInspectionPage() {
     (c) => setCompany(c.name),
     { search: companySearch, enabled: !linkedAppointment?.company }
   );
+
+  useAutofillDefaultCustomer(selectedCustomer, (d) => {
+    setSelectedCustomer(d.default_customer!);
+    setSelectedCustomerMeta({
+      name: d.default_customer!,
+      customer_name: d.customer_name || d.default_customer!,
+      mobile_no: d.mobile_no || undefined,
+    });
+  });
 
   const applyVinToForm = (vin: VINNo) => {
     setSelectedVin(vin);
@@ -450,19 +463,9 @@ export default function NewInspectionPage() {
   };
 
   const handleCustomerChange = (customerId: string) => {
-    setSelectedCustomer(customerId);
-    if (!customerId) {
-      setSelectedCustomerMeta(null);
-      return;
-    }
-    const match = customers?.find((c) => c.name === customerId);
-    if (match) {
-      setSelectedCustomerMeta({
-        name: match.name,
-        customer_name: match.customer_name,
-        mobile_no: match.mobile_no,
-      });
-    }
+    const next = resolveCustomerFieldChange(customerId, customers, dmsCustomerDefaults);
+    setSelectedCustomer(next.customer);
+    setSelectedCustomerMeta(next.meta);
   };
 
   const handleCustomerCreated = (name: string, label?: string) => {
@@ -473,30 +476,10 @@ export default function NewInspectionPage() {
     });
   };
 
-  const customerSelectOptions = useMemo(() => {
-    const mapped =
-      customers?.map((c) => ({
-        value: c.name,
-        label: c.customer_name,
-        description: c.mobile_no || undefined,
-      })) || [];
-
-    if (
-      selectedCustomer &&
-      selectedCustomerMeta &&
-      !mapped.some((o) => o.value === selectedCustomer)
-    ) {
-      return [
-        {
-          value: selectedCustomerMeta.name,
-          label: selectedCustomerMeta.customer_name,
-          description: selectedCustomerMeta.mobile_no,
-        },
-        ...mapped,
-      ];
-    }
-    return mapped;
-  }, [customers, selectedCustomer, selectedCustomerMeta]);
+  const customerSelectOptions = useMemo(
+    () => buildCustomerSelectOptions(customers, selectedCustomer, selectedCustomerMeta),
+    [customers, selectedCustomer, selectedCustomerMeta]
+  );
 
   const vinSelectOptions = useMemo(() => {
     const mapped =

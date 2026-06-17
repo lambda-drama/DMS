@@ -2,6 +2,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
+from dms.api.utils import resolve_dms_customer
+
 def _resolve_job_card_currency(currency=None, company=None) -> str:
 	"""Default ETB; fall back to company default currency when currency not sent."""
 	cur = (currency or "").strip()
@@ -202,7 +204,7 @@ def create_job_card(data):
 		"job_card_type": data.get("job_card_type"),
 		"company": company,
 		"currency": currency,
-		"customer": data.get("customer"),
+		"customer": resolve_dms_customer(data.get("customer")),
 		"vehicle_vin": data.get("vehicle_vin"),
 		"license_plate": data.get("license_plate"),
 		"current_odometer": data.get("current_odometer"),

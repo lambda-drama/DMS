@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useCustomers, useVehicleItems, useColors, useCompanies, useAutofillSingleCompany } from "@/hooks/use-dms";
+import { useCustomers, useVehicleItems, useColors, useCompanies, useAutofillSingleCompany, useAutofillDefaultCustomer, useDmsCustomerDefaults } from "@/hooks/use-dms";
+import { buildCustomerSelectOptions, customerMetaFromDefaults, resolveCustomerFieldChange } from "@/lib/customer-default";
 import * as vehiclesSvc from "@/services/vehicles";
 import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
@@ -71,9 +72,16 @@ export default function NewVehiclePage() {
 
   const { data: vehicleItems } = useVehicleItems(itemSearch);
   const { data: customers } = useCustomers(customerSearch);
+  const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const { data: exteriorColors, isLoading: exteriorColorsLoading } = useColors(exteriorColorSearch);
   const { data: interiorColors, isLoading: interiorColorsLoading } = useColors(interiorColorSearch);
+
+  const [customerMeta, setCustomerMeta] = useState<{
+    name: string;
+    customer_name: string;
+    mobile_no?: string;
+  } | null>(null);
 
   const [form, setForm] = useState({
     company: "",
@@ -106,6 +114,22 @@ export default function NewVehiclePage() {
     (c) => update("company", c.name),
     { search: companySearch }
   );
+
+  useAutofillDefaultCustomer(form.current_customer, (d) => {
+    update("current_customer", d.default_customer!);
+    setCustomerMeta(customerMetaFromDefaults(d));
+  });
+
+  const customerSelectOptions = useMemo(
+    () => buildCustomerSelectOptions(customers, form.current_customer, customerMeta),
+    [customers, form.current_customer, customerMeta]
+  );
+
+  const handleCustomerChange = (id: string) => {
+    const next = resolveCustomerFieldChange(id, customers, dmsCustomerDefaults);
+    update("current_customer", next.customer);
+    setCustomerMeta(next.meta);
+  };
 
   async function handleSubmit() {
     if (!form.vin_number.trim()) {
@@ -376,18 +400,16 @@ export default function NewVehiclePage() {
               <Label>Current Customer / Owner</Label>
               <LinkWithCreate
                 doctype="Customer"
-                onCreated={(name) => update("current_customer", name)}
+                onCreated={(name, label) => {
+                  update("current_customer", name);
+                  setCustomerMeta({ name, customer_name: label || name });
+                }}
               >
                 <SearchableSelect
-                  options={
-                    customers?.map((c) => ({
-                      value: c.name,
-                      label: `${c.customer_name} (${c.name})`,
-                      description: c.mobile_no,
-                    })) || []
-                  }
+                  options={customerSelectOptions}
                   value={form.current_customer}
-                  onValueChange={(v) => update("current_customer", v)}
+                  valueLabel={customerMeta?.customer_name}
+                  onValueChange={handleCustomerChange}
                   onSearchChange={setCustomerSearch}
                   placeholder="Search customers (optional)..."
                 />

@@ -19,6 +19,10 @@
   "default_item_group",
   "default_supplier_group",
   "default_supplier",
+  "column_break_hpof",
+  "default_customer_group",
+  "default_customer",
+  "section_break_dtmc",
   "company_defaults",
   "ui_navigation_section",
   "hide_stock_entry",
@@ -31,7 +35,8 @@
   "add_full_warranty_item_on_invoice",
   "send_reminders_for_servicing",
   "print_formats_tab",
-  "sales_print_format"
+  "sales_print_format",
+  "purchase_receipt_print_format"
  ],
  "fields": [
   {
@@ -114,6 +119,20 @@
    "options": "Supplier"
   },
   {
+   "description": "Customer group pre-selected when creating customers from the DMS UI (must be a vehicle customer group)",
+   "fieldname": "default_customer_group",
+   "fieldtype": "Link",
+   "label": "Default Customer Group",
+   "options": "Customer Group"
+  },
+  {
+   "description": "Customer auto-selected on DMS forms when none is chosen",
+   "fieldname": "default_customer",
+   "fieldtype": "Link",
+   "label": "Default Customer",
+   "options": "Customer"
+  },
+  {
    "fieldname": "company_defaults",
    "fieldtype": "Table",
    "label": "Company Defaults",
@@ -192,13 +211,27 @@
   {
    "fieldname": "column_break_kpou",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_hpof",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_dtmc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "purchase_receipt_print_format",
+   "fieldtype": "Link",
+   "label": "Purchase Receipt Print Format",
+   "options": "Print Format"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-12 13:53:55.029363",
+ "modified": "2026-06-18 03:37:38.671284",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

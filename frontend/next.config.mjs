@@ -29,6 +29,10 @@ const nextConfig = {
               source: '/files/:path*',
               destination: `${frappeUrl}/files/:path*`,
             },
+            {
+              source: '/assets/dms/:path*',
+              destination: `${frappeUrl}/assets/dms/:path*`,
+            },
           ]
         },
       }
