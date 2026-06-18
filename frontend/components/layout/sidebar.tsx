@@ -25,6 +25,7 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
+import { shellTopBarClassName } from '@/lib/app-shell';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
@@ -41,8 +42,6 @@ const MASTER_VIEWS = [
   'service-advisors',
   'parts-advisors',
 ];
-const MASTER_OPEN_STORAGE_KEY = 'dms-sidebar-master-open';
-
 const navigation = [
   {
     title: 'Overview',
@@ -96,14 +95,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const [masterOpen, setMasterOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(MASTER_OPEN_STORAGE_KEY);
-    if (stored !== null) {
-      setMasterOpen(stored === 'true');
-    }
-  }, []);
-
-  useEffect(() => {
     if (MASTER_VIEWS.includes(viewGroup)) {
       setMasterOpen(true);
     }
@@ -111,9 +102,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
   const handleMasterOpenChange = (open: boolean) => {
     setMasterOpen(open);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(MASTER_OPEN_STORAGE_KEY, String(open));
-    }
   };
 
   const renderNavItems = (
@@ -148,12 +136,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
-      {/* Logo */}
-      <div className="flex h-16 items-center px-6">
+      {/* Logo — same height as top navbar */}
+      <div className={cn(shellTopBarClassName, 'border-b border-sidebar-border px-6')}>
         <BrandLogo size="sm" variant="sidebar" className="min-w-0" />
       </div>
-
-      <Separator className="bg-sidebar-border" />
 
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">

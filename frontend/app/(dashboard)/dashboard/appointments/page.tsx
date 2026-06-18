@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { mutate } from 'swr';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -292,9 +292,6 @@ export default function AppointmentsPage() {
         <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
           <div className="min-w-0">
             <CardTitle className="hidden md:block">Service Appointments</CardTitle>
-            <CardDescription className="hidden sm:block">
-              Manage customer service appointments
-            </CardDescription>
             {!isLoading && totalItems > 0 ? (
               <p className="mt-1 text-sm text-muted-foreground md:hidden">
                 {filteredAppointments.length === totalItems

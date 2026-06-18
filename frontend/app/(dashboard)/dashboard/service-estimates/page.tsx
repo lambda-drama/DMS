@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { useServiceEstimates } from '@/hooks/use-dms';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -74,9 +74,6 @@ export default function ServiceEstimatesPage() {
               <FileSpreadsheet className="h-5 w-5" />
               Service Estimates
             </CardTitle>
-            <CardDescription className="mt-1">
-              Diagnosis, repair estimates, and customer approvals before job cards
-            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
