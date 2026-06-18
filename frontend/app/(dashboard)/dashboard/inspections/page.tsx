@@ -8,7 +8,7 @@ import { DetailSheet } from '@/components/detail-sheet';
 import { InspectionDetailSheetContent } from '@/components/inspection/inspection-detail-sheet';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -127,9 +127,6 @@ export default function InspectionsPage() {
         <CardHeader className="flex items-center justify-between gap-3 sm:items-start">
           <div className="min-w-0">
             <CardTitle className="hidden md:block">Vehicle Inspections</CardTitle>
-            <CardDescription className="hidden sm:block">
-              Vehicle intake inspections and condition reports
-            </CardDescription>
             {!isLoading && totalItems > 0 ? (
               <p className="mt-1 text-sm text-muted-foreground md:hidden">
                 {filteredInspections.length === totalItems

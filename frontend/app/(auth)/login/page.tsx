@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandLogo } from '@/components/brand-logo';
 import { APP_TITLE } from '@/lib/branding';
 import { Loader2 } from 'lucide-react';
@@ -53,9 +53,6 @@ export default function LoginPage() {
         <Card className="border-0 shadow-2xl">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl">Sign in</CardTitle>
-            <CardDescription>
-              Enter your Frappe credentials to access the dashboard
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,7 +67,7 @@ export default function LoginPage() {
                 <Input
                   id="username"
                   type="text"
-                  placeholder="administrator"
+                  placeholder="Amiin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -106,16 +103,8 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              <p>Use your Frappe / ERPNext credentials</p>
-            </div>
           </CardContent>
         </Card>
-
-        <p className="text-center text-sm text-secondary-foreground/50">
-          Powered by Frappe Framework
-        </p>
       </div>
     </div>
   );

@@ -217,7 +217,6 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
               <CardTitle className="text-lg">Management KPIs (last 30 days)</CardTitle>
-              <CardDescription>BRD dashboard highlights — full detail in Reports</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={() => navigate('reports')}>
               <BarChart3 className="h-4 w-4 mr-2" />
@@ -389,7 +388,6 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <CardTitle className="text-lg">Service Bay Status</CardTitle>
-              <CardDescription>Live bay occupancy from the workshop</CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:gap-x-4 sm:text-sm">
               <div className="flex shrink-0 items-center gap-1.5">

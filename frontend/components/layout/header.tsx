@@ -14,6 +14,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { UserMenu } from './user-menu';
 import { BrandLogo } from '@/components/brand-logo';
+import { shellTopBarClassName } from '@/lib/app-shell';
+import { cn } from '@/lib/utils';
 import { useNavigation } from '@/contexts/navigation-context';
 
 const viewTitles: Record<string, string> = {
@@ -56,7 +58,12 @@ export function Header({ onMenuClick }: HeaderProps) {
   const title = viewTitles[activeView] || 'Dashboard';
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-[calc(3.5rem+env(safe-area-inset-top,0px))] shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 pt-[env(safe-area-inset-top,0px)] sm:min-h-[calc(4rem+env(safe-area-inset-top,0px))] sm:px-4 lg:px-6">
+    <header
+      className={cn(
+        'sticky top-0 z-30 justify-between gap-2 border-b border-border bg-card px-3 sm:px-4 lg:px-6',
+        shellTopBarClassName,
+      )}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
         <Button
           variant="ghost"
