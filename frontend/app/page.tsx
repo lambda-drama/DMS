@@ -40,6 +40,7 @@ const StockEntryPage = dynamic(() => import('./(dashboard)/dashboard/stock-entry
 const StockReconciliationPage = dynamic(() => import('./(dashboard)/dashboard/stock-reconciliation/page'));
 const PurchaseReceiptPage = dynamic(() => import('./(dashboard)/dashboard/purchase-receipt/page'));
 const SparePartSalesPage = dynamic(() => import('./(dashboard)/dashboard/spare-part-sales/page'));
+const InventoryDashboardPage = dynamic(() => import('./(dashboard)/dashboard/inventory/page'));
 
 function LoadingScreen() {
   return (
@@ -92,6 +93,7 @@ function AppContent() {
       case 'stock-reconciliation': return <StockReconciliationPage />;
       case 'purchase-receipt':   return <PurchaseReceiptPage />;
       case 'spare-part-sales':   return <SparePartSalesPage />;
+      case 'inventory-dashboard': return <InventoryDashboardPage />;
       default:                   return <DashboardMain />;
     }
   };

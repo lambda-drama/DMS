@@ -203,9 +203,6 @@ export default function StockReconciliationPage() {
           <ClipboardList className="h-6 w-6" />
           Stock Reconciliation
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Set physical stock counts for items in a DMS warehouse. Difference posts to the configured adjustment account.
-        </p>
       </div>
 
       <Card>

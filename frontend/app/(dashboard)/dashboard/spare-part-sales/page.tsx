@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -283,21 +283,11 @@ export default function SparePartSalesPage() {
           <Receipt className="h-6 w-6" />
           Spare Part Sales
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Sell spare parts directly to walk-in customers without a service job. Stock is drawn from
-          the parts warehouse (same stock received via Purchase Receipt).
-        </p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Counter sale</CardTitle>
-          <CardDescription>
-            Creates a Sales Invoice and issues stock from the selected warehouse.
-            {defaults?.default_warehouse
-              ? ` Default warehouse: ${defaults.default_warehouse}.`
-              : ' Configure Purchase Receipt / Parts Warehouse on DMS Settings.'}
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

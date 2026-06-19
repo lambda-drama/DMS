@@ -170,14 +170,7 @@ export default function InvoicesPage() {
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
-          <p className="mt-1 hidden text-muted-foreground sm:block">
-            Aftersales invoices linked to a job card (DMS)
-          </p>
-        </div>
+      <div className="flex items-center justify-end gap-3">
         <PermittedCreateButton
           module="invoices"
           label="New Invoice"

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -264,21 +264,11 @@ export default function PurchaseReceiptPage() {
           <PackageCheck className="h-6 w-6" />
           Purchase Receipt
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Receive spare parts into stock. Company and warehouse default from DMS Settings.
-        </p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>New purchase receipt</CardTitle>
-          <CardDescription>
-            Supplier defaults from DMS Settings or Company Defaults (spare-parts suppliers only). Clear to pick another.
-            Receipts created here are flagged as spare-part receipts.
-            {defaults?.default_warehouse
-              ? ` Default warehouse: ${defaults.default_warehouse}.`
-              : ' Configure Purchase Receipt Warehouse on DMS Settings → Company Defaults.'}
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
