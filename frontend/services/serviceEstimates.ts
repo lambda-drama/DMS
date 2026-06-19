@@ -46,6 +46,13 @@ export async function updateServiceEstimate(
   });
 }
 
+export async function deleteServiceEstimate(name: string): Promise<{ deleted: string }> {
+  return apiRequest<{ deleted: string }>(`/api/method/${API}.delete_service_estimate`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function getEstimateSettings(): Promise<{
   default_diagnostic_fee: number;
   default_vat_rate: number;

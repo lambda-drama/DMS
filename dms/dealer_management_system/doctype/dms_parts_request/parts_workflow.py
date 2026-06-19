@@ -38,21 +38,32 @@ def refresh_parts_request_stock(pr_doc):
 			row.stock_available = _stock_available(row.item_code, warehouse)
 
 
+def _part_is_requestable(part) -> bool:
+	"""True when this job card part line can be included in a new parts request."""
+	status = (getattr(part, "line_status", None) or "Requested").strip()
+	if status != "Requested":
+		return False
+
+	parts_request = (getattr(part, "parts_request", None) or "").strip()
+	if parts_request:
+		pr_status = frappe.db.get_value("DMS Parts Request", parts_request, "status")
+		if pr_status and pr_status != "Cancelled":
+			return False
+
+	requested = flt(part.quantity_requested or 0)
+	issued = flt(part.quantity_issued or 0)
+	return requested > issued
+
+
 def _eligible_job_card_parts(jc, part_row_names: list[str] | None = None):
-	"""Parts lines that still need requesting (not fully issued)."""
+	"""Parts lines that still need requesting (not already on an active request)."""
 	for part in jc.get("parts") or []:
 		if not part.item_code:
 			continue
 		if part_row_names and part.name not in part_row_names:
 			continue
-		requested = flt(part.quantity_requested or 0)
-		issued = flt(part.quantity_issued or 0)
-		if requested <= issued:
-			continue
-		status = (getattr(part, "line_status", None) or "Requested").strip()
-		if status in ("Issued", "Received"):
-			continue
-		yield part
+		if _part_is_requestable(part):
+			yield part
 
 
 _ADD_PART_ALLOWED_STATUSES = frozenset(
@@ -155,7 +166,12 @@ def create_parts_request_from_job_card(job_card: str, part_row_names=None, reque
 
 	lines = list(_eligible_job_card_parts(jc, part_row_names))
 	if not lines:
-		frappe.throw(_("No parts available to request on this job card."))
+		frappe.throw(
+			_(
+				"No parts available to request. Parts may already be on a parts request, "
+				"or fully issued. Add a new part line to request again."
+			)
+		)
 
 	pr = frappe.new_doc("DMS Parts Request")
 	pr.job_card = jc.name
@@ -588,7 +604,7 @@ def get_parts_request(name: str):
 
 @frappe.whitelist()
 def assign_job_card_workshop(job_card: str, lead_technician: str, assigned_bay: str | None = None):
-	"""Workshop controller assigns technician and bay — status → Assigned."""
+	"""Workshop controller assigns technician and bay without changing workflow status."""
 	jc = frappe.get_doc("DMS Job Card", job_card)
 	jc.check_permission("write")
 
@@ -602,8 +618,9 @@ def assign_job_card_workshop(job_card: str, lead_technician: str, assigned_bay: 
 
 		_sync_workshop_warehouse_from_bay(jc, assigned_bay)
 
-	if jc.status in ("Open", "Estimation Approved", "Draft"):
-		jc.status = "Assigned"
+	# Assignment is tracked via lead_technician / assigned_bay — do not overwrite workflow status.
+	if (jc.status or "").strip() == "Assigned":
+		jc.status = "Estimation Approved" if jc.docstatus == 1 else "Open"
 
 	jc.save(ignore_permissions=True)
 	frappe.db.commit()

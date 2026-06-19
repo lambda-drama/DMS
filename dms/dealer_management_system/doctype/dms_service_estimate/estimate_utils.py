@@ -215,6 +215,100 @@ def make_dms_job_card_from_estimate(
 	return jc.name
 
 
+def sync_job_card_from_accepted_estimate(est) -> str | None:
+	"""Push accepted estimate lines and warranty totals to the linked job card."""
+	if est.status != "Accepted":
+		return None
+
+	if est.estimate_type == "Supplementary":
+		return None
+
+	jc_name = (est.job_card or "").strip()
+	if not jc_name or not frappe.db.exists("DMS Job Card", jc_name):
+		return None
+
+	jc = frappe.get_doc("DMS Job Card", jc_name)
+	jc.check_permission("write")
+
+	if jc.invoice:
+		frappe.throw(
+			_("Cannot update the job card — invoice {0} already exists.").format(frappe.bold(jc.invoice))
+		)
+
+	blocked_statuses = {"Invoiced", "Delivered", "Closed", "Cancelled"}
+	if jc.status in blocked_statuses:
+		frappe.throw(_("Cannot update job card in status {0}.").format(frappe.bold(jc.status)))
+
+	for row in jc.parts or []:
+		line_status = (row.line_status or "").strip()
+		if line_status and line_status not in ("Requested",):
+			frappe.throw(_("Cannot sync — parts on the job card are already issued or consumed."))
+
+	if frappe.db.exists(
+		"DMS Service Estimate",
+		{"parent_job_card": jc_name, "status": "Accepted", "name": ["!=", est.name]},
+	):
+		frappe.throw(
+			_("Cannot replace job card lines — supplementary approved work exists on this job card.")
+		)
+
+	jc.set("labour", [])
+	for row in est.get("labour") or []:
+		if not row.vehicle_service_item:
+			continue
+		jc.append(
+			"labour",
+			{
+				"vehicle_service_item": row.vehicle_service_item,
+				"service_name": row.service_name,
+				"complaint": row.complaint,
+				"diagnosis": row.diagnosis or _estimate_diagnosis_text(est),
+				"technician": row.technician or jc.lead_technician,
+				"estimated_hours": row.estimated_hours,
+				"rate_per_hour": row.rate_per_hour,
+				"amount": row.amount,
+				"is_warranty": row.is_warranty,
+				"notes": row.notes,
+			},
+		)
+
+	jc.set("parts", [])
+	for row in est.get("parts") or []:
+		if not row.item_code:
+			continue
+		jc.append(
+			"parts",
+			{
+				"item_code": row.item_code,
+				"part_name": row.part_name,
+				"quantity_requested": row.quantity_requested,
+				"unit_price": row.unit_price,
+				"total_amount": row.total_amount,
+				"is_warranty": row.is_warranty,
+				"notes": row.notes,
+				"line_status": "Requested",
+				"warehouse": jc.warehouse,
+			},
+		)
+
+	jc.warranty_application_type = est.warranty_application_type
+	jc.labour_discount_type = est.labour_discount_type
+	jc.labour_discount_value = est.labour_discount_value
+	jc.parts_discount_type = est.parts_discount_type
+	jc.parts_discount_value = est.parts_discount_value
+	jc.discount_amount = est.discount_amount
+	jc.approved_amount = est.grand_total
+	jc.customer_complaint_summary = _estimate_diagnosis_text(est) or jc.customer_complaint_summary
+
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+
+	jc.flags.ignore_validate_update_after_submit = True
+	jc.save(ignore_permissions=True)
+
+	return jc.name
+
+
 def create_diagnostic_invoice_from_estimate(estimate_name: str, submit: bool = True) -> str:
 	"""Create Sales Invoice for diagnostic fee when customer rejects the repair estimate."""
 	if "erpnext" not in frappe.get_installed_apps():

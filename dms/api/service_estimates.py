@@ -5,6 +5,9 @@ from frappe import _
 from frappe.utils import flt
 
 from dms.api.utils import get_dms_companies
+from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils import (
+	sync_job_card_from_accepted_estimate,
+)
 
 
 def _customer_display_name(customer):
@@ -101,8 +104,10 @@ def update_service_estimate(name, data):
 	doc = frappe.get_doc("DMS Service Estimate", name)
 	doc.check_permission("write")
 
-	if doc.status in ("Accepted", "Rejected", "Cancelled"):
+	if doc.status in ("Rejected", "Cancelled"):
 		frappe.throw(_("This estimate can no longer be edited."))
+
+	was_accepted = doc.status == "Accepted"
 
 	allowed_child = {"labour", "parts"}
 	scalar_fields = {
@@ -137,11 +142,44 @@ def update_service_estimate(name, data):
 				doc.append(table, row)
 
 	doc.save()
+	synced_job_card = None
+	if was_accepted:
+		synced_job_card = sync_job_card_from_accepted_estimate(doc)
 	frappe.db.commit()
 
 	result = doc.as_dict()
 	result["customer_name"] = result.get("customer_name") or _customer_display_name(doc.customer)
+	if synced_job_card:
+		result["synced_job_card"] = synced_job_card
 	return result
+
+
+@frappe.whitelist()
+def delete_service_estimate(name):
+	if not name:
+		frappe.throw(_("Service Estimate name is required"))
+
+	doc = frappe.get_doc("DMS Service Estimate", name)
+	doc.check_permission("delete")
+
+	if doc.job_card and frappe.db.exists("DMS Job Card", doc.job_card):
+		frappe.throw(
+			_("Cannot delete — linked job card {0} exists.").format(frappe.bold(doc.job_card))
+		)
+
+	if doc.diagnostic_invoice and frappe.db.exists("Sales Invoice", doc.diagnostic_invoice):
+		frappe.throw(
+			_("Cannot delete — diagnostic invoice {0} exists.").format(
+				frappe.bold(doc.diagnostic_invoice)
+			)
+		)
+
+	inspection = doc.inspection
+	frappe.delete_doc("DMS Service Estimate", name, force=1)
+	if inspection and frappe.db.exists("Vehicle Inspection", inspection):
+		frappe.db.set_value("Vehicle Inspection", inspection, "service_estimate", None, update_modified=True)
+	frappe.db.commit()
+	return {"deleted": name}
 
 
 @frappe.whitelist()

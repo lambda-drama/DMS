@@ -22,6 +22,7 @@ import {
 } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
+import { SearchableSelect } from "@/components/searchable-select";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import {
   fetchSparePartPrice,
@@ -67,6 +68,8 @@ import {
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
 import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
+import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
+import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
 import type { DMSJobCard, JobCardType, Priority, VINNo, VehicleWarrantySummary } from "@/types/dms";
 
 const jobCardTypes: JobCardType[] = [
@@ -496,6 +499,12 @@ export default function NewJobCardPage() {
     setLabourRows((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const updateLabourRow = (idx: number, patch: Partial<LabourRow>) => {
+    setLabourRows((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
+    );
+  };
+
   const addPartRow = () => {
     if (!newPart.item_code) {
       toast.error("Please select a spare part");
@@ -516,6 +525,12 @@ export default function NewJobCardPage() {
 
   const removePartRow = (idx: number) => {
     setPartRows((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updatePartRow = (idx: number, patch: Partial<PartRow>) => {
+    setPartRows((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
+    );
   };
 
   const populateFromServicePackage = useCallback(
@@ -1506,53 +1521,12 @@ export default function NewJobCardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {labourRows.length > 0 && (
-              <div className="border rounded-lg overflow-x-auto">
-                <table className="w-full min-w-[40rem] text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3">Service Item</th>
-                      <th className="text-left p-3">Technician</th>
-                      <th className="text-right p-3">Hours</th>
-                      <th className="text-right p-3">Rate/Hr</th>
-                      <th className="text-right p-3">Amount</th>
-                      <th className="p-3 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {labourRows.map((lr, idx) => (
-                      <tr key={idx} className="border-t">
-                        <td className="p-3">
-                          {lr.vehicle_service_item_name ||
-                            lr.vehicle_service_item}
-                        </td>
-                        <td className="p-3">
-                          {lr.technician_name || lr.technician || "-"}
-                        </td>
-                        <td className="p-3 text-right">{lr.estimated_hours}</td>
-                        <td className="p-3 text-right">
-                          {lr.rate_per_hour.toLocaleString()}
-                        </td>
-                        <td className="p-3 text-right font-medium">
-                          {(
-                            lr.estimated_hours * lr.rate_per_hour
-                          ).toLocaleString()}
-                        </td>
-                        <td className="p-3">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeLabourRow(idx)}
-                            className="h-8 w-8 text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <EditableLabourLinesTable
+                rows={labourRows}
+                showTechnician
+                onUpdateRow={updateLabourRow}
+                onRemoveRow={removeLabourRow}
+              />
             )}
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
@@ -1661,50 +1635,12 @@ export default function NewJobCardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {partRows.length > 0 && (
-              <div className="border rounded-lg overflow-x-auto">
-                <table className="w-full min-w-[36rem] text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3">Part</th>
-                      <th className="text-right p-3">Qty</th>
-                      <th className="text-right p-3">Unit Price</th>
-                      <th className="text-right p-3">Total</th>
-                      <th className="p-3 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partRows.map((pr, idx) => (
-                      <tr key={idx} className="border-t">
-                        <td className="p-3">
-                          {pr.item_name || pr.item_code}
-                        </td>
-                        <td className="p-3 text-right">
-                          {pr.quantity_requested}
-                        </td>
-                        <td className="p-3 text-right">
-                          {pr.unit_price.toLocaleString()}
-                        </td>
-                        <td className="p-3 text-right font-medium">
-                          {(
-                            pr.quantity_requested * pr.unit_price
-                          ).toLocaleString()}
-                        </td>
-                        <td className="p-3">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removePartRow(idx)}
-                            className="h-8 w-8 text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <EditablePartsLinesTable
+                rows={partRows}
+                quantityField="quantity_requested"
+                onUpdateRow={updatePartRow}
+                onRemoveRow={removePartRow}
+              />
             )}
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">

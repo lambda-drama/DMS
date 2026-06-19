@@ -17,11 +17,14 @@ import { Loader2, Package, CheckCircle2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import * as partsSvc from "@/services/partsRequests";
 import type { PartsRequestSummary } from "@/services/partsRequests";
+import { hasRequestableParts } from "@/lib/parts-request-eligibility";
+import type { JobCardPartItem } from "@/types/dms";
 import { uploadFile } from "@/services/common";
 
 interface PartsRequestSectionProps {
   jobCardId: string;
   leadTechnician?: string;
+  parts?: JobCardPartItem[];
   canRequest?: boolean;
   canApprove?: boolean;
   onUpdated?: () => void;
@@ -30,6 +33,7 @@ interface PartsRequestSectionProps {
 export function PartsRequestSection({
   jobCardId,
   leadTechnician,
+  parts,
   canRequest = true,
   canApprove = true,
   onUpdated,
@@ -87,6 +91,8 @@ export function PartsRequestSection({
     return "secondary";
   };
 
+  const canSubmitRequest = canRequest && hasRequestableParts(parts);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
@@ -99,7 +105,7 @@ export function PartsRequestSection({
             Request parts from warehouse, approve, issue, and confirm receipt.
           </CardDescription>
         </div>
-        {canRequest && (
+        {canSubmitRequest && (
           <Button size="sm" onClick={handleRequestParts} disabled={busy}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Request parts"}
           </Button>
@@ -110,7 +116,9 @@ export function PartsRequestSection({
           <p className="text-sm text-muted-foreground">Loading parts requests…</p>
         ) : requests.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No parts requests yet. Click Request parts when the job card has part lines.
+            {canSubmitRequest
+              ? "No parts requests yet. Click Request parts when the job card has part lines."
+              : "No parts requests yet."}
           </p>
         ) : (
           requests.map((pr) => (

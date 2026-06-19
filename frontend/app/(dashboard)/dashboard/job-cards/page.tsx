@@ -45,6 +45,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { StatusBadge } from "@/components/job-card/status-badge";
+import { resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import { PaginationControls } from "@/components/pagination-controls";
 import { ListRowActions } from "@/components/list-row-actions";
 import { cn } from "@/lib/utils";
@@ -81,11 +82,14 @@ const ACTIVE_STATUSES = [
 
 function WorkflowProgress({
   status,
+  docstatus,
   onOpen,
 }: {
   status: JobCardStatus;
+  docstatus?: number;
   onOpen?: () => void;
 }) {
+  const workflowStatus = resolveJobCardWorkflowStatus(status, docstatus);
   const stages = ["Draft", "Estimate", "Repair", "Road Test", "QC", "Done"];
   const stageMap: Record<string, number> = {
     Draft: 0,
@@ -105,9 +109,9 @@ function WorkflowProgress({
     Completed: 5,
     Delivered: 5,
   };
-  const currentIndex = stageMap[status] ?? -1;
+  const currentIndex = stageMap[workflowStatus] ?? -1;
 
-  if (currentIndex < 0 || status === "Cancelled") {
+  if (currentIndex < 0 || workflowStatus === "Cancelled") {
     if (!onOpen) return <span className="text-sm text-muted-foreground">—</span>;
     return (
       <button
@@ -115,13 +119,13 @@ function WorkflowProgress({
         onClick={onOpen}
         className="text-sm text-muted-foreground hover:text-primary hover:underline"
       >
-        {status}
+        {workflowStatus}
       </button>
     );
   }
 
   const bar = (
-    <div className="flex items-center gap-0.5 min-w-[200px]" title={status}>
+    <div className="flex items-center gap-0.5 min-w-[200px]" title={workflowStatus}>
       {stages.map((label, index) => (
         <div key={index} className="flex flex-col items-center">
           <div
@@ -335,7 +339,7 @@ export default function JobCardsPage() {
                         </div>
                       </button>
                       <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
-                        <StatusBadge status={jc.status} />
+                        <StatusBadge status={resolveJobCardWorkflowStatus(jc.status, jc.docstatus)} />
                         <div className="mt-auto">
                           <ListRowActions doctype="DMS Job Card" docName={jc.name}>
                             <DropdownMenu>
@@ -417,11 +421,12 @@ export default function JobCardsPage() {
                         <Badge variant="outline">{jc.job_card_type}</Badge>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={jc.status} />
+                        <StatusBadge status={resolveJobCardWorkflowStatus(jc.status, jc.docstatus)} />
                       </TableCell>
                       <TableCell>
                         <WorkflowProgress
                           status={jc.status}
+                          docstatus={jc.docstatus}
                           onOpen={() => navigate("job-card-detail", { id: jc.name })}
                         />
                       </TableCell>
