@@ -13,6 +13,7 @@ from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 	_apply_dms_settings_dimensions_to_sales_invoice,
 	_generate_invoice_no,
 )
+from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 from dms.dealer_management_system.doctype.vehicle_inspection.vehicle_inspection import (
 	_APPOINTMENT_PRIORITY_TO_JOB_CARD,
 )
@@ -366,6 +367,7 @@ def create_diagnostic_invoice_from_estimate(estimate_name: str, submit: bool = T
 
 	si.set_missing_values()
 	_apply_dms_settings_dimensions_to_sales_invoice(si, est.company)
+	apply_company_letter_head(si, est.company)
 	si.run_method("calculate_taxes_and_totals")
 	si.insert()
 

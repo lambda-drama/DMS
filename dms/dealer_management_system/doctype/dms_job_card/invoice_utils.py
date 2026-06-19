@@ -10,6 +10,7 @@ from frappe.utils import cint, flt, today
 from frappe.model.naming import make_autoname
 from datetime import datetime
 
+from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	labour_row_hours,
 	part_issue_qty,
@@ -509,6 +510,7 @@ def create_sales_invoice_from_dms_job_card(
 	# set_missing_values can reset currency from company / price list — re-apply from job card
 	_apply_sales_invoice_currency_from_job_card(si, jc)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
+	apply_company_letter_head(si, jc.company)
 
 	_apply_job_card_discounts_to_si(si, jc, warranty_type)
 
@@ -1277,6 +1279,7 @@ def create_standalone_dms_sales_invoice(
 	si.set_missing_values()
 	si.currency = invoice_currency
 	_apply_dms_settings_dimensions_to_sales_invoice(si, company)
+	apply_company_letter_head(si, company)
 
 	# set_missing_values() may reset rates — re-apply net rate; custom_dms_discount is audit-only.
 	for idx, item_row in enumerate(si.get("items") or []):

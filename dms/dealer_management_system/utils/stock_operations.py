@@ -12,6 +12,7 @@ from frappe.utils import cint, flt
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_dms_company_defaults_row,
 )
+from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 from dms.api.utils import get_dms_companies
 from dms.utils.spare_part_auto_create import (
 	item_group_auto_generates_spare_parts,
@@ -299,12 +300,12 @@ def get_stock_operation_defaults(company: str | None = None) -> dict:
 
 def _apply_company_defaults_to_stock_doc(doc, company: str | None):
 	row = get_dms_company_defaults_row(company)
-	if not row:
-		return
-	for field in ("branch", "cost_center", "project"):
-		val = getattr(row, field, None)
-		if val and doc.meta.has_field(field):
-			doc.set(field, val)
+	if row:
+		for field in ("branch", "cost_center", "project"):
+			val = getattr(row, field, None)
+			if val and doc.meta.has_field(field):
+				doc.set(field, val)
+	apply_company_letter_head(doc, company)
 
 
 def _mark_dms_sparepart_stock_doc(doc):
