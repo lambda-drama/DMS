@@ -16,6 +16,7 @@ import {
 } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
+import { SearchableSelect } from "@/components/searchable-select";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, FileText, Plus, Receipt, Trash2, User, Wrench } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Receipt, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { fetchLabourRate, fetchSparePartPrice } from "@/services/common";
 import * as invoicesSvc from "@/services/invoices";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
+import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
+import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
 import {
   buildGroupDiscountPayload,
   groupDiscountAmount,
@@ -275,6 +278,18 @@ export default function NewInvoicePage() {
     }
     setPartRows((prev) => [...prev, { ...newPart }]);
     setNewPart({ item_code: "", item_name: "", quantity: 1, unit_price: 0 });
+  };
+
+  const updateLabourRow = (idx: number, patch: Partial<LabourRow>) => {
+    setLabourRows((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
+    );
+  };
+
+  const updatePartRow = (idx: number, patch: Partial<PartRow>) => {
+    setPartRows((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -539,46 +554,15 @@ export default function NewInvoicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {labourRows.length > 0 && (
-              <div className="overflow-hidden rounded-lg border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="p-3 text-left">Service item</th>
-                      <th className="p-3 text-right">Hours</th>
-                      <th className="p-3 text-right">Rate/hr</th>
-                      <th className="p-3 text-right">Amount</th>
-                      <th className="w-10 p-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {labourRows.map((lr, idx) => (
-                      <tr key={idx} className="border-t">
-                        <td className="p-3">
-                          {lr.vehicle_service_item_name || lr.vehicle_service_item}
-                        </td>
-                        <td className="p-3 text-right">{lr.estimated_hours}</td>
-                        <td className="p-3 text-right">{lr.rate_per_hour.toLocaleString()}</td>
-                        <td className="p-3 text-right font-medium">
-                          {(lr.estimated_hours * lr.rate_per_hour).toLocaleString()}
-                        </td>
-                        <td className="p-3">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() =>
-                              setLabourRows((prev) => prev.filter((_, i) => i !== idx))
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <EditableLabourLinesTable
+                rows={labourRows}
+                editable={isStandalone}
+                onUpdateRow={updateLabourRow}
+                onRemoveRow={(idx) =>
+                  setLabourRows((prev) => prev.filter((_, i) => i !== idx))
+                }
+                minWidthClassName=""
+              />
             )}
             <div className="grid grid-cols-12 items-end gap-2">
               <div className="col-span-5 space-y-1">
@@ -660,44 +644,16 @@ export default function NewInvoicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {partRows.length > 0 && (
-              <div className="overflow-hidden rounded-lg border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="p-3 text-left">Part</th>
-                      <th className="p-3 text-right">Qty</th>
-                      <th className="p-3 text-right">Unit price</th>
-                      <th className="p-3 text-right">Amount</th>
-                      <th className="w-10 p-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partRows.map((pr, idx) => (
-                      <tr key={idx} className="border-t">
-                        <td className="p-3">{pr.item_name || pr.item_code}</td>
-                        <td className="p-3 text-right">{pr.quantity}</td>
-                        <td className="p-3 text-right">{pr.unit_price.toLocaleString()}</td>
-                        <td className="p-3 text-right font-medium">
-                          {(pr.quantity * pr.unit_price).toLocaleString()}
-                        </td>
-                        <td className="p-3">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() =>
-                              setPartRows((prev) => prev.filter((_, i) => i !== idx))
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <EditablePartsLinesTable
+                rows={partRows}
+                editable={isStandalone}
+                quantityField="quantity"
+                onUpdateRow={updatePartRow}
+                onRemoveRow={(idx) =>
+                  setPartRows((prev) => prev.filter((_, i) => i !== idx))
+                }
+                minWidthClassName=""
+              />
             )}
             <div className="grid grid-cols-12 items-end gap-2">
               <div className="col-span-5 space-y-1">

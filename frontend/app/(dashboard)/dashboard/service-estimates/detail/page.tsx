@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Loader2,
+  Pencil,
   Plus,
   Stethoscope,
   Trash2,
@@ -45,9 +46,22 @@ import { toast } from "sonner";
 import * as estimatesSvc from "@/services/serviceEstimates";
 import { fetchSparePartPrice, fetchLabourRate, uploadFile } from "@/services/common";
 import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems } from "@/hooks/use-dms";
+import { usePermissions } from "@/contexts/permissions-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
 import { AmountSummaryPopover } from "@/components/amount-summary-popover";
+import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
+import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
 import {
   buildGroupDiscountPayload,
   groupDiscountAmount,
@@ -102,8 +116,11 @@ export default function ServiceEstimateDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
   const { data: estimate, isLoading, error, mutate } = useServiceEstimate(id || null);
+  const { canWrite, canDelete } = usePermissions();
 
   const [busy, setBusy] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState("diagnosis");
   const [diagnosisFindings, setDiagnosisFindings] = useState("");
   const [recommendedRepairs, setRecommendedRepairs] = useState("");
@@ -140,6 +157,13 @@ export default function ServiceEstimateDetailPage() {
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>("none");
   const [partsDiscountInput, setPartsDiscountInput] = useState("");
   const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
+
+  useEffect(() => {
+    const tab = viewParams.get("tab");
+    if (tab === "estimation" || tab === "diagnosis" || tab === "approval") {
+      setActiveTab(tab);
+    }
+  }, [id, viewParams]);
 
   useEffect(() => {
     if (!estimate) return;
@@ -184,10 +208,13 @@ export default function ServiceEstimateDetailPage() {
     );
   }, [estimate?.vehicle_vin]);
 
-  const editable = useMemo(
-    () => estimate && !["Accepted", "Rejected", "Cancelled"].includes(estimate.status),
+  const isEstimateEditable = useMemo(
+    () => estimate && !["Rejected", "Cancelled"].includes(estimate.status),
     [estimate]
   );
+  const isAccepted = estimate?.status === "Accepted";
+  const canEditEstimate = Boolean(isEstimateEditable && canWrite("service-estimates"));
+  const canDeleteEstimate = Boolean(canDelete("service-estimates"));
 
   const runAction = useCallback(
     async (label: string, fn: () => Promise<unknown>) => {
@@ -322,11 +349,26 @@ export default function ServiceEstimateDetailPage() {
         })),
       });
       await mutate();
-      toast.success("Estimate saved");
+      toast.success(isAccepted ? "Estimate saved — job card updated where allowed" : "Estimate saved");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleDeleteEstimate = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await estimatesSvc.deleteServiceEstimate(id);
+      toast.success("Service estimate deleted");
+      navigate("service-estimates");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete estimate");
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -390,6 +432,12 @@ export default function ServiceEstimateDetailPage() {
     setLabourRows((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const updateLabourRow = (idx: number, patch: Partial<EstimateLabourRow>) => {
+    setLabourRows((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
+    );
+  };
+
   const addPartRow = () => {
     if (!newPart.item_code) {
       toast.error("Please select a spare part");
@@ -401,6 +449,12 @@ export default function ServiceEstimateDetailPage() {
 
   const removePartRow = (idx: number) => {
     setPartRows((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updatePartRow = (idx: number, patch: Partial<EstimatePartRow>) => {
+    setPartRows((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
+    );
   };
 
   if (!id) {
@@ -530,6 +584,18 @@ export default function ServiceEstimateDetailPage() {
               View Inspection
             </Button>
           )}
+          {canEditEstimate && isAccepted && (
+            <Button variant="outline" size="sm" onClick={() => setActiveTab("estimation")}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit estimate
+            </Button>
+          )}
+          {canDeleteEstimate && (
+            <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          )}
         </div>
       </div>
 
@@ -562,7 +628,7 @@ export default function ServiceEstimateDetailPage() {
                 <Textarea
                   value={diagnosisFindings}
                   onChange={(e) => setDiagnosisFindings(e.target.value)}
-                  disabled={!editable}
+                  disabled={!canEditEstimate}
                   rows={5}
                   placeholder="List all problems identified during diagnosis..."
                 />
@@ -573,13 +639,13 @@ export default function ServiceEstimateDetailPage() {
                 <Textarea
                   value={recommendedRepairs}
                   onChange={(e) => setRecommendedRepairs(e.target.value)}
-                  disabled={!editable}
+                  disabled={!canEditEstimate}
                   rows={5}
                   placeholder="Describe the recommended work to resolve the problems..."
                 />
               </div>
 
-              {editable && (
+              {canEditEstimate && (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" onClick={saveEstimate} disabled={busy}>
                     Save diagnosis
@@ -634,7 +700,7 @@ export default function ServiceEstimateDetailPage() {
                   <Select
                     value={warrantyApplicationType || "none"}
                     onValueChange={handleWarrantyApplicationChange}
-                    disabled={!editable}
+                    disabled={!canEditEstimate}
                   >
                     <SelectTrigger id="estimate-warranty-type">
                       <SelectValue placeholder="None (customer pays all)" />
@@ -658,7 +724,7 @@ export default function ServiceEstimateDetailPage() {
                   )}
                 </div>
               </div>
-              {editable && warrantyApplicationType === "Discount" && (
+              {canEditEstimate && warrantyApplicationType === "Discount" && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <GroupDiscountFields
                     label="Labour"
@@ -691,64 +757,16 @@ export default function ServiceEstimateDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {labourRows.length > 0 && (
-                <div className="border rounded-lg overflow-x-auto">
-                  <table className="w-full min-w-[40rem] text-sm">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="p-3 text-left">Service Item</th>
-                        <th className="p-3 text-right">Hours</th>
-                        <th className="p-3 text-right">Rate/Hr</th>
-                        <th className="p-3 text-right">Amount</th>
-                        {editable && <th className="w-10 p-3" />}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {labourRows.map((row, idx) => (
-                        <tr key={`${row.vehicle_service_item}-${idx}`} className="border-t">
-                          <td className="p-3">
-                            {row.vehicle_service_item_name || row.vehicle_service_item}
-                          </td>
-                          <td className="p-3 text-right">{row.estimated_hours}</td>
-                          <td className="p-3 text-right">
-                            {row.rate_per_hour.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="p-3 text-right font-medium">
-                            {(row.estimated_hours * row.rate_per_hour).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                            })}
-                          </td>
-                          {editable && (
-                            <td className="p-3">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeLabourRow(idx)}
-                                className="h-8 w-8 text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t bg-muted/40">
-                        <td colSpan={3} className="p-3 text-right font-medium">
-                          Labour subtotal
-                        </td>
-                        <td className="p-3 text-right font-semibold">
-                          {labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                        {editable && <td />}
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                <EditableLabourLinesTable
+                  rows={labourRows}
+                  editable={canEditEstimate}
+                  onUpdateRow={updateLabourRow}
+                  onRemoveRow={removeLabourRow}
+                  subtotal={labourTotal}
+                />
               )}
 
-              {editable && (
+              {canEditEstimate && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
                   <div className="space-y-1 sm:col-span-4">
                     <Label className="text-xs">Service Item *</Label>
@@ -809,7 +827,7 @@ export default function ServiceEstimateDetailPage() {
                 </div>
               )}
 
-              {labourRows.length === 0 && !editable && (
+              {labourRows.length === 0 && !canEditEstimate && (
                 <p className="text-sm text-muted-foreground">No labour lines added yet.</p>
               )}
             </CardContent>
@@ -822,62 +840,17 @@ export default function ServiceEstimateDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {partRows.length > 0 && (
-                <div className="border rounded-lg overflow-x-auto">
-                  <table className="w-full min-w-[36rem] text-sm">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="p-3 text-left">Part</th>
-                        <th className="p-3 text-right">Qty</th>
-                        <th className="p-3 text-right">Unit Price</th>
-                        <th className="p-3 text-right">Total</th>
-                        {editable && <th className="w-10 p-3" />}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {partRows.map((row, idx) => (
-                        <tr key={`${row.item_code}-${idx}`} className="border-t">
-                          <td className="p-3">{row.item_name || row.item_code}</td>
-                          <td className="p-3 text-right">{row.quantity_requested}</td>
-                          <td className="p-3 text-right">
-                            {row.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="p-3 text-right font-medium">
-                            {(row.quantity_requested * row.unit_price).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                            })}
-                          </td>
-                          {editable && (
-                            <td className="p-3">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removePartRow(idx)}
-                                className="h-8 w-8 text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t bg-muted/40">
-                        <td colSpan={3} className="p-3 text-right font-medium">
-                          Parts subtotal
-                        </td>
-                        <td className="p-3 text-right font-semibold">
-                          {partsTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                        {editable && <td />}
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                <EditablePartsLinesTable
+                  rows={partRows}
+                  editable={canEditEstimate}
+                  quantityField="quantity_requested"
+                  onUpdateRow={updatePartRow}
+                  onRemoveRow={removePartRow}
+                  subtotal={partsTotal}
+                />
               )}
 
-              {editable && (
+              {canEditEstimate && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
                   <div className="space-y-1 sm:col-span-5">
                     <Label className="text-xs">Spare Part *</Label>
@@ -937,7 +910,7 @@ export default function ServiceEstimateDetailPage() {
                 </div>
               )}
 
-              {partRows.length === 0 && !editable && (
+              {partRows.length === 0 && !canEditEstimate && (
                 <p className="text-sm text-muted-foreground">No parts added yet.</p>
               )}
             </CardContent>
@@ -1022,7 +995,7 @@ export default function ServiceEstimateDetailPage() {
             </CardContent>
           </Card>
 
-          {editable && ["Diagnosis Complete", "Estimation In Progress"].includes(status) && (
+          {canEditEstimate && ["Diagnosis Complete", "Estimation In Progress"].includes(status) && (
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={saveEstimate} disabled={busy}>
                 Save estimation
@@ -1040,6 +1013,19 @@ export default function ServiceEstimateDetailPage() {
               >
                 Submit for customer approval
               </Button>
+            </div>
+          )}
+
+          {canEditEstimate && isAccepted && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={saveEstimate} disabled={busy}>
+                Save changes
+              </Button>
+              {estimate.job_card ? (
+                <p className="text-xs text-muted-foreground">
+                  Labour and parts sync to the linked job card when no parts are issued and no invoice exists.
+                </p>
+              ) : null}
             </div>
           )}
         </TabsContent>
@@ -1175,17 +1161,25 @@ export default function ServiceEstimateDetailPage() {
                     ? estimate.parent_job_card || estimate.job_card || "—"
                     : estimate.job_card || "—"}
                 </p>
-                {(isSupplementary ? estimate.parent_job_card : estimate.job_card) && (
-                  <Button
-                    onClick={() =>
-                      navigate("job-card-detail", {
-                        id: (isSupplementary ? estimate.parent_job_card : estimate.job_card)!,
-                      })
-                    }
-                  >
-                    Open job card
-                  </Button>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {(isSupplementary ? estimate.parent_job_card : estimate.job_card) && (
+                    <Button
+                      onClick={() =>
+                        navigate("job-card-detail", {
+                          id: (isSupplementary ? estimate.parent_job_card : estimate.job_card)!,
+                        })
+                      }
+                    >
+                      Open job card
+                    </Button>
+                  )}
+                  {canEditEstimate && (
+                    <Button variant="outline" onClick={() => setActiveTab("estimation")}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit labour & parts
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1271,6 +1265,31 @@ export default function ServiceEstimateDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete service estimate?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {estimate.name}. You cannot delete an estimate that already has a
+              linked job card or diagnostic invoice.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteEstimate();
+              }}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete estimate"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

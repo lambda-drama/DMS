@@ -187,6 +187,13 @@ def get_job_card(name):
 
 	data["parts_requests"] = list_parts_requests_for_job_card(name)
 
+	data["workshop_assigned"] = bool(
+		(data.get("lead_technician") or "").strip() and (data.get("assigned_bay") or "").strip()
+	)
+	# Legacy rows used Assigned as a workflow status — normalize on read.
+	if (data.get("status") or "").strip() == "Assigned":
+		data["status"] = "Estimation Approved" if data.get("docstatus") == 1 else "Open"
+
 	return data
 
 

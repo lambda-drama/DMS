@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useJobCard, useServiceBays, useServiceEstimate, useTechnicians } from "@/hooks/use-dms";
-import { canEditJobCardAssignment } from "@/lib/job-card-workflow";
+import { canEditJobCardAssignment, canStartRepairFromWorkflow, isJobCardWorkshopAssigned, resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import * as jobCardsSvc from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +71,7 @@ import { toast } from "sonner";
 import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
 import { htmlToPlainText } from "@/lib/plain-text";
 import { StatusBadge } from "@/components/job-card/status-badge";
+import { WorkshopAssignmentBadge } from "@/components/job-card/workshop-assignment-badge";
 import { WorkflowStepper } from "@/components/job-card/workflow-stepper";
 import {
   RepairTimer,
@@ -89,6 +90,7 @@ import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
 import { CreateInvoiceDialog } from "@/components/invoices/create-invoice-dialog";
 import { PartsRequestSection } from "@/components/job-card/parts-request-section";
+import { hasRequestableParts } from "@/lib/parts-request-eligibility";
 import { PartsAcquisitionFlowBanner } from "@/components/job-card/parts-acquisition-flow-banner";
 import { PartsReturnSection } from "@/components/job-card/parts-return-section";
 import { AdditionalWorkSection } from "@/components/job-card/additional-work-section";
@@ -365,6 +367,8 @@ export default function JobCardDetailPage() {
 
   const status = jobCard.status;
   const docstatus = jobCard.docstatus ?? 0;
+  const workflowStatus = resolveJobCardWorkflowStatus(status, docstatus);
+  const workshopAssigned = isJobCardWorkshopAssigned(jobCard);
   const isInternal = jobCard.job_card_type === "Internal";
   const assignmentEditable = canEditJobCardAssignment(status);
   const displayWorkshop = bayLinkedWorkshop || jobCard.workshop || "";
@@ -372,20 +376,19 @@ export default function JobCardDetailPage() {
   const hasWorkshopWarehouse = Boolean(displayWarehouse.trim());
   const needsWorkshopWarehouse =
     !hasWorkshopWarehouse &&
-    (status === "Estimation Approved" ||
-      (isInternal && ["Draft", "Open", "Assigned"].includes(status)));
+    (workflowStatus === "Estimation Approved" ||
+      (isInternal && ["Draft", "Open"].includes(workflowStatus)));
   const canRequestParts =
-    !!jobCard.parts?.length &&
-    !["Cancelled", "Delivered", "Completed"].includes(status);
+    hasRequestableParts(jobCard.parts) &&
+    !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
   const canAddExtraPart = [
     "Open",
-    "Assigned",
     "Estimation Approved",
     "Repair In Progress",
     "Waiting Parts",
     "Waiting Customer Approval",
     "Rework",
-  ].includes(status);
+  ].includes(workflowStatus);
 
   const assignmentDirty =
     leadTechnician !== (jobCard.lead_technician || "") ||
@@ -418,7 +421,7 @@ export default function JobCardDetailPage() {
       return;
     }
     runAction("Assignment updated", async () => {
-      if (status === "Open" || status === "Estimation Approved") {
+      if (["Open", "Estimation Approved", "Draft", "Assigned"].includes(status)) {
         await partsRequestsSvc.assignJobCardWorkshop(id, leadTechnician, assignedBay);
       } else {
         await jobCardsSvc.updateJobCard(id, {
@@ -817,7 +820,8 @@ export default function JobCardDetailPage() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="text-xl font-bold text-foreground sm:text-2xl">{jobCard.name}</h1>
-              <StatusBadge status={status} />
+              <StatusBadge status={workflowStatus} />
+              {workshopAssigned ? <WorkshopAssignmentBadge /> : null}
             </div>
             <p className="mt-1 truncate text-muted-foreground">
               {jobCard.license_plate} – {jobCard.vehicle_model}
@@ -860,7 +864,11 @@ export default function JobCardDetailPage() {
       </div>
 
       {/* Workflow Stepper */}
-      <WorkflowStepper status={status} jobCardType={jobCard.job_card_type} />
+      <WorkflowStepper
+        status={status}
+        docstatus={docstatus}
+        jobCardType={jobCard.job_card_type}
+      />
 
       {/* Repair Timer */}
       <RepairTimer
@@ -1051,10 +1059,8 @@ export default function JobCardDetailPage() {
               </div>
             )}
 
-            {/* Open / Assigned → request parts + start repair side by side */}
-            {(status === "Estimation Approved" ||
-              status === "Open" ||
-              status === "Assigned") && (
+            {/* Pre-repair → request parts + start repair */}
+            {canStartRepairFromWorkflow(status) && (
               <div className="flex w-full flex-col gap-2">
                 <div className="flex flex-row flex-wrap items-center gap-2">
                   {canRequestParts && (
@@ -1856,6 +1862,7 @@ export default function JobCardDetailPage() {
             <PartsRequestSection
               jobCardId={id}
               leadTechnician={jobCard.lead_technician}
+              parts={jobCard.parts}
               canRequest={canRequestParts}
               onUpdated={() => {
                 setPartsFlowRefreshKey((k) => k + 1);
@@ -1877,9 +1884,8 @@ export default function JobCardDetailPage() {
               canCreate={[
                 "Repair In Progress",
                 "Waiting Parts",
-                "Assigned",
                 "Open",
-              ].includes(status)}
+              ].includes(workflowStatus)}
               onUpdated={() => mutate()}
             />
           </div>

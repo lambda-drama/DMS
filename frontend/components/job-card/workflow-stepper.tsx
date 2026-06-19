@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { JobCardStatus } from "@/types/dms";
+import { resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 
 const customerWorkflowStages: { key: string; label: string; icon: React.ElementType }[] = [
   { key: "Open", label: "Open", icon: Clock },
@@ -37,7 +38,6 @@ function getCustomerStageIndex(status: JobCardStatus): number {
     "Estimation Approved": 2,
     "Waiting Customer Approval": 2,
     Scheduled: 2,
-    Assigned: 2,
     "Repair In Progress": 3,
     "Repair Completed": 3,
     "Waiting Parts": 3,
@@ -57,7 +57,6 @@ function getInternalStageIndex(status: JobCardStatus): number {
   const stageMap: Record<string, number> = {
     Draft: 0,
     Open: 0,
-    Assigned: 0,
     Scheduled: 0,
     "Estimation Pending": 0,
     "Estimation Approved": 0,
@@ -80,17 +79,20 @@ function getInternalStageIndex(status: JobCardStatus): number {
 export function WorkflowStepper({
   status,
   jobCardType,
+  docstatus,
 }: {
   status: JobCardStatus;
   jobCardType?: string;
+  docstatus?: number;
 }) {
+  const workflowStatus = resolveJobCardWorkflowStatus(status, docstatus);
   const isInternal = jobCardType === "Internal";
   const workflowStages = isInternal ? internalWorkflowStages : customerWorkflowStages;
   const currentIndex = isInternal
-    ? getInternalStageIndex(status)
-    : getCustomerStageIndex(status);
+    ? getInternalStageIndex(workflowStatus)
+    : getCustomerStageIndex(workflowStatus);
 
-  if (status === "Draft" || status === "Cancelled") {
+  if (workflowStatus === "Draft" || workflowStatus === "Cancelled") {
     return null;
   }
 

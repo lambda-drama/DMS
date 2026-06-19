@@ -658,6 +658,8 @@ export interface DMSJobCard {
   total_hours?: number;
   lead_technician?: string;
   lead_technician_name?: string;
+  /** True when lead technician and service bay are both set (independent of workflow status). */
+  workshop_assigned?: boolean;
   assistant_technicians?: JobCardTechnicianAssignment[];
   schedule_start_time?: string;
   schedule_end_time?: string;
