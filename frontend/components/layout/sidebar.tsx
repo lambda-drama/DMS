@@ -23,6 +23,7 @@ import {
   ClipboardList,
   PackageCheck,
   ShoppingCart,
+  Boxes,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { shellTopBarClassName } from '@/lib/app-shell';
@@ -30,18 +31,20 @@ import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-const MASTER_VIEWS = [
-  'stock-entry',
-  'stock-reconciliation',
-  'purchase-receipt',
-  'spare-part-sales',
-  'service-advisors',
-  'parts-advisors',
-];
+const COLLAPSIBLE_SECTION_VIEWS: Record<string, string[]> = {
+  Master: ['service-advisors', 'parts-advisors'],
+  Inventory: [
+    'inventory-dashboard',
+    'stock-entry',
+    'stock-reconciliation',
+    'purchase-receipt',
+    'spare-part-sales',
+  ],
+};
+
 const navigation = [
   {
     title: 'Overview',
@@ -76,6 +79,13 @@ const navigation = [
     items: [
       { name: 'Service Advisors', view: 'service-advisors', icon: Headphones },
       { name: 'Parts Advisors', view: 'parts-advisors', icon: Users },
+    ],
+  },
+  {
+    title: 'Inventory',
+    collapsible: true,
+    items: [
+      { name: 'Inventory Dashboard', view: 'inventory-dashboard', icon: Boxes },
       { name: 'Stock Entry', view: 'stock-entry', icon: ArrowDownUp },
       { name: 'Stock Reconciliation', view: 'stock-reconciliation', icon: ClipboardList },
       { name: 'Purchase Receipt', view: 'purchase-receipt', icon: PackageCheck },
@@ -92,16 +102,25 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, navigate } = useNavigation();
   const { canAccessView } = usePermissions();
-  const [masterOpen, setMasterOpen] = useState(false);
+  const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({
+    Master: false,
+    Inventory: false,
+  });
 
   useEffect(() => {
-    if (MASTER_VIEWS.includes(viewGroup)) {
-      setMasterOpen(true);
-    }
+    setSectionOpen((prev) => {
+      const next = { ...prev };
+      for (const [title, views] of Object.entries(COLLAPSIBLE_SECTION_VIEWS)) {
+        if (views.includes(viewGroup)) {
+          next[title] = true;
+        }
+      }
+      return next;
+    });
   }, [viewGroup]);
 
-  const handleMasterOpenChange = (open: boolean) => {
-    setMasterOpen(open);
+  const handleSectionOpenChange = (title: string, open: boolean) => {
+    setSectionOpen((prev) => ({ ...prev, [title]: open }));
   };
 
   const renderNavItems = (
@@ -135,14 +154,14 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   );
 
   return (
-    <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
       {/* Logo — same height as top navbar */}
-      <div className={cn(shellTopBarClassName, 'border-b border-sidebar-border px-6')}>
+      <div className={cn(shellTopBarClassName, 'shrink-0 border-b border-sidebar-border px-6')}>
         <BrandLogo size="sm" variant="sidebar" className="min-w-0" />
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 px-3 py-4">
+      {/* Navigation — scrolls independently; logo and user footer stay pinned */}
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-4">
         <nav className="space-y-6">
           {navigation
             .map((section) => ({
@@ -153,13 +172,16 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             .map((section) => (
             <div key={section.title}>
               {'collapsible' in section && section.collapsible ? (
-                <Collapsible open={masterOpen} onOpenChange={handleMasterOpenChange}>
+                <Collapsible
+                  open={sectionOpen[section.title] ?? false}
+                  onOpenChange={(open) => handleSectionOpenChange(section.title, open)}
+                >
                   <CollapsibleTrigger className="mb-2 flex w-full items-center justify-between rounded-md px-3 py-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80">
                     <span>{section.title}</span>
                     <ChevronDown
                       className={cn(
                         'h-4 w-4 transition-transform',
-                        masterOpen && 'rotate-180'
+                        sectionOpen[section.title] && 'rotate-180'
                       )}
                     />
                   </CollapsibleTrigger>
@@ -178,12 +200,12 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             </div>
           ))}
         </nav>
-      </ScrollArea>
+      </div>
 
-      <Separator className="bg-sidebar-border" />
+      <Separator className="shrink-0 bg-sidebar-border" />
 
       {/* User Section */}
-      <div className="p-4">
+      <div className="shrink-0 p-4">
         <div className="mb-3 flex items-center gap-3 px-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-sm font-medium">
             {user?.full_name?.charAt(0) || 'U'}
