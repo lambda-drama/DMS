@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
+from dms.api.utils import LIST_ORDER_LATEST_CREATED
 from dms.dealer_management_system.utils.stock_operations import (
 	SPAREPART_STOCK_FIELD,
 	create_dms_purchase_receipt,
@@ -66,7 +67,7 @@ def get_stock_entries(limit=30, offset=0, search=None):
 		],
 		limit=cint(limit),
 		limit_start=cint(offset),
-		order_by="creation desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 	return rows
 
@@ -87,7 +88,7 @@ def get_stock_reconciliations(limit=30, offset=0, search=None):
 		fields=["name", "company", "posting_date", "docstatus", "purpose", "remarks"],
 		limit=cint(limit),
 		limit_start=cint(offset),
-		order_by="creation desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 	return rows
 

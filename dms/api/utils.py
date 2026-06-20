@@ -1,5 +1,8 @@
 import frappe
 
+# Default sort for DMS list views: newest record first.
+LIST_ORDER_LATEST_CREATED = "creation desc"
+
 
 def get_dms_companies():
 	"""Return list of company names from DMS Settings Table MultiSelect."""

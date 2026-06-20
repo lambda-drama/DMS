@@ -173,6 +173,7 @@ export default function AppointmentsPage() {
   const { data: result, isLoading, error } = useAppointments({
     status: statusFilter !== 'all' ? statusFilter : undefined,
     date: dateFilter || undefined,
+    search: searchQuery || undefined,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });

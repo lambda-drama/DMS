@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 
+from dms.api.utils import LIST_ORDER_LATEST_CREATED
 from dms.dealer_management_system.utils.template_defaults import get_default_template_name
 
 DEFAULT_DELIVERY_CHECKLIST_ITEMS = [
@@ -96,7 +97,7 @@ def get_deliveries(limit=50, offset=0, search=None):
 		],
 		limit=int(limit),
 		limit_start=int(offset),
-		order_by="creation desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	return deliveries

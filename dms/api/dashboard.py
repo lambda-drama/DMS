@@ -4,6 +4,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, flt, getdate, nowdate
 
+from dms.api.utils import LIST_ORDER_LATEST_CREATED
+
 ACTIVE_JOB_CARD_STATUSES = [
 	"Estimation Pending",
 	"Estimation Approved",
@@ -158,7 +160,7 @@ def get_dashboard_summary():
 			"vehicle_model", "license_plate",
 			"promised_delivery_date_time", "modified",
 		],
-		order_by="modified desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 		limit=8,
 	)
 
