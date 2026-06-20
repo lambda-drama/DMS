@@ -4,7 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-from dms.api.utils import get_dms_companies
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies
 from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils import (
 	sync_job_card_from_accepted_estimate,
 )
@@ -73,7 +73,7 @@ def get_service_estimates(limit=50, offset=0, status=None, customer=None, search
 		],
 		limit=int(limit),
 		limit_start=int(offset),
-		order_by="modified desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	return {"data": rows, "total": total}

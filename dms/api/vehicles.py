@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from dms.api.utils import get_dms_companies, resolve_dms_customer
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies, resolve_dms_customer
 
 
 @frappe.whitelist()
@@ -53,7 +53,7 @@ def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=
 		],
 		limit=int(limit),
 		limit_start=int(offset),
-		order_by="creation desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	return {"data": vehicles, "total": total}

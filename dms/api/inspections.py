@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import today
 
-from dms.api.utils import get_dms_companies, resolve_dms_customer
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies, resolve_dms_customer
 
 # Frontend warning-light labels → Vehicle Warning Light.select option
 EXTERIOR_COMPONENT_ALIASES = {
@@ -152,7 +152,7 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 		],
 		limit=int(limit),
 		limit_start=int(offset),
-		order_by="inspection_date desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	inspections = _enrich_inspection_list_rows(inspections)

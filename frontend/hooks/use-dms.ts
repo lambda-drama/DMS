@@ -54,6 +54,7 @@ export function useDashboard() {
 export function useAppointments(options?: {
   status?: string;
   date?: string;
+  search?: string;
   limit?: number;
   offset?: number;
 }) {

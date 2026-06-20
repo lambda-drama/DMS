@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from dms.api.utils import resolve_dms_customer
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, resolve_dms_customer
 
 def _resolve_job_card_currency(currency=None, company=None) -> str:
 	"""Default ETB; fall back to company default currency when currency not sent."""
@@ -120,7 +120,7 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 		],
 		limit=int(limit),
 		limit_start=int(offset),
-		order_by="creation desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	return {"data": job_cards, "total": total}

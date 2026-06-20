@@ -7,6 +7,8 @@ import frappe
 from frappe import _
 from frappe.utils import flt, now_datetime, today
 
+from dms.api.utils import LIST_ORDER_LATEST_CREATED
+
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
@@ -563,7 +565,7 @@ def list_parts_requests(
 			"received_date",
 			"modified",
 		],
-		order_by="modified desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 		limit_page_length=int(limit),
 		limit_start=int(offset),
 	)

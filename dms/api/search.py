@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
-from dms.api.utils import get_vehicle_customer_groups, add_company_filter
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_vehicle_customer_groups, add_company_filter
 
 MIN_QUERY_LEN = 2
 DEFAULT_LIMIT = 6
@@ -36,7 +36,7 @@ def _search_doctype(doctype, fields, display_fn, view, query, limit, extra_filte
 		or_filters=or_filters,
 		fields=fields,
 		limit=cint(limit),
-		order_by="modified desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	items = []
@@ -64,7 +64,7 @@ def _search_customers(query, limit):
 		),
 		fields=["name", "customer_name", "mobile_no"],
 		limit=cint(limit),
-		order_by="modified desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	return [
@@ -93,7 +93,7 @@ def _search_invoices(query, limit):
 		or_filters=_like_filters(["name", "customer_name", "customer"], query),
 		fields=["name", "customer_name", "status", "grand_total"],
 		limit=cint(limit),
-		order_by="modified desc",
+		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
 	items = []
