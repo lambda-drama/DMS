@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, now_datetime, today
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
 
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
@@ -535,6 +535,8 @@ def list_parts_requests(
 			"license_plate": ["like", term],
 			"customer": ["like", term],
 		}
+
+	filters = add_branch_filter(filters, doctype="DMS Parts Request")
 
 	total = len(
 		frappe.get_all(

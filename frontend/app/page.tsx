@@ -38,6 +38,8 @@ const VehicleNewPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/ne
 const ReportsPage = dynamic(() => import('./(dashboard)/dashboard/reports/page'));
 const StockEntryPage = dynamic(() => import('./(dashboard)/dashboard/stock-entry/page'));
 const StockReconciliationPage = dynamic(() => import('./(dashboard)/dashboard/stock-reconciliation/page'));
+const MaterialRequestPage = dynamic(() => import('./(dashboard)/dashboard/material-request/page'));
+const PendingMaterialRequestsPage = dynamic(() => import('./(dashboard)/dashboard/pending-material-requests/page'));
 const PurchaseReceiptPage = dynamic(() => import('./(dashboard)/dashboard/purchase-receipt/page'));
 const SparePartSalesPage = dynamic(() => import('./(dashboard)/dashboard/spare-part-sales/page'));
 const InventoryDashboardPage = dynamic(() => import('./(dashboard)/dashboard/inventory/page'));
@@ -91,6 +93,8 @@ function AppContent() {
       case 'reports':            return <ReportsPage />;
       case 'stock-entry':        return <StockEntryPage />;
       case 'stock-reconciliation': return <StockReconciliationPage />;
+      case 'material-request':   return <MaterialRequestPage />;
+      case 'pending-material-requests': return <PendingMaterialRequestsPage />;
       case 'purchase-receipt':   return <PurchaseReceiptPage />;
       case 'spare-part-sales':   return <SparePartSalesPage />;
       case 'inventory-dashboard': return <InventoryDashboardPage />;

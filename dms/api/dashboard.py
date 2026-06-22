@@ -4,7 +4,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, flt, getdate, nowdate
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
+from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
 
 ACTIVE_JOB_CARD_STATUSES = [
 	"Estimation Pending",
@@ -56,7 +57,10 @@ BAY_UI_STATUS = {
 
 def _count_completed_job_cards():
 	"""Completed cards are candidates for delivery (before Delivered state)."""
-	return frappe.db.count("DMS Job Card", {"status": "Completed"})
+	return frappe.db.count(
+		"DMS Job Card",
+		add_branch_filter({"status": "Completed"}, doctype="DMS Job Card"),
+	)
 
 
 def _count_completed_job_cards_awaiting_payment():
@@ -68,7 +72,7 @@ def _count_completed_job_cards_awaiting_payment():
 	"""
 	jc = frappe.qb.DocType("DMS Job Card")
 	si = frappe.qb.DocType("Sales Invoice")
-	rows = (
+	query = (
 		frappe.qb.from_(jc)
 		.join(si)
 		.on(jc.invoice == si.name)
@@ -78,7 +82,9 @@ def _count_completed_job_cards_awaiting_payment():
 		.where(jc.invoice != "")
 		.where(si.docstatus == 1)
 		.where(si.outstanding_amount > 0)
-	).run(as_dict=True)
+	)
+	query = apply_branch_filter_to_qb(query, jc, doctype="DMS Job Card")
+	rows = query.run(as_dict=True)
 	return len(rows)
 
 
@@ -94,10 +100,13 @@ def _count_appointments_for_day(day):
 	start, end = _day_bounds(day)
 	return frappe.db.count(
 		"Service Appointment",
-		{
-			"appointment_date_time": ["between", [start, end]],
-			"status": ["not in", ["Cancelled", "No-Show"]],
-		},
+		add_branch_filter(
+			{
+				"appointment_date_time": ["between", [start, end]],
+				"status": ["not in", ["Cancelled", "No-Show"]],
+			},
+			doctype="Service Appointment",
+		),
 	)
 
 
@@ -132,29 +141,32 @@ def get_dashboard_summary():
 
 	active_job_cards = frappe.db.count(
 		"DMS Job Card",
-		{"status": ["in", ACTIVE_JOB_CARD_STATUSES]},
+		add_branch_filter({"status": ["in", ACTIVE_JOB_CARD_STATUSES]}, doctype="DMS Job Card"),
 	)
 	in_repair = frappe.db.count(
 		"DMS Job Card",
-		{"status": ["in", IN_REPAIR_STATUSES]},
+		add_branch_filter({"status": ["in", IN_REPAIR_STATUSES]}, doctype="DMS Job Card"),
 	)
 	pending_qc = frappe.db.count(
 		"DMS Job Card",
-		{"status": ["in", QC_STATUSES]},
+		add_branch_filter({"status": ["in", QC_STATUSES]}, doctype="DMS Job Card"),
 	)
 	urgent_qc = frappe.db.count(
 		"DMS Job Card",
-		{
-			"status": ["in", QC_STATUSES],
-			"priority": ["in", ["Urgent", "VIP"]],
-		},
+		add_branch_filter(
+			{
+				"status": ["in", QC_STATUSES],
+				"priority": ["in", ["Urgent", "VIP"]],
+			},
+			doctype="DMS Job Card",
+		),
 	)
 	ready_for_delivery = _count_completed_job_cards()
 	awaiting_payment = _count_completed_job_cards_awaiting_payment()
 
 	job_cards = frappe.get_all(
 		"DMS Job Card",
-		filters={"status": ["in", ACTIVE_JOB_CARD_STATUSES]},
+		filters=add_branch_filter({"status": ["in", ACTIVE_JOB_CARD_STATUSES]}, doctype="DMS Job Card"),
 		fields=[
 			"name", "status", "priority", "customer_name",
 			"vehicle_model", "license_plate",
@@ -180,10 +192,13 @@ def get_dashboard_summary():
 
 	appointments = frappe.get_all(
 		"Service Appointment",
-		filters={
-			"appointment_date_time": ["between", [today_start, today_end]],
-			"status": ["not in", ["Cancelled", "No-Show"]],
-		},
+		filters=add_branch_filter(
+			{
+				"appointment_date_time": ["between", [today_start, today_end]],
+				"status": ["not in", ["Cancelled", "No-Show"]],
+			},
+			doctype="Service Appointment",
+		),
 		fields=[
 			"name", "appointment_date_time", "customer_name",
 			"license_plate", "vehicle", "status",

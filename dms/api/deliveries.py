@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
 from dms.dealer_management_system.utils.template_defaults import get_default_template_name
 
 DEFAULT_DELIVERY_CHECKLIST_ITEMS = [
@@ -82,6 +82,8 @@ def get_deliveries(limit=50, offset=0, search=None):
 			"customer": ["like", f"%{search}%"],
 			"vehicle_vin": ["like", f"%{search}%"],
 		}
+
+	filters = add_branch_filter(filters, doctype="Vehicle Delivery Note")
 
 	deliveries = frappe.get_all(
 		"Vehicle Delivery Note",

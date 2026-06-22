@@ -20,6 +20,7 @@
   "license_plate",
   "column_break_vehicle",
   "company",
+  "branch",
   "requested_by",
   "section_items",
   "items",
@@ -121,6 +122,15 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "fetch_from": "job_card.branch",
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
   },
   {
    "fieldname": "requested_by",

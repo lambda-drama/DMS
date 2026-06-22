@@ -8,19 +8,27 @@ from frappe.utils import cint
 from dms.api.utils import LIST_ORDER_LATEST_CREATED
 from dms.dealer_management_system.utils.stock_operations import (
 	SPAREPART_STOCK_FIELD,
+	create_dms_material_request,
 	create_dms_purchase_receipt,
 	create_dms_stock_entry,
 	create_dms_stock_item,
 	create_dms_stock_reconciliation,
 	create_dms_supplier,
 	get_dms_allowed_warehouses,
+	get_dms_material_request_detail,
+	get_dms_material_requests_list,
+	get_dms_pending_material_requests,
 	get_dms_purchase_receipts_list,
 	get_dms_purchase_receipt_detail,
+	get_item_uoms_for_ui,
+	get_material_request_defaults,
 	get_purchase_receipt_defaults,
 	get_stock_item_create_defaults,
 	get_stock_operation_defaults,
 	search_stock_items,
 	search_suppliers,
+	create_dms_purchase_receipt_from_material_request,
+	create_dms_stock_entry_from_material_request,
 )
 
 
@@ -113,6 +121,66 @@ def create_stock_reconciliation(data):
 		data = json.loads(data)
 	frappe.has_permission("Stock Reconciliation", "create", throw=True)
 	result = create_dms_stock_reconciliation(data or {})
+	frappe.db.commit()
+	return result
+
+
+@frappe.whitelist()
+def get_item_uoms_for_ui_api(item_code=None):
+	frappe.has_permission("Material Request", "read", throw=True)
+	return get_item_uoms_for_ui(item_code)
+
+
+@frappe.whitelist()
+def get_material_request_defaults_api(company=None):
+	frappe.has_permission("Material Request", "read", throw=True)
+	return get_material_request_defaults(company)
+
+
+@frappe.whitelist()
+def get_material_requests(limit=30, offset=0, search=None):
+	frappe.has_permission("Material Request", "read", throw=True)
+	return get_dms_material_requests_list(limit=limit, offset=offset, search=search)
+
+
+@frappe.whitelist()
+def create_material_request(data):
+	if isinstance(data, str):
+		import json
+
+		data = json.loads(data)
+	frappe.has_permission("Material Request", "create", throw=True)
+	result = create_dms_material_request(data or {})
+	frappe.db.commit()
+	return result
+
+
+@frappe.whitelist()
+def get_pending_material_requests(limit=50, offset=0, search=None):
+	frappe.has_permission("Material Request", "read", throw=True)
+	return get_dms_pending_material_requests(limit=limit, offset=offset, search=search)
+
+
+@frappe.whitelist()
+def get_material_request_detail(name=None):
+	frappe.has_permission("Material Request", "read", throw=True)
+	return get_dms_material_request_detail(name)
+
+
+@frappe.whitelist()
+def create_stock_entry_from_material_request(name=None, submit=1):
+	frappe.has_permission("Stock Entry", "create", throw=True)
+	result = create_dms_stock_entry_from_material_request(name, submit=cint(submit))
+	frappe.db.commit()
+	return result
+
+
+@frappe.whitelist()
+def create_purchase_receipt_from_material_request(name=None, supplier=None, submit=1):
+	frappe.has_permission("Purchase Receipt", "create", throw=True)
+	result = create_dms_purchase_receipt_from_material_request(
+		name, supplier=supplier, submit=cint(submit)
+	)
 	frappe.db.commit()
 	return result
 

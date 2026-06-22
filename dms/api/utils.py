@@ -62,6 +62,15 @@ def add_company_filter(filters, companies=None):
 	return filters
 
 
+def add_branch_filter(filters=None, user=None, doctype=None):
+	"""Restrict list filters to branches allowed by Frappe User Permissions."""
+	from dms.dealer_management_system.utils.branch_permissions import add_branch_filter as _add_branch_filter
+
+	if not doctype:
+		return dict(filters or {})
+	return _add_branch_filter(filters, doctype=doctype, user=user)
+
+
 def get_dms_default_customer() -> str | None:
 	"""Default Customer from DMS Settings (walk-in / fallback)."""
 	customer = (frappe.db.get_single_value("DMS Settings", "default_customer") or "").strip()

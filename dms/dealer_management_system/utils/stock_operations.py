@@ -26,8 +26,23 @@ STOCK_ENTRY_PURPOSES = {
 	"Material Transfer": "Material Transfer",
 }
 
+MATERIAL_REQUEST_TYPES = {
+	"Purchase": "Purchase",
+	"Material Transfer": "Material Transfer",
+	"Material Issue": "Material Issue",
+}
+
 SPARE_PARTS_SUPPLIER_FIELD = "custom_spare_parts_supplier_"
 SPAREPART_STOCK_FIELD = "custom_sparepart_stock"
+SPAREPART_STOCK_FIELD_ALIASES = (SPAREPART_STOCK_FIELD, "custom__sparepart_stock")
+
+
+def _sparepart_stock_field(doctype: str) -> str | None:
+	meta = frappe.get_meta(doctype)
+	for fieldname in SPAREPART_STOCK_FIELD_ALIASES:
+		if meta.has_field(fieldname):
+			return fieldname
+	return None
 
 
 def _supplier_has_spare_parts_field() -> bool:
@@ -74,6 +89,28 @@ def get_dms_default_supplier(company: str | None = None) -> str | None:
 	if supplier and not _is_spare_parts_supplier(supplier):
 		return None
 	return supplier
+
+
+def resolve_dms_purchase_supplier(company: str | None = None, supplier: str | None = None) -> str:
+	"""Pick a spare-parts supplier for purchase receipt / MR fulfillment."""
+	supplier = (supplier or "").strip()
+	if supplier:
+		_assert_spare_parts_supplier(supplier)
+		return supplier
+
+	supplier = (get_dms_default_supplier(company) or "").strip()
+	if supplier:
+		return supplier
+
+	spare_suppliers = search_suppliers(limit=2)
+	if len(spare_suppliers) == 1:
+		return spare_suppliers[0]["name"]
+
+	frappe.throw(
+		_(
+			"Supplier is required. Choose a spare-parts supplier, or set Default Supplier on DMS Settings → Company Defaults."
+		)
+	)
 
 
 def _ensure_erpnext():
@@ -293,9 +330,18 @@ def get_stock_operation_defaults(company: str | None = None) -> dict:
 			{"value": "Material Receipt", "label": "Material Receipt (add stock)"},
 			{"value": "Material Transfer", "label": "Material Transfer"},
 		],
+		"material_request_types": [
+			{"value": "Purchase", "label": "Purchase (request from supplier)"},
+			{"value": "Material Transfer", "label": "Material Transfer"},
+			{"value": "Material Issue", "label": "Material Issue"},
+		],
 		"companies": get_dms_companies(),
 		**get_stock_item_create_defaults(),
 	}
+
+
+def get_material_request_defaults(company: str | None = None) -> dict:
+	return get_stock_operation_defaults(company)
 
 
 def _apply_company_defaults_to_stock_doc(doc, company: str | None):
@@ -309,8 +355,9 @@ def _apply_company_defaults_to_stock_doc(doc, company: str | None):
 
 
 def _mark_dms_sparepart_stock_doc(doc):
-	if doc.meta.has_field(SPAREPART_STOCK_FIELD):
-		doc.set(SPAREPART_STOCK_FIELD, 1)
+	fieldname = _sparepart_stock_field(doc.doctype)
+	if fieldname:
+		doc.set(fieldname, 1)
 
 
 def _stock_item_balance(item_code: str, warehouse: str | None) -> float:
@@ -392,6 +439,46 @@ def search_stock_items(search: str | None = None, warehouse: str | None = None, 
 			}
 		)
 	return out
+
+
+def get_item_uoms_for_ui(item_code: str | None) -> dict:
+	"""Stock UOM plus alternate UOMs configured on the Item."""
+	item_code = (item_code or "").strip()
+	if not item_code or not frappe.db.exists("Item", item_code):
+		return {"stock_uom": None, "uoms": []}
+
+	stock_uom = (frappe.db.get_value("Item", item_code, "stock_uom") or "Nos").strip() or "Nos"
+	uom_names: set[str] = {stock_uom}
+
+	for uom in frappe.get_all(
+		"UOM Conversion Detail",
+		filters={"parent": item_code},
+		pluck="uom",
+	):
+		if uom:
+			uom_names.add(uom)
+
+	return {
+		"stock_uom": stock_uom,
+		"uoms": [{"value": name, "label": name} for name in sorted(uom_names)],
+	}
+
+
+def _material_request_line_uom_fields(item_code: str, qty: float, uom: str | None = None) -> dict:
+	from erpnext.stock.get_item_details import get_conversion_factor
+
+	stock_uom = (frappe.db.get_value("Item", item_code, "stock_uom") or "Nos").strip() or "Nos"
+	selected_uom = (uom or stock_uom).strip() or stock_uom
+	conversion_factor = flt(get_conversion_factor(item_code, selected_uom).get("conversion_factor") or 1)
+	if conversion_factor <= 0:
+		conversion_factor = 1.0
+
+	return {
+		"uom": selected_uom,
+		"stock_uom": stock_uom,
+		"conversion_factor": conversion_factor,
+		"stock_qty": flt(qty) * conversion_factor,
+	}
 
 
 def create_dms_stock_entry(data: dict) -> dict:
@@ -541,6 +628,356 @@ def create_dms_stock_reconciliation(data: dict) -> dict:
 	return {"name": doc.name, "docstatus": doc.docstatus}
 
 
+def create_dms_material_request(data: dict) -> dict:
+	_ensure_erpnext()
+
+	company = (data.get("company") or "").strip()
+	mr_type = (data.get("material_request_type") or "Purchase").strip()
+	transaction_date = (
+		data.get("transaction_date") or data.get("posting_date") or frappe.utils.today()
+	)
+	schedule_date = data.get("schedule_date") or transaction_date
+	submit = cint(data.get("submit", 1))
+	lines = data.get("items") or []
+
+	set_warehouse = (data.get("set_warehouse") or data.get("t_warehouse") or "").strip()
+	set_from_warehouse = (data.get("set_from_warehouse") or data.get("s_warehouse") or "").strip()
+
+	if not company:
+		frappe.throw(_("Company is required."))
+	if mr_type not in MATERIAL_REQUEST_TYPES:
+		frappe.throw(_("Unsupported material request type: {0}").format(mr_type))
+	if not lines:
+		frappe.throw(_("Add at least one item line."))
+
+	mr = frappe.new_doc("Material Request")
+	mr.material_request_type = mr_type
+	mr.company = company
+	mr.transaction_date = transaction_date
+	mr.schedule_date = schedule_date
+
+	_mark_dms_sparepart_stock_doc(mr)
+	_apply_company_defaults_to_stock_doc(mr, company)
+
+	if mr_type == "Purchase":
+		if not set_warehouse:
+			frappe.throw(_("Target warehouse is required for Purchase material request."))
+		assert_dms_warehouse_allowed(set_warehouse, company)
+		mr.set_warehouse = set_warehouse
+	elif mr_type == "Material Transfer":
+		if not set_from_warehouse or not set_warehouse:
+			frappe.throw(_("Source and target warehouses are required for Material Transfer."))
+		assert_dms_warehouse_allowed(set_from_warehouse, company)
+		assert_dms_warehouse_allowed(set_warehouse, company)
+		if set_from_warehouse == set_warehouse:
+			frappe.throw(_("Source and target warehouse must be different."))
+		mr.set_from_warehouse = set_from_warehouse
+		mr.set_warehouse = set_warehouse
+	elif mr_type == "Material Issue":
+		if not set_warehouse:
+			frappe.throw(_("Warehouse is required for Material Issue."))
+		assert_dms_warehouse_allowed(set_warehouse, company)
+		mr.set_warehouse = set_warehouse
+
+	for row in lines:
+		item_code = (row.get("item_code") or "").strip()
+		if not item_code:
+			continue
+		_assert_spare_part_item(item_code)
+		qty = flt(row.get("qty"))
+		if qty <= 0:
+			frappe.throw(_("Quantity must be greater than zero for {0}.").format(item_code))
+
+		line = {
+			"item_code": item_code,
+			"qty": qty,
+			"schedule_date": schedule_date,
+			**_material_request_line_uom_fields(item_code, qty, row.get("uom")),
+		}
+		if mr_type == "Purchase":
+			line["warehouse"] = set_warehouse
+		elif mr_type == "Material Transfer":
+			line["from_warehouse"] = set_from_warehouse
+			line["warehouse"] = set_warehouse
+		elif mr_type == "Material Issue":
+			line["warehouse"] = set_warehouse
+		mr.append("items", line)
+
+	if not mr.get("items"):
+		frappe.throw(_("Add at least one valid item line."))
+
+	mr.insert(ignore_permissions=True)
+	if submit:
+		mr.submit()
+
+	return {"name": mr.name, "docstatus": mr.docstatus, "status": mr.status}
+
+
+def get_dms_material_requests_list(
+	limit: int = 30, offset: int = 0, search: str | None = None
+) -> list[dict]:
+	filters: dict = {}
+	sparepart_field = _sparepart_stock_field("Material Request")
+	if sparepart_field:
+		filters[sparepart_field] = 1
+	if search and search.strip():
+		filters["name"] = ["like", f"%{search.strip()}%"]
+
+	rows = frappe.get_all(
+		"Material Request",
+		filters=filters,
+		fields=[
+			"name",
+			"material_request_type",
+			"company",
+			"transaction_date",
+			"schedule_date",
+			"docstatus",
+			"status",
+			"set_warehouse",
+			"set_from_warehouse",
+		],
+		limit=int(limit),
+		limit_start=int(offset),
+		order_by="creation desc",
+	)
+	for row in rows:
+		if row.docstatus != 1:
+			row["has_pending"] = False
+			row["actions"] = []
+			continue
+		mr = frappe.get_doc("Material Request", row.name)
+		has_pending = _mr_has_pending_items(mr)
+		row["has_pending"] = has_pending
+		row["actions"] = get_material_request_fulfillment_actions(row.name) if has_pending else []
+	return rows
+
+
+def _assert_dms_sparepart_mr(doc):
+	field = _sparepart_stock_field("Material Request")
+	if field and not cint(doc.get(field)):
+		frappe.throw(_("This material request was not created from DMS spare-part stock."))
+
+
+def _mr_item_pending_qty(row, mr_type: str) -> float:
+	stock_qty = flt(row.stock_qty)
+	if mr_type == "Purchase":
+		return max(0.0, stock_qty - flt(row.received_qty))
+	return max(0.0, stock_qty - flt(row.ordered_qty))
+
+
+def _mr_has_pending_items(mr) -> bool:
+	return any(_mr_item_pending_qty(row, mr.material_request_type) > 0 for row in mr.items)
+
+
+def get_material_request_fulfillment_actions(mr_name: str) -> list[dict]:
+	mr = frappe.get_doc("Material Request", mr_name)
+	_assert_dms_sparepart_mr(mr)
+	if mr.docstatus != 1 or not _mr_has_pending_items(mr):
+		return []
+
+	actions: list[dict] = []
+	mr_type = mr.material_request_type
+	if mr_type in ("Material Transfer", "Material Issue", "Customer Provided"):
+		label = "Create Stock Entry"
+		if mr_type == "Material Transfer":
+			label = "Create Transfer"
+		elif mr_type == "Material Issue":
+			label = "Create Material Issue"
+		actions.append({"action": "stock_entry", "label": label})
+	if mr_type == "Purchase":
+		actions.append({"action": "purchase_receipt", "label": "Create Purchase Receipt"})
+	return actions
+
+
+def get_dms_pending_material_requests(
+	limit: int = 50, offset: int = 0, search: str | None = None
+) -> list[dict]:
+	sparepart_field = _sparepart_stock_field("Material Request")
+	filters: dict = {"docstatus": 1}
+	if sparepart_field:
+		filters[sparepart_field] = 1
+	if search and search.strip():
+		filters["name"] = ["like", f"%{search.strip()}%"]
+
+	candidates = frappe.get_all(
+		"Material Request",
+		filters=filters,
+		fields=[
+			"name",
+			"material_request_type",
+			"company",
+			"transaction_date",
+			"schedule_date",
+			"status",
+			"set_warehouse",
+			"set_from_warehouse",
+		],
+		order_by="schedule_date asc, creation desc",
+	)
+
+	pending_rows: list[dict] = []
+	for row in candidates:
+		mr = frappe.get_doc("Material Request", row.name)
+		if not _mr_has_pending_items(mr):
+			continue
+		pending_lines = sum(
+			1 for item in mr.items if _mr_item_pending_qty(item, mr.material_request_type) > 0
+		)
+		pending_qty = sum(
+			_mr_item_pending_qty(item, mr.material_request_type) for item in mr.items
+		)
+		pending_rows.append(
+			{
+				**row,
+				"transaction_date": str(row.transaction_date) if row.transaction_date else None,
+				"schedule_date": str(row.schedule_date) if row.schedule_date else None,
+				"warehouse": row.set_warehouse,
+				"from_warehouse": row.set_from_warehouse,
+				"pending_lines": pending_lines,
+				"pending_qty": pending_qty,
+				"actions": get_material_request_fulfillment_actions(mr.name),
+			}
+		)
+
+	start = int(offset)
+	end = start + int(limit)
+	return pending_rows[start:end]
+
+
+def get_dms_material_request_detail(name: str) -> dict:
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Material Request is required."))
+	if not frappe.db.exists("Material Request", name):
+		frappe.throw(_("Material Request {0} does not exist.").format(frappe.bold(name)))
+
+	mr = frappe.get_doc("Material Request", name)
+	_assert_dms_sparepart_mr(mr)
+
+	items = []
+	for row in mr.items:
+		pending_qty = _mr_item_pending_qty(row, mr.material_request_type)
+		items.append(
+			{
+				"name": row.name,
+				"item_code": row.item_code,
+				"item_name": row.item_name or row.item_code,
+				"qty": flt(row.qty),
+				"stock_qty": flt(row.stock_qty),
+				"ordered_qty": flt(row.ordered_qty),
+				"received_qty": flt(row.received_qty),
+				"pending_qty": pending_qty,
+				"uom": row.uom,
+				"warehouse": row.warehouse,
+				"from_warehouse": row.from_warehouse,
+			}
+		)
+
+	return {
+		"name": mr.name,
+		"material_request_type": mr.material_request_type,
+		"company": mr.company,
+		"transaction_date": str(mr.transaction_date) if mr.transaction_date else None,
+		"schedule_date": str(mr.schedule_date) if mr.schedule_date else None,
+		"status": mr.status,
+		"docstatus": mr.docstatus,
+		"set_warehouse": mr.set_warehouse,
+		"set_from_warehouse": mr.set_from_warehouse,
+		"items": items,
+		"actions": get_material_request_fulfillment_actions(mr.name),
+	}
+
+
+def create_dms_stock_entry_from_material_request(name: str | None, submit=True) -> dict:
+	_ensure_erpnext()
+	from erpnext.stock.doctype.material_request.material_request import make_stock_entry
+
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Material Request is required."))
+
+	mr = frappe.get_doc("Material Request", name)
+	_assert_dms_sparepart_mr(mr)
+	if mr.material_request_type not in ("Material Transfer", "Material Issue", "Customer Provided"):
+		frappe.throw(
+			_("Stock Entry cannot be created for {0} material requests.").format(mr.material_request_type)
+		)
+	if mr.docstatus != 1:
+		frappe.throw(_("Material Request must be submitted."))
+	if not _mr_has_pending_items(mr):
+		frappe.throw(_("Nothing pending on this material request."))
+
+	se = make_stock_entry(name)
+	if not se.get("items"):
+		frappe.throw(_("No pending items to transfer or issue."))
+
+	_mark_dms_sparepart_stock_doc(se)
+	_apply_company_defaults_to_stock_doc(se, mr.company)
+	se.insert(ignore_permissions=True)
+	if cint(submit):
+		se.submit()
+
+	return {
+		"name": se.name,
+		"docstatus": se.docstatus,
+		"material_request": mr.name,
+		"doctype": "Stock Entry",
+	}
+
+
+def create_dms_purchase_receipt_from_material_request(
+	name: str | None, supplier: str | None = None, submit=True
+) -> dict:
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Material Request is required."))
+
+	mr = frappe.get_doc("Material Request", name)
+	_assert_dms_sparepart_mr(mr)
+	if mr.material_request_type != "Purchase":
+		frappe.throw(_("Purchase Receipt can only be created from Purchase material requests."))
+	if mr.docstatus != 1:
+		frappe.throw(_("Material Request must be submitted."))
+
+	lines = []
+	for row in mr.items:
+		pending_qty = _mr_item_pending_qty(row, mr.material_request_type)
+		if pending_qty <= 0:
+			continue
+		warehouse = (row.warehouse or mr.set_warehouse or "").strip()
+		rate = flt(row.rate)
+		if rate <= 0:
+			rate = flt(frappe.db.get_value("Item", row.item_code, "standard_rate"))
+		lines.append(
+			{
+				"item_code": row.item_code,
+				"qty": pending_qty,
+				"rate": rate,
+				"warehouse": warehouse,
+				"material_request": mr.name,
+				"material_request_item": row.name,
+			}
+		)
+
+	if not lines:
+		frappe.throw(_("Nothing pending to receive on this material request."))
+
+	result = create_dms_purchase_receipt(
+		{
+			"company": mr.company,
+			"supplier": supplier,
+			"warehouse": mr.set_warehouse,
+			"remarks": _("Purchase receipt against Material Request {0}").format(mr.name),
+			"submit": submit,
+			"items": lines,
+		}
+	)
+	result["material_request"] = mr.name
+	result["doctype"] = "Purchase Receipt"
+	return result
+
+
 def create_dms_purchase_receipt(data: dict) -> dict:
 	_ensure_erpnext()
 
@@ -557,17 +994,14 @@ def create_dms_purchase_receipt(data: dict) -> dict:
 		frappe.throw(_("Add at least one item line."))
 
 	pr_defaults = get_purchase_receipt_defaults(company)
-	if not supplier:
-		supplier = (pr_defaults.get("default_supplier") or "").strip()
+	supplier = resolve_dms_purchase_supplier(company, supplier)
+	default_warehouse = (data.get("warehouse") or "").strip()
 	if not default_warehouse:
 		default_warehouse = (pr_defaults.get("default_warehouse") or "").strip()
 
-	_assert_spare_parts_supplier(supplier)
-
 	pr = frappe.new_doc("Purchase Receipt")
 	pr.company = company
-	if supplier:
-		pr.supplier = supplier
+	pr.supplier = supplier
 	pr.posting_date = posting_date
 	pr.set_posting_time = 1
 	pr.remarks = (data.get("remarks") or _("Spare parts purchase receipt from DMS")).strip()
@@ -601,6 +1035,14 @@ def create_dms_purchase_receipt(data: dict) -> dict:
 				"qty": qty,
 				"rate": rate,
 				"warehouse": warehouse,
+				**(
+					{
+						"material_request": row.get("material_request"),
+						"material_request_item": row.get("material_request_item"),
+					}
+					if row.get("material_request")
+					else {}
+				),
 			},
 		)
 
@@ -609,9 +1051,11 @@ def create_dms_purchase_receipt(data: dict) -> dict:
 
 	pr.set_missing_values()
 	if not pr.supplier:
+		pr.supplier = supplier
+	if not pr.supplier:
 		frappe.throw(
 			_(
-				"Supplier is required. Select a spare-parts supplier or set Default Supplier on DMS Settings or Company Defaults."
+				"Supplier is required. Choose a spare-parts supplier, or set Default Supplier on DMS Settings → Company Defaults."
 			)
 		)
 	pr.insert(ignore_permissions=True)

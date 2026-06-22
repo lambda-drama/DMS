@@ -2,7 +2,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_vehicle_customer_groups, add_company_filter
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_vehicle_customer_groups, add_company_filter, add_branch_filter
+from dms.dealer_management_system.utils.branch_permissions import BRANCH_SCOPED_DOCTYPES
 
 MIN_QUERY_LEN = 2
 DEFAULT_LIMIT = 6
@@ -29,6 +30,8 @@ def _search_doctype(doctype, fields, display_fn, view, query, limit, extra_filte
 
 	filters = dict(extra_filters or {})
 	or_filters = _like_filters(fields, query)
+	if doctype in BRANCH_SCOPED_DOCTYPES:
+		add_branch_filter(filters, doctype=doctype)
 
 	rows = frappe.get_all(
 		doctype,
