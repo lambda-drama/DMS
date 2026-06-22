@@ -12,6 +12,7 @@
   "booking_reference",
   "appointment_date_time",
   "company",
+  "branch",
   "column_break_appointment",
   "promised_delivery_date_time",
   "estimated_duration_hours",
@@ -578,6 +579,13 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch"
   }
  ],
  "grid_page_length": 50,

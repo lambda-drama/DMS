@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, resolve_dms_customer
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, resolve_dms_customer
 
 def _resolve_job_card_currency(currency=None, company=None) -> str:
 	"""Default ETB; fall back to company default currency when currency not sent."""
@@ -92,6 +92,8 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 			"license_plate": ["like", f"%{search}%"],
 			"vehicle_model": ["like", f"%{search}%"],
 		}
+
+	filters = add_branch_filter(filters, doctype="DMS Job Card")
 
 	total = len(frappe.get_all(
 		"DMS Job Card",

@@ -24,6 +24,8 @@ import {
   PackageCheck,
   ShoppingCart,
   Boxes,
+  Clock,
+  PackagePlus,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { shellTopBarClassName } from '@/lib/app-shell';
@@ -40,6 +42,8 @@ const COLLAPSIBLE_SECTION_VIEWS: Record<string, string[]> = {
     'inventory-dashboard',
     'stock-entry',
     'stock-reconciliation',
+    'material-request',
+    'pending-material-requests',
     'purchase-receipt',
     'spare-part-sales',
   ],
@@ -88,6 +92,8 @@ const navigation = [
       { name: 'Inventory Dashboard', view: 'inventory-dashboard', icon: Boxes },
       { name: 'Stock Entry', view: 'stock-entry', icon: ArrowDownUp },
       { name: 'Stock Reconciliation', view: 'stock-reconciliation', icon: ClipboardList },
+      { name: 'Material Request', view: 'material-request', icon: PackagePlus },
+      { name: 'Pending Requests', view: 'pending-material-requests', icon: Clock },
       { name: 'Purchase Receipt', view: 'purchase-receipt', icon: PackageCheck },
       { name: 'Spare Part Sales', view: 'spare-part-sales', icon: ShoppingCart },
     ],

@@ -12,6 +12,7 @@
   "status",
   "posting_date",
   "company",
+  "branch",
   "column_break_header",
   "currency",
   "opened_date_time",
@@ -719,6 +720,13 @@
    "in_standard_filter": 1,
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch"
   },
   {
    "fieldname": "labour_breakdown_section",

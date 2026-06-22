@@ -4,7 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, get_datetime, now_datetime
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies, resolve_dms_customer
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_companies, resolve_dms_customer
 
 _TERMINAL_STATUSES = frozenset({
 	"Completed", "Cancelled", "No-Show",
@@ -109,6 +109,8 @@ def get_appointments(limit=50, offset=0, status=None, date=None, search=None):
 			"customer_name": ["like", f"%{search}%"],
 			"license_plate": ["like", f"%{search}%"],
 		}
+
+	filters = add_branch_filter(filters, doctype="Service Appointment")
 
 	total = len(frappe.get_all(
 		"Service Appointment",

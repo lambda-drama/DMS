@@ -20,6 +20,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"invoices": "Sales Invoice",
 	"stock-entry": "Stock Entry",
 	"stock-reconciliation": "Stock Reconciliation",
+	"material-request": "Material Request",
 	"purchase-receipt": "Purchase Receipt",
 	"spare-part-sales": "Sales Invoice",
 	"inventory-dashboard": "Stock Entry",
@@ -34,6 +35,8 @@ DOCTYPE_VIEWS = tuple(v for v, dt in DMS_VIEW_DOCTYPES.items() if dt)
 DMS_NAV_HIDE_FIELDS = {
 	"stock-entry": "hide_stock_entry",
 	"stock-reconciliation": "hide_stock_reconciliation",
+	"material-request": "hide_material_request",
+	"pending-material-requests": "hide_material_request",
 	"purchase-receipt": "hide_purchase_receipt",
 }
 

@@ -20,6 +20,7 @@ export interface StockOperationDefaults {
   project?: string | null;
   warehouses: DmsWarehouseOption[];
   stock_entry_types: { value: string; label: string }[];
+  material_request_types?: { value: string; label: string }[];
   companies?: string[];
   default_item_group?: string | null;
   auto_create_spare_parts?: boolean;
@@ -89,6 +90,16 @@ export interface PurchaseReceiptDetail {
   items: PurchaseReceiptDetailItem[];
 }
 
+export interface ItemUomOption {
+  value: string;
+  label: string;
+}
+
+export interface ItemUomDefaults {
+  stock_uom?: string | null;
+  uoms: ItemUomOption[];
+}
+
 export interface StockItemSearchRow {
   item_code: string;
   item_name: string;
@@ -115,6 +126,69 @@ export interface StockReconciliationListRow {
   docstatus?: number;
   purpose?: string;
   remarks?: string;
+}
+
+export interface MaterialRequestListRow {
+  name: string;
+  material_request_type?: string;
+  company?: string;
+  transaction_date?: string;
+  schedule_date?: string;
+  docstatus?: number;
+  status?: string;
+  set_warehouse?: string;
+  set_from_warehouse?: string;
+  has_pending?: boolean;
+  actions?: MaterialRequestFulfillmentAction[];
+}
+
+export interface MaterialRequestFulfillmentAction {
+  action: 'stock_entry' | 'purchase_receipt';
+  label: string;
+}
+
+export interface PendingMaterialRequestRow extends MaterialRequestListRow {
+  warehouse?: string;
+  from_warehouse?: string;
+  pending_lines?: number;
+  pending_qty?: number;
+  actions?: MaterialRequestFulfillmentAction[];
+}
+
+export interface MaterialRequestDetailItem {
+  name: string;
+  item_code: string;
+  item_name?: string;
+  qty?: number;
+  stock_qty?: number;
+  ordered_qty?: number;
+  received_qty?: number;
+  pending_qty?: number;
+  uom?: string;
+  warehouse?: string;
+  from_warehouse?: string;
+}
+
+export interface MaterialRequestDetail {
+  name: string;
+  material_request_type?: string;
+  company?: string;
+  transaction_date?: string;
+  schedule_date?: string;
+  status?: string;
+  docstatus?: number;
+  set_warehouse?: string;
+  set_from_warehouse?: string;
+  items: MaterialRequestDetailItem[];
+  actions?: MaterialRequestFulfillmentAction[];
+}
+
+export interface FulfillmentResult {
+  name: string;
+  docstatus: number;
+  material_request?: string;
+  doctype?: string;
+  supplier?: string;
 }
 
 export interface StockEntryLineInput {
@@ -181,6 +255,99 @@ export async function listStockReconciliations(options?: {
       search: options?.search || null,
       limit: options?.limit ?? 30,
       offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function fetchMaterialRequestDefaults(company?: string): Promise<StockOperationDefaults> {
+  return apiRequest(`/api/method/${API}.get_material_request_defaults_api`, {
+    method: 'POST',
+    body: JSON.stringify({ company: company || null }),
+  });
+}
+
+export async function listMaterialRequests(options?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<MaterialRequestListRow[]> {
+  return apiRequest(`/api/method/${API}.get_material_requests`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      limit: options?.limit ?? 30,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function fetchItemUoms(itemCode: string): Promise<ItemUomDefaults> {
+  return apiRequest(`/api/method/${API}.get_item_uoms_for_ui_api`, {
+    method: 'POST',
+    body: JSON.stringify({ item_code: itemCode }),
+  });
+}
+
+export async function createMaterialRequest(data: {
+  company: string;
+  material_request_type: string;
+  transaction_date?: string;
+  schedule_date?: string;
+  set_warehouse?: string;
+  set_from_warehouse?: string;
+  s_warehouse?: string;
+  t_warehouse?: string;
+  submit?: boolean;
+  items: Array<{ item_code: string; qty: number; uom?: string }>;
+}): Promise<{ name: string; docstatus: number; status?: string }> {
+  return apiRequest(`/api/method/${API}.create_material_request`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function listPendingMaterialRequests(options?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<PendingMaterialRequestRow[]> {
+  return apiRequest(`/api/method/${API}.get_pending_material_requests`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function fetchMaterialRequestDetail(name: string): Promise<MaterialRequestDetail> {
+  return apiRequest(`/api/method/${API}.get_material_request_detail`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function fulfillMaterialRequestStockEntry(
+  name: string,
+  submit = true
+): Promise<FulfillmentResult> {
+  return apiRequest(`/api/method/${API}.create_stock_entry_from_material_request`, {
+    method: 'POST',
+    body: JSON.stringify({ name, submit: submit ? 1 : 0 }),
+  });
+}
+
+export async function fulfillMaterialRequestPurchaseReceipt(
+  name: string,
+  options?: { supplier?: string; submit?: boolean }
+): Promise<FulfillmentResult> {
+  return apiRequest(`/api/method/${API}.create_purchase_receipt_from_material_request`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      supplier: options?.supplier || null,
+      submit: options?.submit === false ? 0 : 1,
     }),
   });
 }

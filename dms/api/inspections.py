@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import today
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies, resolve_dms_customer
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_companies, resolve_dms_customer
 
 # Frontend warning-light labels → Vehicle Warning Light.select option
 EXTERIOR_COMPONENT_ALIASES = {
@@ -130,6 +130,8 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 			"customer": ["like", f"%{search}%"],
 			"license_plate": ["like", f"%{search}%"],
 		}
+
+	filters = add_branch_filter(filters, doctype="Vehicle Inspection")
 
 	total = len(frappe.get_all(
 		"Vehicle Inspection",

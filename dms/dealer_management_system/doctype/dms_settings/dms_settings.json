@@ -28,6 +28,7 @@
   "hide_stock_entry",
   "hide_stock_reconciliation",
   "hide_purchase_receipt",
+  "hide_material_request",
   "section_break_nwax",
   "warranty_period",
   "warranty_mileage",
@@ -163,6 +164,13 @@
    "fieldname": "hide_purchase_receipt",
    "fieldtype": "Check",
    "label": "Hide Purchase Receipt"
+  },
+  {
+   "default": "0",
+   "description": "Hide Material Request from the DMS sidebar Inventory section",
+   "fieldname": "hide_material_request",
+   "fieldtype": "Check",
+   "label": "Hide Material Request"
   },
   {
    "fieldname": "section_break_nwax",

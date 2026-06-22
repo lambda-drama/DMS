@@ -4,6 +4,7 @@ from frappe.query_builder import DocType, Order
 from frappe.utils import cint, flt, today
 
 from dms.api.utils import add_company_filter, get_dms_companies, resolve_dms_customer
+from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
 
 
 def _ensure_erpnext():
@@ -87,6 +88,8 @@ def get_invoices(limit=50, offset=0, status=None, search=None):
 	if search:
 		like = f"%{search}%"
 		query = query.where((SI.name.like(like)) | (SI.customer_name.like(like)))
+
+	query = apply_branch_filter_to_qb(query, SI, doctype="Sales Invoice")
 
 	return query.run(as_dict=True)
 
