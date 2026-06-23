@@ -59,6 +59,8 @@ fixtures = [
                     "Stock Reconciliation-custom_sparepart_stock",
                     "Stock Entry-custom_sparepart_stock",
                     "Sales Invoice-custom_spare_parts",
+                    "Material Request-custom_section_break_n2iag",
+                    "Material Request-custom__sparepart_stock"
                     
                 ]
             ]
