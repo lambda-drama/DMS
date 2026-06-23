@@ -20,31 +20,8 @@ _APPOINTMENT_PRIORITY_TO_JOB_CARD = {
 
 
 class VehicleInspection(Document):
-	def after_insert(self):
-		self._sync_inspection_link_on_service_appointment()
-
-	def on_update(self):
-		self._sync_inspection_link_on_service_appointment()
-  
 	def on_submit(self):
-		self.update_odometer()
-
-	def _sync_inspection_link_on_service_appointment(self):
-		"""Keep Service Appointment.inspection in sync (read-only link on SA)."""
-		if not self.appointment:
-			return
-		if not frappe.db.exists("Service Appointment", self.appointment):
-			return
-		frappe.db.set_value(
-			"Service Appointment",
-			self.appointment,
-			"inspection",
-			self.name,
-			update_modified=False,
-		)
-  
-	def update_odometer(self):
-		"""When inspection is submitted, update VIN owner and odometer in one save."""
+		"""When inspection is submitted, update VIN owner and odometer on the VIN record."""
 		if not self.vin_chassis or not frappe.db.exists("VIN No", self.vin_chassis):
 			return
 
@@ -78,9 +55,10 @@ def make_dms_job_card_from_inspection(source_name: str) -> str:
 
 	inv = frappe.get_doc("Vehicle Inspection", source_name)
 
-	if inv.job_card and frappe.db.exists("DMS Job Card", inv.job_card):
+	existing_jc = frappe.db.get_value("DMS Job Card", {"inspection": inv.name}, "name")
+	if existing_jc and frappe.db.exists("DMS Job Card", existing_jc):
 		frappe.throw(
-			_("This inspection is already linked to Job Card {0}.").format(frappe.bold(inv.job_card)),
+			_("This inspection is already linked to Job Card {0}.").format(frappe.bold(existing_jc)),
 			title=_("Job Card exists"),
 		)
 
@@ -189,7 +167,5 @@ def make_dms_job_card_from_inspection(source_name: str) -> str:
 		)
 
 	jc.insert()
-
-	frappe.db.set_value("Vehicle Inspection", inv.name, "job_card", jc.name)
 
 	return jc.name

@@ -23,6 +23,7 @@ from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils im
 	get_default_vat_rate,
 	make_dms_job_card_from_estimate,
 )
+from dms.dealer_management_system.utils.document_links import linked_job_card_for_estimate
 
 
 class DMSServiceEstimate(Document):
@@ -155,8 +156,6 @@ def make_service_estimate_from_inspection(source_name: str) -> str:
 
 	est.insert()
 
-	frappe.db.set_value("Vehicle Inspection", inv.name, "service_estimate", est.name, update_modified=True)
-
 	return est.name
 
 
@@ -283,8 +282,9 @@ def accept_estimate(
 				_("Please fill in the following before starting repair: {0}").format(", ".join(missing))
 			)
 
-	if doc.job_card and frappe.db.exists("DMS Job Card", doc.job_card):
-		frappe.throw(_("Job Card {0} already exists for this estimate.").format(doc.job_card))
+	existing_jc = linked_job_card_for_estimate(doc.name)
+	if existing_jc and frappe.db.exists("DMS Job Card", existing_jc):
+		frappe.throw(_("Job Card {0} already exists for this estimate.").format(existing_jc))
 
 	doc.customer_signature = customer_signature
 	doc.customer_decision = "Accepted"
@@ -305,11 +305,6 @@ def accept_estimate(
 		from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import start_repair
 
 		start_repair(jc_name)
-
-	frappe.db.set_value("DMS Service Estimate", doc.name, "job_card", jc_name, update_modified=True)
-
-	if doc.inspection:
-		frappe.db.set_value("Vehicle Inspection", doc.inspection, "job_card", jc_name, update_modified=True)
 
 	frappe.db.commit()
 

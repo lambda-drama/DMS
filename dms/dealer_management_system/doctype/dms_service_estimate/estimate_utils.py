@@ -17,6 +17,7 @@ from dms.dealer_management_system.utils.company_letter_head import apply_company
 from dms.dealer_management_system.doctype.vehicle_inspection.vehicle_inspection import (
 	_APPOINTMENT_PRIORITY_TO_JOB_CARD,
 )
+from dms.dealer_management_system.utils.document_links import linked_job_card_for_estimate
 
 
 def get_default_diagnostic_fee() -> float:
@@ -62,8 +63,9 @@ def make_dms_job_card_from_estimate(
 	if est.customer_decision != "Accepted":
 		frappe.throw(_("Only accepted estimates can create a Job Card."))
 
-	if est.job_card and frappe.db.exists("DMS Job Card", est.job_card):
-		return est.job_card
+	existing_jc = linked_job_card_for_estimate(est.name)
+	if existing_jc and frappe.db.exists("DMS Job Card", existing_jc):
+		return existing_jc
 
 	jc = frappe.new_doc("DMS Job Card")
 	jc.update(
@@ -224,7 +226,7 @@ def sync_job_card_from_accepted_estimate(est) -> str | None:
 	if est.estimate_type == "Supplementary":
 		return None
 
-	jc_name = (est.job_card or "").strip()
+	jc_name = linked_job_card_for_estimate(est.name)
 	if not jc_name or not frappe.db.exists("DMS Job Card", jc_name):
 		return None
 

@@ -17,7 +17,6 @@
   "section_links",
   "inspection",
   "appointment",
-  "job_card",
   "diagnostic_invoice",
   "estimate_type",
   "parent_job_card",
@@ -140,13 +139,6 @@
    "fieldtype": "Link",
    "label": "Service Appointment",
    "options": "Service Appointment"
-  },
-  {
-   "fieldname": "job_card",
-   "fieldtype": "Link",
-   "label": "Job Card",
-   "options": "DMS Job Card",
-   "read_only": 1
   },
   {
    "fieldname": "diagnostic_invoice",

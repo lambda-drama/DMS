@@ -3,6 +3,7 @@ from frappe import _
 from frappe.utils import today
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_companies, resolve_dms_customer
+from dms.dealer_management_system.utils.document_links import enrich_inspection_row
 
 # Frontend warning-light labels → Vehicle Warning Light.select option
 EXTERIOR_COMPONENT_ALIASES = {
@@ -149,7 +150,6 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 			"name", "customer", "vin_chassis",
 			"license_plate", "model_year", "inspection_date",
 			"service_advisor", "customer_vehicle", "company",
-			"job_card", "service_estimate",
 			"docstatus", "creation", "modified",
 		],
 		limit=int(limit),
@@ -202,6 +202,7 @@ def _enrich_inspection_list_rows(rows: list[dict]) -> list[dict]:
 		row["customer_complaints_count"] = complaint_count
 		# Keep length-compatible shape for list UI without loading full child rows.
 		row["customer_complaints"] = [{}] * complaint_count
+		enrich_inspection_row(row)
 
 	return rows
 
@@ -224,6 +225,7 @@ def get_inspection(name):
 		result["company_name"] = frappe.db.get_value(
 			"Company", doc.company, "company_name"
 		)
+	enrich_inspection_row(result)
 	return result
 
 
