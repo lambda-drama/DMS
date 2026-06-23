@@ -8,6 +8,10 @@ from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_
 from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils import (
 	sync_job_card_from_accepted_estimate,
 )
+from dms.dealer_management_system.utils.document_links import (
+	enrich_estimate_row,
+	linked_job_card_for_estimate,
+)
 
 
 def _customer_display_name(customer):
@@ -62,7 +66,6 @@ def get_service_estimates(limit=50, offset=0, status=None, customer=None, search
 			"license_plate",
 			"inspection",
 			"appointment",
-			"job_card",
 			"diagnostic_invoice",
 			"diagnostic_fee",
 			"total_before_vat",
@@ -77,6 +80,9 @@ def get_service_estimates(limit=50, offset=0, status=None, customer=None, search
 		limit_start=int(offset),
 		order_by=LIST_ORDER_LATEST_CREATED,
 	)
+
+	for row in rows:
+		enrich_estimate_row(row)
 
 	return {"data": rows, "total": total}
 
@@ -93,6 +99,7 @@ def get_service_estimate(name):
 	result["customer_name"] = result.get("customer_name") or _customer_display_name(doc.customer)
 	if doc.vehicle_vin:
 		result["vehicle_model"] = frappe.db.get_value("VIN No", doc.vehicle_vin, "model_name")
+	enrich_estimate_row(result)
 	return result
 
 
@@ -153,6 +160,7 @@ def update_service_estimate(name, data):
 	result["customer_name"] = result.get("customer_name") or _customer_display_name(doc.customer)
 	if synced_job_card:
 		result["synced_job_card"] = synced_job_card
+	enrich_estimate_row(result)
 	return result
 
 
@@ -164,9 +172,10 @@ def delete_service_estimate(name):
 	doc = frappe.get_doc("DMS Service Estimate", name)
 	doc.check_permission("delete")
 
-	if doc.job_card and frappe.db.exists("DMS Job Card", doc.job_card):
+	linked_jc = linked_job_card_for_estimate(doc.name)
+	if linked_jc and frappe.db.exists("DMS Job Card", linked_jc):
 		frappe.throw(
-			_("Cannot delete — linked job card {0} exists.").format(frappe.bold(doc.job_card))
+			_("Cannot delete — linked job card {0} exists.").format(frappe.bold(linked_jc))
 		)
 
 	if doc.diagnostic_invoice and frappe.db.exists("Sales Invoice", doc.diagnostic_invoice):
@@ -176,10 +185,7 @@ def delete_service_estimate(name):
 			)
 		)
 
-	inspection = doc.inspection
 	frappe.delete_doc("DMS Service Estimate", name, force=1)
-	if inspection and frappe.db.exists("Vehicle Inspection", inspection):
-		frappe.db.set_value("Vehicle Inspection", inspection, "service_estimate", None, update_modified=True)
 	frappe.db.commit()
 	return {"deleted": name}
 

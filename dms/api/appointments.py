@@ -5,6 +5,7 @@ from frappe import _
 from frappe.utils import cint, get_datetime, now_datetime
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_companies, resolve_dms_customer
+from dms.dealer_management_system.utils.document_links import enrich_appointment_row
 
 _TERMINAL_STATUSES = frozenset({
 	"Completed", "Cancelled", "No-Show",
@@ -162,6 +163,7 @@ def get_appointments(limit=50, offset=0, status=None, date=None, search=None):
 		for apt in appointments:
 			apt["service_type_requested"] = by_parent.get(apt.name, [])
 			apt["contact_phone"] = _resolve_appointment_phone(apt)
+			enrich_appointment_row(apt)
 
 	return {"data": appointments, "total": total}
 
@@ -174,7 +176,9 @@ def get_appointment(name):
 	doc = frappe.get_doc("Service Appointment", name)
 	doc.check_permission("read")
 
-	return doc.as_dict()
+	result = doc.as_dict()
+	enrich_appointment_row(result)
+	return result
 
 
 @frappe.whitelist()

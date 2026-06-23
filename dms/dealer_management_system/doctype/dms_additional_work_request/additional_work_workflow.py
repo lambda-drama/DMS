@@ -148,8 +148,6 @@ def accept_supplementary_estimate_and_update_job_card(estimate_name: str, custom
 			update_modified=True,
 		)
 
-	est.job_card = jc.name
-	est.save()
 	frappe.db.commit()
 	return {"estimate": est.name, "job_card": jc.name, "status": jc.status}
 

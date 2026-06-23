@@ -79,9 +79,6 @@
   "column_break_cost",
   "estimated_total_cost",
   "cost_estimate_provided_to_customer",
-  "section_links",
-  "inspection",
-  "job_card",
   "amended_from"
  ],
  "fields": [
@@ -514,28 +511,6 @@
    "fieldname": "cost_estimate_provided_to_customer",
    "fieldtype": "Check",
    "label": "Cost Estimate Provided to Customer"
-  },
-  {
-   "collapsible": 1,
-   "fieldname": "section_links",
-   "fieldtype": "Section Break",
-   "label": "Linked Documents"
-  },
-  {
-   "description": "Auto-linked when inspection is created",
-   "fieldname": "inspection",
-   "fieldtype": "Link",
-   "label": "Vehicle Inspection",
-   "options": "Vehicle Inspection",
-   "read_only": 1
-  },
-  {
-   "description": "Auto-linked when job card is created",
-   "fieldname": "job_card",
-   "fieldtype": "Link",
-   "label": "Job Card",
-   "options": "DMS Job Card",
-   "read_only": 1
   },
   {
    "fieldname": "amended_from",
