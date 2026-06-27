@@ -29,8 +29,18 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"settings": None,
 }
 
-# Views backed by a DocType (excludes dashboard / reports / settings)
-DOCTYPE_VIEWS = tuple(v for v, dt in DMS_VIEW_DOCTYPES.items() if dt)
+DMS_MANAGEMENT_VIEW_ROLES = frozenset({"Dealer Manager", "System Manager", "Administrator"})
+
+
+def has_management_view_role(user: str | None = None) -> bool:
+	"""Dashboard and Reports are limited to dealer / system / admin roles."""
+	user = user or frappe.session.user
+	if not user or user == "Guest":
+		return False
+	if user == "Administrator":
+		return True
+	return bool(DMS_MANAGEMENT_VIEW_ROLES.intersection(frappe.get_roles(user)))
+
 
 DMS_NAV_HIDE_FIELDS = {
 	"stock-entry": "hide_stock_entry",
@@ -105,8 +115,9 @@ def get_dms_ui_permissions():
 			continue
 		out[view] = _flags_for_doctype(doctype, user)
 
-	dashboard_visible = any(out.get(v, {}).get("visible") for v in DOCTYPE_VIEWS)
-	reports_visible = any(out.get(v, {}).get("report") for v in DOCTYPE_VIEWS)
+	management_access = has_management_view_role(user)
+	dashboard_visible = management_access
+	reports_visible = management_access
 
 	out["dashboard"] = {
 		"doctype": None,

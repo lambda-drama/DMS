@@ -4,6 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, flt, getdate, nowdate
 
+from dms.api.permissions import has_management_view_role
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
 from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
 
@@ -132,6 +133,9 @@ def _vehicle_label(license_plate=None, vehicle_model=None):
 @frappe.whitelist()
 def get_dashboard_summary():
 	"""Aggregated metrics and lists for the DMS home dashboard."""
+	if not has_management_view_role():
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
 	today = nowdate()
 	yesterday = add_days(today, -1)
 	today_start, today_end = _day_bounds(today)

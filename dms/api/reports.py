@@ -8,6 +8,7 @@ from frappe import _
 from frappe.utils import add_days, cint, date_diff, flt, getdate, nowdate
 
 from dms.api.dashboard import ACTIVE_JOB_CARD_STATUSES
+from dms.api.permissions import has_management_view_role
 from dms.api.utils import get_dms_companies
 
 OPEN_JOB_CARD_STATUSES = list(ACTIVE_JOB_CARD_STATUSES)
@@ -185,6 +186,9 @@ def _apply_link_display_names(rows, field_doctype_map):
 @frappe.whitelist()
 def list_reports():
 	"""Metadata for the Reports hub (BRD §20)."""
+	if not has_management_view_role():
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
 	return [
 		{"id": "daily_wip", "title": "Daily WIP Report", "description": "Open job cards by status, advisor, technician, bay, promised delivery."},
 		{"id": "service_revenue", "title": "Service Revenue Report", "description": "Labor, parts, discounts, net revenue by period, model, and advisor."},
@@ -210,6 +214,9 @@ def list_reports():
 @frappe.whitelist()
 def get_report(report_id, filters=None):
 	"""Run a BRD report by id."""
+	if not has_management_view_role():
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
 	if isinstance(filters, str):
 		import json
 		filters = json.loads(filters) if filters else {}
