@@ -76,6 +76,7 @@ function formatMoney(amount: number, currency?: string) {
 export default function DashboardPage() {
   const { navigate } = useNavigation();
   const { canCreate, canAccessView } = usePermissions();
+  const canUseReports = canAccessView('reports');
   const { data, isLoading, error } = useDashboard();
 
   const stats = data?.stats;
@@ -218,10 +219,12 @@ export default function DashboardPage() {
             <div>
               <CardTitle className="text-lg">Management KPIs (last 30 days)</CardTitle>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('reports')}>
-              <BarChart3 className="h-4 w-4 mr-2" />
-              All reports
-            </Button>
+            {canUseReports ? (
+              <Button variant="outline" size="sm" onClick={() => navigate('reports')}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                All reports
+              </Button>
+            ) : null}
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

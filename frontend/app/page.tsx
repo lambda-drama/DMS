@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { NavigationProvider, useNavigation } from '@/contexts/navigation-context';
-import { PermissionsProvider } from '@/contexts/permissions-context';
+import { PermissionsProvider, usePermissions } from '@/contexts/permissions-context';
 import { PermissionGate } from '@/components/permission-gate';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -55,6 +56,47 @@ function LoadingScreen() {
   );
 }
 
+const RESTRICTED_VIEWS = new Set(['dashboard', 'reports']);
+
+const FALLBACK_VIEWS = [
+  'appointments',
+  'inspections',
+  'service-estimates',
+  'job-cards',
+  'parts-requisitions',
+  'technicians',
+  'deliveries',
+  'customers',
+  'vehicles',
+  'invoices',
+  'service-advisors',
+  'parts-advisors',
+  'inventory-dashboard',
+  'stock-entry',
+  'stock-reconciliation',
+  'material-request',
+  'pending-material-requests',
+  'purchase-receipt',
+  'spare-part-sales',
+];
+
+function RestrictedViewRedirect() {
+  const { activeView, navigate } = useNavigation();
+  const { canAccessView, isLoading } = usePermissions();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const view = activeView || 'dashboard';
+    if (!RESTRICTED_VIEWS.has(view) || canAccessView(view)) return;
+
+    const fallback = FALLBACK_VIEWS.find((v) => canAccessView(v));
+    if (fallback) navigate(fallback);
+  }, [activeView, canAccessView, isLoading, navigate]);
+
+  return null;
+}
+
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const { activeView } = useNavigation();
@@ -104,6 +146,7 @@ function AppContent() {
 
   return (
     <DashboardShell>
+      <RestrictedViewRedirect />
       <PermissionGate view={activeView || 'dashboard'}>{renderView()}</PermissionGate>
     </DashboardShell>
   );
