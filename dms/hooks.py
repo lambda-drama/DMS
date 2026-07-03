@@ -37,7 +37,6 @@ fixtures = [
                     "Vehicle Service Item-custom_item_name",
                     "Vehicle Service Item-custom_erpnext_item",
                     
-                    "Vehicle Service Item-custom_estimated_timemin",
                     "Vehicle Service Item-custom_rate",
                     "Vehicle Service Item-custom_section_break_bk5jc",
                     "Vehicle Service Item-custom_description",
@@ -60,7 +59,9 @@ fixtures = [
                     "Stock Entry-custom_sparepart_stock",
                     "Sales Invoice-custom_spare_parts",
                     "Material Request-custom_section_break_n2iag",
-                    "Material Request-custom__sparepart_stock"
+                    "Material Request-custom__sparepart_stock",
+                    "Vehicle Service Item-custom_estimated_timehours",
+                    "Vehicle Service Item-custom_service_code",
                     
                 ]
             ]

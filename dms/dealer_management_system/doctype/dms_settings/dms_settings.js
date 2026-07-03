@@ -8,12 +8,173 @@
 // });
 
 frappe.ui.form.on("DMS Settings", {
-    refresh: function(frm) {
-        frm.add_custom_button(__("Create VIN from Serial No"), () => {
-            open_create_vin_modal(frm);
-        }, __("Actions"));
-    }
+	refresh(frm) {
+		frm.add_custom_button(__("Create VIN from Serial No"), () => {
+			open_create_vin_modal(frm);
+		}, __("Actions"));
+
+		frm.add_custom_button(__("Import FRT Labour Sheet"), () => {
+			open_frt_import_modal(frm);
+		}, __("Imports"));
+
+		frm.add_custom_button(__("Import Service Packages"), () => {
+			open_service_package_import_modal(frm);
+		}, __("Imports"));
+	},
 });
+
+function open_frt_import_modal(frm) {
+	const d = new frappe.ui.Dialog({
+		title: __("Import FRT Labour Sheet"),
+		fields: [
+			{
+				fieldname: "brand",
+				label: __("Brand"),
+				fieldtype: "Link",
+				options: "Brand",
+				default: "JETOUR",
+				reqd: 1,
+				description: __("Brand applied to every Vehicle Model created from the workbook"),
+			},
+			{
+				fieldname: "frt_file",
+				label: __("Excel workbook (.xls / .xlsx)"),
+				fieldtype: "Attach",
+				reqd: 1,
+				description: __(
+					"Each worksheet becomes one Vehicle Model; service rows become Vehicle Service Items"
+				),
+			},
+		],
+		primary_action_label: __("Import"),
+		primary_action(values) {
+			if (!values.frt_file) {
+				frappe.msgprint(__("Attach an Excel workbook first"));
+				return;
+			}
+			d.hide();
+			import_frt_labour_sheet(frm, values);
+		},
+	});
+	d.show();
+}
+
+function import_frt_labour_sheet(frm, values) {
+	frappe.call({
+		method: "dms.api.frt_import.import_frt_sheet",
+		args: {
+			file_url: values.frt_file,
+			brand: values.brand || "JETOUR",
+		},
+		freeze: true,
+		freeze_message: __("Importing vehicle models and service items…"),
+		callback(r) {
+			const summary = r.message;
+			if (!summary) {
+				return;
+			}
+
+			let msg = __("Import completed!\n\n");
+			msg += __("Sheets processed: {0}\n", [summary.sheets_processed || 0]);
+			msg += __("Services created: {0}\n", [summary.services_created || 0]);
+			msg += __("Services updated: {0}\n", [summary.services_updated || 0]);
+			msg += __("Rows skipped: {0}\n", [summary.services_skipped || 0]);
+
+			if (summary.details?.length) {
+				msg += "\n" + __("Per sheet:") + "\n";
+				summary.details.forEach((row) => {
+					msg += `- ${row.sheet}: ${row.model_name} (${row.model_code}) — ${row.services_created || 0} created, ${row.services_updated || 0} updated\n`;
+				});
+			}
+
+			if (summary.errors?.length) {
+				msg += "\n" + __("Sheet errors:") + "\n";
+				summary.errors.forEach((err) => {
+					msg += `- ${err.sheet}: ${err.error}\n`;
+				});
+			}
+
+			frappe.msgprint({
+				title: __("FRT Import Summary"),
+				message: msg,
+				indicator: summary.errors?.length ? "orange" : "green",
+			});
+			frm.reload_doc();
+		},
+	});
+}
+
+function open_service_package_import_modal(frm) {
+	const d = new frappe.ui.Dialog({
+		title: __("Import Service Packages"),
+		fields: [
+			{
+				fieldname: "package_file",
+				label: __("Excel workbook (.xlsx)"),
+				fieldtype: "Attach",
+				reqd: 1,
+				description: __(
+					"Each model tab creates packages like JX50-5K with labour hours, discount, and parts"
+				),
+			},
+		],
+		primary_action_label: __("Import"),
+		primary_action(values) {
+			if (!values.package_file) {
+				frappe.msgprint(__("Attach an Excel workbook first"));
+				return;
+			}
+			d.hide();
+			import_service_packages_workbook(frm, values.package_file);
+		},
+	});
+	d.show();
+}
+
+function import_service_packages_workbook(frm, file_url) {
+	frappe.call({
+		method: "dms.api.package_import.import_service_packages",
+		args: { file_url },
+		freeze: true,
+		freeze_message: __("Importing vehicle service packages…"),
+		callback(r) {
+			const summary = r.message;
+			if (!summary) {
+				return;
+			}
+
+			let msg = __("Package import completed!\n\n");
+			msg += __("Sheets processed: {0}\n", [summary.sheets_processed || 0]);
+			msg += __("Packages created: {0}\n", [summary.packages_created || 0]);
+			msg += __("Packages updated: {0}\n", [summary.packages_updated || 0]);
+			if (summary.vehicle_models_created) {
+				msg += __("Vehicle models created: {0}\n", [summary.vehicle_models_created]);
+			}
+
+			if (summary.details?.length) {
+				msg += "\n" + __("Per sheet:") + "\n";
+				summary.details.forEach((row) => {
+					const modelNote = row.vehicle_model_created ? " [model created]" : "";
+					msg += `- ${row.sheet}: ${row.model_name} (${row.model_code})${modelNote} — ${row.packages_created || 0} created, ${row.packages_updated || 0} updated\n`;
+				});
+			}
+
+			if (summary.errors?.length) {
+				msg += "\n" + __("Sheet errors:") + "\n";
+				summary.errors.forEach((err) => {
+					msg += `- ${err.sheet}: ${err.error}\n`;
+				});
+			}
+
+			frappe.msgprint({
+				title: __("Service Package Import Summary"),
+				message: msg,
+				indicator: summary.errors?.length ? "orange" : "green",
+			});
+			frm.reload_doc();
+		},
+	});
+}
 
 function open_create_vin_modal(frm) {
     let d = new frappe.ui.Dialog({

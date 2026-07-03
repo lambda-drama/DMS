@@ -44,6 +44,7 @@ const PendingMaterialRequestsPage = dynamic(() => import('./(dashboard)/dashboar
 const PurchaseReceiptPage = dynamic(() => import('./(dashboard)/dashboard/purchase-receipt/page'));
 const SparePartSalesPage = dynamic(() => import('./(dashboard)/dashboard/spare-part-sales/page'));
 const InventoryDashboardPage = dynamic(() => import('./(dashboard)/dashboard/inventory/page'));
+const SettingsPage = dynamic(() => import('./(dashboard)/dashboard/settings/page'));
 
 function LoadingScreen() {
   return (
@@ -56,7 +57,7 @@ function LoadingScreen() {
   );
 }
 
-const RESTRICTED_VIEWS = new Set(['dashboard', 'reports']);
+const RESTRICTED_VIEWS = new Set(['dashboard', 'reports', 'settings']);
 
 const FALLBACK_VIEWS = [
   'appointments',
@@ -140,6 +141,7 @@ function AppContent() {
       case 'purchase-receipt':   return <PurchaseReceiptPage />;
       case 'spare-part-sales':   return <SparePartSalesPage />;
       case 'inventory-dashboard': return <InventoryDashboardPage />;
+      case 'settings':           return <SettingsPage />;
       default:                   return <DashboardMain />;
     }
   };

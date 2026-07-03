@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_bulk_edit": 1,
  "allow_rename": 1,
  "autoname": "field:package_name",
  "creation": "2026-05-09 17:59:13.184003",
@@ -7,12 +8,25 @@
  "engine": "InnoDB",
  "field_order": [
   "package_name",
-  "description",
+  "package_id",
   "applicable_vehicle_models",
+  "vehicle_model",
+  "column_break_hjji",
   "interval_km",
   "interval_months",
+  "labour_discount_amount",
+  "section_break_nezm",
+  "description",
+  "section_break_xefh",
   "labor_operations",
+  "section_break_irpl",
   "parts_included",
+  "section_break_siae",
+  "section_break_pricing",
+  "before_discount",
+  "after_discount",
+  "total_amount",
+  "column_break_pricing",
   "total_labor_hours",
   "package_price",
   "is_active"
@@ -25,6 +39,13 @@
    "label": "Package Name",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "description": "Short interval label from price sheet (e.g. 5k, 10k)",
+   "fieldname": "package_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Package ID"
   },
   {
    "fieldname": "description",
@@ -50,6 +71,12 @@
    "label": "Service Interval (Months)"
   },
   {
+   "description": "Bundled labour discount for this package (from price sheet)",
+   "fieldname": "labour_discount_amount",
+   "fieldtype": "Currency",
+   "label": "Labour Discount Amount"
+  },
+  {
    "fieldname": "labor_operations",
    "fieldtype": "Table",
    "label": "Labor Operations",
@@ -68,6 +95,37 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_break_pricing",
+   "fieldtype": "Section Break",
+   "label": "Package Pricing"
+  },
+  {
+   "description": "Package total before any discount (from price sheet Before Disct)",
+   "fieldname": "before_discount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Before Discount"
+  },
+  {
+   "description": "Package total after discount (from price sheet After Disct)",
+   "fieldname": "after_discount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "After Discount"
+  },
+  {
+   "description": "Chargeable package amount (defaults to After Discount)",
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount"
+  },
+  {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Legacy field — kept in sync with After Discount",
    "fieldname": "package_price",
    "fieldtype": "Currency",
    "label": "Package Price"
@@ -77,12 +135,38 @@
    "fieldname": "is_active",
    "fieldtype": "Check",
    "label": "Is Active"
+  },
+  {
+   "fieldname": "section_break_xefh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_irpl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_siae",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "vehicle_model",
+   "fieldtype": "Link",
+   "label": "Vehicle Model",
+   "options": "Vehicle Model"
+  },
+  {
+   "fieldname": "column_break_hjji",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_nezm",
+   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-10 23:16:19.134631",
+ "modified": "2026-07-03 05:21:04.793862",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Service Package",

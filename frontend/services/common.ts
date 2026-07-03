@@ -21,7 +21,51 @@ export interface VehicleServiceItem {
   custom_erpnext_item?: string;
   custom_item_name?: string;
   custom_rate?: number;
-  custom_estimated_timemin?: string;
+  custom_estimated_timehours?: string | number;
+  estimated_hours?: number;
+}
+
+export interface VehicleServiceItemLineDefaults {
+  rate_per_hour: number;
+  estimated_hours: number;
+  service_name?: string;
+}
+
+/** Hours from VSI custom_estimated_timehours (or precomputed estimated_hours from API). */
+export function vehicleServiceItemEstimatedHours(
+  item?: Pick<VehicleServiceItem, 'custom_estimated_timehours' | 'estimated_hours'>
+): number {
+  if (item?.estimated_hours != null && Number(item.estimated_hours) > 0) {
+    return Math.round(Number(item.estimated_hours) * 10) / 10;
+  }
+  const hours = parseFloat(String(item?.custom_estimated_timehours ?? ''));
+  if (Number.isFinite(hours) && hours > 0) {
+    return Math.round(hours * 10) / 10;
+  }
+  return 0;
+}
+
+function parseApiNumber(raw: unknown): number {
+  const n = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Fetch rate + hours from server when a service item is selected. */
+export async function fetchVehicleServiceItemLineDefaults(
+  vehicleServiceItem: string
+): Promise<VehicleServiceItemLineDefaults> {
+  const raw = await apiRequest<VehicleServiceItemLineDefaults>(
+    `/api/method/${API}.get_vehicle_service_item_line_defaults`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ vehicle_service_item: vehicleServiceItem }),
+    }
+  );
+  return {
+    rate_per_hour: parseApiNumber(raw?.rate_per_hour),
+    estimated_hours: parseApiNumber(raw?.estimated_hours),
+    service_name: raw?.service_name,
+  };
 }
 
 export interface CompanyOption {

@@ -42,6 +42,7 @@ const viewTitles: Record<string, string> = {
   'purchase-receipt': 'Purchase Receipt',
   'spare-part-sales': 'Spare Part Sales',
   'inventory-dashboard': 'Inventory Dashboard',
+  settings: 'Settings',
 };
 
 interface HeaderProps {

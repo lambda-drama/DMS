@@ -17,6 +17,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	resolve_vehicle_service_item_to_item_code,
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
+	vehicle_service_item_labour_rate,
 )
 from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
 	apply_discount_fields_from_payload,
@@ -600,7 +601,7 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 
 			base_rate = flt(row.rate_per_hour or 0)
 			if base_rate <= 0:
-				base_rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+				base_rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
 
 			desc_parts = []
 			for attr in ("complaint", "diagnosis", "correction"):
@@ -921,7 +922,7 @@ def append_si_items(si, jc, warranty_application_type: str = ""):
 
 			base_rate = flt(row.rate_per_hour or 0)
 			if base_rate <= 0:
-				base_rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+				base_rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
 
 			pricing = resolve_invoice_line_pricing(
 				"Labour", base_rate, qty, warranty_application_type
@@ -1168,7 +1169,7 @@ def create_standalone_dms_sales_invoice(
 			return 0.0, 0.0, 0.0, vsi
 		base_rate = flt(row.get("rate_per_hour") or row.get("rate") or 0)
 		if base_rate <= 0:
-			base_rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+			base_rate = vehicle_service_item_labour_rate(vsi)
 		return qty, base_rate, qty * base_rate, None
 
 	def _standalone_parts_line_amount(row) -> tuple[float, float, float]:
