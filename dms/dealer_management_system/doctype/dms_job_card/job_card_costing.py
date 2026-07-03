@@ -98,16 +98,55 @@ def spare_part_default_selling_price(spare_docname: str) -> float:
 	return 0.0
 
 
+def dms_default_service_fee() -> float:
+	"""Default labour rate when Vehicle Service Item and ERP Item have no rate."""
+	return flt(frappe.db.get_single_value("DMS Settings", "default_service_fee") or 0)
+
+
+def vehicle_service_item_estimated_hours(vsi_name: str | None) -> float:
+	"""Estimated labour hours from VSI custom_estimated_timehours."""
+	if not vsi_name or not frappe.db.exists("DocType", "Vehicle Service Item"):
+		return 0.0
+
+	meta = frappe.get_meta("Vehicle Service Item")
+	if not meta.has_field("custom_estimated_timehours"):
+		return 0.0
+
+	return flt(frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_estimated_timehours") or 0)
+
+
+def vehicle_service_item_labour_rate(vsi_name: str | None) -> float:
+	"""Resolve labour rate: VSI custom_rate → ERP Item standard_rate → DMS default service fee."""
+	if not vsi_name or not frappe.db.exists("DocType", "Vehicle Service Item"):
+		return 0.0
+
+	vsi_rate = flt(frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_rate") or 0)
+	if vsi_rate > 0:
+		return vsi_rate
+
+	item_code = resolve_vehicle_service_item_to_item_code(vsi_name)
+	if item_code:
+		sr = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+		if sr > 0:
+			return sr
+
+	return dms_default_service_fee()
+
+
 def apply_vehicle_labour_row_pricing(row) -> float:
-	"""Fill empty rate from linked ERP Item; return hours × rate."""
+	"""Fill empty rate/hours from VSI; return hours × rate."""
 	if flt(getattr(row, "rate_per_hour", None) or 0) <= 0 and getattr(row, "vehicle_service_item", None):
-		item_code = resolve_vehicle_service_item_to_item_code(row.vehicle_service_item)
-		if item_code:
-			sr = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
-			if sr > 0:
-				row.rate_per_hour = sr
+		rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
+		if rate > 0:
+			row.rate_per_hour = rate
 
 	h = labour_row_hours(row)
+	if h <= 0 and getattr(row, "vehicle_service_item", None):
+		est = vehicle_service_item_estimated_hours(row.vehicle_service_item)
+		if est > 0:
+			row.estimated_hours = est
+			h = est
+
 	return round(h * flt(row.rate_per_hour or 0), 2)
 
 

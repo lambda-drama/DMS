@@ -25,6 +25,7 @@ const ALL_VIEWS = [
   'purchase-receipt',
   'spare-part-sales',
   'inventory-dashboard',
+  'settings',
 ];
 
 const VIEW_GROUPS: Record<string, string> = {
@@ -61,6 +62,7 @@ const VIEW_GROUPS: Record<string, string> = {
   'purchase-receipt': 'purchase-receipt',
   'spare-part-sales': 'spare-part-sales',
   'inventory-dashboard': 'inventory-dashboard',
+  'settings': 'settings',
 };
 
 interface NavigationContextType {

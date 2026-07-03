@@ -325,9 +325,21 @@ def get_spare_parts(search=None, limit=20):
 	return parts
 
 
+def _vehicle_service_item_list_fields() -> list[str]:
+	fields = ["name", "service_item", "custom_erpnext_item", "custom_item_name", "custom_rate"]
+	meta = frappe.get_meta("Vehicle Service Item")
+	if meta.has_field("custom_estimated_timehours"):
+		fields.append("custom_estimated_timehours")
+	return fields
+
+
 @frappe.whitelist()
 def get_vehicle_service_items(search=None, limit=20):
 	"""Get Vehicle Service Item records for labour line lookups."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		vehicle_service_item_estimated_hours,
+	)
+
 	or_filters = {}
 	if search:
 		or_filters = {
@@ -338,14 +350,13 @@ def get_vehicle_service_items(search=None, limit=20):
 	items = frappe.get_all(
 		"Vehicle Service Item",
 		or_filters=or_filters if or_filters else None,
-		fields=[
-			"name", "service_item",
-			"custom_erpnext_item", "custom_item_name",
-			"custom_rate", "custom_estimated_timemin",
-		],
+		fields=_vehicle_service_item_list_fields(),
 		limit=int(limit),
 		order_by="service_item asc",
 	)
+
+	for item in items:
+		item["estimated_hours"] = vehicle_service_item_estimated_hours(item.get("name"))
 
 	return items
 
@@ -529,22 +540,54 @@ def get_spare_part_price(spare_part=None):
 
 @frappe.whitelist()
 def get_labour_rate(vehicle_service_item=None):
-	"""Return the standard rate for a labour item from linked ERP Item."""
+	"""Return labour rate: VSI custom_rate → ERP Item standard_rate → DMS default service fee."""
 	vsi = (vehicle_service_item or "").strip()
 	if not vsi:
 		return 0
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
-		resolve_vehicle_service_item_to_item_code,
+		vehicle_service_item_labour_rate,
 	)
-	from frappe.utils import flt
 
-	item_code = resolve_vehicle_service_item_to_item_code(vsi)
-	if not item_code:
+	return vehicle_service_item_labour_rate(vsi)
+
+
+@frappe.whitelist()
+def get_vehicle_service_item_estimated_hours(vehicle_service_item=None):
+	"""Return estimated labour hours from Vehicle Service Item."""
+	vsi = (vehicle_service_item or "").strip()
+	if not vsi:
 		return 0
 
-	sr = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
-	return sr
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		vehicle_service_item_estimated_hours,
+	)
+
+	return vehicle_service_item_estimated_hours(vsi)
+
+
+@frappe.whitelist()
+def get_vehicle_service_item_line_defaults(vehicle_service_item=None):
+	"""Rate and estimated hours for a labour line when a service item is picked."""
+	vsi = (vehicle_service_item or "").strip()
+	if not vsi:
+		return {"rate_per_hour": 0, "estimated_hours": 0, "service_name": ""}
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		vehicle_service_item_estimated_hours,
+		vehicle_service_item_labour_rate,
+	)
+
+	service_name = frappe.db.get_value("Vehicle Service Item", vsi, "service_item") or vsi
+	item_name = frappe.db.get_value("Vehicle Service Item", vsi, "custom_item_name") if frappe.get_meta(
+		"Vehicle Service Item"
+	).has_field("custom_item_name") else None
+
+	return {
+		"rate_per_hour": vehicle_service_item_labour_rate(vsi),
+		"estimated_hours": vehicle_service_item_estimated_hours(vsi),
+		"service_name": item_name or service_name,
+	}
 
 
 @frappe.whitelist()

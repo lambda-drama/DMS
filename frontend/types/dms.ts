@@ -405,11 +405,16 @@ export interface VehicleInspection {
 export interface ServicePackageListItem {
   name: string;
   package_name: string;
+  package_id?: string;
   description?: string;
   interval_km?: number;
   interval_months?: number;
   total_labor_hours?: number;
+  before_discount?: number;
+  after_discount?: number;
+  total_amount?: number;
   package_price?: number;
+  labour_discount_amount?: number;
 }
 
 export interface ServicePackageForVehicleResponse {
@@ -437,7 +442,15 @@ export interface ServicePackagePartLine {
 export interface ServicePackageLinesResponse {
   package: string;
   package_name: string;
+  package_id?: string;
   description?: string;
+  before_discount?: number;
+  after_discount?: number;
+  total_amount?: number;
+  package_price?: number;
+  labour_discount_amount?: number;
+  interval_km?: number;
+  interval_months?: number;
   labour: ServicePackageLabourLine[];
   parts: ServicePackagePartLine[];
 }

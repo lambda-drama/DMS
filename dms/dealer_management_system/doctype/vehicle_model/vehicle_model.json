@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_bulk_edit": 1,
  "allow_rename": 1,
  "autoname": "field:model",
  "creation": "2026-05-08 04:13:20.831574",
@@ -42,7 +43,6 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Model Code",
-   "reqd": 1,
    "unique": 1
   },
   {
@@ -50,16 +50,14 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Brand",
-   "options": "Brand",
-   "reqd": 1
+   "options": "Brand"
   },
   {
    "description": "e.g., Jetour X70, Jetour T2",
    "fieldname": "model_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Model Name",
-   "reqd": 1
+   "label": "Model Name"
   },
   {
    "description": "e.g., Premium, Luxury, Base, GLX",
@@ -70,8 +68,7 @@
   {
    "fieldname": "model_year",
    "fieldtype": "Int",
-   "label": "Model Year",
-   "reqd": 1
+   "label": "Model Year"
   },
   {
    "fieldname": "column_break_basic",
@@ -176,7 +173,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-10 22:10:57.673849",
+ "modified": "2026-07-03 04:26:21.478507",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Model",
@@ -210,6 +207,7 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
+ "search_fields": "model_name",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": []

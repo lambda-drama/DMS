@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, FileText, Plus, Receipt, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { fetchLabourRate, fetchSparePartPrice } from "@/services/common";
+import { fetchLabourRate, fetchSparePartPrice, fetchVehicleServiceItemLineDefaults, vehicleServiceItemEstimatedHours } from "@/services/common";
 import * as invoicesSvc from "@/services/invoices";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
@@ -210,21 +210,31 @@ export default function NewInvoicePage() {
   };
 
   const handleServiceItemSelect = async (itemName: string) => {
+    if (!itemName) return;
     const item = serviceItems?.find((i) => i.name === itemName);
     let rate = item?.custom_rate || 0;
-    if (!rate && itemName) {
-      try {
-        rate = await fetchLabourRate(itemName);
-      } catch {
-        /* ignore */
+    let estHours = vehicleServiceItemEstimatedHours(item);
+    let serviceLabel = item?.service_item || item?.custom_item_name || itemName;
+
+    try {
+      const defaults = await fetchVehicleServiceItemLineDefaults(itemName);
+      if (defaults.estimated_hours > 0) estHours = defaults.estimated_hours;
+      if (defaults.rate_per_hour > 0) rate = defaults.rate_per_hour;
+      if (defaults.service_name) serviceLabel = defaults.service_name;
+    } catch {
+      if (!rate) {
+        try {
+          rate = await fetchLabourRate(itemName);
+        } catch {
+          /* ignore */
+        }
       }
     }
-    const estMinutes = parseFloat(item?.custom_estimated_timemin || "0") || 0;
-    const estHours = estMinutes > 0 ? Math.round((estMinutes / 60) * 10) / 10 : 0;
+
     setNewLabour({
       vehicle_service_item: itemName,
-      vehicle_service_item_name: item?.service_item || item?.custom_item_name || itemName,
-      estimated_hours: estHours || newLabour.estimated_hours,
+      vehicle_service_item_name: serviceLabel,
+      estimated_hours: estHours,
       rate_per_hour: rate || newLabour.rate_per_hour,
     });
   };
@@ -571,8 +581,15 @@ export default function NewInvoicePage() {
                   options={
                     serviceItems?.map((si) => ({
                       value: si.name,
-                      label: si.service_item || si.name,
-                      description: si.custom_rate ? `Rate: ${si.custom_rate}` : undefined,
+                      label: si.custom_item_name || si.service_item || si.name,
+                      description: si.custom_rate || si.estimated_hours
+                        ? [
+                            si.custom_rate ? `Rate: ${si.custom_rate}` : null,
+                            si.estimated_hours ? `${si.estimated_hours}h` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')
+                        : undefined,
                     })) || []
                   }
                   value={newLabour.vehicle_service_item}

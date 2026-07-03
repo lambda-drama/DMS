@@ -222,15 +222,17 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            onClick={() => navigate('settings')}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Button>
+          {canAccessView('settings') ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              onClick={() => navigate('settings')}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             size="sm"

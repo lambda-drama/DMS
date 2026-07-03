@@ -142,9 +142,9 @@ def get_dms_ui_permissions():
 
 	out["settings"] = {
 		"doctype": None,
-		"visible": True,
-		"read": 1,
-		"write": 1,
+		"visible": management_access,
+		"read": int(management_access),
+		"write": int(management_access),
 		"create": 0,
 		"delete": 0,
 	}

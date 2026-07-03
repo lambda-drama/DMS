@@ -72,28 +72,52 @@ def _vehicle_model_label(vehicle_model: str) -> tuple[str, str]:
 
 
 def _active_packages_for_model(vehicle_model: str, search: str | None = None) -> list[dict]:
-	parents = frappe.get_all(
-		"Package Vehicle Model",
-		filters={"vehicle_model": vehicle_model},
-		pluck="parent",
-		distinct=True,
+	parents = set(
+		frappe.get_all(
+			"Package Vehicle Model",
+			filters={"vehicle_model": vehicle_model},
+			pluck="parent",
+		)
 	)
+	direct = frappe.get_all(
+		"Vehicle Service Package",
+		filters={"vehicle_model": vehicle_model, "is_active": 1},
+		pluck="name",
+	)
+	parents.update(direct)
 	if not parents:
 		return []
 
+	fields = [
+		"name",
+		"package_name",
+		"package_id",
+		"description",
+		"interval_km",
+		"interval_months",
+		"total_labor_hours",
+		"before_discount",
+		"after_discount",
+		"total_amount",
+		"package_price",
+		"labour_discount_amount",
+	]
+	meta = frappe.get_meta("Vehicle Service Package")
+	for optional in (
+		"package_id",
+		"labour_discount_amount",
+		"before_discount",
+		"after_discount",
+		"total_amount",
+	):
+		if not meta.has_field(optional):
+			fields.remove(optional)
+
 	packages = frappe.get_all(
 		"Vehicle Service Package",
-		filters={"name": ["in", parents], "is_active": 1},
-		fields=[
-			"name",
-			"package_name",
-			"description",
-			"interval_km",
-			"interval_months",
-			"total_labor_hours",
-			"package_price",
-		],
-		order_by="package_name asc",
+		filters={"name": ["in", list(parents)], "is_active": 1},
+		fields=fields,
+		order_by="interval_km asc, package_name asc",
 	)
 
 	if search:
@@ -103,6 +127,7 @@ def _active_packages_for_model(vehicle_model: str, search: str | None = None) ->
 				p
 				for p in packages
 				if needle in (p.package_name or "").lower()
+				or needle in (p.get("package_id") or "").lower()
 				or needle in (p.description or "").lower()
 			]
 
@@ -147,8 +172,9 @@ def get_service_package_lines(package_name=None):
 		frappe.throw(_("Vehicle Service Package {0} not found").format(frappe.bold(package_name)))
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
-		resolve_vehicle_service_item_to_item_code,
 		spare_part_default_selling_price,
+		vehicle_service_item_estimated_hours,
+		vehicle_service_item_labour_rate,
 	)
 
 	pkg = frappe.get_doc("Vehicle Service Package", package_name)
@@ -173,17 +199,10 @@ def get_service_package_lines(package_name=None):
 			qty = flt(row.quantity) or 1
 			std = flt(row.standard_hours)
 			if not std:
-				est_min = flt(
-					frappe.db.get_value("Vehicle Service Item", vsi, "custom_estimated_timemin") or 0
-				)
-				std = est_min / 60 if est_min else 1
+				std = vehicle_service_item_estimated_hours(vsi) or 1
 			hours = qty * std
 
-		rate = flt(frappe.db.get_value("Vehicle Service Item", vsi, "custom_rate") or 0)
-		if not rate:
-			item_code = resolve_vehicle_service_item_to_item_code(vsi)
-			if item_code:
-				rate = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
+		rate = vehicle_service_item_labour_rate(vsi)
 
 		labour.append(
 			{
@@ -222,7 +241,15 @@ def get_service_package_lines(package_name=None):
 	return {
 		"package": pkg.name,
 		"package_name": pkg.package_name,
+		"package_id": getattr(pkg, "package_id", None),
 		"description": pkg.description,
+		"before_discount": flt(getattr(pkg, "before_discount", 0)),
+		"after_discount": flt(getattr(pkg, "after_discount", 0)),
+		"total_amount": flt(getattr(pkg, "total_amount", 0) or getattr(pkg, "after_discount", 0)),
+		"package_price": flt(pkg.package_price or getattr(pkg, "after_discount", 0)),
+		"labour_discount_amount": flt(getattr(pkg, "labour_discount_amount", 0)),
+		"interval_km": pkg.interval_km,
+		"interval_months": pkg.interval_months,
 		"labour": labour,
 		"parts": parts,
 	}
