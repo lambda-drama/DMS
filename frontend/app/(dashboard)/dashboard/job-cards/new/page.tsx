@@ -138,13 +138,17 @@ export default function NewJobCardPage() {
   const [company, setCompany] = useState("");
   const [currency, setCurrency] = useState("ETB");
   const [warehouse, setWarehouse] = useState("");
+  const [customer, setCustomer] = useState("");
+  const [vehicleVin, setVehicleVin] = useState("");
+  const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
+  const selectedVehicleModel =
+    selectedVin?.model || selectedVin?.resolved_vehicle_model || undefined;
 
   // Lookup hooks
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
   const { data: serviceAdvisors, isLoading: advisorsLoading } = useServiceAdvisors();
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
   const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
-  const selectedVehicleModel = selectedVin?.model || selectedVin?.resolved_vehicle_model || undefined;
   const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(
     serviceItemSearch,
     selectedVehicleModel,
@@ -180,14 +184,10 @@ export default function NewJobCardPage() {
   const [estimatedDurationHours, setEstimatedDurationHours] = useState<number>(0);
   const [promisedDelivery, setPromisedDelivery] = useState<string>("");
 
-  const [customer, setCustomer] = useState("");
-  const [vehicleVin, setVehicleVin] = useState("");
   const [selectedServicePackage, setSelectedServicePackage] = useState("");
   const [isLoadingPackageLines, setIsLoadingPackageLines] = useState(false);
   const lastAppliedPackageRef = useRef<string | null>(null);
   /** Keeps VIN label/details when customer changes and search results no longer include this VIN */
-  const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
-  /** Owner from VIN — pinned in customer dropdown when not in search results */
   const [selectedCustomer, setSelectedCustomer] = useState<{
     name: string;
     customer_name: string;
@@ -254,7 +254,7 @@ export default function NewJobCardPage() {
   // VIN search is independent of customer — VIN drives customer, not the other way around
   const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
   const { data: servicePackagesForVin, isLoading: servicePackagesLoading } =
-    useServicePackagesForVin(vehicleVin || null);
+    useServicePackagesForVin(vehicleVin || null, selectedVehicleModel);
 
   // Child table: Job Items
   const [jobItems, setJobItems] = useState<JobItemRow[]>([]);
@@ -335,6 +335,7 @@ export default function NewJobCardPage() {
         plate_number: full.plate_number,
         model: full.model,
         model_name: full.model_name,
+        resolved_vehicle_model: full.resolved_vehicle_model,
         current_customer: full.current_customer,
         customer_name: full.customer_name,
         current_odometer: full.current_odometer,
@@ -564,7 +565,10 @@ export default function NewJobCardPage() {
     async (packageName: string) => {
       setIsLoadingPackageLines(true);
       try {
-        const lines = await fetchServicePackageLines(packageName);
+        const lines = await fetchServicePackageLines(packageName, {
+          vin: vehicleVin || undefined,
+          vehicleModel: selectedVehicleModel,
+        });
         const leadTechName =
           technicians?.find((t) => t.name === leadTechnician)?.full_name ||
           leadTechnician ||
@@ -622,7 +626,7 @@ export default function NewJobCardPage() {
         setIsLoadingPackageLines(false);
       }
     },
-    [leadTechnician, technicians, warehouse]
+    [leadTechnician, technicians, warehouse, vehicleVin, selectedVehicleModel]
   );
 
   useEffect(() => {
@@ -807,6 +811,17 @@ export default function NewJobCardPage() {
       })) || [],
     [servicePackagesForVin]
   );
+
+  useEffect(() => {
+    if (!selectedServicePackage) return;
+    if (
+      servicePackageOptions.length > 0 &&
+      !servicePackageOptions.some((option) => option.value === selectedServicePackage)
+    ) {
+      setSelectedServicePackage("");
+      lastAppliedPackageRef.current = null;
+    }
+  }, [servicePackageOptions, selectedServicePackage]);
 
   // --- Totals (include current row being edited) ---
 
@@ -1509,7 +1524,7 @@ export default function NewJobCardPage() {
             <CardDescription>
               {vehicleVin
                 ? servicePackagesForVin?.vehicle_model_label
-                  ? `Packages for ${servicePackagesForVin.vehicle_model_label}. Choosing a package fills labour and parts below.`
+                  ? `Packages for ${servicePackagesForVin.vehicle_model_label} only. Choosing a package fills labour and parts below.`
                   : servicePackagesForVin?.message ||
                     "Select a VIN with a linked vehicle model to see packages."
                 : "Select a vehicle (VIN) first — the model is taken from the vehicle record."}

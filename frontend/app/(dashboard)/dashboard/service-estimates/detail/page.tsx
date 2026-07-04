@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Loader2,
+  Package,
   Pencil,
   Plus,
   Stethoscope,
@@ -53,7 +54,7 @@ import {
   formatVehicleServiceItemLabel,
   vehicleServiceItemEstimatedHours,
 } from "@/services/common";
-import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems } from "@/hooks/use-dms";
+import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems, useServicePackagesForVin } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
 import {
   AlertDialog,
@@ -77,6 +78,7 @@ import {
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
 import * as vehiclesSvc from "@/services/vehicles";
+import { fetchServicePackageLines } from "@/services/service-packages";
 import type { VehicleWarrantySummary } from "@/types/dms";
 
 function discountModeFromBackend(type?: string | null): InvoiceDiscountMode {
@@ -150,6 +152,7 @@ export default function ServiceEstimateDetailPage() {
   const [serviceItemSearch, setServiceItemSearch] = useState("");
   const [sparePartSearch, setSparePartSearch] = useState("");
   const [vehicleModelFilter, setVehicleModelFilter] = useState("");
+  const [resolvedVehicleModel, setResolvedVehicleModel] = useState<string | null>(null);
   const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(
     serviceItemSearch,
     vehicleModelFilter || undefined,
@@ -171,6 +174,12 @@ export default function ServiceEstimateDetailPage() {
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>("none");
   const [partsDiscountInput, setPartsDiscountInput] = useState("");
   const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
+  const [selectedServicePackage, setSelectedServicePackage] = useState("");
+  const [isLoadingPackageLines, setIsLoadingPackageLines] = useState(false);
+  const lastAppliedPackageRef = useRef<string | null>(null);
+
+  const { data: servicePackagesForVin, isLoading: servicePackagesLoading } =
+    useServicePackagesForVin(estimate?.vehicle_vin || null, resolvedVehicleModel);
 
   useEffect(() => {
     const tab = viewParams.get("tab");
@@ -210,6 +219,12 @@ export default function ServiceEstimateDetailPage() {
         unit_price: row.unit_price ?? 0,
       }))
     );
+    setSelectedServicePackage(estimate.service_package || "");
+    lastAppliedPackageRef.current = estimate.service_package || null;
+    if (estimate.vehicle_model) {
+      setResolvedVehicleModel(estimate.vehicle_model);
+      setVehicleModelFilter(estimate.vehicle_model);
+    }
   }, [estimate]);
 
   useEffect(() => {
@@ -221,14 +236,96 @@ export default function ServiceEstimateDetailPage() {
     void vehiclesSvc.getVehicle(estimate.vehicle_vin).then(
       (full) => {
         setWarrantySummary(full.warranty_summary || null);
-        setVehicleModelFilter(full.model || full.resolved_vehicle_model || "");
+        const model = full.resolved_vehicle_model || full.model || estimate.vehicle_model || "";
+        setVehicleModelFilter(model);
+        setResolvedVehicleModel(model || null);
       },
       () => {
         setWarrantySummary(null);
-        setVehicleModelFilter("");
+        setVehicleModelFilter(estimate.vehicle_model || "");
+        setResolvedVehicleModel(estimate.vehicle_model || null);
       }
     );
-  }, [estimate?.vehicle_vin]);
+  }, [estimate?.vehicle_vin, estimate?.vehicle_model]);
+
+  const populateFromServicePackage = useCallback(async (packageName: string) => {
+    setIsLoadingPackageLines(true);
+    try {
+      const lines = await fetchServicePackageLines(packageName, {
+        vin: estimate?.vehicle_vin,
+        vehicleModel: resolvedVehicleModel,
+      });
+      setLabourRows(
+        lines.labour.map((row) => ({
+          vehicle_service_item: row.vehicle_service_item,
+          vehicle_service_item_name: row.service_code
+            ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
+            : (row.service_name || row.vehicle_service_item),
+          estimated_hours: row.estimated_hours,
+          rate_per_hour: row.rate_per_hour,
+        }))
+      );
+      setPartRows(
+        lines.parts.map((row) => ({
+          item_code: row.item_code,
+          item_name: row.item_name || row.item_code,
+          bin_location: row.bin_location,
+          quantity_requested: row.quantity_requested,
+          unit_price: row.unit_price,
+        }))
+      );
+
+      const pkgLabel = lines.package_name || packageName;
+      toast.success(
+        `Loaded "${pkgLabel}": ${lines.labour.length} labour, ${lines.parts.length} parts`
+      );
+
+      if ((lines.labour_discount_amount || 0) > 0) {
+        setLabourDiscountMode("amount");
+        setLabourDiscountInput(String(lines.labour_discount_amount));
+      }
+    } catch (err) {
+      lastAppliedPackageRef.current = null;
+      toast.error(
+        err instanceof Error ? err.message : "Could not load service package"
+      );
+    } finally {
+      setIsLoadingPackageLines(false);
+    }
+  }, [estimate?.vehicle_vin, resolvedVehicleModel]);
+
+  const servicePackageOptions = useMemo(
+    () =>
+      servicePackagesForVin?.packages?.map((p) => ({
+        value: p.name,
+        label: p.package_id
+          ? `${p.package_id} — ${p.description || p.package_name}`
+          : p.description || p.package_name,
+        description: [
+          p.total_amount ? `Total ${p.total_amount.toLocaleString()}` : null,
+          p.before_discount && p.after_discount && p.before_discount !== p.after_discount
+            ? `Before ${p.before_discount.toLocaleString()} → After ${p.after_discount.toLocaleString()}`
+            : null,
+          p.interval_km ? `${p.interval_km.toLocaleString()} km` : null,
+          p.interval_months ? `${p.interval_months} mo` : null,
+          p.total_labor_hours ? `${p.total_labor_hours}h labour` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      })) || [],
+    [servicePackagesForVin]
+  );
+
+  useEffect(() => {
+    if (!selectedServicePackage) return;
+    if (
+      servicePackageOptions.length > 0 &&
+      !servicePackageOptions.some((option) => option.value === selectedServicePackage)
+    ) {
+      setSelectedServicePackage("");
+      lastAppliedPackageRef.current = null;
+    }
+  }, [servicePackageOptions, selectedServicePackage]);
 
   const isEstimateEditable = useMemo(
     () => estimate && !["Rejected", "Cancelled"].includes(estimate.status),
@@ -237,6 +334,25 @@ export default function ServiceEstimateDetailPage() {
   const isAccepted = estimate?.status === "Accepted";
   const canEditEstimate = Boolean(isEstimateEditable && canWrite("service-estimates"));
   const canDeleteEstimate = Boolean(canDelete("service-estimates"));
+
+  useEffect(() => {
+    if (!estimate?.vehicle_vin || !selectedServicePackage || !canEditEstimate) {
+      if (!selectedServicePackage) {
+        lastAppliedPackageRef.current = null;
+      }
+      return;
+    }
+    if (lastAppliedPackageRef.current === selectedServicePackage) {
+      return;
+    }
+    lastAppliedPackageRef.current = selectedServicePackage;
+    void populateFromServicePackage(selectedServicePackage);
+  }, [
+    estimate?.vehicle_vin,
+    selectedServicePackage,
+    populateFromServicePackage,
+    canEditEstimate,
+  ]);
 
   const runAction = useCallback(
     async (label: string, fn: () => Promise<unknown>) => {
@@ -354,6 +470,7 @@ export default function ServiceEstimateDetailPage() {
       await estimatesSvc.updateServiceEstimate(id, {
         diagnosis_findings: diagnosisFindings,
         recommended_repairs: recommendedRepairs,
+        service_package: selectedServicePackage || undefined,
         ...buildWarrantyPayload(),
         labour: labourRows.map((row) => ({
           vehicle_service_item: row.vehicle_service_item,
@@ -731,35 +848,24 @@ export default function ServiceEstimateDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {warrantySummary && <WarrantyStatusBanner summary={warrantySummary} />}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="estimate-warranty-type">Warranty application type</Label>
-                  <Select
-                    value={warrantyApplicationType || "none"}
-                    onValueChange={handleWarrantyApplicationChange}
-                    disabled={!canEditEstimate}
-                  >
-                    <SelectTrigger id="estimate-warranty-type">
-                      <SelectValue placeholder="None (customer pays all)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None (customer pays all)</SelectItem>
-                      <SelectItem value="All Invoice">All Invoice</SelectItem>
-                      <SelectItem value="Labour">Labour</SelectItem>
-                      <SelectItem value="Spare Part">Spare Part</SelectItem>
-                      <SelectItem value="Discount">Discount</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1 text-sm">
-                  <p className="text-muted-foreground">Vehicle warranty status</p>
-                  <p className="font-medium">{estimate.warranty_status || "—"}</p>
-                  {estimate.warranty_expiry_date && (
-                    <p className="text-xs text-muted-foreground">
-                      Expires: {new Date(estimate.warranty_expiry_date).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
+              <div className="space-y-2 max-w-md">
+                <Label htmlFor="estimate-warranty-type">Warranty application type</Label>
+                <Select
+                  value={warrantyApplicationType || "none"}
+                  onValueChange={handleWarrantyApplicationChange}
+                  disabled={!canEditEstimate}
+                >
+                  <SelectTrigger id="estimate-warranty-type">
+                    <SelectValue placeholder="None (customer pays all)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (customer pays all)</SelectItem>
+                    <SelectItem value="All Invoice">All Invoice</SelectItem>
+                    <SelectItem value="Labour">Labour</SelectItem>
+                    <SelectItem value="Spare Part">Spare Part</SelectItem>
+                    <SelectItem value="Discount">Discount</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               {canEditEstimate && warrantyApplicationType === "Discount" && (
                 <div className="grid gap-4 md:grid-cols-2">
@@ -781,6 +887,57 @@ export default function ServiceEstimateDetailPage() {
                   />
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Service Package
+              </CardTitle>
+              <CardDescription>
+                {estimate.vehicle_vin
+                  ? servicePackagesForVin?.vehicle_model_label
+                    ? `Packages for ${servicePackagesForVin.vehicle_model_label} only. Choosing a package fills labour and parts below.`
+                    : servicePackagesForVin?.message ||
+                      "Link a Vehicle Model on this VIN to see matching packages."
+                  : "No vehicle linked to this estimate."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Package</Label>
+                <SearchableSelect
+                  options={servicePackageOptions}
+                  value={selectedServicePackage}
+                  onValueChange={setSelectedServicePackage}
+                  placeholder={
+                    !estimate.vehicle_vin
+                      ? "No vehicle on estimate"
+                      : servicePackagesLoading || isLoadingPackageLines
+                        ? "Loading…"
+                        : servicePackageOptions.length
+                          ? "Select service package…"
+                          : "No packages for this model"
+                  }
+                  disabled={
+                    !canEditEstimate ||
+                    !estimate.vehicle_vin ||
+                    servicePackageOptions.length === 0 ||
+                    isLoadingPackageLines
+                  }
+                  isLoading={servicePackagesLoading || isLoadingPackageLines}
+                />
+              </div>
+              {estimate.vehicle_vin &&
+                !servicePackagesLoading &&
+                servicePackageOptions.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Set Model on the vehicle (VIN No), then link packages under Vehicle
+                    Service Package → Applicable Vehicle Models.
+                  </p>
+                )}
             </CardContent>
           </Card>
 

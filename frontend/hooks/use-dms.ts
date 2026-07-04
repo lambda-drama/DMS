@@ -370,10 +370,15 @@ export function useVehicleServiceItems(search?: string, vehicleModel?: string, v
   );
 }
 
-export function useServicePackagesForVin(vin: string | null, search?: string) {
+export function useServicePackagesForVin(
+  vin: string | null,
+  vehicleModel?: string | null,
+  search?: string
+) {
+  const model = (vehicleModel || '').trim() || null;
   return useSWR<ServicePackageForVehicleResponse>(
-    vin ? ['service-packages-for-vin', vin, search] : null,
-    () => servicePackagesSvc.fetchServicePackagesForVin(vin!, search),
+    vin || model ? ['service-packages-for-vin', vin, model, search] : null,
+    () => servicePackagesSvc.fetchServicePackagesForVin(vin || '', search, model),
     { dedupingInterval: 5000 }
   );
 }

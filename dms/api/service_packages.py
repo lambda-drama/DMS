@@ -71,20 +71,37 @@ def _vehicle_model_label(vehicle_model: str) -> tuple[str, str]:
 	return row.name, label
 
 
-def _active_packages_for_model(vehicle_model: str, search: str | None = None) -> list[dict]:
-	parents = set(
+def _package_names_for_vehicle_model(vehicle_model: str) -> set[str]:
+	"""Package docnames explicitly linked to this Vehicle Model."""
+	vehicle_model = (vehicle_model or "").strip()
+	if not vehicle_model:
+		return set()
+
+	from_child = set(
 		frappe.get_all(
 			"Package Vehicle Model",
-			filters={"vehicle_model": vehicle_model},
+			filters={
+				"vehicle_model": vehicle_model,
+				"parenttype": "Vehicle Service Package",
+				"parentfield": "applicable_vehicle_models",
+			},
 			pluck="parent",
 		)
 	)
-	direct = frappe.get_all(
-		"Vehicle Service Package",
-		filters={"vehicle_model": vehicle_model, "is_active": 1},
-		pluck="name",
+
+	from_direct = set(
+		frappe.get_all(
+			"Vehicle Service Package",
+			filters={"vehicle_model": vehicle_model, "is_active": 1},
+			pluck="name",
+		)
 	)
-	parents.update(direct)
+
+	return from_child | from_direct
+
+
+def _active_packages_for_model(vehicle_model: str, search: str | None = None) -> list[dict]:
+	parents = _package_names_for_vehicle_model(vehicle_model)
 	if not parents:
 		return []
 
@@ -163,13 +180,25 @@ def get_service_packages_for_vehicle(vin=None, vehicle_model=None, search=None):
 
 
 @frappe.whitelist()
-def get_service_package_lines(package_name=None):
+def get_service_package_lines(package_name=None, vin=None, vehicle_model=None):
 	"""Return labour and parts rows from a Vehicle Service Package for job card autofill."""
 	package_name = (package_name or "").strip()
 	if not package_name:
 		frappe.throw(_("Package is required"))
 	if not frappe.db.exists("Vehicle Service Package", package_name):
 		frappe.throw(_("Vehicle Service Package {0} not found").format(frappe.bold(package_name)))
+
+	vm = (vehicle_model or "").strip()
+	if not vm and vin:
+		vm, _ = resolve_vehicle_model_from_vin(vin)
+	if vm:
+		allowed = _package_names_for_vehicle_model(vm)
+		if package_name not in allowed:
+			frappe.throw(
+				_(
+					"Service package {0} is not configured for this vehicle's model ({1})."
+				).format(frappe.bold(package_name), frappe.bold(vm))
+			)
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 		spare_part_default_selling_price,

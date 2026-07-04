@@ -98,7 +98,11 @@ def get_service_estimate(name):
 	result = doc.as_dict()
 	result["customer_name"] = result.get("customer_name") or _customer_display_name(doc.customer)
 	if doc.vehicle_vin:
-		result["vehicle_model"] = frappe.db.get_value("VIN No", doc.vehicle_vin, "model_name")
+		from dms.api.service_packages import resolve_vehicle_model_from_vin
+
+		vm, vm_label = resolve_vehicle_model_from_vin(doc.vehicle_vin)
+		result["vehicle_model"] = vm
+		result["vehicle_model_label"] = vm_label
 	enrich_estimate_row(result)
 	return result
 
@@ -124,6 +128,7 @@ def update_service_estimate(name, data):
 		"recommended_repairs",
 		"service_advisor_notes",
 		"internal_notes",
+		"service_package",
 		"vat_rate",
 		"status",
 		"warranty_application_type",
