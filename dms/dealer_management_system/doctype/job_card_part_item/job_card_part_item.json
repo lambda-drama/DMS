@@ -8,6 +8,7 @@
  "field_order": [
   "item_code",
   "part_name",
+  "bin_location",
   "quantity_requested",
   "quantity_issued",
   "quantity_returned",
@@ -48,6 +49,15 @@
    "fieldtype": "Read Only",
    "in_list_view": 1,
    "label": "Part Name"
+  },
+  {
+   "fetch_from": "item_code.bin_location",
+   "fetch_if_empty": 1,
+   "fieldname": "bin_location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bin Location",
+   "read_only": 1
   },
   {
    "columns": 1,

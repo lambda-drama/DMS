@@ -44,7 +44,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import * as estimatesSvc from "@/services/serviceEstimates";
-import { fetchSparePartPrice, fetchLabourRate, uploadFile, fetchVehicleServiceItemLineDefaults, vehicleServiceItemEstimatedHours } from "@/services/common";
+import {
+  fetchSparePartPrice,
+  fetchLabourRate,
+  uploadFile,
+  fetchVehicleServiceItemLineDefaults,
+  formatSparePartLabel,
+  formatVehicleServiceItemLabel,
+  vehicleServiceItemEstimatedHours,
+} from "@/services/common";
 import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
 import {
@@ -108,6 +116,7 @@ type EstimateLabourRow = {
 type EstimatePartRow = {
   item_code: string;
   item_name: string;
+  bin_location?: string;
   quantity_requested: number;
   unit_price: number;
 };
@@ -140,7 +149,12 @@ export default function ServiceEstimateDetailPage() {
   });
   const [serviceItemSearch, setServiceItemSearch] = useState("");
   const [sparePartSearch, setSparePartSearch] = useState("");
-  const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(serviceItemSearch);
+  const [vehicleModelFilter, setVehicleModelFilter] = useState("");
+  const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(
+    serviceItemSearch,
+    vehicleModelFilter || undefined,
+    estimate?.vehicle_vin || undefined
+  );
   const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
   const [acceptSignature, setAcceptSignature] = useState("");
   const [rejectSignature, setRejectSignature] = useState("");
@@ -191,6 +205,7 @@ export default function ServiceEstimateDetailPage() {
       (estimate.parts || []).map((row) => ({
         item_code: row.item_code || "",
         item_name: row.part_name || row.item_code || "",
+        bin_location: row.bin_location || "",
         quantity_requested: row.quantity_requested ?? 1,
         unit_price: row.unit_price ?? 0,
       }))
@@ -200,11 +215,18 @@ export default function ServiceEstimateDetailPage() {
   useEffect(() => {
     if (!estimate?.vehicle_vin) {
       setWarrantySummary(null);
+      setVehicleModelFilter("");
       return;
     }
     void vehiclesSvc.getVehicle(estimate.vehicle_vin).then(
-      (full) => setWarrantySummary(full.warranty_summary || null),
-      () => setWarrantySummary(null)
+      (full) => {
+        setWarrantySummary(full.warranty_summary || null);
+        setVehicleModelFilter(full.model || full.resolved_vehicle_model || "");
+      },
+      () => {
+        setWarrantySummary(null);
+        setVehicleModelFilter("");
+      }
     );
   }, [estimate?.vehicle_vin]);
 
@@ -343,6 +365,7 @@ export default function ServiceEstimateDetailPage() {
         parts: partRows.map((row) => ({
           item_code: row.item_code,
           part_name: row.item_name,
+          bin_location: row.bin_location,
           quantity_requested: row.quantity_requested,
           unit_price: row.unit_price,
           total_amount: (row.quantity_requested || 0) * (row.unit_price || 0),
@@ -377,13 +400,17 @@ export default function ServiceEstimateDetailPage() {
     const item = serviceItems?.find((i) => i.name === itemName);
     let rate = item?.custom_rate || 0;
     let estHours = vehicleServiceItemEstimatedHours(item);
-    let serviceLabel = item?.service_item || item?.custom_item_name || itemName;
+    let serviceLabel = formatVehicleServiceItemLabel(item) || itemName;
 
     try {
       const defaults = await fetchVehicleServiceItemLineDefaults(itemName);
       if (defaults.estimated_hours > 0) estHours = defaults.estimated_hours;
       if (defaults.rate_per_hour > 0) rate = defaults.rate_per_hour;
-      if (defaults.service_name) serviceLabel = defaults.service_name;
+      if (defaults.service_name || defaults.service_code) {
+        serviceLabel = defaults.service_code
+          ? `${defaults.service_code}: ${defaults.service_name || itemName}`
+          : (defaults.service_name || serviceLabel);
+      }
     } catch {
       if (!rate) {
         try {
@@ -405,7 +432,7 @@ export default function ServiceEstimateDetailPage() {
 
   const handleSparePartSelect = async (partName: string) => {
     if (!partName) {
-      setNewPart({ item_code: "", item_name: "", quantity_requested: 1, unit_price: 0 });
+      setNewPart({ item_code: "", item_name: "", bin_location: "", quantity_requested: 1, unit_price: 0 });
       return;
     }
     const part = spareParts?.find((p) => p.name === partName);
@@ -418,6 +445,7 @@ export default function ServiceEstimateDetailPage() {
     setNewPart({
       item_code: partName,
       item_name: part?.item_name || partName,
+      bin_location: part?.bin_location || "",
       quantity_requested: 1,
       unit_price: unitPrice,
     });
@@ -453,7 +481,7 @@ export default function ServiceEstimateDetailPage() {
       return;
     }
     setPartRows((prev) => [...prev, { ...newPart }]);
-    setNewPart({ item_code: "", item_name: "", quantity_requested: 1, unit_price: 0 });
+    setNewPart({ item_code: "", item_name: "", bin_location: "", quantity_requested: 1, unit_price: 0 });
   };
 
   const removePartRow = (idx: number) => {
@@ -783,7 +811,7 @@ export default function ServiceEstimateDetailPage() {
                       options={
                         serviceItems?.map((si) => ({
                           value: si.name,
-                          label: si.custom_item_name || si.service_item || si.name,
+                          label: formatVehicleServiceItemLabel(si),
                           description: si.custom_rate || si.estimated_hours
                             ? [
                                 si.custom_rate ? `Rate: ${si.custom_rate}` : null,
@@ -874,8 +902,10 @@ export default function ServiceEstimateDetailPage() {
                       options={
                         spareParts?.map((sp) => ({
                           value: sp.name,
-                          label: sp.item_name || sp.name,
-                          description: sp.oem_part_number || sp.part_category || undefined,
+                          label: formatSparePartLabel(sp),
+                          description: [sp.part_category, sp.bin_location ? `Bin: ${sp.bin_location}` : null]
+                            .filter(Boolean)
+                            .join(' · ') || undefined,
                         })) || []
                       }
                       value={newPart.item_code}

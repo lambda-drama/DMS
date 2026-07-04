@@ -13,6 +13,7 @@ export interface SparePart {
   item_code?: string;
   part_category?: string;
   oem_part_number?: string;
+  bin_location?: string;
 }
 
 export interface VehicleServiceItem {
@@ -20,6 +21,7 @@ export interface VehicleServiceItem {
   service_item?: string;
   custom_erpnext_item?: string;
   custom_item_name?: string;
+  custom_service_code?: string;
   custom_rate?: number;
   custom_estimated_timehours?: string | number;
   estimated_hours?: number;
@@ -29,6 +31,23 @@ export interface VehicleServiceItemLineDefaults {
   rate_per_hour: number;
   estimated_hours: number;
   service_name?: string;
+  service_code?: string;
+}
+
+export function formatSparePartLabel(part?: Pick<SparePart, 'name' | 'item_name' | 'item_code' | 'oem_part_number'>): string {
+  const code = String(part?.oem_part_number || part?.item_code || part?.name || '').trim();
+  const name = String(part?.item_name || part?.name || code).trim();
+  if (code && name && code !== name) return `${code}: ${name}`;
+  return name || code;
+}
+
+export function formatVehicleServiceItemLabel(
+  item?: Pick<VehicleServiceItem, 'name' | 'service_item' | 'custom_item_name' | 'custom_service_code'>
+): string {
+  const code = String(item?.custom_service_code || '').trim();
+  const name = String(item?.custom_item_name || item?.service_item || item?.name || code).trim();
+  if (code && name && code !== name) return `${code}: ${name}`;
+  return name || code;
 }
 
 /** Hours from VSI custom_estimated_timehours (or precomputed estimated_hours from API). */
@@ -65,6 +84,7 @@ export async function fetchVehicleServiceItemLineDefaults(
     rate_per_hour: parseApiNumber(raw?.rate_per_hour),
     estimated_hours: parseApiNumber(raw?.estimated_hours),
     service_name: raw?.service_name,
+    service_code: raw?.service_code,
   };
 }
 
@@ -202,10 +222,18 @@ export async function fetchSpareParts(search?: string): Promise<SparePart[]> {
   });
 }
 
-export async function fetchVehicleServiceItems(search?: string): Promise<VehicleServiceItem[]> {
+export async function fetchVehicleServiceItems(
+  search?: string,
+  vehicleModel?: string,
+  vin?: string
+): Promise<VehicleServiceItem[]> {
   return apiRequest<VehicleServiceItem[]>(`/api/method/${API}.get_vehicle_service_items`, {
     method: 'POST',
-    body: JSON.stringify({ search: search || null }),
+    body: JSON.stringify({
+      search: search || null,
+      vehicle_model: vehicleModel || null,
+      vin: vin || null,
+    }),
   });
 }
 

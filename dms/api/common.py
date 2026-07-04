@@ -312,12 +312,13 @@ def get_spare_parts(search=None, limit=20):
 			"item_name": ["like", f"%{search}%"],
 			"item_code": ["like", f"%{search}%"],
 			"oem_part_number": ["like", f"%{search}%"],
+			"bin_location": ["like", f"%{search}%"],
 		}
 
 	parts = frappe.get_all(
 		"Spare Part",
 		or_filters=or_filters if or_filters else None,
-		fields=["name", "item_name", "item_code", "part_category", "oem_part_number"],
+		fields=["name", "item_name", "item_code", "part_category", "oem_part_number", "bin_location"],
 		limit=int(limit),
 		order_by="item_name asc",
 	)
@@ -328,17 +329,31 @@ def get_spare_parts(search=None, limit=20):
 def _vehicle_service_item_list_fields() -> list[str]:
 	fields = ["name", "service_item", "custom_erpnext_item", "custom_item_name", "custom_rate"]
 	meta = frappe.get_meta("Vehicle Service Item")
+	if meta.has_field("custom_service_code"):
+		fields.append("custom_service_code")
 	if meta.has_field("custom_estimated_timehours"):
 		fields.append("custom_estimated_timehours")
 	return fields
 
 
 @frappe.whitelist()
-def get_vehicle_service_items(search=None, limit=20):
+def get_vehicle_service_items(search=None, limit=20, vehicle_model=None, vin=None):
 	"""Get Vehicle Service Item records for labour line lookups."""
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 		vehicle_service_item_estimated_hours,
 	)
+	meta = frappe.get_meta("Vehicle Service Item")
+	filters = {}
+
+	vehicle_model = (vehicle_model or "").strip()
+	vin = (vin or "").strip()
+	if not vehicle_model and vin:
+		from dms.api.service_packages import resolve_vehicle_model_from_vin
+
+		vehicle_model, _ = resolve_vehicle_model_from_vin(vin)
+
+	if vehicle_model and meta.has_field("custom_vehicle_model"):
+		filters["custom_vehicle_model"] = vehicle_model
 
 	or_filters = {}
 	if search:
@@ -346,9 +361,16 @@ def get_vehicle_service_items(search=None, limit=20):
 			"name": ["like", f"%{search}%"],
 			"service_item": ["like", f"%{search}%"],
 		}
+		if meta.has_field("custom_item_name"):
+			or_filters["custom_item_name"] = ["like", f"%{search}%"]
+		if meta.has_field("custom_service_code"):
+			or_filters["custom_service_code"] = ["like", f"%{search}%"]
+		if meta.has_field("custom_erpnext_item"):
+			or_filters["custom_erpnext_item"] = ["like", f"%{search}%"]
 
 	items = frappe.get_all(
 		"Vehicle Service Item",
+		filters=filters or None,
 		or_filters=or_filters if or_filters else None,
 		fields=_vehicle_service_item_list_fields(),
 		limit=int(limit),
@@ -571,7 +593,7 @@ def get_vehicle_service_item_line_defaults(vehicle_service_item=None):
 	"""Rate and estimated hours for a labour line when a service item is picked."""
 	vsi = (vehicle_service_item or "").strip()
 	if not vsi:
-		return {"rate_per_hour": 0, "estimated_hours": 0, "service_name": ""}
+		return {"rate_per_hour": 0, "estimated_hours": 0, "service_name": "", "service_code": ""}
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 		vehicle_service_item_estimated_hours,
@@ -582,11 +604,15 @@ def get_vehicle_service_item_line_defaults(vehicle_service_item=None):
 	item_name = frappe.db.get_value("Vehicle Service Item", vsi, "custom_item_name") if frappe.get_meta(
 		"Vehicle Service Item"
 	).has_field("custom_item_name") else None
+	service_code = frappe.db.get_value("Vehicle Service Item", vsi, "custom_service_code") if frappe.get_meta(
+		"Vehicle Service Item"
+	).has_field("custom_service_code") else None
 
 	return {
 		"rate_per_hour": vehicle_service_item_labour_rate(vsi),
 		"estimated_hours": vehicle_service_item_estimated_hours(vsi),
 		"service_name": item_name or service_name,
+		"service_code": service_code or "",
 	}
 
 

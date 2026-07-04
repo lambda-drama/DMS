@@ -276,10 +276,15 @@ def create_job_card(data):
 		job_warehouse = (data.get("warehouse") or "").strip() or None
 		for part in data["parts"]:
 			part_warehouse = (part.get("warehouse") or "").strip() or job_warehouse
+			part_code = part.get("item_code")
+			bin_location = (part.get("bin_location") or "").strip()
+			if not bin_location and part_code:
+				bin_location = frappe.db.get_value("Spare Part", part_code, "bin_location") or ""
 			doc.append("parts", {
-				"item_code": part.get("item_code"),
+				"item_code": part_code,
 				"quantity_requested": part.get("quantity_requested", 1),
 				"unit_price": part.get("unit_price"),
+				"bin_location": bin_location,
 				"warehouse": part_warehouse,
 			})
 

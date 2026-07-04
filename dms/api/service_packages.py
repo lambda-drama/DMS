@@ -187,6 +187,7 @@ def get_service_package_lines(package_name=None):
 			continue
 
 		service_name = (row.operation_name or "").strip()
+		service_code = frappe.db.get_value("Vehicle Service Item", vsi, "custom_service_code") or ""
 		if not service_name:
 			service_name = (
 				frappe.db.get_value("Vehicle Service Item", vsi, "service_item")
@@ -207,6 +208,7 @@ def get_service_package_lines(package_name=None):
 		labour.append(
 			{
 				"vehicle_service_item": vsi,
+				"service_code": service_code,
 				"service_name": service_name,
 				"estimated_hours": hours,
 				"rate_per_hour": rate,
@@ -228,11 +230,13 @@ def get_service_package_lines(package_name=None):
 		item_name = (row.part_name or "").strip()
 		if not item_name:
 			item_name = frappe.db.get_value("Spare Part", part, "item_name") or part
+		bin_location = frappe.db.get_value("Spare Part", part, "bin_location") or ""
 
 		parts.append(
 			{
 				"item_code": part,
 				"item_name": item_name,
+				"bin_location": bin_location,
 				"quantity_requested": qty,
 				"unit_price": unit_price,
 			}

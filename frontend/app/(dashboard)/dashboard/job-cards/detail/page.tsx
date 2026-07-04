@@ -1807,6 +1807,7 @@ export default function JobCardDetailPage() {
                       <TableRow>
                         <TableHead>Part Code</TableHead>
                         <TableHead>Part Name</TableHead>
+                        <TableHead>Bin Location</TableHead>
                         <TableHead className="text-right">Qty</TableHead>
                         <TableHead className="text-right">Unit Price</TableHead>
                         <TableHead className="text-right">Total</TableHead>
@@ -1819,6 +1820,7 @@ export default function JobCardDetailPage() {
                         <TableRow key={part.name || idx}>
                           <TableCell className="font-mono text-sm">{part.item_code}</TableCell>
                           <TableCell className="font-medium">{part.part_name || part.item_code}</TableCell>
+                          <TableCell>{part.bin_location || "–"}</TableCell>
                           <TableCell className="text-right">{part.quantity_requested ?? part.quantity ?? 0}</TableCell>
                           <TableCell className="text-right">
                             {(part.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
