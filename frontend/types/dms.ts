@@ -491,6 +491,7 @@ export interface DMSServiceEstimate {
   customer_name?: string;
   vehicle_vin: string;
   vehicle_model?: string;
+  vehicle_model_label?: string;
   license_plate?: string;
   service_advisor?: string;
   diagnostic_fee?: number;
@@ -500,6 +501,8 @@ export interface DMSServiceEstimate {
   diagnosis_findings?: string;
   /** Recommended work to fix diagnosed problems */
   recommended_repairs?: string;
+  /** Vehicle Service Package used to autofill labour and parts */
+  service_package?: string;
   labour?: VehicleLabourItem[];
   parts?: JobCardPartItem[];
   total_labor_cost?: number;

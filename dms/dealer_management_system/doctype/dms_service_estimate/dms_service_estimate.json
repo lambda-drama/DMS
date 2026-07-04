@@ -46,6 +46,7 @@
   "parts_discount_value",
   "discount_amount",
   "section_estimation",
+  "service_package",
   "labour",
   "parts",
   "section_totals",
@@ -318,6 +319,13 @@
    "fieldname": "section_estimation",
    "fieldtype": "Section Break",
    "label": "Estimation (Labour & Parts)"
+  },
+  {
+   "description": "Service package used to autofill labour and parts lines",
+   "fieldname": "service_package",
+   "fieldtype": "Link",
+   "label": "Service Package",
+   "options": "Vehicle Service Package"
   },
   {
    "fieldname": "labour",
