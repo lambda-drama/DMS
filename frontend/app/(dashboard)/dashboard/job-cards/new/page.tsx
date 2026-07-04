@@ -29,6 +29,8 @@ import {
   fetchLabourRate,
   fetchServiceBayDetail,
   fetchVehicleServiceItemLineDefaults,
+  formatSparePartLabel,
+  formatVehicleServiceItemLabel,
   vehicleServiceItemEstimatedHours,
 } from "@/services/common";
 import * as vehiclesSvc from "@/services/vehicles";
@@ -116,6 +118,7 @@ interface LabourRow {
 interface PartRow {
   item_code: string;
   item_name: string;
+  bin_location?: string;
   quantity_requested: number;
   unit_price: number;
   warehouse?: string;
@@ -141,7 +144,12 @@ export default function NewJobCardPage() {
   const { data: serviceAdvisors, isLoading: advisorsLoading } = useServiceAdvisors();
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
   const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
-  const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(serviceItemSearch);
+  const selectedVehicleModel = selectedVin?.model || selectedVin?.resolved_vehicle_model || undefined;
+  const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(
+    serviceItemSearch,
+    selectedVehicleModel,
+    vehicleVin || undefined
+  );
   const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
     warehouseSearch,
@@ -416,13 +424,17 @@ export default function NewJobCardPage() {
     const item = serviceItems?.find((i) => i.name === itemName);
     let rate = item?.custom_rate || 0;
     let estHours = vehicleServiceItemEstimatedHours(item);
-    let serviceLabel = item?.service_item || item?.custom_item_name || itemName;
+    let serviceLabel = formatVehicleServiceItemLabel(item) || itemName;
 
     try {
       const defaults = await fetchVehicleServiceItemLineDefaults(itemName);
       if (defaults.estimated_hours > 0) estHours = defaults.estimated_hours;
       if (defaults.rate_per_hour > 0) rate = defaults.rate_per_hour;
-      if (defaults.service_name) serviceLabel = defaults.service_name;
+      if (defaults.service_name || defaults.service_code) {
+        serviceLabel = defaults.service_code
+          ? `${defaults.service_code}: ${defaults.service_name || itemName}`
+          : (defaults.service_name || serviceLabel);
+      }
     } catch {
       if (!rate) {
         try {
@@ -447,6 +459,7 @@ export default function NewJobCardPage() {
         ...prev,
         item_code: "",
         item_name: "",
+        bin_location: undefined,
         unit_price: 0,
       }));
       return;
@@ -466,6 +479,7 @@ export default function NewJobCardPage() {
       ...prev,
       item_code: partName,
       item_name: part?.item_name || partName,
+      bin_location: part?.bin_location,
       unit_price: unitPrice,
     }));
   };
@@ -529,6 +543,7 @@ export default function NewJobCardPage() {
     setNewPart({
       item_code: "",
       item_name: "",
+      bin_location: undefined,
       quantity_requested: 1,
       unit_price: 0,
       warehouse: warehouse || undefined,
@@ -559,7 +574,9 @@ export default function NewJobCardPage() {
           lines.labour.map((row) => ({
             vehicle_service_item: row.vehicle_service_item,
             vehicle_service_item_name:
-              row.service_name || row.vehicle_service_item,
+              row.service_code
+                ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
+                : (row.service_name || row.vehicle_service_item),
             technician: leadTechnician || "",
             technician_name: leadTechName,
             estimated_hours: row.estimated_hours,
@@ -572,6 +589,7 @@ export default function NewJobCardPage() {
           lines.parts.map((row) => ({
             item_code: row.item_code,
             item_name: row.item_name || row.item_code,
+            bin_location: row.bin_location,
             quantity_requested: row.quantity_requested,
             unit_price: row.unit_price,
             warehouse: warehouse || undefined,
@@ -956,6 +974,7 @@ export default function NewJobCardPage() {
       })),
       parts: partRows.map((pr) => ({
         item_code: pr.item_code,
+        bin_location: pr.bin_location,
         quantity_requested: pr.quantity_requested,
         unit_price: pr.unit_price,
         warehouse: pr.warehouse || warehouse || undefined,
@@ -1559,7 +1578,7 @@ export default function NewJobCardPage() {
                   options={
                     serviceItems?.map((si) => ({
                       value: si.name,
-                      label: si.custom_item_name || si.service_item || si.name,
+                      label: formatVehicleServiceItemLabel(si),
                       description: si.custom_rate || si.estimated_hours
                         ? [
                             si.custom_rate ? `Rate: ${si.custom_rate}` : null,
@@ -1680,8 +1699,10 @@ export default function NewJobCardPage() {
                   options={
                     spareParts?.map((sp) => ({
                       value: sp.name,
-                      label: sp.item_name || sp.name,
-                      description: sp.oem_part_number || sp.part_category || undefined,
+                      label: formatSparePartLabel(sp),
+                      description: [sp.part_category, sp.bin_location ? `Bin: ${sp.bin_location}` : null]
+                        .filter(Boolean)
+                        .join(' · ') || undefined,
                     })) || []
                   }
                   value={newPart.item_code}

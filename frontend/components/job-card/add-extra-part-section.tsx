@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useSpareParts } from "@/hooks/use-dms";
-import { fetchSparePartPrice } from "@/services/common";
+import { fetchSparePartPrice, formatSparePartLabel } from "@/services/common";
 import * as partsSvc from "@/services/partsRequests";
 import { Loader2, Plus, Package } from "lucide-react";
 import { toast } from "sonner";
@@ -119,8 +119,10 @@ export function AddExtraPartSection({
               options={
                 spareParts?.map((sp) => ({
                   value: sp.name,
-                  label: sp.item_name || sp.name,
-                  description: sp.oem_part_number || sp.part_category || undefined,
+                  label: formatSparePartLabel(sp),
+                  description: [sp.part_category, sp.bin_location ? `Bin: ${sp.bin_location}` : null]
+                    .filter(Boolean)
+                    .join(" · ") || undefined,
                 })) || []
               }
               value={itemCode}

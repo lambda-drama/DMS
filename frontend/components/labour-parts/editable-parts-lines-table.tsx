@@ -7,6 +7,7 @@ import { Trash2 } from 'lucide-react';
 export type EditablePartLine = {
   item_code: string;
   item_name?: string;
+  bin_location?: string;
   unit_price: number;
   quantity?: number;
   quantity_requested?: number;
@@ -31,6 +32,13 @@ function getQuantity(row: EditablePartLine, field: 'quantity' | 'quantity_reques
   return field === 'quantity_requested'
     ? row.quantity_requested ?? row.quantity ?? 0
     : row.quantity ?? row.quantity_requested ?? 0;
+}
+
+function partLabel(row: EditablePartLine) {
+  const code = (row.item_code || '').trim();
+  const name = (row.item_name || '').trim();
+  if (code && name && code !== name) return `${code}: ${name}`;
+  return name || code;
 }
 
 export function EditablePartsLinesTable<T extends EditablePartLine>({
@@ -63,7 +71,12 @@ export function EditablePartsLinesTable<T extends EditablePartLine>({
             const amount = qty * (row.unit_price || 0);
             return (
               <tr key={`${row.item_code}-${idx}`} className="border-t">
-                <td className="p-3">{row.item_name || row.item_code}</td>
+                <td className="p-3">
+                  <div className="font-medium">{partLabel(row)}</div>
+                  {row.bin_location ? (
+                    <div className="text-xs text-muted-foreground">Bin: {row.bin_location}</div>
+                  ) : null}
+                </td>
                 <td className="p-3 text-right">
                   {editable ? (
                     <Input

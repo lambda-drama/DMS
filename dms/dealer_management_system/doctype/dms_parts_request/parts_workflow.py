@@ -111,6 +111,7 @@ def add_part_line_to_job_card(
 		frappe.throw(_("Quantity must be greater than zero."))
 
 	price = flt(unit_price) if unit_price is not None else spare_part_default_selling_price(item_code)
+	bin_location = frappe.db.get_value("Spare Part", item_code, "bin_location") or ""
 
 	jc.append(
 		"parts",
@@ -118,6 +119,7 @@ def add_part_line_to_job_card(
 			"item_code": item_code,
 			"quantity_requested": qty,
 			"unit_price": price,
+			"bin_location": bin_location,
 			"total_amount": round(qty * price, 2),
 			"line_status": "Requested",
 			"notes": notes,

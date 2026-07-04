@@ -34,8 +34,16 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, FileText, Plus, Receipt, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { fetchLabourRate, fetchSparePartPrice, fetchVehicleServiceItemLineDefaults, vehicleServiceItemEstimatedHours } from "@/services/common";
+import {
+  fetchLabourRate,
+  fetchSparePartPrice,
+  fetchVehicleServiceItemLineDefaults,
+  formatSparePartLabel,
+  formatVehicleServiceItemLabel,
+  vehicleServiceItemEstimatedHours,
+} from "@/services/common";
 import * as invoicesSvc from "@/services/invoices";
+import * as vehiclesSvc from "@/services/vehicles";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
 import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
@@ -56,6 +64,7 @@ interface LabourRow {
 interface PartRow {
   item_code: string;
   item_name: string;
+  bin_location?: string;
   quantity: number;
   unit_price: number;
 }
@@ -78,6 +87,7 @@ export default function NewInvoicePage() {
   const [warehouseSearch, setWarehouseSearch] = useState("");
   const [serviceItemSearch, setServiceItemSearch] = useState("");
   const [sparePartSearch, setSparePartSearch] = useState("");
+  const [vehicleModelFilter, setVehicleModelFilter] = useState("");
 
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
@@ -89,7 +99,7 @@ export default function NewInvoicePage() {
     company || undefined
   );
   const { data: serviceItems, isLoading: serviceItemsLoading } =
-    useVehicleServiceItems(serviceItemSearch);
+    useVehicleServiceItems(serviceItemSearch, vehicleModelFilter || undefined, jobCard?.vehicle_vin || undefined);
   const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
   const { data: currencies } = useCurrencies();
 
@@ -120,6 +130,7 @@ export default function NewInvoicePage() {
   const [newPart, setNewPart] = useState<PartRow>({
     item_code: "",
     item_name: "",
+    bin_location: "",
     quantity: 1,
     unit_price: 0,
   });
@@ -164,12 +175,24 @@ export default function NewInvoicePage() {
     const parts: PartRow[] = (jobCard.part_lines || []).map((pl) => ({
       item_code: pl.part_number || pl.item_code || "",
       item_name: pl.part_name || "",
+      bin_location: pl.bin_location || "",
       quantity: pl.quantity || 1,
       unit_price: pl.unit_price || 0,
     }));
     setLabourRows(labour);
     setPartRows(parts);
   }, [jobCard]);
+
+  useEffect(() => {
+    if (!jobCard?.vehicle_vin) {
+      setVehicleModelFilter("");
+      return;
+    }
+    void vehiclesSvc.getVehicle(jobCard.vehicle_vin).then(
+      (full) => setVehicleModelFilter(full.model || full.resolved_vehicle_model || ""),
+      () => setVehicleModelFilter("")
+    );
+  }, [jobCard?.vehicle_vin]);
 
   const customerSelectOptions = useMemo(
     () => buildCustomerSelectOptions(customers, customer, customerMeta),
@@ -214,13 +237,17 @@ export default function NewInvoicePage() {
     const item = serviceItems?.find((i) => i.name === itemName);
     let rate = item?.custom_rate || 0;
     let estHours = vehicleServiceItemEstimatedHours(item);
-    let serviceLabel = item?.service_item || item?.custom_item_name || itemName;
+    let serviceLabel = formatVehicleServiceItemLabel(item) || itemName;
 
     try {
       const defaults = await fetchVehicleServiceItemLineDefaults(itemName);
       if (defaults.estimated_hours > 0) estHours = defaults.estimated_hours;
       if (defaults.rate_per_hour > 0) rate = defaults.rate_per_hour;
-      if (defaults.service_name) serviceLabel = defaults.service_name;
+      if (defaults.service_name || defaults.service_code) {
+        serviceLabel = defaults.service_code
+          ? `${defaults.service_code}: ${defaults.service_name || itemName}`
+          : (defaults.service_name || serviceLabel);
+      }
     } catch {
       if (!rate) {
         try {
@@ -241,7 +268,7 @@ export default function NewInvoicePage() {
 
   const handleSparePartSelect = async (partName: string) => {
     if (!partName) {
-      setNewPart({ item_code: "", item_name: "", quantity: 1, unit_price: 0 });
+      setNewPart({ item_code: "", item_name: "", bin_location: "", quantity: 1, unit_price: 0 });
       return;
     }
     const part = spareParts?.find((p) => p.name === partName);
@@ -254,6 +281,7 @@ export default function NewInvoicePage() {
     setNewPart({
       item_code: partName,
       item_name: part?.item_name || partName,
+      bin_location: part?.bin_location || "",
       quantity: 1,
       unit_price: unitPrice,
     });
@@ -581,7 +609,7 @@ export default function NewInvoicePage() {
                   options={
                     serviceItems?.map((si) => ({
                       value: si.name,
-                      label: si.custom_item_name || si.service_item || si.name,
+                      label: formatVehicleServiceItemLabel(si),
                       description: si.custom_rate || si.estimated_hours
                         ? [
                             si.custom_rate ? `Rate: ${si.custom_rate}` : null,
@@ -679,8 +707,10 @@ export default function NewInvoicePage() {
                   options={
                     spareParts?.map((p) => ({
                       value: p.name,
-                      label: p.item_name || p.name,
-                      description: p.item_group,
+                      label: formatSparePartLabel(p),
+                      description: [p.part_category, p.bin_location ? `Bin: ${p.bin_location}` : null]
+                        .filter(Boolean)
+                        .join(' · ') || undefined,
                     })) || []
                   }
                   value={newPart.item_code}

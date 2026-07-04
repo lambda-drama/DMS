@@ -362,10 +362,10 @@ export function useSpareParts(search?: string) {
   );
 }
 
-export function useVehicleServiceItems(search?: string) {
+export function useVehicleServiceItems(search?: string, vehicleModel?: string, vin?: string) {
   return useSWR(
-    ['vehicle-service-items', search],
-    () => commonSvc.fetchVehicleServiceItems(search),
+    ['vehicle-service-items', search, vehicleModel || null, vin || null],
+    () => commonSvc.fetchVehicleServiceItems(search, vehicleModel, vin),
     { dedupingInterval: 5000 }
   );
 }

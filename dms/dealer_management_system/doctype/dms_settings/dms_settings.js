@@ -20,6 +20,18 @@ frappe.ui.form.on("DMS Settings", {
 		frm.add_custom_button(__("Import Service Packages"), () => {
 			open_service_package_import_modal(frm);
 		}, __("Imports"));
+
+		frm.add_custom_button(__("Import Spare Parts Inventory"), () => {
+			open_inventory_import_modal(frm);
+		}, __("Imports"));
+
+		frm.add_custom_button(__("Create Inventory Stock Reconciliation"), () => {
+			open_inventory_stock_reconciliation_modal(frm);
+		}, __("Actions"));
+
+		frm.add_custom_button(__("Create Inventory Item Prices"), () => {
+			open_inventory_item_price_modal(frm);
+		}, __("Actions"));
 	},
 });
 
@@ -170,6 +182,226 @@ function import_service_packages_workbook(frm, file_url) {
 				title: __("Service Package Import Summary"),
 				message: msg,
 				indicator: summary.errors?.length ? "orange" : "green",
+			});
+			frm.reload_doc();
+		},
+	});
+}
+
+function open_inventory_import_modal(frm) {
+	const d = new frappe.ui.Dialog({
+		title: __("Import Spare Parts Inventory"),
+		fields: [
+			{
+				fieldname: "inventory_file",
+				label: __("Excel workbook (.xlsx)"),
+				fieldtype: "Attach",
+				reqd: 1,
+				description: __(
+					"Creates or updates ERP Items and Spare Parts from Part No, Part Name, Category, Location, and pricing columns"
+				),
+			},
+		],
+		primary_action_label: __("Import"),
+		primary_action(values) {
+			if (!values.inventory_file) {
+				frappe.msgprint(__("Attach an Excel workbook first"));
+				return;
+			}
+			d.hide();
+			import_inventory_workbook(frm, values.inventory_file);
+		},
+	});
+	d.show();
+}
+
+function import_inventory_workbook(frm, file_url) {
+	frappe.call({
+		method: "dms.api.inventory_import.import_inventory_stock",
+		args: { file_url },
+		freeze: true,
+		freeze_message: __("Importing spare parts inventory…"),
+		callback(r) {
+			const summary = r.message;
+			if (!summary) {
+				return;
+			}
+
+			let msg = __("Inventory import completed!\n\n");
+			msg += __("Rows processed: {0}\n", [summary.rows_processed || 0]);
+			msg += __("Item groups created: {0}\n", [summary.item_groups_created || 0]);
+			msg += __("Items created: {0}\n", [summary.items_created || 0]);
+			msg += __("Existing items reused: {0}\n", [summary.items_reused || 0]);
+			msg += __("Spare Parts created: {0}\n", [summary.spare_parts_created || 0]);
+			msg += __("Spare Parts updated: {0}\n", [summary.spare_parts_updated || 0]);
+
+			frappe.msgprint({
+				title: __("Inventory Import Summary"),
+				message: msg,
+				indicator: "green",
+			});
+			frm.reload_doc();
+		},
+	});
+}
+
+function open_inventory_stock_reconciliation_modal(frm) {
+	const d = new frappe.ui.Dialog({
+		title: __("Create Inventory Stock Reconciliation"),
+		fields: [
+			{
+				fieldname: "inventory_file",
+				label: __("Excel workbook (.xlsx)"),
+				fieldtype: "Attach",
+				reqd: 1,
+			},
+			{
+				fieldname: "posting_date",
+				label: __("Posting Date"),
+				fieldtype: "Date",
+				reqd: 1,
+				default: frappe.datetime.get_today(),
+			},
+			{
+				fieldname: "submit",
+				label: __("Submit automatically"),
+				fieldtype: "Check",
+				default: 1,
+				description: __("Warehouse is fixed to Service Center Addis Ababa - SM"),
+			},
+		],
+		primary_action_label: __("Create"),
+		primary_action(values) {
+			if (!values.inventory_file) {
+				frappe.msgprint(__("Attach an Excel workbook first"));
+				return;
+			}
+			d.hide();
+			create_inventory_stock_reconciliation(frm, values);
+		},
+	});
+	d.show();
+}
+
+function create_inventory_stock_reconciliation(frm, values) {
+	frappe.call({
+		method: "dms.api.inventory_import.create_inventory_stock_reconciliation",
+		args: {
+			file_url: values.inventory_file,
+			posting_date: values.posting_date,
+			submit: values.submit || 0,
+		},
+		freeze: true,
+		freeze_message: __("Creating stock reconciliation…"),
+		callback(r) {
+			const summary = r.message;
+			if (!summary) {
+				return;
+			}
+
+			let msg = __("Stock reconciliation created!\n\n");
+			msg += __("Document: {0}\n", [summary.name || ""]);
+			msg += __("Company: {0}\n", [summary.company || ""]);
+			msg += __("Warehouse: {0}\n", [summary.warehouse || ""]);
+			msg += __("Rows processed: {0}\n", [summary.rows_processed || 0]);
+			if (summary.unique_items != null) {
+				msg += __("Unique items created: {0}\n", [summary.unique_items]);
+			}
+			if (summary.duplicate_rows_merged) {
+				msg += __("Duplicate rows merged: {0}\n", [summary.duplicate_rows_merged]);
+			}
+			msg += __("Submitted: {0}\n", [summary.docstatus === 1 ? __("Yes") : __("No")]);
+
+			frappe.msgprint({
+				title: __("Stock Reconciliation Summary"),
+				message: msg,
+				indicator: "green",
+			});
+			frm.reload_doc();
+		},
+	});
+}
+
+function open_inventory_item_price_modal(frm) {
+	const d = new frappe.ui.Dialog({
+		title: __("Create Inventory Item Prices"),
+		fields: [
+			{
+				fieldname: "inventory_file",
+				label: __("Excel workbook (.xlsx)"),
+				fieldtype: "Attach",
+				reqd: 1,
+			},
+			{
+				fieldname: "price_list",
+				label: __("Price List"),
+				fieldtype: "Link",
+				options: "Price List",
+				reqd: 1,
+				description: __(
+					"Retail Price from the workbook (ETB). Defaults to Ethiopia Local Sales."
+				),
+				get_query() {
+					return {
+						filters: {
+							enabled: 1,
+							selling: 1,
+							currency: "ETB",
+						},
+					};
+				},
+			},
+		],
+		primary_action_label: __("Create Prices"),
+		primary_action(values) {
+			if (!values.inventory_file || !values.price_list) {
+				frappe.msgprint(__("Attach the workbook and select a price list first"));
+				return;
+			}
+			d.hide();
+			create_inventory_item_prices(frm, values);
+		},
+	});
+
+	frappe.call({
+		method: "dms.api.inventory_import.get_inventory_price_list_default",
+		callback(r) {
+			if (r.message) {
+				d.set_value("price_list", r.message);
+			}
+		},
+	});
+
+	d.show();
+}
+
+function create_inventory_item_prices(frm, values) {
+	frappe.call({
+		method: "dms.api.inventory_import.create_inventory_item_prices",
+		args: {
+			file_url: values.inventory_file,
+			price_list: values.price_list,
+		},
+		freeze: true,
+		freeze_message: __("Creating item prices…"),
+		callback(r) {
+			const summary = r.message;
+			if (!summary) {
+				return;
+			}
+
+			let msg = __("Item price creation completed!\n\n");
+			msg += __("Rows processed: {0}\n", [summary.rows_processed || 0]);
+			msg += __("Price List: {0}\n", [summary.price_list || ""]);
+			msg += __("Currency: {0}\n", [summary.currency || "ETB"]);
+			msg += __("Prices created: {0}\n", [summary.prices_created || 0]);
+			msg += __("Prices updated: {0}\n", [summary.prices_updated || 0]);
+			msg += __("Prices skipped: {0}\n", [summary.prices_skipped || 0]);
+
+			frappe.msgprint({
+				title: __("Inventory Item Price Summary"),
+				message: msg,
+				indicator: "green",
 			});
 			frm.reload_doc();
 		},

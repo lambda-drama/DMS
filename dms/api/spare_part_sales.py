@@ -61,12 +61,13 @@ def search_spare_parts_for_sale(search=None, warehouse=None, limit=25, in_stock_
 			"item_name": ["like", f"%{search}%"],
 			"item_code": ["like", f"%{search}%"],
 			"oem_part_number": ["like", f"%{search}%"],
+			"bin_location": ["like", f"%{search}%"],
 		}
 
 	parts = frappe.get_all(
 		"Spare Part",
 		or_filters=or_filters if or_filters else None,
-		fields=["name", "item_name", "item_code", "part_category", "oem_part_number", "selling_price"],
+		fields=["name", "item_name", "item_code", "part_category", "oem_part_number", "selling_price", "bin_location"],
 		limit=int(limit),
 		order_by="item_name asc",
 	)
@@ -84,6 +85,7 @@ def search_spare_parts_for_sale(search=None, warehouse=None, limit=25, in_stock_
 				"item_code": row.item_code,
 				"part_category": row.part_category,
 				"oem_part_number": row.oem_part_number,
+				"bin_location": row.bin_location,
 				"unit_price": unit_price,
 				"qty_on_hand": qty_on_hand,
 				"erp_item": spare_part_erp_item_code(row.name),

@@ -426,6 +426,7 @@ export interface ServicePackageForVehicleResponse {
 
 export interface ServicePackageLabourLine {
   vehicle_service_item: string;
+  service_code?: string;
   service_name?: string;
   estimated_hours: number;
   rate_per_hour: number;
@@ -435,6 +436,7 @@ export interface ServicePackageLabourLine {
 export interface ServicePackagePartLine {
   item_code: string;
   item_name?: string;
+  bin_location?: string;
   quantity_requested: number;
   unit_price: number;
 }
@@ -550,6 +552,7 @@ export interface JobCardPartItem {
   part_code?: string;
   item_code?: string;
   part_name: string;
+  bin_location?: string;
   quantity?: number;
   quantity_requested?: number;
   quantity_issued?: number;
