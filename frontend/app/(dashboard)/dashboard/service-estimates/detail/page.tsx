@@ -50,7 +50,7 @@ import {
   fetchLabourRate,
   uploadFile,
   fetchVehicleServiceItemLineDefaults,
-  formatSparePartLabel,
+  sparePartToSelectOption,
   formatVehicleServiceItemLabel,
   vehicleServiceItemEstimatedHours,
 } from "@/services/common";
@@ -1056,15 +1056,7 @@ export default function ServiceEstimateDetailPage() {
                   <div className="space-y-1 sm:col-span-5">
                     <Label className="text-xs">Spare Part *</Label>
                     <SearchableSelect
-                      options={
-                        spareParts?.map((sp) => ({
-                          value: sp.name,
-                          label: formatSparePartLabel(sp),
-                          description: [sp.part_category, sp.bin_location ? `Bin: ${sp.bin_location}` : null]
-                            .filter(Boolean)
-                            .join(' · ') || undefined,
-                        })) || []
-                      }
+                  options={spareParts?.map(sparePartToSelectOption) || []}
                       value={newPart.item_code}
                       onValueChange={handleSparePartSelect}
                       onSearchChange={setSparePartSearch}

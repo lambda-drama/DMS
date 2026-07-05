@@ -50,6 +50,9 @@ export async function searchSparePartsForSale(options?: {
   warehouse?: string;
   limit?: number;
   inStockOnly?: boolean;
+  vin?: string;
+  vehicle_model?: string;
+  vehicle_brand?: string;
 }): Promise<SparePartForSale[]> {
   return apiRequest<SparePartForSale[]>(
     `/api/method/${API}.search_spare_parts_for_sale`,
@@ -60,6 +63,9 @@ export async function searchSparePartsForSale(options?: {
         warehouse: options?.warehouse || null,
         limit: options?.limit || 25,
         in_stock_only: options?.inStockOnly ? 1 : 0,
+        vin: options?.vin || null,
+        vehicle_model: options?.vehicle_model || null,
+        vehicle_brand: options?.vehicle_brand || null,
       }),
     }
   );
@@ -76,6 +82,10 @@ export async function createSparePartSale(data: {
   remarks?: string;
   submit?: boolean;
   parts_discount?: StandaloneInvoiceGroupDiscount;
+  vehicle_vin?: string;
+  vehicle_brand?: string;
+  vehicle_model?: string;
+  vehicle_model_label?: string;
 }): Promise<{
   name: string;
   docstatus: number;
@@ -87,5 +97,112 @@ export async function createSparePartSale(data: {
   return apiRequest(`/api/method/${API}.create_spare_part_sale`, {
     method: 'POST',
     body: JSON.stringify({ data }),
+  });
+}
+
+export interface SparePartProformaListItem {
+  name: string;
+  sales_order: string;
+  customer: string;
+  customer_name?: string;
+  company?: string;
+  transaction_date?: string;
+  delivery_date?: string;
+  grand_total?: number;
+  currency?: string;
+  status?: string;
+  docstatus?: number;
+  per_billed?: number;
+  converted?: boolean;
+  modified?: string;
+}
+
+export interface SparePartProformaDetail extends SparePartProformaListItem {
+  remarks?: string;
+  items?: Array<{
+    spare_part?: string;
+    item_code?: string;
+    item_name?: string;
+    qty?: number;
+    rate?: number;
+    amount?: number;
+    warehouse?: string;
+  }>;
+  sales_invoices?: string[];
+}
+
+export async function listSparePartProformas(options?: {
+  search?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ data: SparePartProformaListItem[]; total: number }> {
+  return apiRequest(`/api/method/${API}.list_spare_part_proformas`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      status: options?.status || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getSparePartProforma(name: string): Promise<SparePartProformaDetail> {
+  return apiRequest(`/api/method/${API}.get_spare_part_proforma`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createSparePartProforma(data: {
+  customer: string;
+  company: string;
+  warehouse: string;
+  parts: SparePartSaleLine[];
+  currency?: string;
+  posting_date?: string;
+  due_date?: string;
+  remarks?: string;
+  submit?: boolean;
+  parts_discount?: StandaloneInvoiceGroupDiscount;
+  vehicle_vin?: string;
+  vehicle_brand?: string;
+  vehicle_model?: string;
+}): Promise<{
+  name: string;
+  sales_order: string;
+  docstatus: number;
+  customer: string;
+  customer_name: string;
+  grand_total: number;
+  status?: string;
+}> {
+  return apiRequest(`/api/method/${API}.create_spare_part_proforma`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function convertProformaToSalesInvoice(
+  name: string,
+  data?: {
+    warehouse?: string;
+    posting_date?: string;
+    due_date?: string;
+    submit?: boolean;
+  }
+): Promise<{
+  name: string;
+  docstatus: number;
+  customer: string;
+  customer_name: string;
+  grand_total: number;
+  status?: string;
+  sales_order: string;
+}> {
+  return apiRequest(`/api/method/${API}.convert_proforma_to_sales_invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data: data || {} }),
   });
 }

@@ -99,6 +99,7 @@ export function CreateInvoiceDialog({
   const [partsDiscountInput, setPartsDiscountInput] = useState('');
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [submitInvoice, setSubmitInvoice] = useState(true);
+  const [editedRates, setEditedRates] = useState<Record<string, number>>({});
   const skipWarrantyRefetch = useRef(true);
 
   const applyDiscountsFromPreview = useCallback((data: InvoicePreview) => {
@@ -124,7 +125,8 @@ export function CreateInvoiceDialog({
       labourMode: InvoiceDiscountMode,
       labourInput: string,
       partsMode: InvoiceDiscountMode,
-      partsInput: string
+      partsInput: string,
+      rates: Record<string, number>
     ) => {
       const warrantyApplicationType =
         warranty === 'none' ? '' : (warranty as WarrantyApplicationType);
@@ -136,14 +138,32 @@ export function CreateInvoiceDialog({
         warranty === 'Discount'
           ? buildGroupDiscountPayload(partsMode, partsInput)
           : undefined;
+      const rateOverrides =
+        Object.keys(rates).length > 0 ? rates : undefined;
       return invoicesSvc.getInvoicePreviewFromJobCard(jobCardId, {
         warrantyApplicationType: warrantyApplicationType || undefined,
         labourDiscount,
         partsDiscount,
+        rateOverrides,
       });
     },
     [jobCardId]
   );
+
+  useEffect(() => {
+    if (!preview) return;
+    setEditedRates((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const line of preview.lines) {
+        if (line.source_row && next[line.source_row] === undefined) {
+          next[line.source_row] = line.base_rate ?? line.rate;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [preview]);
 
   useEffect(() => {
     if (!open || !jobCardId) return;
@@ -152,6 +172,7 @@ export function CreateInvoiceDialog({
     skipWarrantyRefetch.current = true;
     setLoading(true);
     setPreview(null);
+    setEditedRates({});
     setDueDate(defaultDueDate());
     setSubmitInvoice(true);
 
@@ -192,7 +213,8 @@ export function CreateInvoiceDialog({
         labourDiscountMode,
         labourDiscountInput,
         partsDiscountMode,
-        partsDiscountInput
+        partsDiscountInput,
+        editedRates
       )
         .then((data) => {
           if (!cancelled) setPreview(data);
@@ -217,6 +239,7 @@ export function CreateInvoiceDialog({
     labourDiscountInput,
     partsDiscountMode,
     partsDiscountInput,
+    editedRates,
     open,
     jobCardId,
     loadPreview,
@@ -263,6 +286,8 @@ export function CreateInvoiceDialog({
         warrantyApplicationType: warrantyApplicationType || undefined,
         labourDiscount: warrantyType === 'Discount' ? labourDiscount : undefined,
         partsDiscount: warrantyType === 'Discount' ? partsDiscount : undefined,
+        rateOverrides:
+          Object.keys(editedRates).length > 0 ? editedRates : undefined,
       });
       toast.success(
         submitInvoice
@@ -387,6 +412,11 @@ export function CreateInvoiceDialog({
               )}
             </div>
 
+            <p className="text-xs text-muted-foreground">
+              Recommended prices are pre-filled from the item master — adjust the Rate column
+              when the customer agrees to a different selling price.
+            </p>
+
             <div className="dms-table-panel rounded-md border">
               <Table>
                 <TableHeader>
@@ -424,7 +454,29 @@ export function CreateInvoiceDialog({
                       </TableCell>
                       <TableCell className="text-right">{line.qty}</TableCell>
                       <TableCell className="text-right">
-                        {line.is_warranty_covered &&
+                        {line.source_row ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            className="ml-auto h-8 w-28 text-right"
+                            value={
+                              editedRates[line.source_row] ??
+                              line.base_rate ??
+                              line.rate
+                            }
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value) || 0;
+                              setEditedRates((prev) => ({
+                                ...prev,
+                                [line.source_row!]: value,
+                              }));
+                            }}
+                            onBlur={() => {
+                              skipWarrantyRefetch.current = false;
+                            }}
+                          />
+                        ) : line.is_warranty_covered &&
                         (line.discount_percentage ?? 0) >= 100 &&
                         line.base_rate != null ? (
                           <span>{formatMoney(line.base_rate, currency)}</span>

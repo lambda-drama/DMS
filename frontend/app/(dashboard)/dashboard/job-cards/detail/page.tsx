@@ -185,6 +185,7 @@ export default function JobCardDetailPage() {
   const [repairTimerOffsetSeconds, setRepairTimerOffsetSeconds] = useState(0);
   const [bayLinkedWorkshop, setBayLinkedWorkshop] = useState<string>("");
   const [bayLinkedWarehouse, setBayLinkedWarehouse] = useState<string>("");
+  const [savingLinePrice, setSavingLinePrice] = useState<string | null>(null);
   const autoPartsTabJobRef = useRef<string | null>(null);
 
   const hasActivePartsRequest = (requests?: Array<{ status: string }>) =>
@@ -389,6 +390,9 @@ export default function JobCardDetailPage() {
     "Waiting Customer Approval",
     "Rework",
   ].includes(workflowStatus);
+  const canEditLinePricing =
+    !jobCard.invoice &&
+    !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
 
   const assignmentDirty =
     leadTechnician !== (jobCard.lead_technician || "") ||
@@ -529,6 +533,36 @@ export default function JobCardDetailPage() {
       toast.error(err instanceof Error ? err.message : "Failed to start repair");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const savePartUnitPrice = async (rowName: string, unitPrice: number) => {
+    setSavingLinePrice(rowName);
+    try {
+      await partsRequestsSvc.updateJobCardLinePricing(id, {
+        parts: [{ name: rowName, unit_price: unitPrice }],
+      });
+      await mutate();
+      toast.success("Part price updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update part price");
+    } finally {
+      setSavingLinePrice(null);
+    }
+  };
+
+  const saveLabourRate = async (rowName: string, ratePerHour: number) => {
+    setSavingLinePrice(rowName);
+    try {
+      await partsRequestsSvc.updateJobCardLinePricing(id, {
+        labour: [{ name: rowName, rate_per_hour: ratePerHour }],
+      });
+      await mutate();
+      toast.success("Labour rate updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update labour rate");
+    } finally {
+      setSavingLinePrice(null);
     }
   };
 
@@ -1741,7 +1775,26 @@ export default function JobCardDetailPage() {
                           <TableCell>{line.technician || "–"}</TableCell>
                           <TableCell className="text-right">{line.actual_hours || line.estimated_hours || 0}</TableCell>
                           <TableCell className="text-right">
-                            {(line.rate_per_hour || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {canEditLinePricing && line.name ? (
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className="ml-auto h-8 w-28 text-right"
+                                defaultValue={line.rate_per_hour || 0}
+                                disabled={savingLinePrice === line.name}
+                                onBlur={(e) => {
+                                  const next = parseFloat(e.target.value) || 0;
+                                  if (next !== (line.rate_per_hour || 0)) {
+                                    void saveLabourRate(line.name, next);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              (line.rate_per_hour || 0).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                              })
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {(line.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -1780,6 +1833,8 @@ export default function JobCardDetailPage() {
             <AddExtraPartSection
               jobCardId={id}
               leadTechnician={jobCard.lead_technician}
+              warehouse={jobCard.warehouse}
+              company={jobCard.company}
               onAdded={(result) => {
                 setPartsFlowRefreshKey((k) => k + 1);
                 autoPartsTabJobRef.current = id;
@@ -1823,7 +1878,26 @@ export default function JobCardDetailPage() {
                           <TableCell>{part.bin_location || "–"}</TableCell>
                           <TableCell className="text-right">{part.quantity_requested ?? part.quantity ?? 0}</TableCell>
                           <TableCell className="text-right">
-                            {(part.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {canEditLinePricing && part.name ? (
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className="ml-auto h-8 w-28 text-right"
+                                defaultValue={part.unit_price || 0}
+                                disabled={savingLinePrice === part.name}
+                                onBlur={(e) => {
+                                  const next = parseFloat(e.target.value) || 0;
+                                  if (next !== (part.unit_price || 0)) {
+                                    void savePartUnitPrice(part.name, next);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              (part.unit_price || 0).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                              })
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {(part.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}

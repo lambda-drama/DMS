@@ -225,6 +225,7 @@ def make_sales_invoice_from_job_card(
 	discount_amount=None,
 	labour_discount=None,
 	parts_discount=None,
+	rate_overrides=None,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
@@ -245,47 +246,28 @@ def make_sales_invoice_from_job_card(
 		discount_amount=discount_amount,
 		labour_discount=labour_discount,
 		parts_discount=parts_discount,
+		rate_overrides=rate_overrides,
 	)
 
 
 @frappe.whitelist()
 def get_job_card_part_stock_available(spare_part: str | None = None, warehouse: str | None = None):
 	"""Qty on hand for the Spare Part's linked ERP Item (replaces invalid fetch_from on actual_qty)."""
+	from dms.dealer_management_system.utils.stock_operations import (
+		get_dms_item_stock_balance,
+		resolve_spare_part_erp_item_code,
+	)
+
 	spare_part = (spare_part or "").strip()
-	if not spare_part:
-		return None
-	if not frappe.db.exists("Spare Part", spare_part):
+	if not spare_part or not frappe.db.exists("Spare Part", spare_part):
 		return None
 
-	erp_item = frappe.db.get_value("Spare Part", spare_part, "spare_part_item")
+	erp_item = resolve_spare_part_erp_item_code(spare_part)
 	if not erp_item:
 		return None
 
 	warehouse = (warehouse or "").strip() or None
-
-	try:
-		from erpnext.stock.utils import get_stock_balance
-	except ImportError:
-		get_stock_balance = None
-
-	if get_stock_balance and warehouse:
-		return flt(get_stock_balance(erp_item, warehouse))
-
-	if not frappe.db.has_table("tabBin"):
-		return None
-
-	if warehouse:
-		qty = frappe.db.sql(
-			"""select sum(actual_qty) from `tabBin` where item_code = %s and warehouse = %s""",
-			(erp_item, warehouse),
-		)
-	else:
-		qty = frappe.db.sql(
-			"""select sum(actual_qty) from `tabBin` where item_code = %s""",
-			(erp_item,),
-		)
-
-	return flt(qty[0][0]) if qty and qty[0][0] is not None else 0.0
+	return get_dms_item_stock_balance(erp_item, warehouse)
 
 
 @frappe.whitelist()

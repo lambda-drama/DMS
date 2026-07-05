@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { useCompanies, useAutofillSingleCompany } from '@/hooks/use-dms';
 import * as stockSvc from '@/services/stockOperations';
+import { formatDmsWarehouseLabel } from '@/services/stockOperations';
 import { ArrowDownUp, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -144,7 +145,7 @@ export default function StockEntryPage() {
     () =>
       (defaults?.warehouses ?? []).map((w) => ({
         value: w.name,
-        label: w.warehouse_name || w.name,
+        label: formatDmsWarehouseLabel(w),
       })),
     [defaults?.warehouses]
   );

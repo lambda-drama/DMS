@@ -20,6 +20,7 @@ import * as stockSvc from '@/services/stockOperations';
 export interface StockItemCreatedPayload {
   item_code: string;
   item_name: string;
+  valuation_rate?: number;
   standard_rate?: number;
   spare_part?: string | null;
 }
@@ -48,7 +49,8 @@ export function StockItemLinkWithCreate({
   const [saving, setSaving] = useState(false);
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
-  const [rate, setRate] = useState('');
+  const [valuationRate, setValuationRate] = useState('');
+  const [sellingPrice, setSellingPrice] = useState('');
   const [itemGroup, setItemGroup] = useState(defaultItemGroup || '');
   const [autoSpare, setAutoSpare] = useState(Boolean(autoCreateSpareParts));
 
@@ -57,7 +59,8 @@ export function StockItemLinkWithCreate({
     setSaving(false);
     setItemCode((initialItemCode || selectProps.value || '').trim());
     setItemName('');
-    setRate('');
+    setValuationRate('');
+    setSellingPrice('');
     setItemGroup(defaultItemGroup || '');
     setAutoSpare(Boolean(autoCreateSpareParts));
 
@@ -103,12 +106,14 @@ export function StockItemLinkWithCreate({
       const result = await stockSvc.createStockItem({
         item_code: code,
         item_name: name,
-        standard_rate: rate ? Number(rate) : 0,
+        valuation_rate: valuationRate ? Number(valuationRate) : undefined,
+        standard_rate: sellingPrice ? Number(sellingPrice) : undefined,
         item_group: itemGroup,
       });
       const payload: StockItemCreatedPayload = {
         item_code: result.item_code || result.name,
         item_name: result.item_name || result.label || code,
+        valuation_rate: result.valuation_rate,
         standard_rate: result.standard_rate,
         spare_part: result.spare_part,
       };
@@ -116,8 +121,12 @@ export function StockItemLinkWithCreate({
       onItemCreated?.(payload);
       toast.success(
         payload.spare_part
-          ? `Created item and spare part (${payload.spare_part})`
-          : `Created item ${payload.item_code}`
+          ? `Created item, spare part (${payload.spare_part})${
+              result.price_list ? `, and price on ${result.price_list}` : ''
+            }`
+          : `Created item ${payload.item_code}${
+              result.price_list ? ` with price on ${result.price_list}` : ''
+            }`
       );
       setOpen(false);
     } catch (e) {
@@ -148,8 +157,10 @@ export function StockItemLinkWithCreate({
             <DialogTitle>New stock item</DialogTitle>
             <DialogDescription>
               Creates an ERPNext Item using the default item group from DMS Settings.
+              Selling price also creates an Item Price on the default selling price list
+              configured in DMS Settings.
               {autoSpare
-                ? ' A Spare Part will be created automatically with the rate you enter.'
+                ? ' A Spare Part will be created automatically with the prices you enter.'
                 : ' Enable Auto Generate Spare Parts on the item group to create a Spare Part automatically.'}
             </DialogDescription>
           </DialogHeader>
@@ -172,16 +183,29 @@ export function StockItemLinkWithCreate({
               />
             </div>
             {showRateField && (
-              <div className="space-y-1">
-                <Label>Rate / selling price</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                  placeholder="Used on item and spare part"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Valuation / cost</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={valuationRate}
+                    onChange={(e) => setValuationRate(e.target.value)}
+                    placeholder="Item valuation rate"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Selling price</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={sellingPrice}
+                    onChange={(e) => setSellingPrice(e.target.value)}
+                    placeholder="Standard selling rate"
+                  />
+                </div>
               </div>
             )}
             <div className="space-y-1">

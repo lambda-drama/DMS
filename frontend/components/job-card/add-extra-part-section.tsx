@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useSpareParts } from "@/hooks/use-dms";
-import { fetchSparePartPrice, formatSparePartLabel } from "@/services/common";
+import { fetchSparePartPrice, sparePartToSelectOption } from "@/services/common";
 import * as partsSvc from "@/services/partsRequests";
 import { Loader2, Plus, Package } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +17,8 @@ import { toast } from "sonner";
 interface AddExtraPartSectionProps {
   jobCardId: string;
   leadTechnician?: string;
+  warehouse?: string;
+  company?: string;
   disabled?: boolean;
   onAdded?: (result?: { parts_request?: string }) => void;
 }
@@ -24,11 +26,17 @@ interface AddExtraPartSectionProps {
 export function AddExtraPartSection({
   jobCardId,
   leadTechnician,
+  warehouse,
+  company,
   disabled = false,
   onAdded,
 }: AddExtraPartSectionProps) {
   const [sparePartSearch, setSparePartSearch] = useState("");
-  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
+  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(
+    sparePartSearch,
+    undefined,
+    company || undefined
+  );
   const [itemCode, setItemCode] = useState("");
   const [itemName, setItemName] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -108,7 +116,8 @@ export function AddExtraPartSection({
         </CardTitle>
         <CardDescription>
           Add a spare part that was not on the original estimate. Cost is added to this job card.
-          For customer approval before fitting, use Additional work below.
+          For customer approval before fitting, use Additional work below. Recommended selling
+          price is pre-filled — edit the unit price when needed.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -116,15 +125,7 @@ export function AddExtraPartSection({
           <div className="space-y-1 sm:col-span-5">
             <Label className="text-xs">Spare part *</Label>
             <SearchableSelect
-              options={
-                spareParts?.map((sp) => ({
-                  value: sp.name,
-                  label: formatSparePartLabel(sp),
-                  description: [sp.part_category, sp.bin_location ? `Bin: ${sp.bin_location}` : null]
-                    .filter(Boolean)
-                    .join(" · ") || undefined,
-                })) || []
-              }
+              options={spareParts?.map(sparePartToSelectOption) || []}
               value={itemCode}
               onValueChange={(v) => void handlePartSelect(v)}
               onSearchChange={setSparePartSearch}
@@ -145,7 +146,7 @@ export function AddExtraPartSection({
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
-            <Label className="text-xs">Unit price</Label>
+            <Label className="text-xs">Unit price (editable)</Label>
             <Input
               type="number"
               min={0}

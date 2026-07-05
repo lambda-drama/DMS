@@ -22,6 +22,7 @@ export interface StockBalanceRow {
   item_group?: string;
   stock_uom?: string;
   oem_part_number?: string;
+  bin_location?: string;
   minimum_stock_level: number;
   qty: number;
   is_low_stock: boolean;

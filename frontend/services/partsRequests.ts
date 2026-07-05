@@ -125,6 +125,29 @@ export async function addPartLineToJobCard(
   });
 }
 
+export async function updateJobCardLinePricing(
+  jobCard: string,
+  payload: {
+    parts?: Array<{ name: string; unit_price: number }>;
+    labour?: Array<{ name: string; rate_per_hour: number }>;
+  }
+): Promise<{
+  job_card: string;
+  total_labor_cost?: number;
+  total_parts_cost?: number;
+  total_amount?: number;
+  net_amount?: number;
+}> {
+  return apiRequest(`/api/method/${API}.update_job_card_line_pricing`, {
+    method: 'POST',
+    body: JSON.stringify({
+      job_card: jobCard,
+      parts: payload.parts ?? null,
+      labour: payload.labour ?? null,
+    }),
+  });
+}
+
 export async function cancelPartsRequest(name: string): Promise<{ name: string; status: string }> {
   return apiRequest(`/api/method/${API}.cancel_parts_request`, {
     method: 'POST',

@@ -268,6 +268,14 @@ export function useVINs(customer?: string, search?: string) {
   );
 }
 
+export function useVehicleModels(search?: string, brand?: string) {
+  return useSWR(
+    ['vehicle-models', search, brand || null],
+    () => commonSvc.fetchVehicleModels(search, brand || undefined),
+    { dedupingInterval: 5000 }
+  );
+}
+
 export function useColors(search?: string) {
   return useSWR<ColorOption[]>(
     ['colors', search],
@@ -354,10 +362,25 @@ export function useServiceBays(status?: 'Available' | 'Occupied') {
   );
 }
 
-export function useSpareParts(search?: string) {
+export function useSpareParts(
+  search?: string,
+  warehouse?: string,
+  company?: string,
+  vehicleModel?: string,
+  vin?: string,
+  vehicleBrand?: string
+) {
   return useSWR(
-    ['spare-parts', search],
-    () => commonSvc.fetchSpareParts(search),
+    [
+      'spare-parts',
+      search,
+      warehouse || null,
+      company || null,
+      vehicleModel || null,
+      vin || null,
+      vehicleBrand || null,
+    ],
+    () => commonSvc.fetchSpareParts(search, warehouse, company, vehicleModel, vin, vehicleBrand),
     { dedupingInterval: 5000 }
   );
 }

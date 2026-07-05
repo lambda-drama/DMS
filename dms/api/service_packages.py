@@ -159,7 +159,7 @@ def get_service_packages_for_vehicle(vin=None, vehicle_model=None, search=None):
 	if not vm and vin:
 		vm, label = resolve_vehicle_model_from_vin(vin)
 	elif vm:
-		_, label = _vehicle_model_label(vm)
+		label = _vehicle_model_label(vm)[1]
 
 	if not vm:
 		return {
@@ -170,7 +170,7 @@ def get_service_packages_for_vehicle(vin=None, vehicle_model=None, search=None):
 		}
 
 	if not label:
-		_, label = _vehicle_model_label(vm)
+		label = _vehicle_model_label(vm)[1]
 
 	return {
 		"vehicle_model": vm,
@@ -190,7 +190,7 @@ def get_service_package_lines(package_name=None, vin=None, vehicle_model=None):
 
 	vm = (vehicle_model or "").strip()
 	if not vm and vin:
-		vm, _ = resolve_vehicle_model_from_vin(vin)
+		vm, _vm_label = resolve_vehicle_model_from_vin(vin)
 	if vm:
 		allowed = _package_names_for_vehicle_model(vm)
 		if package_name not in allowed:

@@ -3,7 +3,7 @@
  */
 import { compressImageForUpload } from '@/lib/compress-image';
 import { apiRequest, ensureCSRF } from './apiClient';
-import type { Customer, VINNo, VehicleServiceType, ServiceAdvisor, Technician, ServiceBay, PaginatedResponse } from '@/types/dms';
+import type { Customer, VINNo, VehicleModelOption, VehicleServiceType, ServiceAdvisor, Technician, ServiceBay, PaginatedResponse } from '@/types/dms';
 
 const API = 'dms.api.common';
 
@@ -11,9 +11,11 @@ export interface SparePart {
   name: string;
   item_name: string;
   item_code?: string;
+  spare_part_item?: string;
   part_category?: string;
   oem_part_number?: string;
   bin_location?: string;
+  stock_available?: number;
 }
 
 export interface VehicleServiceItem {
@@ -39,6 +41,41 @@ export function formatSparePartLabel(part?: Pick<SparePart, 'name' | 'item_name'
   const name = String(part?.item_name || part?.name || code).trim();
   if (code && name && code !== name) return `${code}: ${name}`;
   return name || code;
+}
+
+function formatStockQty(qty: number): string {
+  if (!Number.isFinite(qty)) return '0';
+  return Number.isInteger(qty) ? String(qty) : qty.toFixed(2);
+}
+
+/** Secondary line for spare-part SearchableSelect options (category, bin, stock). */
+export function formatSparePartSelectDescription(
+  part?: Pick<
+    SparePart,
+    'name' | 'item_code' | 'spare_part_item' | 'part_category' | 'bin_location' | 'stock_available'
+  >
+): string | undefined {
+  const bits: string[] = [];
+  const code = String(part?.item_code || part?.spare_part_item || '').trim();
+  if (code && code !== part?.name) bits.push(code);
+  if (part?.part_category) bits.push(part.part_category);
+  if (part?.bin_location) bits.push(`Bin: ${part.bin_location}`);
+  if (part?.stock_available != null && Number.isFinite(Number(part.stock_available))) {
+    bits.push(`Stock: ${formatStockQty(Number(part.stock_available))}`);
+  }
+  return bits.length ? bits.join(' · ') : undefined;
+}
+
+export function sparePartToSelectOption(part: SparePart): {
+  value: string;
+  label: string;
+  description?: string;
+} {
+  return {
+    value: part.name,
+    label: formatSparePartLabel(part),
+    description: formatSparePartSelectDescription(part),
+  };
 }
 
 export function formatVehicleServiceItemLabel(
@@ -175,6 +212,21 @@ export async function fetchVINs(customer?: string, search?: string): Promise<VIN
   });
 }
 
+export async function fetchVehicleModels(
+  search?: string,
+  brand?: string,
+  limit?: number
+): Promise<VehicleModelOption[]> {
+  return apiRequest<VehicleModelOption[]>(`/api/method/${API}.get_vehicle_models`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: search || null,
+      brand: brand || null,
+      limit: limit ?? 30,
+    }),
+  });
+}
+
 export interface ColorOption {
   name: string;
   label?: string;
@@ -215,10 +267,24 @@ export async function fetchServiceBays(status?: 'Available' | 'Occupied'): Promi
   });
 }
 
-export async function fetchSpareParts(search?: string): Promise<SparePart[]> {
+export async function fetchSpareParts(
+  search?: string,
+  warehouse?: string,
+  company?: string,
+  vehicleModel?: string,
+  vin?: string,
+  vehicleBrand?: string
+): Promise<SparePart[]> {
   return apiRequest<SparePart[]>(`/api/method/${API}.get_spare_parts`, {
     method: 'POST',
-    body: JSON.stringify({ search: search || null }),
+    body: JSON.stringify({
+      search: search || null,
+      warehouse: warehouse || null,
+      company: company || null,
+      vehicle_model: vehicleModel || null,
+      vin: vin || null,
+      vehicle_brand: vehicleBrand || null,
+    }),
   });
 }
 

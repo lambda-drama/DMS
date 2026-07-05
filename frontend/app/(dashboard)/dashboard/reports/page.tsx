@@ -14,7 +14,7 @@ import { useNavigation } from '@/contexts/navigation-context';
 import * as reportsSvc from '@/services/reports';
 import { PRINTABLE_DOCUMENTS, isStockReportId } from '@/services/reports';
 import type { ReportMeta, ReportResult } from '@/services/reports';
-import { fetchVINs, fetchSpareParts } from '@/services/common';
+import { fetchVINs, fetchSpareParts, sparePartToSelectOption } from '@/services/common';
 import type { VINNo } from '@/types/dms';
 import { useCompanies, useWarehouses, useAutofillSingleCompany } from '@/hooks/use-dms';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -108,9 +108,14 @@ export default function ReportsPage() {
   const sparePartQuery = sparePartSearch.trim();
   const { data: sparePartOptions = [], isLoading: sparePartsLoading } = useSWR(
     selectedId === 'spare_parts_stock' || filtersOpen
-      ? ['report-spare-parts', sparePartQuery]
+      ? ['report-spare-parts', sparePartQuery, draftWarehouse || null, draftCompany || null]
       : null,
-    () => fetchSpareParts(sparePartQuery || undefined),
+    () =>
+      fetchSpareParts(
+        sparePartQuery || undefined,
+        draftWarehouse || undefined,
+        draftCompany || undefined
+      ),
     { dedupingInterval: 3000 }
   );
 
@@ -279,11 +284,7 @@ export default function ReportsPage() {
   );
 
   const sparePartSelectOptions = useMemo(() => {
-    const fromApi = (sparePartOptions || []).map((p) => ({
-      value: p.name,
-      label: p.item_name || p.name,
-      description: [p.oem_part_number, p.part_category].filter(Boolean).join(' · '),
-    }));
+    const fromApi = (sparePartOptions || []).map(sparePartToSelectOption);
     if (draftSparePart && !fromApi.some((o) => o.value === draftSparePart)) {
       return [
         {

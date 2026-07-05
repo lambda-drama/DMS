@@ -46,6 +46,7 @@ const COLLAPSIBLE_SECTION_VIEWS: Record<string, string[]> = {
     'pending-material-requests',
     'purchase-receipt',
     'spare-part-sales',
+    'proforma-invoices',
   ],
 };
 
@@ -96,6 +97,7 @@ const navigation = [
       { name: 'Pending Requests', view: 'pending-material-requests', icon: Clock },
       { name: 'Purchase Receipt', view: 'purchase-receipt', icon: PackageCheck },
       { name: 'Spare Part Sales', view: 'spare-part-sales', icon: ShoppingCart },
+      { name: 'Proforma Invoices', view: 'proforma-invoices', icon: FileText },
     ],
   },
 ];

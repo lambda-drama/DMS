@@ -24,6 +24,7 @@ const ALL_VIEWS = [
   'pending-material-requests',
   'purchase-receipt',
   'spare-part-sales',
+  'proforma-invoices', 'proforma-invoice-new',
   'inventory-dashboard',
   'settings',
 ];
@@ -61,6 +62,8 @@ const VIEW_GROUPS: Record<string, string> = {
   'pending-material-requests': 'pending-material-requests',
   'purchase-receipt': 'purchase-receipt',
   'spare-part-sales': 'spare-part-sales',
+  'proforma-invoices': 'proforma-invoices',
+  'proforma-invoice-new': 'proforma-invoices',
   'inventory-dashboard': 'inventory-dashboard',
   'settings': 'settings',
 };

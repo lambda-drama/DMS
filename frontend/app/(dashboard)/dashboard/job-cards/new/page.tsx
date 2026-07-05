@@ -29,7 +29,7 @@ import {
   fetchLabourRate,
   fetchServiceBayDetail,
   fetchVehicleServiceItemLineDefaults,
-  formatSparePartLabel,
+  sparePartToSelectOption,
   formatVehicleServiceItemLabel,
   vehicleServiceItemEstimatedHours,
 } from "@/services/common";
@@ -154,7 +154,13 @@ export default function NewJobCardPage() {
     selectedVehicleModel,
     vehicleVin || undefined
   );
-  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
+  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(
+    sparePartSearch,
+    undefined,
+    company || undefined,
+    selectedVehicleModel,
+    vehicleVin || undefined
+  );
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
     warehouseSearch,
     company || undefined
@@ -1711,15 +1717,7 @@ export default function NewJobCardPage() {
               <div className="space-y-1 sm:col-span-5">
                 <Label className="text-xs">Spare Part *</Label>
                 <SearchableSelect
-                  options={
-                    spareParts?.map((sp) => ({
-                      value: sp.name,
-                      label: formatSparePartLabel(sp),
-                      description: [sp.part_category, sp.bin_location ? `Bin: ${sp.bin_location}` : null]
-                        .filter(Boolean)
-                        .join(' · ') || undefined,
-                    })) || []
-                  }
+                  options={spareParts?.map(sparePartToSelectOption) || []}
                   value={newPart.item_code}
                   onValueChange={handleSparePartSelect}
                   onSearchChange={setSparePartSearch}
@@ -1744,7 +1742,7 @@ export default function NewJobCardPage() {
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-3">
-                  <Label className="text-xs">Unit Price</Label>
+                  <Label className="text-xs">Unit Price (editable)</Label>
                   <Input
                     type="number"
                     min={0}
