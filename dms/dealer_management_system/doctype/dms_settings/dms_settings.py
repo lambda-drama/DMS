@@ -313,3 +313,11 @@ def create_vin_from_serial_numbers(company, start_date, end_date, item_code=None
 	frappe.db.commit()
 
 	return result
+
+
+@frappe.whitelist()
+def backfill_vin_model_links_action(dry_run=0):
+	"""Set VIN No.model from legacy model_name / linked_item labels."""
+	from dms.utils.vin_model_backfill import backfill_vin_model_links
+
+	return backfill_vin_model_links(dry_run=cint(dry_run))
