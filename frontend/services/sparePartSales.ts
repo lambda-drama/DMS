@@ -50,9 +50,6 @@ export async function searchSparePartsForSale(options?: {
   warehouse?: string;
   limit?: number;
   inStockOnly?: boolean;
-  vin?: string;
-  vehicle_model?: string;
-  vehicle_brand?: string;
 }): Promise<SparePartForSale[]> {
   return apiRequest<SparePartForSale[]>(
     `/api/method/${API}.search_spare_parts_for_sale`,
@@ -63,16 +60,13 @@ export async function searchSparePartsForSale(options?: {
         warehouse: options?.warehouse || null,
         limit: options?.limit || 25,
         in_stock_only: options?.inStockOnly ? 1 : 0,
-        vin: options?.vin || null,
-        vehicle_model: options?.vehicle_model || null,
-        vehicle_brand: options?.vehicle_brand || null,
       }),
     }
   );
 }
 
 export async function createSparePartSale(data: {
-  customer: string;
+  customer?: string;
   company: string;
   warehouse: string;
   parts: SparePartSaleLine[];
@@ -156,7 +150,7 @@ export async function getSparePartProforma(name: string): Promise<SparePartProfo
 }
 
 export async function createSparePartProforma(data: {
-  customer: string;
+  customer?: string;
   company: string;
   warehouse: string;
   parts: SparePartSaleLine[];
