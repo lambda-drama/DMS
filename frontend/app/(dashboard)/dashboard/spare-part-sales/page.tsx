@@ -118,17 +118,6 @@ export default function SparePartSalesPage() {
     vehicleBrand || undefined
   );
 
-  const vehicleSearchParams = useMemo(
-    () => ({
-      vin: vehicleVin || undefined,
-      vehicle_model: vehicleModel || undefined,
-      vehicle_brand: vehicleBrand || undefined,
-    }),
-    [vehicleVin, vehicleModel, vehicleBrand]
-  );
-
-  const partsFilteredByVehicle = Boolean(vehicleVin || vehicleModel);
-
   const vehicleModelOptions = useMemo(() => {
     const mapped =
       vehicleModels?.map((vm) => ({
@@ -154,13 +143,6 @@ export default function SparePartSalesPage() {
       setDefaults(result);
       if (!company && result.company) setCompany(result.company);
       if (!warehouse && result.default_warehouse) setWarehouse(result.default_warehouse);
-      if (!customer && result.default_customer) {
-        setCustomer(result.default_customer);
-        setCustomerMeta({
-          name: result.default_customer,
-          customer_name: result.default_customer_name || result.default_customer,
-        });
-      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to load spare part sales defaults');
     } finally {
@@ -182,7 +164,6 @@ export default function SparePartSalesPage() {
           warehouse: warehouse || defaults?.default_warehouse || undefined,
           inStockOnly,
           limit: 30,
-          ...vehicleSearchParams,
         });
         if (cancelled) return;
         setPartOptions(
@@ -208,7 +189,7 @@ export default function SparePartSalesPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [partSearch, warehouse, defaults?.default_warehouse, inStockOnly, vehicleSearchParams]);
+  }, [partSearch, warehouse, defaults?.default_warehouse, inStockOnly]);
 
   useAutofillSingleCompany(
     companies,
@@ -359,10 +340,6 @@ export default function SparePartSalesPage() {
 
   const handleSubmit = async () => {
     if (!canCreate('spare-part-sales')) return;
-    if (!customer) {
-      toast.error('Select a customer');
-      return;
-    }
     if (!warehouse) {
       toast.error('Select a warehouse');
       return;
@@ -384,7 +361,7 @@ export default function SparePartSalesPage() {
     setSubmitting(true);
     try {
       const result = await sparePartSalesSvc.createSparePartSale({
-        customer,
+        customer: customer || undefined,
         company: company || defaults?.company || '',
         warehouse,
         parts: payloadLines,
@@ -409,14 +386,8 @@ export default function SparePartSalesPage() {
       setVehicleBrand('');
       setVehicleBrandLabel('');
       setVehicleModel('');
-      if (dmsCustomerDefaults?.default_customer) {
-        const next = resolveCustomerFieldChange('', customers, dmsCustomerDefaults);
-        setCustomer(next.customer);
-        setCustomerMeta(next.meta);
-      } else {
-        setCustomer('');
-        setCustomerMeta(null);
-      }
+      setCustomer('');
+      setCustomerMeta(null);
       navigate('invoices');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create sales invoice');
@@ -451,7 +422,7 @@ export default function SparePartSalesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Customer *</Label>
+              <Label>Customer</Label>
               <LinkWithCreate doctype="Customer" onCreated={handleCustomerCreated}>
                 <SearchableSelect
                   options={customerOptions}
@@ -465,9 +436,15 @@ export default function SparePartSalesPage() {
               </LinkWithCreate>
               {defaults?.default_customer ? (
                 <p className="text-xs text-muted-foreground">
-                  Default: {defaults.default_customer_name || defaults.default_customer}
+                  Optional — if left blank, uses default walk-in customer (
+                  {defaults.default_customer_name || defaults.default_customer}) from DMS Settings.
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Optional — configure Default Customer in DMS Settings for walk-in sales without
+                  selecting a customer.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Warehouse *</Label>
@@ -490,8 +467,7 @@ export default function SparePartSalesPage() {
                 isLoading={vinsLoading}
               />
               <p className="text-xs text-muted-foreground">
-                Optional — when selected, spare parts are filtered to those compatible with this
-                vehicle (same as job card parts).
+                Optional — recorded on the invoice remarks when provided.
               </p>
             </div>
             <div className="space-y-2">
@@ -539,15 +515,6 @@ export default function SparePartSalesPage() {
                 Show only parts in stock at selected warehouse
               </Label>
             </div>
-            {partsFilteredByVehicle && vehicleModel ? (
-              <p className="text-sm text-muted-foreground">
-                Spare parts filtered by Vehicle Model{' '}
-                <span className="font-medium text-foreground">{vehicleModel}</span>
-                {selectedVin?.model_name ? (
-                  <span className="text-muted-foreground"> ({selectedVin.model_name})</span>
-                ) : null}
-              </p>
-            ) : null}
           </div>
 
           <div className="space-y-3">
@@ -573,7 +540,6 @@ export default function SparePartSalesPage() {
                           search: value,
                           warehouse: warehouse || defaults?.default_warehouse || undefined,
                           limit: 1,
-                          ...vehicleSearchParams,
                         });
                         const match = rows.find((r) => r.name === value);
                         if (match && !unitPrice && match.unit_price != null) {

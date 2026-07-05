@@ -16,7 +16,6 @@ from dms.dealer_management_system.utils.stock_operations import (
 	get_default_dms_company,
 	get_dms_allowed_warehouses,
 	get_purchase_receipt_defaults,
-	resolve_spare_parts_vehicle_filter,
 )
 
 
@@ -91,9 +90,6 @@ def search_spare_parts_for_sale(
 	warehouse=None,
 	limit=25,
 	in_stock_only=0,
-	vin=None,
-	vehicle_model=None,
-	vehicle_brand=None,
 ):
 	"""Spare parts with optional warehouse stock for counter sales."""
 	if not (
@@ -103,20 +99,11 @@ def search_spare_parts_for_sale(
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 	warehouse = (warehouse or "").strip()
-	_vehicle_model, _vehicle_brand, allowed_names = resolve_spare_parts_vehicle_filter(
-		vin=vin,
-		vehicle_model=vehicle_model,
-		vehicle_brand=vehicle_brand,
-	)
 
 	sp_filters: dict = {}
 	sp_meta = frappe.get_meta("Spare Part")
 	if sp_meta.has_field("discontinued"):
 		sp_filters["discontinued"] = 0
-	if allowed_names is not None:
-		if not allowed_names:
-			return []
-		sp_filters["name"] = ["in", list(allowed_names)]
 
 	or_filters = {}
 	if search:
@@ -171,74 +158,15 @@ def create_spare_part_sale(data):
 		create_standalone_dms_sales_invoice,
 	)
 
-	customer = resolve_dms_customer(data.get("customer"))
-	company = (data.get("company") or "").strip() or get_default_dms_company()
-	warehouse = (data.get("warehouse") or "").strip()
-	parts_lines = data.get("parts") or data.get("parts_lines") or []
-
-	if not customer:
-		frappe.throw(_("Customer is required."))
-	if not parts_lines:
-		frappe.throw(_("Add at least one spare part line."))
-
-	allowed_wh = {w["name"] for w in get_dms_allowed_warehouses(company)}
-	if warehouse and allowed_wh and warehouse not in allowed_wh:
-		frappe.throw(_("Warehouse {0} is not configured for DMS stock.").format(frappe.bold(warehouse)))
-
-	for row in parts_lines:
-		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
-		if not spare_part:
-			continue
-		qty = flt(row.get("qty") or row.get("quantity") or 0)
-		if qty <= 0:
-			frappe.throw(_("Quantity must be greater than zero for {0}.").format(spare_part))
-		if warehouse:
-			available = _stock_available(spare_part, warehouse)
-			if qty > available + 0.0001:
-				frappe.throw(
-					_("Insufficient stock for {0}: requested {1}, available {2} in {3}.").format(
-						spare_part, qty, available, warehouse
-					)
-				)
-
-	vin = (data.get("vehicle_vin") or data.get("vin") or "").strip()
-	vehicle_model = (data.get("vehicle_model") or "").strip()
-	vehicle_brand = (data.get("vehicle_brand") or data.get("vehicle_make") or "").strip()
-	vehicle_model_label = (data.get("vehicle_model_label") or data.get("model_name") or "").strip()
-
-	resolved_model, resolved_brand, allowed_names = resolve_spare_parts_vehicle_filter(
-		vin=vin,
-		vehicle_model=vehicle_model,
-		vehicle_brand=vehicle_brand,
-	)
-	if allowed_names is not None:
-		for row in parts_lines:
-			spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
-			if spare_part and spare_part not in allowed_names:
-				frappe.throw(
-					_("Spare part {0} is not compatible with the selected vehicle.").format(
-						frappe.bold(spare_part)
-					)
-				)
-
-	remarks = (data.get("remarks") or "").strip()
-	if not remarks:
-		remarks = _("Spare part counter sale")
-	vehicle_suffix = _vehicle_remarks_suffix(
-		vin=vin,
-		vehicle_brand=resolved_brand or vehicle_brand,
-		vehicle_model_label=vehicle_model_label,
-		vehicle_model=resolved_model or vehicle_model,
-	)
-	if vehicle_suffix:
-		remarks = f"{remarks}\n{vehicle_suffix}".strip()
+	ctx = _validate_spare_part_lines(data, check_stock=True)
+	remarks = _build_spare_part_remarks(ctx, data, default_remarks=_("Spare part counter sale"))
 
 	name = create_standalone_dms_sales_invoice(
-		customer=customer,
-		company=company,
+		customer=ctx["customer"],
+		company=ctx["company"],
 		labour_lines=[],
-		parts_lines=parts_lines,
-		warehouse=warehouse,
+		parts_lines=ctx["parts_lines"],
+		warehouse=ctx["warehouse"],
 		currency=data.get("currency"),
 		due_date=data.get("due_date"),
 		posting_date=data.get("posting_date"),
@@ -291,7 +219,10 @@ def _validate_spare_part_lines(
 	parts_lines = data.get("parts") or data.get("parts_lines") or []
 
 	if not customer:
-		frappe.throw(_("Customer is required."))
+		frappe.throw(
+			_("Select a customer or configure Default Customer in DMS Settings."),
+			title=_("Customer required"),
+		)
 	if not parts_lines:
 		frappe.throw(_("Add at least one spare part line."))
 
@@ -320,29 +251,14 @@ def _validate_spare_part_lines(
 	vehicle_brand = (data.get("vehicle_brand") or data.get("vehicle_make") or "").strip()
 	vehicle_model_label = (data.get("vehicle_model_label") or data.get("model_name") or "").strip()
 
-	resolved_model, resolved_brand, allowed_names = resolve_spare_parts_vehicle_filter(
-		vin=vin,
-		vehicle_model=vehicle_model,
-		vehicle_brand=vehicle_brand,
-	)
-	if allowed_names is not None:
-		for row in parts_lines:
-			spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
-			if spare_part and spare_part not in allowed_names:
-				frappe.throw(
-					_("Spare part {0} is not compatible with the selected vehicle.").format(
-						frappe.bold(spare_part)
-					)
-				)
-
 	return {
 		"customer": customer,
 		"company": company,
 		"warehouse": warehouse,
 		"parts_lines": parts_lines,
 		"vin": vin,
-		"vehicle_model": resolved_model or vehicle_model,
-		"vehicle_brand": resolved_brand or vehicle_brand,
+		"vehicle_model": vehicle_model,
+		"vehicle_brand": vehicle_brand,
 		"vehicle_model_label": vehicle_model_label,
 	}
 
