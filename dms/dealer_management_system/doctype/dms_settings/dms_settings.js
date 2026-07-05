@@ -13,6 +13,10 @@ frappe.ui.form.on("DMS Settings", {
 			open_create_vin_modal(frm);
 		}, __("Actions"));
 
+		frm.add_custom_button(__("Link VIN Models from Names"), () => {
+			backfill_vin_model_links(frm);
+		}, __("Actions"));
+
 		frm.add_custom_button(__("Import FRT Labour Sheet"), () => {
 			open_frt_import_modal(frm);
 		}, __("Imports"));
@@ -406,6 +410,56 @@ function create_inventory_item_prices(frm, values) {
 			frm.reload_doc();
 		},
 	});
+}
+
+function backfill_vin_model_links(frm) {
+	frappe.confirm(
+		__(
+			"Set the Model link on each VIN No from its model name or linked item? VINs that already have a model are skipped."
+		),
+		() => {
+			frappe.call({
+				method:
+					"dms.dealer_management_system.doctype.dms_settings.dms_settings.backfill_vin_model_links_action",
+				args: { dry_run: 0 },
+				freeze: true,
+				freeze_message: __("Linking VIN models…"),
+				callback(r) {
+					const summary = r.message;
+					if (!summary) {
+						return;
+					}
+
+					let msg = __("VIN model linking completed!\n\n");
+					msg += __("Total VINs: {0}\n", [summary.total_vins || 0]);
+					msg += __("Already linked: {0}\n", [summary.already_linked || 0]);
+					msg += __("Updated: {0}\n", [summary.updated || 0]);
+					msg += __("Unmatched: {0}\n", [summary.unmatched_count || 0]);
+
+					if (summary.preview?.length) {
+						msg += "\n" + __("Sample updates:") + "\n";
+						summary.preview.forEach((row) => {
+							msg += `- ${row.name}: ${row.model_name || row.linked_item || ""} → ${row.vehicle_model}\n`;
+						});
+					}
+
+					if (summary.unmatched_preview?.length) {
+						msg += "\n" + __("Sample unmatched:") + "\n";
+						summary.unmatched_preview.forEach((row) => {
+							msg += `- ${row.name}: ${row.model_name || row.linked_item || ""}\n`;
+						});
+					}
+
+					frappe.msgprint({
+						title: __("Link VIN Models Summary"),
+						message: msg,
+						indicator: summary.unmatched_count ? "orange" : "green",
+					});
+					frm.reload_doc();
+				},
+			});
+		}
+	);
 }
 
 function open_create_vin_modal(frm) {
