@@ -25,6 +25,7 @@
   "column_break_hpof",
   "default_customer_group",
   "default_customer",
+  "default_price_list",
   "section_break_dtmc",
   "company_defaults",
   "ui_navigation_section",
@@ -245,13 +246,19 @@
   {
    "fieldname": "column_break_zshy",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_price_list",
+   "fieldtype": "Link",
+   "label": "Default Price List",
+   "options": "Price List"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-07-02 23:35:08.627539",
+ "modified": "2026-07-06 00:35:21.443236",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

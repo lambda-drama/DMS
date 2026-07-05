@@ -41,6 +41,8 @@ const viewTitles: Record<string, string> = {
   'pending-material-requests': 'Pending Material Requests',
   'purchase-receipt': 'Purchase Receipt',
   'spare-part-sales': 'Spare Part Sales',
+  'proforma-invoices': 'Proforma Invoices',
+  'proforma-invoice-new': 'New Proforma Invoice',
   'inventory-dashboard': 'Inventory Dashboard',
   settings: 'Settings',
 };

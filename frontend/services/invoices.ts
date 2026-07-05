@@ -27,6 +27,8 @@ export async function listInvoices(options?: {
   });
 }
 
+export type RateOverrides = Record<string, number>;
+
 export async function getInvoicePreviewFromJobCard(
   jobCard: string,
   options?: {
@@ -34,6 +36,7 @@ export async function getInvoicePreviewFromJobCard(
     discountAmount?: number;
     labourDiscount?: StandaloneInvoiceGroupDiscount;
     partsDiscount?: StandaloneInvoiceGroupDiscount;
+    rateOverrides?: RateOverrides;
   }
 ): Promise<InvoicePreview> {
   return apiRequest<InvoicePreview>(
@@ -46,6 +49,7 @@ export async function getInvoicePreviewFromJobCard(
         discount_amount: options?.discountAmount ?? null,
         labour_discount: options?.labourDiscount ?? null,
         parts_discount: options?.partsDiscount ?? null,
+        rate_overrides: options?.rateOverrides ?? null,
       }),
     }
   );
@@ -106,6 +110,7 @@ export async function createInvoiceFromJobCard(
     discountAmount?: number;
     labourDiscount?: StandaloneInvoiceGroupDiscount;
     partsDiscount?: StandaloneInvoiceGroupDiscount;
+    rateOverrides?: RateOverrides;
   }
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${JC_API}.make_sales_invoice_from_job_card`, {
@@ -118,6 +123,7 @@ export async function createInvoiceFromJobCard(
       discount_amount: options?.discountAmount ?? null,
       labour_discount: options?.labourDiscount ?? null,
       parts_discount: options?.partsDiscount ?? null,
+      rate_overrides: options?.rateOverrides ?? null,
     }),
   });
 }

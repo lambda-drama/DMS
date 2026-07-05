@@ -827,6 +827,8 @@ export interface VINNo {
   /** Link to Vehicle Model doctype */
   model?: string;
   model_name?: string;
+  brand?: string;
+  brand_label?: string;
   resolved_vehicle_model?: string;
   resolved_vehicle_model_label?: string;
   model_year?: number;
@@ -835,6 +837,16 @@ export interface VINNo {
   current_odometer?: number;
   warranty_status?: string;
   warranty_end_date?: string;
+}
+
+export interface VehicleModelOption {
+  name: string;
+  model_name?: string;
+  model_code?: string;
+  brand?: string;
+  brand_label?: string;
+  model_year?: number;
+  variant?: string;
 }
 
 export interface VINNoListItem {
@@ -890,6 +902,7 @@ export interface VINNoFull {
   model_name?: string;
   linked_serial?: string;
   brand?: string;
+  brand_label?: string;
   model_variant?: string;
   model_year?: number;
   production_date?: string;
@@ -1270,6 +1283,8 @@ export interface InvoicePreviewLine {
   base_rate?: number;
   discount_percentage?: number;
   is_warranty_covered?: boolean;
+  /** Child-table row name on the job card (for price overrides). */
+  source_row?: string;
   /** Per-line share when warranty type is Discount (audit / preview). */
   dms_discount?: number;
 }

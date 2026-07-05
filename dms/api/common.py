@@ -150,15 +150,57 @@ def get_vins(customer=None, search=None, limit=20):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "vin_number", "plate_number", "linked_item", "model_name",
-			"model_year", "current_customer", "customer_name", "current_odometer",
+			"name", "vin_number", "plate_number", "linked_item", "model", "model_name",
+			"model_year", "brand", "current_customer", "customer_name", "current_odometer",
 			"warranty_status", "warranty_end_date",
 		],
 		limit=int(limit),
 		order_by="name desc",
 	)
 
+	from dms.api.service_packages import resolve_vehicle_model_from_vin
+
+	for row in vins:
+		vm, label = resolve_vehicle_model_from_vin(row.get("name"))
+		row["resolved_vehicle_model"] = vm
+		row["resolved_vehicle_model_label"] = label
+
 	return vins
+
+
+@frappe.whitelist()
+def get_vehicle_models(search=None, brand=None, limit=30):
+	"""Vehicle Model master records for dropdowns (not VIN model_name text)."""
+	filters: dict = {}
+	meta = frappe.get_meta("Vehicle Model")
+	if meta.has_field("is_active"):
+		filters["is_active"] = 1
+	if brand:
+		filters["brand"] = (brand or "").strip()
+
+	or_filters = {}
+	if search and str(search).strip():
+		q = f"%{search.strip()}%"
+		or_filters = {
+			"name": ["like", q],
+			"model_name": ["like", q],
+			"model_code": ["like", q],
+		}
+
+	rows = frappe.get_all(
+		"Vehicle Model",
+		filters=filters or None,
+		or_filters=or_filters if or_filters else None,
+		fields=["name", "model_name", "model_code", "brand", "model_year", "variant"],
+		limit=int(limit),
+		order_by="model_name asc",
+	)
+
+	for row in rows:
+		if row.get("brand"):
+			row["brand_label"] = frappe.db.get_value("Brand", row.brand, "brand") or row.brand
+
+	return rows
 
 
 def get_color_display_label(row: dict) -> str:
@@ -304,24 +346,71 @@ def get_service_bays(search=None, limit=50):
 
 
 @frappe.whitelist()
-def get_spare_parts(search=None, limit=20):
-	or_filters = {}
-	if search:
-		or_filters = {
-			"name": ["like", f"%{search}%"],
-			"item_name": ["like", f"%{search}%"],
-			"item_code": ["like", f"%{search}%"],
-			"oem_part_number": ["like", f"%{search}%"],
-			"bin_location": ["like", f"%{search}%"],
-		}
+def get_spare_parts(search=None, limit=20, warehouse=None, company=None, vin=None, vehicle_model=None, vehicle_brand=None):
+	from dms.dealer_management_system.utils.stock_operations import (
+		attach_spare_part_stock_available,
+		resolve_spare_parts_vehicle_filter,
+	)
+
+	_vehicle_model, _vehicle_brand, allowed_names = resolve_spare_parts_vehicle_filter(
+		vin=vin,
+		vehicle_model=vehicle_model,
+		vehicle_brand=vehicle_brand,
+	)
+
+	sp_filters: dict = {}
+	sp_meta = frappe.get_meta("Spare Part")
+	if sp_meta.has_field("discontinued"):
+		sp_filters["discontinued"] = 0
+	if allowed_names is not None:
+		if not allowed_names:
+			return []
+		sp_filters["name"] = ["in", list(allowed_names)]
+
+	or_filters = None
+	if search and str(search).strip():
+		q = f"%{search.strip()}%"
+		or_filters = [
+			["name", "like", q],
+			["item_name", "like", q],
+			["item_code", "like", q],
+			["oem_part_number", "like", q],
+			["bin_location", "like", q],
+			["spare_part_item", "like", q],
+		]
+		matching_items = frappe.get_all(
+			"Item",
+			filters={"disabled": 0, "is_stock_item": 1},
+			or_filters=[
+				["name", "like", q],
+				["item_name", "like", q],
+			],
+			pluck="name",
+			limit=50,
+		)
+		if matching_items:
+			or_filters.append(["spare_part_item", "in", matching_items])
 
 	parts = frappe.get_all(
 		"Spare Part",
-		or_filters=or_filters if or_filters else None,
-		fields=["name", "item_name", "item_code", "part_category", "oem_part_number", "bin_location"],
+		filters=sp_filters or None,
+		or_filters=or_filters,
+		fields=[
+			"name",
+			"item_name",
+			"item_code",
+			"part_category",
+			"oem_part_number",
+			"bin_location",
+			"spare_part_item",
+		],
 		limit=int(limit),
 		order_by="item_name asc",
 	)
+
+	warehouse = (warehouse or "").strip() or None
+	company = (company or "").strip() or None
+	attach_spare_part_stock_available(parts, warehouse, company)
 
 	return parts
 
@@ -350,7 +439,7 @@ def get_vehicle_service_items(search=None, limit=20, vehicle_model=None, vin=Non
 	if not vehicle_model and vin:
 		from dms.api.service_packages import resolve_vehicle_model_from_vin
 
-		vehicle_model, _ = resolve_vehicle_model_from_vin(vin)
+		vehicle_model, _vm_label = resolve_vehicle_model_from_vin(vin)
 
 	if vehicle_model and meta.has_field("custom_vehicle_model"):
 		filters["custom_vehicle_model"] = vehicle_model

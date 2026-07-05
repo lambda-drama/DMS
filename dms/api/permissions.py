@@ -23,6 +23,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"material-request": "Material Request",
 	"purchase-receipt": "Purchase Receipt",
 	"spare-part-sales": "Sales Invoice",
+	"proforma-invoices": "Sales Order",
 	"inventory-dashboard": "Stock Entry",
 	"dashboard": None,
 	"reports": None,

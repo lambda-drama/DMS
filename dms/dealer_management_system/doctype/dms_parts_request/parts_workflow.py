@@ -20,14 +20,18 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 
 
 def _stock_available(spare_part: str, warehouse: str | None) -> float:
-	erp_item = spare_part_erp_item_code(spare_part)
-	if not erp_item or not warehouse:
+	from dms.dealer_management_system.utils.stock_operations import (
+		get_dms_item_stock_balance,
+		resolve_spare_part_erp_item_code,
+	)
+
+	erp_item = resolve_spare_part_erp_item_code(spare_part)
+	if not erp_item:
 		return 0.0
 	if not frappe.db.get_value("Item", erp_item, "is_stock_item"):
 		return 0.0
-	from erpnext.stock.utils import get_stock_balance
 
-	return flt(get_stock_balance(erp_item, warehouse))
+	return get_dms_item_stock_balance(erp_item, warehouse)
 
 
 def refresh_parts_request_stock(pr_doc):
@@ -155,6 +159,66 @@ def add_part_line_to_job_card(
 
 	frappe.db.commit()
 	return result
+
+
+@frappe.whitelist()
+def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
+	"""Update selling price on part rows and/or rate/hour on labour rows."""
+	if isinstance(parts, str):
+		import json
+
+		parts = json.loads(parts) if parts else []
+	if isinstance(labour, str):
+		import json
+
+		labour = json.loads(labour) if labour else []
+
+	if not job_card:
+		frappe.throw(_("Job Card name is required."))
+
+	jc = frappe.get_doc("DMS Job Card", job_card)
+	jc.check_permission("write")
+
+	if jc.invoice:
+		frappe.throw(_("Cannot change line pricing after an invoice has been created."))
+
+	changed = False
+	for payload in parts or []:
+		row_name = (payload.get("name") or payload.get("row_name") or "").strip()
+		if not row_name:
+			continue
+		for row in jc.parts or []:
+			if row.name == row_name:
+				row.unit_price = flt(payload.get("unit_price"))
+				changed = True
+				break
+
+	for payload in labour or []:
+		row_name = (payload.get("name") or payload.get("row_name") or "").strip()
+		if not row_name:
+			continue
+		for row in jc.labour or []:
+			if row.name == row_name:
+				row.rate_per_hour = flt(payload.get("rate_per_hour"))
+				changed = True
+				break
+
+	if not changed:
+		frappe.throw(_("No matching job card lines were updated."))
+
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"job_card": jc.name,
+		"total_labor_cost": jc.total_labor_cost,
+		"total_parts_cost": jc.total_parts_cost,
+		"total_amount": jc.total_amount,
+		"net_amount": getattr(jc, "net_amount", None),
+	}
 
 
 @frappe.whitelist()

@@ -82,11 +82,13 @@
    "read_only": 1
   },
   {
+   "description": "Recommended rate — edit as needed for this job",
    "fieldname": "rate_per_hour",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Rate/Hour"
+   "label": "Rate/Hour",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "amount",

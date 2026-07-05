@@ -86,11 +86,13 @@
   },
   {
    "columns": 2,
+   "description": "Recommended selling price — edit as needed for this job",
    "fetch_if_empty": 1,
    "fieldname": "unit_price",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Unit Price"
+   "label": "Unit Price",
+   "allow_on_submit": 1
   },
   {
    "columns": 2,

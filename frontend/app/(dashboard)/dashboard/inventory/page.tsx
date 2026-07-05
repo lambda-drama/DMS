@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { searchStockItems } from '@/services/stockOperations';
 import * as inventorySvc from '@/services/inventory';
+import { formatDmsWarehouseLabel } from '@/services/stockOperations';
 import { useAutofillSingleCompany } from '@/hooks/use-dms';
 import type {
   InventoryInsightsReport,
@@ -80,18 +81,29 @@ export default function InventoryDashboardPage() {
   const itemQuery = itemSearch.trim();
   const { data: stockItemRows = [], isLoading: itemsLoading } = useSWR(
     ['inventory-stock-items', itemQuery, warehouse],
-    () => searchStockItems(itemQuery || undefined, warehouse || undefined),
+    () => searchStockItems(itemQuery || undefined, warehouse || undefined, 30),
     { dedupingInterval: 3000 }
   );
 
   const itemOptions = useMemo(
     () =>
-      stockItemRows.map((r) => ({
-        value: r.item_code,
-        label: r.item_name || r.item_code,
-      })),
+      stockItemRows.map((r) => {
+        const name = (r.item_name || r.item_code || '').trim();
+        const code = (r.item_code || '').trim();
+        return {
+          value: r.item_code,
+          label: name || code,
+          description: code && code !== name ? code : undefined,
+        };
+      }),
     [stockItemRows]
   );
+
+  const selectedSparePartLabel = useMemo(() => {
+    const row = stockItemRows.find((r) => r.item_code === itemCode);
+    if (row?.item_name) return row.item_name;
+    return itemCode || undefined;
+  }, [stockItemRows, itemCode]);
 
   const { data: defaults, isLoading: loadingDefaults } = useSWR(
     ['inventory-defaults', company || ''],
@@ -139,7 +151,7 @@ export default function InventoryDashboardPage() {
     () =>
       warehouseOptions.map((w) => ({
         value: w.name,
-        label: w.warehouse_name || w.name,
+        label: formatDmsWarehouseLabel(w),
       })),
     [warehouseOptions]
   );
@@ -332,13 +344,15 @@ export default function InventoryDashboardPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Item</Label>
+                <Label>Spare part</Label>
                 <SearchableSelect
                   value={itemCode}
                   onValueChange={setItemCode}
                   options={itemOptions}
                   onSearchChange={setItemSearch}
-                  placeholder="All spare parts"
+                  placeholder="Search by part name or item code…"
+                  emptyMessage="No spare parts match your search"
+                  valueLabel={selectedSparePartLabel}
                   isLoading={itemsLoading}
                 />
               </div>
@@ -405,6 +419,7 @@ export default function InventoryDashboardPage() {
                       <TableHead>Item</TableHead>
                       <TableHead>Item group</TableHead>
                       <TableHead>OEM #</TableHead>
+                      <TableHead>Default bin</TableHead>
                       <TableHead className="text-right">Min level</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead>Status</TableHead>
@@ -413,7 +428,7 @@ export default function InventoryDashboardPage() {
                   <TableBody>
                     {(balanceData?.rows ?? []).length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                           No spare parts found for the selected filters.
                         </TableCell>
                       </TableRow>
@@ -426,6 +441,7 @@ export default function InventoryDashboardPage() {
                           </TableCell>
                           <TableCell>{row.item_group || '—'}</TableCell>
                           <TableCell>{row.oem_part_number || '—'}</TableCell>
+                          <TableCell className="font-mono text-sm">{row.bin_location || '—'}</TableCell>
                           <TableCell className="text-right">{formatQty(row.minimum_stock_level, row.stock_uom)}</TableCell>
                           <TableCell className="text-right font-medium">{formatQty(row.qty, row.stock_uom)}</TableCell>
                           <TableCell>
@@ -530,6 +546,7 @@ export default function InventoryDashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Item</TableHead>
+                      <TableHead>Default bin</TableHead>
                       <TableHead className="text-right">Min</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                     </TableRow>
@@ -537,7 +554,7 @@ export default function InventoryDashboardPage() {
                   <TableBody>
                     {(insightsData?.low_stock ?? []).length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                        <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                           No low-stock spare parts.
                         </TableCell>
                       </TableRow>
@@ -548,6 +565,7 @@ export default function InventoryDashboardPage() {
                             <div className="font-medium">{row.item_name}</div>
                             <div className="text-xs text-muted-foreground">{row.item_code}</div>
                           </TableCell>
+                          <TableCell className="font-mono text-sm">{row.bin_location || '—'}</TableCell>
                           <TableCell className="text-right">{formatQty(row.minimum_stock_level, row.stock_uom)}</TableCell>
                           <TableCell className="text-right font-medium text-destructive">
                             {formatQty(row.qty, row.stock_uom)}

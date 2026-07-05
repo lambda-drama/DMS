@@ -74,6 +74,9 @@ def get_vehicle(name):
 	data["resolved_vehicle_model"] = vm
 	data["resolved_vehicle_model_label"] = vm_label
 
+	if data.get("brand"):
+		data["brand_label"] = frappe.db.get_value("Brand", data["brand"], "brand") or data["brand"]
+
 	from dms.utils.warranty import get_warranty_summary
 
 	data["warranty_summary"] = get_warranty_summary(doc, recalculate=True)

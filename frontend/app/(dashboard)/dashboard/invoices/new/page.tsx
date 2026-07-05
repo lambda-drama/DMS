@@ -38,7 +38,7 @@ import {
   fetchLabourRate,
   fetchSparePartPrice,
   fetchVehicleServiceItemLineDefaults,
-  formatSparePartLabel,
+  sparePartToSelectOption,
   formatVehicleServiceItemLabel,
   vehicleServiceItemEstimatedHours,
 } from "@/services/common";
@@ -55,6 +55,7 @@ import {
 } from "@/lib/invoice-discount";
 
 interface LabourRow {
+  source_row?: string;
   vehicle_service_item: string;
   vehicle_service_item_name: string;
   estimated_hours: number;
@@ -62,11 +63,26 @@ interface LabourRow {
 }
 
 interface PartRow {
+  source_row?: string;
   item_code: string;
   item_name: string;
   bin_location?: string;
   quantity: number;
   unit_price: number;
+}
+
+function buildRateOverridesFromRows(
+  labour: LabourRow[],
+  parts: PartRow[]
+): invoicesSvc.RateOverrides | undefined {
+  const out: invoicesSvc.RateOverrides = {};
+  for (const row of labour) {
+    if (row.source_row) out[row.source_row] = row.rate_per_hour;
+  }
+  for (const row of parts) {
+    if (row.source_row) out[row.source_row] = row.unit_price;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 function defaultDueDate() {
@@ -100,7 +116,13 @@ export default function NewInvoicePage() {
   );
   const { data: serviceItems, isLoading: serviceItemsLoading } =
     useVehicleServiceItems(serviceItemSearch, vehicleModelFilter || undefined, jobCard?.vehicle_vin || undefined);
-  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
+  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(
+    sparePartSearch,
+    undefined,
+    company || undefined,
+    vehicleModelFilter || undefined,
+    jobCard?.vehicle_vin || undefined
+  );
   const { data: currencies } = useCurrencies();
 
   const [customer, setCustomer] = useState("");
@@ -166,17 +188,19 @@ export default function NewInvoicePage() {
       });
     }
     if (jobCard.company) setCompany(jobCard.company);
-    const labour: LabourRow[] = (jobCard.service_lines || []).map((sl) => ({
+    const labour: LabourRow[] = (jobCard.labour || []).map((sl) => ({
+      source_row: sl.name,
       vehicle_service_item: sl.vehicle_service_item || "",
       vehicle_service_item_name: sl.service_name || sl.vehicle_service_item || "",
       estimated_hours: sl.actual_hours || sl.estimated_hours || 1,
-      rate_per_hour: sl.labour_rate || 0,
+      rate_per_hour: sl.rate_per_hour || 0,
     }));
-    const parts: PartRow[] = (jobCard.part_lines || []).map((pl) => ({
-      item_code: pl.part_number || pl.item_code || "",
-      item_name: pl.part_name || "",
+    const parts: PartRow[] = (jobCard.parts || []).map((pl) => ({
+      source_row: pl.name,
+      item_code: pl.item_code || "",
+      item_name: pl.part_name || pl.item_code || "",
       bin_location: pl.bin_location || "",
-      quantity: pl.quantity || 1,
+      quantity: pl.quantity_issued || pl.quantity_requested || pl.quantity || 1,
       unit_price: pl.unit_price || 0,
     }));
     setLabourRows(labour);
@@ -339,6 +363,7 @@ export default function NewInvoicePage() {
         await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
           dueDate,
           submit: submitInvoice,
+          rateOverrides: buildRateOverridesFromRows(labourRows, partRows),
         });
         toast.success("Invoice created successfully");
         navigate("invoices");
@@ -588,13 +613,14 @@ export default function NewInvoicePage() {
               <Wrench className="h-5 w-5" />
               Labour
             </CardTitle>
-            <CardDescription>Vehicle service items — rates load from item master</CardDescription>
+            <CardDescription>
+              Vehicle service items — recommended rate loads from item master; edit as needed
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {labourRows.length > 0 && (
               <EditableLabourLinesTable
                 rows={labourRows}
-                editable={isStandalone}
                 onUpdateRow={updateLabourRow}
                 onRemoveRow={(idx) =>
                   setLabourRows((prev) => prev.filter((_, i) => i !== idx))
@@ -683,7 +709,7 @@ export default function NewInvoicePage() {
           <CardHeader>
             <CardTitle>Parts</CardTitle>
             <CardDescription>
-              Spare parts — selling price from part master
+              Spare parts — recommended selling price from part master; edit as needed
               {warehouse ? ` · Warehouse: ${warehouse}` : ""}
             </CardDescription>
           </CardHeader>
@@ -691,7 +717,6 @@ export default function NewInvoicePage() {
             {partRows.length > 0 && (
               <EditablePartsLinesTable
                 rows={partRows}
-                editable={isStandalone}
                 quantityField="quantity"
                 onUpdateRow={updatePartRow}
                 onRemoveRow={(idx) =>
@@ -704,15 +729,7 @@ export default function NewInvoicePage() {
               <div className="col-span-5 space-y-1">
                 <Label className="text-xs">Spare part *</Label>
                 <SearchableSelect
-                  options={
-                    spareParts?.map((p) => ({
-                      value: p.name,
-                      label: formatSparePartLabel(p),
-                      description: [p.part_category, p.bin_location ? `Bin: ${p.bin_location}` : null]
-                        .filter(Boolean)
-                        .join(' · ') || undefined,
-                    })) || []
-                  }
+                  options={spareParts?.map(sparePartToSelectOption) || []}
                   value={newPart.item_code}
                   onValueChange={handleSparePartSelect}
                   onSearchChange={setSparePartSearch}

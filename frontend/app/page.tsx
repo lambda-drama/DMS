@@ -43,6 +43,8 @@ const MaterialRequestPage = dynamic(() => import('./(dashboard)/dashboard/materi
 const PendingMaterialRequestsPage = dynamic(() => import('./(dashboard)/dashboard/pending-material-requests/page'));
 const PurchaseReceiptPage = dynamic(() => import('./(dashboard)/dashboard/purchase-receipt/page'));
 const SparePartSalesPage = dynamic(() => import('./(dashboard)/dashboard/spare-part-sales/page'));
+const ProformaInvoicesPage = dynamic(() => import('./(dashboard)/dashboard/proforma-invoices/page'));
+const ProformaInvoiceNewPage = dynamic(() => import('./(dashboard)/dashboard/proforma-invoices/new/page'));
 const InventoryDashboardPage = dynamic(() => import('./(dashboard)/dashboard/inventory/page'));
 const SettingsPage = dynamic(() => import('./(dashboard)/dashboard/settings/page'));
 
@@ -79,6 +81,7 @@ const FALLBACK_VIEWS = [
   'pending-material-requests',
   'purchase-receipt',
   'spare-part-sales',
+  'proforma-invoices',
 ];
 
 function RestrictedViewRedirect() {
@@ -140,6 +143,8 @@ function AppContent() {
       case 'pending-material-requests': return <PendingMaterialRequestsPage />;
       case 'purchase-receipt':   return <PurchaseReceiptPage />;
       case 'spare-part-sales':   return <SparePartSalesPage />;
+      case 'proforma-invoices':  return <ProformaInvoicesPage />;
+      case 'proforma-invoice-new': return <ProformaInvoiceNewPage />;
       case 'inventory-dashboard': return <InventoryDashboardPage />;
       case 'settings':           return <SettingsPage />;
       default:                   return <DashboardMain />;

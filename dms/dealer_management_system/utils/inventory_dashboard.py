@@ -7,12 +7,11 @@ import frappe
 from frappe import _
 from frappe.utils import flt, today
 
-from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
-	get_dms_company_defaults_row,
-)
 from dms.dealer_management_system.utils.stock_operations import (
 	_ensure_erpnext,
 	get_default_dms_company,
+	get_workshop_warehouse_names,
+	get_workshop_warehouses,
 )
 from dms.utils.spare_part_auto_create import AUTO_SPARE_PART_FIELD
 
@@ -33,37 +32,12 @@ def _auto_spare_part_item_groups() -> list[str]:
 
 
 def get_inventory_dashboard_warehouse_names(company: str | None = None) -> list[str]:
-	"""Workshop warehouses + company Work In Progress warehouse from DMS Settings."""
-	names: set[str] = set()
-	settings = frappe.get_single("DMS Settings")
-
-	for row in settings.get("company_defaults") or []:
-		if company and row.company != company:
-			continue
-		wh = (getattr(row, "work_in_progress", None) or "").strip()
-		if wh:
-			names.add(wh)
-
-	workshop_filters: dict = {}
-	if company:
-		workshop_filters["company"] = company
-	for wh in frappe.get_all("WorkShop", filters=workshop_filters, pluck="warehouse"):
-		if wh:
-			names.add(wh)
-
-	return sorted(names)
+	"""Workshop-linked warehouses only."""
+	return get_workshop_warehouse_names(company)
 
 
 def get_inventory_dashboard_warehouses(company: str | None = None) -> list[dict]:
-	names = get_inventory_dashboard_warehouse_names(company)
-	if not names:
-		return []
-	return frappe.get_all(
-		"Warehouse",
-		filters={"name": ["in", names]},
-		fields=["name", "warehouse_name", "company"],
-		order_by="warehouse_name asc",
-	)
+	return get_workshop_warehouses(company)
 
 
 def _spare_part_rows(
@@ -93,6 +67,7 @@ def _spare_part_rows(
 			["item_name", "like", q],
 			["item_code", "like", q],
 			["oem_part_number", "like", q],
+			["bin_location", "like", q],
 		]
 
 	if item_code:
@@ -108,6 +83,7 @@ def _spare_part_rows(
 			"item_name",
 			"item_code",
 			"oem_part_number",
+			"bin_location",
 			"minimum_stock_level",
 			"selling_price",
 		],
@@ -148,6 +124,7 @@ def _spare_part_rows(
 				"item_group": item_row.item_group,
 				"stock_uom": item_row.stock_uom,
 				"oem_part_number": sp.get("oem_part_number"),
+				"bin_location": sp.get("bin_location"),
 				"minimum_stock_level": min_level,
 				"valuation_rate": flt(sp.get("selling_price")),
 			}
@@ -182,12 +159,7 @@ def get_inventory_dashboard_defaults(company: str | None = None) -> dict:
 	company = (company or "").strip() or get_default_dms_company()
 	warehouses = get_inventory_dashboard_warehouses(company)
 
-	defaults_row = get_dms_company_defaults_row(company)
-	default_wh = None
-	if defaults_row:
-		default_wh = (getattr(defaults_row, "work_in_progress", None) or "").strip() or None
-	if not default_wh and warehouses:
-		default_wh = warehouses[0]["name"]
+	default_wh = warehouses[0]["name"] if len(warehouses) == 1 else None
 
 	groups = _auto_spare_part_item_groups()
 

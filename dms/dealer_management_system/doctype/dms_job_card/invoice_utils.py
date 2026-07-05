@@ -37,6 +37,43 @@ WARRANTY_APPLICATION_TYPES = frozenset(
 )
 
 
+def normalize_rate_overrides(rate_overrides) -> dict[str, float]:
+	"""Map child-row name -> unit price or rate/hour override from the UI."""
+	if not rate_overrides:
+		return {}
+	if isinstance(rate_overrides, str):
+		import json
+
+		rate_overrides = json.loads(rate_overrides)
+	if isinstance(rate_overrides, dict):
+		items = rate_overrides.items()
+	elif isinstance(rate_overrides, list):
+		items = (
+			(
+				(row.get("source_row") or row.get("name") or row.get("row_name"), row.get("rate"))
+				for row in rate_overrides
+			)
+			if rate_overrides and isinstance(rate_overrides[0], dict)
+			else []
+		)
+	else:
+		return {}
+
+	out: dict[str, float] = {}
+	for key, rate in items:
+		row_name = (key or "").strip()
+		if not row_name:
+			continue
+		out[row_name] = flt(rate)
+	return out
+
+
+def _line_base_rate(default_rate: float, source_row: str | None, overrides: dict[str, float]) -> float:
+	if source_row and source_row in overrides:
+		return flt(overrides[source_row])
+	return flt(default_rate)
+
+
 def normalize_warranty_application_type(value) -> str:
 	v = (value or "").strip()
 	return v if v in WARRANTY_APPLICATION_TYPES else ""
@@ -333,6 +370,7 @@ def build_invoice_preview_from_job_card(
 	discount_amount: float | None = None,
 	labour_discount=None,
 	parts_discount=None,
+	rate_overrides=None,
 ) -> dict:
 	"""Return billable lines and totals for UI preview before creating a Sales Invoice."""
 	_ensure_erpnext()
@@ -358,7 +396,8 @@ def build_invoice_preview_from_job_card(
 		else job_card_parts_discount_dict(jc)
 	)
 
-	lines = _build_preview_lines(jc, warranty_type)
+	overrides = normalize_rate_overrides(rate_overrides)
+	lines = _build_preview_lines(jc, warranty_type, overrides)
 
 	if not lines:
 		frappe.throw(
@@ -432,6 +471,7 @@ def create_sales_invoice_from_dms_job_card(
 	discount_amount: float | None = None,
 	labour_discount=None,
 	parts_discount=None,
+	rate_overrides=None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -495,7 +535,12 @@ def create_sales_invoice_from_dms_job_card(
 	_set_sales_invoice_job_card_link(si, jc.name)
 	_apply_sales_invoice_currency_from_job_card(si, jc)
 
-	append_si_items(si, jc, warranty_type)
+	overrides = normalize_rate_overrides(rate_overrides)
+	if overrides:
+		_apply_rate_overrides_to_job_card(jc, overrides)
+		jc = frappe.get_doc("DMS Job Card", job_card_name)
+
+	append_si_items(si, jc, warranty_type, overrides)
 	if not si.get("items"):
 		frappe.throw(
 			_(
@@ -555,6 +600,7 @@ def _append_preview_line(
 	qty: float,
 	base_rate: float,
 	warranty_application_type: str,
+	source_row: str | None = None,
 ) -> None:
 	pricing = resolve_invoice_line_pricing(
 		line_type, base_rate, qty, warranty_application_type
@@ -573,13 +619,17 @@ def _append_preview_line(
 			"base_rate": round(flt(base_rate), 2),
 			"discount_percentage": pricing["discount_percentage"],
 			"is_warranty_covered": pricing["is_warranty_covered"],
+			"source_row": source_row,
 		}
 	)
 
 
-def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
+def _build_preview_lines(
+	jc, warranty_application_type: str, rate_overrides: dict[str, float] | None = None
+) -> list[dict]:
 	"""Build preview line dicts; include all labour/parts with qty, apply warranty rates."""
 	lines: list[dict] = []
+	overrides = rate_overrides or {}
 	has_labour = bool(jc.get("labour"))
 
 	if has_labour:
@@ -602,6 +652,7 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 			base_rate = flt(row.rate_per_hour or 0)
 			if base_rate <= 0:
 				base_rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
+			base_rate = _line_base_rate(base_rate, row.name, overrides)
 
 			desc_parts = []
 			for attr in ("complaint", "diagnosis", "correction"):
@@ -618,6 +669,7 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 				qty=qty,
 				base_rate=base_rate,
 				warranty_application_type=warranty_application_type,
+				source_row=row.name,
 			)
 	else:
 		for ji in jc.get("job_items") or []:
@@ -626,6 +678,7 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 			base_rate = flt(
 				frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0
 			)
+			base_rate = _line_base_rate(base_rate, ji.name, overrides)
 			desc = getattr(ji, "complaint_description", None) or ji.labor_operation
 			_append_preview_line(
 				lines,
@@ -635,6 +688,7 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 				qty=1,
 				base_rate=base_rate,
 				warranty_application_type=warranty_application_type,
+				source_row=ji.name,
 			)
 
 	for part in jc.get("parts") or []:
@@ -652,6 +706,7 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 		base_rate = flt(part.unit_price or 0)
 		if base_rate <= 0:
 			base_rate = spare_part_default_selling_price(part.item_code)
+		base_rate = _line_base_rate(base_rate, part.name, overrides)
 
 		item_name = frappe.db.get_value("Item", erp_item, "item_name") or erp_item
 		_append_preview_line(
@@ -662,9 +717,36 @@ def _build_preview_lines(jc, warranty_application_type: str) -> list[dict]:
 			qty=qty,
 			base_rate=base_rate,
 			warranty_application_type=warranty_application_type,
+			source_row=part.name,
 		)
 
 	return lines
+
+
+def _apply_rate_overrides_to_job_card(jc, overrides: dict[str, float]) -> None:
+	"""Persist edited selling rates on the job card before invoicing."""
+	if not overrides:
+		return
+
+	changed = False
+	for row in jc.get("labour") or []:
+		if row.name in overrides:
+			row.rate_per_hour = flt(overrides[row.name])
+			changed = True
+
+	for row in jc.get("parts") or []:
+		if row.name in overrides:
+			row.unit_price = flt(overrides[row.name])
+			changed = True
+
+	if not changed:
+		return
+
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+	frappe.db.commit()
 
 
 def _group_discount_total_amount(group_total: float, discount: dict | None) -> float:
@@ -890,12 +972,13 @@ def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -
 			row.custom_dms_discount = dms_discounts[idx]
 
 
-def append_si_items(si, jc, warranty_application_type: str = ""):
+def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=None):
 	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items; warranty-aware rates."""
 
 	warranty_application_type = normalize_warranty_application_type(
 		warranty_application_type or jc.warranty_application_type
 	)
+	overrides = normalize_rate_overrides(rate_overrides)
 
 	has_labour = bool(jc.get("labour"))
 	if has_labour:
@@ -923,6 +1006,7 @@ def append_si_items(si, jc, warranty_application_type: str = ""):
 			base_rate = flt(row.rate_per_hour or 0)
 			if base_rate <= 0:
 				base_rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
+			base_rate = _line_base_rate(base_rate, row.name, overrides)
 
 			pricing = resolve_invoice_line_pricing(
 				"Labour", base_rate, qty, warranty_application_type
@@ -954,6 +1038,7 @@ def append_si_items(si, jc, warranty_application_type: str = ""):
 			base_rate = flt(
 				frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0
 			)
+			base_rate = _line_base_rate(base_rate, ji.name, overrides)
 			pricing = resolve_invoice_line_pricing(
 				"Labour", base_rate, 1, warranty_application_type
 			)
@@ -989,6 +1074,7 @@ def append_si_items(si, jc, warranty_application_type: str = ""):
 		base_rate = flt(part.unit_price or 0)
 		if base_rate <= 0:
 			base_rate = spare_part_default_selling_price(part.item_code)
+		base_rate = _line_base_rate(base_rate, part.name, overrides)
 
 		pricing = resolve_invoice_line_pricing(
 			"Parts", base_rate, qty, warranty_application_type
@@ -1300,3 +1386,205 @@ def create_standalone_dms_sales_invoice(
 		si.submit()
 
 	return si.name
+
+
+def _apply_dms_settings_dimensions_to_sales_order(so, company: str):
+	"""Copy accounting dimensions from DMS Settings onto Sales Order rows."""
+	if not company or not frappe.db.exists("DocType", "DMS Company Defaults"):
+		return
+
+	settings = frappe.get_single("DMS Settings")
+	defaults_row = None
+	for row in settings.get("company_defaults") or []:
+		if row.company == company:
+			defaults_row = row
+			break
+	if not defaults_row:
+		return
+
+	cd_meta = frappe.get_meta("DMS Company Defaults")
+	so_meta = frappe.get_meta("Sales Order")
+	soi_meta = frappe.get_meta("Sales Order Item")
+	tax_meta = frappe.get_meta("Sales Taxes and Charges")
+
+	for df in cd_meta.fields:
+		if df.fieldtype != "Link" or df.fieldname == "company":
+			continue
+		val = getattr(defaults_row, df.fieldname, None)
+		if not val:
+			continue
+		if so_meta.has_field(df.fieldname):
+			so.set(df.fieldname, val)
+		if soi_meta.has_field(df.fieldname):
+			for line in so.get("items") or []:
+				line.set(df.fieldname, val)
+		if tax_meta.has_field(df.fieldname):
+			for tax in so.get("taxes") or []:
+				tax.set(df.fieldname, val)
+
+
+def mark_sales_order_as_spare_part_proforma(so) -> None:
+	"""Flag spare-part proforma documents (Sales Order under the hood)."""
+	if frappe.get_meta("Sales Order").has_field("custom_spare_parts_proforma"):
+		so.custom_spare_parts_proforma = 1
+
+
+def _apply_standalone_stock_warehouse_so(so_row, erp_item: str, warehouse: str, company: str) -> None:
+	"""Set warehouse on Sales Order item row for stock spare parts."""
+	if not cint(frappe.db.get_value("Item", erp_item, "is_stock_item")):
+		return
+
+	wh = (warehouse or "").strip()
+	if not wh:
+		frappe.throw(
+			_("Warehouse is required for stock spare parts on proforma lines."),
+			title=_("Warehouse required"),
+		)
+	if not frappe.db.exists("Warehouse", wh):
+		frappe.throw(_("Warehouse {0} not found.").format(frappe.bold(wh)))
+	if frappe.db.get_value("Warehouse", wh, "company") != company:
+		frappe.throw(
+			_("Warehouse {0} must belong to company {1}.").format(
+				frappe.bold(wh), frappe.bold(company)
+			)
+		)
+
+	so_row.warehouse = wh
+
+
+def create_standalone_dms_sales_order(
+	customer: str,
+	company: str,
+	parts_lines=None,
+	warehouse: str | None = None,
+	currency: str | None = "ETB",
+	delivery_date: str | None = None,
+	transaction_date: str | None = None,
+	remarks: str | None = None,
+	submit: bool = False,
+	parts_discount=None,
+) -> str:
+	"""Create a Sales Order for DMS spare-part proforma (counter quote)."""
+	_ensure_erpnext()
+
+	customer = (customer or "").strip()
+	company = (company or "").strip()
+	if not customer:
+		frappe.throw(_("Customer is required."))
+	if not company:
+		frappe.throw(_("Company is required."))
+	if not frappe.db.exists("Customer", customer):
+		frappe.throw(_("Customer {0} not found.").format(customer))
+
+	parts_lines = parts_lines or []
+	warehouse = (warehouse or "").strip()
+
+	needs_stock_warehouse = False
+	for row in parts_lines:
+		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+		if not spare_part:
+			continue
+		erp_item = spare_part_erp_item_code(spare_part)
+		if erp_item and cint(frappe.db.get_value("Item", erp_item, "is_stock_item")):
+			needs_stock_warehouse = True
+			break
+
+	if needs_stock_warehouse and not warehouse:
+		frappe.throw(
+			_("Select a warehouse for spare parts on this proforma."),
+			title=_("Warehouse required"),
+		)
+
+	so = frappe.new_doc("Sales Order")
+	so.company = company
+	so.customer = customer
+	so.transaction_date = transaction_date or today()
+	so.delivery_date = delivery_date or so.transaction_date
+	if remarks:
+		so.remarks = remarks
+	mark_sales_order_as_spare_part_proforma(so)
+
+	order_currency = (currency or "ETB").strip() or "ETB"
+	if not frappe.db.exists("Currency", order_currency):
+		frappe.throw(_("Currency {0} is not defined in ERPNext.").format(frappe.bold(order_currency)))
+	so.currency = order_currency
+
+	parts_disc = _normalize_standalone_discount(parts_discount)
+
+	def _standalone_parts_line_amount(row) -> tuple[float, float, float]:
+		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+		if not spare_part:
+			return 0.0, 0.0, 0.0
+		qty = flt(row.get("qty") or row.get("quantity") or 0)
+		if qty <= 0:
+			return 0.0, 0.0, 0.0
+		base_rate = flt(row.get("unit_price") or row.get("rate") or 0)
+		if base_rate <= 0:
+			base_rate = spare_part_default_selling_price(spare_part)
+		return qty, base_rate, qty * base_rate
+
+	parts_group_total = 0.0
+	for row in parts_lines:
+		_qty, _rate, amount = _standalone_parts_line_amount(row)
+		parts_group_total += amount
+
+	if parts_disc and parts_disc["type"] == "amount" and flt(parts_disc["value"]) > parts_group_total:
+		frappe.throw(
+			_("Parts discount amount cannot exceed parts total ({0}).").format(
+				parts_group_total
+			)
+		)
+
+	item_final_rates: list[float] = []
+
+	for row in parts_lines:
+		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+		if not spare_part:
+			continue
+		qty, base_rate, line_amount = _standalone_parts_line_amount(row)
+		if qty <= 0:
+			continue
+		erp_item = spare_part_erp_item_code(spare_part)
+		if not erp_item:
+			frappe.throw(
+				_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part))
+			)
+		final_rate = _standalone_discounted_unit_rate(
+			qty, base_rate, line_amount, parts_group_total, parts_disc
+		)
+		item_final_rates.append(final_rate)
+		item_row = {
+			"item_code": erp_item,
+			"qty": qty,
+			"rate": final_rate,
+			"delivery_date": so.delivery_date,
+		}
+		child = so.append("items", item_row)
+		_apply_standalone_stock_warehouse_so(child, erp_item, warehouse, company)
+
+	if not so.get("items"):
+		frappe.throw(_("Add at least one spare part line to create a proforma."))
+
+	if hasattr(so, "ignore_pricing_rule"):
+		so.ignore_pricing_rule = 1
+
+	so.set_missing_values()
+	so.currency = order_currency
+	_apply_dms_settings_dimensions_to_sales_order(so, company)
+	apply_company_letter_head(so, company)
+
+	for idx, item_row in enumerate(so.get("items") or []):
+		if idx < len(item_final_rates):
+			final_rate = item_final_rates[idx]
+			item_row.rate = final_rate
+			item_row.price_list_rate = final_rate
+			item_row.discount_percentage = 0
+			item_row.discount_amount = 0
+
+	so.run_method("calculate_taxes_and_totals")
+	so.insert()
+
+	if submit:
+		so.submit()
+
+	return so.name

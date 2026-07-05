@@ -142,15 +142,9 @@ def _find_etb_selling_price_list() -> str | None:
 
 
 def _get_inventory_selling_price_list() -> str | None:
-	if frappe.db.exists("Price List", INVENTORY_SELLING_PRICE_LIST):
-		enabled, selling, currency = frappe.db.get_value(
-			"Price List",
-			INVENTORY_SELLING_PRICE_LIST,
-			["enabled", "selling", "currency"],
-		) or (0, 0, None)
-		if cint(enabled) and cint(selling) and currency == INVENTORY_PRICE_CURRENCY:
-			return INVENTORY_SELLING_PRICE_LIST
-	return _find_etb_selling_price_list()
+	from dms.dealer_management_system.utils.stock_operations import get_dms_default_selling_price_list
+
+	return get_dms_default_selling_price_list()
 
 
 def _default_item_company() -> str:

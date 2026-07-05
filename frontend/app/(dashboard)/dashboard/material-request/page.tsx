@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { useCompanies, useAutofillSingleCompany } from '@/hooks/use-dms';
 import * as stockSvc from '@/services/stockOperations';
+import { formatDmsWarehouseLabel } from '@/services/stockOperations';
 import { MaterialRequestFulfillmentActions } from '@/components/material-request/material-request-fulfillment-actions';
 import { Loader2, PackagePlus, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -161,7 +162,7 @@ export default function MaterialRequestPage() {
     () =>
       (defaults?.warehouses ?? []).map((w) => ({
         value: w.name,
-        label: w.warehouse_name || w.name,
+        label: formatDmsWarehouseLabel(w),
       })),
     [defaults?.warehouses]
   );

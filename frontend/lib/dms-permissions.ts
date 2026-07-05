@@ -22,6 +22,7 @@ export type DmsPermissionModule =
   | 'pending-material-requests'
   | 'purchase-receipt'
   | 'spare-part-sales'
+  | 'proforma-invoices'
   | 'inventory-dashboard'
   | 'reports'
   | 'settings';
@@ -75,6 +76,8 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'pending-material-requests': 'material-request',
   'purchase-receipt': 'purchase-receipt',
   'spare-part-sales': 'spare-part-sales',
+  'proforma-invoices': 'proforma-invoices',
+  'proforma-invoice-new': 'proforma-invoices',
   'inventory-dashboard': 'inventory-dashboard',
   reports: 'reports',
   settings: 'settings',

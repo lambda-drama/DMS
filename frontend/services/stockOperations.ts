@@ -9,6 +9,16 @@ export interface DmsWarehouseOption {
   name: string;
   warehouse_name?: string;
   company?: string;
+  workshop?: string;
+  workshop_name?: string;
+}
+
+export function formatDmsWarehouseLabel(w: DmsWarehouseOption): string {
+  const wh = w.warehouse_name || w.name;
+  if (w.workshop_name && w.workshop_name !== wh) {
+    return `${w.workshop_name} — ${wh}`;
+  }
+  return wh;
 }
 
 export interface StockOperationDefaults {
@@ -45,7 +55,10 @@ export interface StockItemCreateResult {
   label?: string;
   item_code: string;
   item_name: string;
+  valuation_rate?: number;
   standard_rate?: number;
+  item_price?: string | null;
+  price_list?: string | null;
   spare_part?: string | null;
   item_group?: string;
 }
@@ -103,6 +116,7 @@ export interface ItemUomDefaults {
 export interface StockItemSearchRow {
   item_code: string;
   item_name: string;
+  spare_part?: string;
   stock_uom?: string;
   valuation_rate?: number;
   qty_on_hand?: number;
@@ -463,7 +477,9 @@ export async function fetchStockItemCreateDefaults(): Promise<StockItemCreateDef
 export async function createStockItem(data: {
   item_code: string;
   item_name?: string;
+  valuation_rate?: number;
   standard_rate?: number;
+  selling_price?: number;
   item_group?: string;
 }): Promise<StockItemCreateResult> {
   return apiRequest(`/api/method/${API}.create_stock_item`, {

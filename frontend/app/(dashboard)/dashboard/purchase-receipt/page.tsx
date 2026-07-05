@@ -24,6 +24,7 @@ import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet
 import { ListRowActions } from '@/components/list-row-actions';
 import { PrintFormatDropdown } from '@/components/print-format-dropdown';
 import * as stockSvc from '@/services/stockOperations';
+import { formatDmsWarehouseLabel } from '@/services/stockOperations';
 import { Loader2, PackageCheck, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -213,7 +214,7 @@ export default function PurchaseReceiptPage() {
     () =>
       (defaults?.warehouses ?? []).map((w) => ({
         value: w.name,
-        label: w.warehouse_name || w.name,
+        label: formatDmsWarehouseLabel(w),
       })),
     [defaults?.warehouses]
   );

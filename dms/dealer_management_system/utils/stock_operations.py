@@ -120,46 +120,53 @@ def _ensure_erpnext():
 		frappe.throw(_("ERPNext must be installed for stock operations."))
 
 
-def get_dms_allowed_warehouse_names(company: str | None = None) -> list[str]:
-	"""Warehouses configured for DMS stock operations for a company."""
-	names: set[str] = set()
-	settings = frappe.get_single("DMS Settings")
-
-	for row in settings.get("company_defaults") or []:
-		if company and row.company != company:
-			continue
-		for fieldname in ("work_in_progress", "parts_warehouse", "purchase_receipt_warehouse"):
-			wh = (getattr(row, fieldname, None) or "").strip()
-			if wh:
-				names.add(wh)
-
-	workshop_filters: dict = {}
+def get_workshop_warehouses(company: str | None = None) -> list[dict]:
+	"""Warehouses configured on WorkShop records (inventory / stock UI scope)."""
+	workshop_filters: dict = {"warehouse": ["is", "set"]}
 	if company:
 		workshop_filters["company"] = company
-	for wh in frappe.get_all("WorkShop", filters=workshop_filters, pluck="warehouse"):
-		if wh:
-			names.add(wh)
 
-	if frappe.get_meta("Warehouse").has_field("custom_is_dms_warehouse"):
-		wh_filters: dict = {"custom_is_dms_warehouse": 1}
-		if company:
-			wh_filters["company"] = company
-		for wh in frappe.get_all("Warehouse", filters=wh_filters, pluck="name"):
-			names.add(wh)
+	workshops = frappe.get_all(
+		"WorkShop",
+		filters=workshop_filters,
+		fields=["name", "branch_name", "warehouse", "company"],
+		order_by="branch_name asc, name asc",
+	)
 
-	return sorted(names)
+	seen: set[str] = set()
+	out: list[dict] = []
+	for ws in workshops:
+		wh = (ws.warehouse or "").strip()
+		if not wh or wh in seen:
+			continue
+		if not frappe.db.exists("Warehouse", wh):
+			continue
+		seen.add(wh)
+		wh_name = frappe.db.get_value("Warehouse", wh, "warehouse_name") or wh
+		workshop_label = (ws.branch_name or ws.name or "").strip()
+		out.append(
+			{
+				"name": wh,
+				"warehouse_name": wh_name,
+				"company": ws.company or frappe.db.get_value("Warehouse", wh, "company"),
+				"workshop": ws.name,
+				"workshop_name": workshop_label,
+			}
+		)
+	return out
+
+
+def get_workshop_warehouse_names(company: str | None = None) -> list[str]:
+	return [row["name"] for row in get_workshop_warehouses(company)]
+
+
+def get_dms_allowed_warehouse_names(company: str | None = None) -> list[str]:
+	"""Warehouses linked to workshops for DMS stock operations."""
+	return get_workshop_warehouse_names(company)
 
 
 def get_dms_allowed_warehouses(company: str | None = None) -> list[dict]:
-	names = get_dms_allowed_warehouse_names(company)
-	if not names:
-		return []
-	return frappe.get_all(
-		"Warehouse",
-		filters={"name": ["in", names]},
-		fields=["name", "warehouse_name", "company"],
-		order_by="warehouse_name asc",
-	)
+	return get_workshop_warehouses(company)
 
 
 def assert_dms_warehouse_allowed(warehouse: str | None, company: str | None = None):
@@ -209,12 +216,85 @@ def get_stock_item_create_defaults() -> dict:
 	}
 
 
+def _dms_settings_default_selling_price_list() -> str | None:
+	"""Read configured selling price list from DMS Settings."""
+	meta = frappe.get_meta("DMS Settings")
+	for fieldname in ("default_selling_list", "default_price_list"):
+		if not meta.has_field(fieldname):
+			continue
+		price_list = (frappe.db.get_single_value("DMS Settings", fieldname) or "").strip()
+		if not price_list or not frappe.db.exists("Price List", price_list):
+			continue
+		enabled, selling = frappe.db.get_value(
+			"Price List", price_list, ["enabled", "selling"]
+		) or (0, 0)
+		if cint(enabled) and cint(selling):
+			return price_list
+	return None
+
+
+def get_dms_default_selling_price_list() -> str | None:
+	"""DMS Settings selling list, else first enabled ETB selling price list."""
+	price_list = _dms_settings_default_selling_price_list()
+	if price_list:
+		return price_list
+	return frappe.db.get_value(
+		"Price List",
+		{"currency": "ETB", "enabled": 1, "selling": 1},
+		"name",
+		order_by="creation asc",
+	)
+
+
+def upsert_dms_selling_item_price(
+	item_code: str,
+	rate: float,
+	*,
+	price_list: str | None = None,
+	uom: str = "Nos",
+) -> str | None:
+	"""Create or update Item Price on the DMS default selling price list."""
+	rate = flt(rate)
+	if rate <= 0:
+		return None
+
+	price_list = (price_list or "").strip() or get_dms_default_selling_price_list()
+	if not price_list:
+		return None
+
+	currency = frappe.db.get_value("Price List", price_list, "currency") or "ETB"
+	filters = {"item_code": item_code, "price_list": price_list, "selling": 1}
+	existing = frappe.db.get_value("Item Price", filters, "name")
+	price_data = {
+		"item_code": item_code,
+		"price_list": price_list,
+		"price_list_rate": rate,
+		"currency": currency,
+		"uom": uom or "Nos",
+		"selling": 1,
+	}
+
+	if existing:
+		doc = frappe.get_doc("Item Price", existing)
+		for fieldname, value in price_data.items():
+			setattr(doc, fieldname, value)
+		doc.save(ignore_permissions=True)
+		return existing
+
+	doc = frappe.get_doc({"doctype": "Item Price", **price_data})
+	doc.insert(ignore_permissions=True)
+	return doc.name
+
+
 def create_dms_stock_item(data: dict) -> dict:
 	_ensure_erpnext()
 
 	item_code = (data.get("item_code") or "").strip()
 	item_name = (data.get("item_name") or item_code).strip()
-	rate = flt(data.get("standard_rate") or data.get("rate"))
+	valuation_rate = flt(data.get("valuation_rate") or data.get("cost"))
+	selling_rate = flt(
+		data.get("standard_rate") or data.get("selling_price") or data.get("rate")
+	)
 	item_group = (data.get("item_group") or "").strip() or get_dms_default_item_group()
 	stock_uom = (data.get("stock_uom") or "Nos").strip() or "Nos"
 
@@ -231,39 +311,66 @@ def create_dms_stock_item(data: dict) -> dict:
 	if not frappe.db.exists("Item Group", item_group):
 		frappe.throw(_("Item Group {0} does not exist.").format(frappe.bold(item_group)))
 
-	item = frappe.get_doc(
-		{
-			"doctype": "Item",
-			"item_code": item_code,
-			"item_name": item_name,
-			"item_group": item_group,
-			"stock_uom": stock_uom,
-			"is_stock_item": 1,
-			"is_purchase_item": 1,
-			"is_sales_item": 1,
-			"include_item_in_manufacturing": 0,
-			"standard_rate": rate,
-		}
-	)
+	item_row = {
+		"doctype": "Item",
+		"item_code": item_code,
+		"item_name": item_name,
+		"item_group": item_group,
+		"stock_uom": stock_uom,
+		"is_stock_item": 1,
+		"is_purchase_item": 1,
+		"is_sales_item": 1,
+		"include_item_in_manufacturing": 0,
+	}
+	if valuation_rate > 0:
+		item_row["valuation_rate"] = valuation_rate
+	if selling_rate > 0:
+		item_row["standard_rate"] = selling_rate
+
+	item = frappe.get_doc(item_row)
 	item.insert(ignore_permissions=True)
+
+	item_price = None
+	price_list = None
+	if selling_rate > 0:
+		price_list = get_dms_default_selling_price_list()
+		item_price = upsert_dms_selling_item_price(
+			item.name, selling_rate, price_list=price_list, uom=stock_uom
+		)
 
 	spare_part_name = frappe.db.get_value("Spare Part", {"spare_part_item": item.name}, "name")
 	if not spare_part_name:
 		try_create_spare_part_from_item(item, show_message=False)
 		spare_part_name = frappe.db.get_value("Spare Part", {"spare_part_item": item.name}, "name")
 
-	if rate > 0 and spare_part_name:
-		frappe.db.set_value("Spare Part", spare_part_name, "selling_price", rate)
+	if spare_part_name:
+		sp_updates: dict = {}
+		if valuation_rate > 0:
+			sp_updates["last_purchase_price"] = valuation_rate
+		if selling_rate > 0:
+			sp_updates["selling_price"] = selling_rate
+		if sp_updates:
+			frappe.db.set_value("Spare Part", spare_part_name, sp_updates)
 
 	return {
 		"name": item.name,
 		"label": item.item_name or item.name,
 		"item_code": item.name,
 		"item_name": item.item_name or item.name,
-		"standard_rate": rate,
+		"valuation_rate": valuation_rate,
+		"standard_rate": selling_rate,
+		"item_price": item_price,
+		"price_list": price_list,
 		"spare_part": spare_part_name,
 		"item_group": item_group,
 	}
+
+
+def _default_workshop_warehouse(allowed: list[dict]) -> str | None:
+	"""Auto-select warehouse only when exactly one workshop warehouse exists."""
+	if len(allowed) == 1:
+		return allowed[0]["name"]
+	return None
 
 
 def get_purchase_receipt_defaults(company: str | None = None) -> dict:
@@ -271,16 +378,8 @@ def get_purchase_receipt_defaults(company: str | None = None) -> dict:
 	defaults_row = get_dms_company_defaults_row(company)
 	allowed = get_dms_allowed_warehouses(company)
 
-	default_warehouse = None
-	if defaults_row:
-		default_warehouse = (
-			(getattr(defaults_row, "purchase_receipt_warehouse", None) or "").strip()
-			or (getattr(defaults_row, "parts_warehouse", None) or "").strip()
-			or (getattr(defaults_row, "work_in_progress", None) or "").strip()
-		)
+	default_warehouse = _default_workshop_warehouse(allowed)
 	default_supplier = get_dms_default_supplier(company)
-	if not default_warehouse and allowed:
-		default_warehouse = allowed[0]["name"]
 
 	return {
 		"company": company,
@@ -302,14 +401,7 @@ def get_stock_operation_defaults(company: str | None = None) -> dict:
 	defaults_row = get_dms_company_defaults_row(company)
 	allowed = get_dms_allowed_warehouses(company)
 
-	default_warehouse = None
-	if defaults_row:
-		default_warehouse = (
-			(getattr(defaults_row, "parts_warehouse", None) or "").strip()
-			or (getattr(defaults_row, "work_in_progress", None) or "").strip()
-		)
-	if not default_warehouse and allowed:
-		default_warehouse = allowed[0]["name"]
+	default_warehouse = _default_workshop_warehouse(allowed)
 
 	stock_account = None
 	if defaults_row:
@@ -360,12 +452,274 @@ def _mark_dms_sparepart_stock_doc(doc):
 		doc.set(fieldname, 1)
 
 
-def _stock_item_balance(item_code: str, warehouse: str | None) -> float:
-	if not item_code or not warehouse:
-		return 0.0
-	from erpnext.stock.utils import get_stock_balance
+def resolve_spare_part_erp_item_code(spare_part: str) -> str | None:
+	"""Resolve ERPNext Item name used for stock balance lookups."""
+	spare_part = (spare_part or "").strip()
+	if not spare_part or not frappe.db.exists("Spare Part", spare_part):
+		return None
 
-	return flt(get_stock_balance(item_code, warehouse))
+	row = frappe.db.get_value(
+		"Spare Part",
+		spare_part,
+		["spare_part_item", "item_code"],
+		as_dict=True,
+	)
+	return resolve_spare_part_row_erp_item(row) if row else None
+
+
+def resolve_spare_part_row_erp_item(part: dict | None) -> str | None:
+	"""Resolve Item name from a Spare Part row/dict (same fields as stock balance report)."""
+	if not part:
+		return None
+
+	candidate = (part.get("spare_part_item") or part.get("item_code") or "").strip()
+	if not candidate:
+		return None
+
+	if frappe.db.exists("Item", candidate):
+		return candidate
+
+	by_item_code = frappe.db.get_value("Item", {"item_code": candidate}, "name")
+	if by_item_code:
+		return by_item_code
+
+	return frappe.db.get_value("Item", {"name": candidate, "disabled": 0}, "name")
+
+
+def get_dms_warehouse_scope(company: str | None = None, warehouse: str | None = None) -> list[str]:
+	"""Warehouses used for stock display — mirrors inventory dashboard _warehouse_scope."""
+	warehouse = (warehouse or "").strip() or None
+	if warehouse:
+		return [warehouse]
+
+	company = (company or "").strip() or get_default_dms_company()
+	whs = get_workshop_warehouse_names(company)
+	if whs:
+		return whs
+
+	# Fallback when no workshop warehouses are configured for the company
+	default_wh = frappe.db.get_value("Company", company, "default_warehouse")
+	if default_wh:
+		return [default_wh]
+
+	return frappe.get_all(
+		"Warehouse",
+		filters={"is_group": 0, "disabled": 0},
+		pluck="name",
+		limit=50,
+	)
+
+
+def _bin_stock_balance(item_code: str, warehouse: str | None = None) -> float:
+	"""Read qty from Bin (fallback when ERPNext balance helper is unavailable)."""
+	if not item_code or not frappe.db.has_table("Bin"):
+		return 0.0
+
+	if warehouse:
+		return flt(
+			frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse}, "actual_qty")
+		)
+
+	rows = frappe.db.sql(
+		"""select sum(actual_qty) from `tabBin` where item_code = %s""",
+		(item_code,),
+	)
+	return flt(rows[0][0]) if rows and rows[0][0] is not None else 0.0
+
+
+def get_dms_item_stock_balance(
+	item_code: str,
+	warehouse: str | None = None,
+	company: str | None = None,
+	as_on_date: str | None = None,
+) -> float:
+	"""Qty on hand — same approach as inventory dashboard _balance_for_item."""
+	from frappe.utils import today
+
+	item_code = (item_code or "").strip()
+	if not item_code:
+		return 0.0
+
+	warehouses = get_dms_warehouse_scope(company, warehouse)
+	if not warehouses:
+		return _bin_stock_balance(item_code, warehouse)
+
+	as_on_date = (as_on_date or today()).strip() or None
+
+	try:
+		from erpnext.stock.utils import get_stock_balance
+	except ImportError:
+		get_stock_balance = None
+
+	total = 0.0
+	for wh in warehouses:
+		qty = 0.0
+		if get_stock_balance:
+			try:
+				qty = flt(get_stock_balance(item_code, wh, as_on_date))
+			except Exception:
+				qty = _bin_stock_balance(item_code, wh)
+		else:
+			qty = _bin_stock_balance(item_code, wh)
+		total += qty
+
+	return total
+
+
+def get_erp_items_stock_qty_batch(
+	item_codes: list[str],
+	warehouse: str | None = None,
+	company: str | None = None,
+	as_on_date: str | None = None,
+) -> dict[str, float]:
+	"""Batch stock lookup keyed by ERPNext Item name."""
+	unique_codes = []
+	seen: set[str] = set()
+	for raw in item_codes:
+		code = (raw or "").strip()
+		if code and code not in seen:
+			seen.add(code)
+			unique_codes.append(code)
+
+	return {code: get_dms_item_stock_balance(code, warehouse, company, as_on_date) for code in unique_codes}
+
+
+def _stock_item_balance(item_code: str, warehouse: str | None) -> float:
+	"""Qty on hand for an ERPNext Item, optionally scoped to one warehouse."""
+	return get_dms_item_stock_balance(item_code, warehouse)
+
+
+def get_erp_item_stock_qty(
+	item_code: str,
+	warehouse: str | None = None,
+	company: str | None = None,
+) -> float:
+	return get_dms_item_stock_balance(item_code, warehouse, company)
+
+
+def get_spare_part_stock_qty(
+	spare_part: str,
+	warehouse: str | None = None,
+	company: str | None = None,
+) -> float:
+	"""Qty on hand for the Spare Part's linked ERPNext Item."""
+	spare_part = (spare_part or "").strip()
+	if not spare_part:
+		return 0.0
+
+	erp_item = resolve_spare_part_erp_item_code(spare_part)
+	if not erp_item:
+		return 0.0
+
+	return get_dms_item_stock_balance(erp_item, warehouse, company)
+
+
+def attach_spare_part_stock_available(
+	parts: list[dict],
+	warehouse: str | None = None,
+	company: str | None = None,
+) -> None:
+	"""Set stock_available on spare part rows (mutates list in place)."""
+	erp_by_part: dict[str, str] = {}
+	for part in parts:
+		erp_item = resolve_spare_part_row_erp_item(part)
+		if erp_item:
+			erp_by_part[part["name"]] = erp_item
+
+	if not erp_by_part:
+		for part in parts:
+			part["stock_available"] = 0.0
+		return
+
+	stock_by_erp = get_erp_items_stock_qty_batch(
+		list(erp_by_part.values()),
+		warehouse=warehouse,
+		company=company,
+	)
+
+	for part in parts:
+		erp_item = erp_by_part.get(part["name"])
+		part["stock_available"] = stock_by_erp.get(erp_item, 0.0) if erp_item else 0.0
+
+
+def get_spare_part_names_for_vehicle(
+	vehicle_model: str | None = None,
+	vehicle_brand: str | None = None,
+) -> set[str] | None:
+	"""Spare parts compatible with a vehicle (universal parts always included).
+
+	Returns None when no vehicle filter is active.
+	"""
+	vehicle_model = (vehicle_model or "").strip()
+	vehicle_brand = (vehicle_brand or "").strip()
+	if not vehicle_model and not vehicle_brand:
+		return None
+
+	sp_filters: dict = {}
+	sp_meta = frappe.get_meta("Spare Part")
+	if sp_meta.has_field("discontinued"):
+		sp_filters["discontinued"] = 0
+
+	all_parts = set(frappe.get_all("Spare Part", filters=sp_filters or None, pluck="name"))
+	if not all_parts:
+		return set()
+
+	parts_with_compat = set(
+		frappe.db.sql("SELECT DISTINCT parent FROM `tabSpare Part Compatibility`", pluck=True)
+	)
+	universal = all_parts - parts_with_compat
+
+	if vehicle_model:
+		matching = set(
+			frappe.get_all(
+				"Spare Part Compatibility",
+				filters={"vehicle_model": vehicle_model},
+				pluck="parent",
+			)
+		)
+	elif vehicle_brand:
+		matching = set(
+			frappe.get_all(
+				"Spare Part Compatibility",
+				filters={"vehicle_brand": vehicle_brand},
+				pluck="parent",
+			)
+		)
+	else:
+		matching = set()
+
+	return (matching & all_parts) | universal
+
+
+def resolve_spare_parts_vehicle_filter(
+	vin: str | None = None,
+	vehicle_model: str | None = None,
+	vehicle_brand: str | None = None,
+):
+	"""Resolve vehicle context for spare-part filtering.
+
+	Returns (vehicle_model, vehicle_brand, allowed_spare_part_names|None).
+	"""
+	vin = (vin or "").strip()
+	vehicle_model = (vehicle_model or "").strip()
+	vehicle_brand = (vehicle_brand or "").strip()
+
+	if vin and not vehicle_brand:
+		vehicle_brand = (frappe.db.get_value("VIN No", vin, "brand") or "").strip()
+
+	# Prefer the VIN No.model link (e.g. JX70P) — same key as Spare Part Compatibility.
+	if vin:
+		vin_model = (frappe.db.get_value("VIN No", vin, "model") or "").strip()
+		if vin_model:
+			vehicle_model = vin_model
+		elif not vehicle_model:
+			from dms.api.service_packages import resolve_vehicle_model_from_vin
+
+			vehicle_model, _vm_label = resolve_vehicle_model_from_vin(vin)
+			vehicle_model = (vehicle_model or "").strip()
+
+	allowed = get_spare_part_names_for_vehicle(vehicle_model, vehicle_brand)
+	return vehicle_model, vehicle_brand, allowed
 
 
 def _is_spare_part_item(item_code: str | None) -> bool:
@@ -400,6 +754,18 @@ def search_stock_items(search: str | None = None, warehouse: str | None = None, 
 			["item_code", "like", q],
 			["oem_part_number", "like", q],
 		]
+		matching_items = frappe.get_all(
+			"Item",
+			filters={"disabled": 0, "is_stock_item": 1},
+			or_filters=[
+				["name", "like", q],
+				["item_name", "like", q],
+			],
+			pluck="name",
+			limit=50,
+		)
+		if matching_items:
+			or_filters.append(["spare_part_item", "in", matching_items])
 
 	spare_parts = frappe.get_all(
 		"Spare Part",
