@@ -427,7 +427,18 @@ export default function NewJobCardPage() {
   };
 
   const handleServiceItemSelect = async (itemName: string) => {
-    if (!itemName) return;
+    if (!itemName) {
+      setNewLabour({
+        vehicle_service_item: "",
+        vehicle_service_item_name: "",
+        technician: "",
+        technician_name: "",
+        estimated_hours: 0,
+        rate_per_hour: 0,
+        complaint: "",
+      });
+      return;
+    }
     const item = serviceItems?.find((i) => i.name === itemName);
     let rate = item?.custom_rate || 0;
     let estHours = vehicleServiceItemEstimatedHours(item);
@@ -1020,10 +1031,9 @@ export default function NewJobCardPage() {
   };
 
   return (
-    <>
-      <div className="min-w-0 space-y-4 sm:space-y-6">
+    <div className="dms-form-page dms-form-compact-mobile min-w-0 space-y-3 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -1031,9 +1041,9 @@ export default function NewJobCardPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">New Job Card</h1>
-          <p className="text-muted-foreground mt-1">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-foreground sm:text-2xl">New Job Card</h1>
+          <p className="text-muted-foreground mt-0.5 text-sm sm:mt-1">
             Create a new workshop job card
           </p>
         </div>
@@ -1042,7 +1052,7 @@ export default function NewJobCardPage() {
       <form
         id="new-job-card-form"
         onSubmit={handleSubmit}
-        className="dms-form-page min-w-0 space-y-4 sm:space-y-6"
+        className="min-w-0 space-y-3 sm:space-y-6"
       >
         {/* 1. Service Details */}
         <Card>
@@ -1589,6 +1599,7 @@ export default function NewJobCardPage() {
                 showTechnician
                 onUpdateRow={updateLabourRow}
                 onRemoveRow={removeLabourRow}
+                minWidthClassName=""
               />
             )}
 
@@ -1878,16 +1889,25 @@ export default function NewJobCardPage() {
           </CardContent>
         </Card>
       </form>
-      </div>
 
       <FormActionsBar>
-        <Button type="button" variant="outline" onClick={() => navigate("job-cards")}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 w-full sm:w-auto"
+          onClick={() => navigate("job-cards")}
+        >
           Cancel
         </Button>
-        <Button type="submit" form="new-job-card-form" disabled={isMutating}>
+        <Button
+          type="submit"
+          form="new-job-card-form"
+          disabled={isMutating}
+          className="min-h-11 w-full sm:w-auto"
+        >
           {isMutating ? "Creating..." : "Create Job Card"}
         </Button>
       </FormActionsBar>
-    </>
+    </div>
   );
 }

@@ -101,6 +101,8 @@ export function SearchableSelect({
     onValueChange("");
     setSearch("");
     handleSearchChange("");
+    setOpen(false);
+    inputRef.current?.focus();
   }, [onValueChange, handleSearchChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -130,11 +132,11 @@ export function SearchableSelect({
   const showCreate = Boolean(onCreateNew) && !disabled;
   const inputPadRight = showCreate
     ? value
-      ? "pr-[5.25rem]"
-      : "pr-20"
+      ? "pr-[7.5rem] sm:pr-[5.25rem]"
+      : "pr-24 sm:pr-20"
     : value
-      ? "pr-16"
-      : "pr-10";
+      ? "pr-24 sm:pr-16"
+      : "pr-12 sm:pr-10";
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
@@ -164,42 +166,60 @@ export function SearchableSelect({
           {value && (
             <button
               type="button"
-              onClick={(e) => {
+              onPointerDown={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 clear();
               }}
-              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground touch-manipulation sm:h-7 sm:w-7"
               tabIndex={-1}
+              aria-label="Clear selection"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </button>
           )}
           {showCreate && (
             <button
               type="button"
-              onClick={(e) => {
+              onPointerDown={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 setOpen(false);
                 onCreateNew?.();
               }}
-              className="p-1 rounded hover:bg-muted text-dms-green hover:text-dms-green"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted text-dms-green hover:text-dms-green touch-manipulation sm:h-7 sm:w-7"
               tabIndex={-1}
               aria-label={createNewLabel}
               title={createNewLabel}
             >
-              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <Plus className="h-4 w-4 stroke-[2.5] sm:h-3.5 sm:w-3.5" />
             </button>
           )}
           <button
             type="button"
-            onClick={() => {
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               setOpen(!open);
               if (!open) inputRef.current?.focus();
             }}
-            className="p-1 rounded hover:bg-muted text-muted-foreground"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted text-muted-foreground touch-manipulation sm:h-7 sm:w-7"
             tabIndex={-1}
+            aria-label="Toggle options"
           >
-            <ChevronsUpDown className="h-3.5 w-3.5" />
+            <ChevronsUpDown className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
         </div>
       </div>
