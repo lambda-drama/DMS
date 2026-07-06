@@ -390,6 +390,10 @@ export interface VehicleInspection {
   // Signatures
   customer_signature: string;
   advisor_signature: string;
+  terms_and_conditions?: string;
+  terms_and_conditions_ar?: string;
+  terms_accepted?: number | boolean;
+  terms_accepted_at?: string;
   manager_override_signature?: string;
   customer_digital_sign?: string;
   service_advisor_sign?: string;
@@ -523,6 +527,10 @@ export interface DMSServiceEstimate {
   decision_date?: string;
   customer_signature?: string;
   rejection_signature?: string;
+  terms_and_conditions?: string;
+  terms_and_conditions_ar?: string;
+  terms_accepted?: number | boolean;
+  terms_accepted_at?: string;
   service_advisor_notes?: string;
   internal_notes?: string;
   creation?: string;

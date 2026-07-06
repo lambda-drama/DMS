@@ -2,6 +2,7 @@
  * DMS Service Estimate — diagnosis → estimation → customer approval workflow
  */
 import { apiRequest } from './apiClient';
+import { fetchCustomerTermsAndConditions } from './common';
 import type { DMSServiceEstimate, PaginatedResponse } from '@/types/dms';
 
 const API = 'dms.api.service_estimates';
@@ -104,6 +105,10 @@ export async function submitForCustomerApproval(estimateName: string): Promise<{
   });
 }
 
+export async function getCustomerTermsAndConditions() {
+  return fetchCustomerTermsAndConditions();
+}
+
 export async function acceptEstimate(
   estimateName: string,
   payload: {
@@ -113,6 +118,7 @@ export async function acceptEstimate(
     schedule_start_time?: string;
     schedule_end_time?: string;
     start_repair?: boolean;
+    terms_accepted?: boolean;
   }
 ): Promise<{ name: string; status: string; job_card: string }> {
   return apiRequest(`/api/method/${DT}.accept_estimate`, {
@@ -125,19 +131,22 @@ export async function acceptEstimate(
       schedule_start_time: payload.schedule_start_time || null,
       schedule_end_time: payload.schedule_end_time || null,
       start_repair: payload.start_repair ? 1 : 0,
+      terms_accepted: payload.terms_accepted ? 1 : 0,
     }),
   });
 }
 
 export async function rejectEstimate(
   estimateName: string,
-  rejectionSignature: string
+  rejectionSignature: string,
+  termsAccepted = false
 ): Promise<{ name: string; status: string; diagnostic_invoice: string }> {
   return apiRequest(`/api/method/${DT}.reject_estimate`, {
     method: 'POST',
     body: JSON.stringify({
       estimate_name: estimateName,
       rejection_signature: rejectionSignature,
+      terms_accepted: termsAccepted ? 1 : 0,
     }),
   });
 }

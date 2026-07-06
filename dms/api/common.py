@@ -722,3 +722,17 @@ def get_service_bay_detail(bay_name=None):
 		"workshop": workshop,
 		"warehouse": warehouse,
 	}
+
+
+@frappe.whitelist()
+def get_customer_terms_and_conditions():
+	"""English + Arabic customer terms for inspection / estimate approval."""
+	if not (
+		frappe.has_permission("DMS Service Estimate", "read")
+		or frappe.has_permission("Vehicle Inspection", "read")
+	):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	from dms.dealer_management_system.utils.customer_terms import fetch_bilingual_terms_payload
+
+	return fetch_bilingual_terms_payload()

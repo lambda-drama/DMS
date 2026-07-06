@@ -77,7 +77,12 @@ def create_supplementary_estimate_from_awr(awr_name: str):
 
 
 @frappe.whitelist()
-def accept_supplementary_estimate_and_update_job_card(estimate_name: str, customer_signature: str):
+def accept_supplementary_estimate_and_update_job_card(
+	estimate_name: str,
+	customer_signature: str,
+	terms_doc: str | None = None,
+	terms_ar_doc: str | None = None,
+):
 	"""Customer approves supplementary estimate — append lines to existing job card."""
 	est = frappe.get_doc("DMS Service Estimate", estimate_name)
 	est.check_permission("write")
@@ -97,6 +102,12 @@ def accept_supplementary_estimate_and_update_job_card(estimate_name: str, custom
 	est.customer_signature = customer_signature
 	est.customer_decision = "Accepted"
 	est.status = "Accepted"
+	if terms_doc:
+		est.terms_and_conditions = terms_doc
+		est.terms_accepted = 1
+		est.terms_accepted_at = frappe.utils.now_datetime()
+	if terms_ar_doc and frappe.get_meta("DMS Service Estimate").has_field("terms_and_conditions_ar"):
+		est.terms_and_conditions_ar = terms_ar_doc
 	est.save()
 
 	for row in est.get("labour") or []:

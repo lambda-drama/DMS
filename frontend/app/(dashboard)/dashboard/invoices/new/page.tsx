@@ -257,7 +257,15 @@ export default function NewInvoicePage() {
   };
 
   const handleServiceItemSelect = async (itemName: string) => {
-    if (!itemName) return;
+    if (!itemName) {
+      setNewLabour({
+        vehicle_service_item: "",
+        vehicle_service_item_name: "",
+        estimated_hours: 0,
+        rate_per_hour: 0,
+      });
+      return;
+    }
     const item = serviceItems?.find((i) => i.name === itemName);
     let rate = item?.custom_rate || 0;
     let estHours = vehicleServiceItemEstimatedHours(item);

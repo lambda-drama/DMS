@@ -28,6 +28,10 @@ import {
 } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/searchable-select";
 import { SignaturePad } from "@/components/signature-pad";
+import {
+  CustomerTermsAcceptance,
+  type BilingualCustomerTerms,
+} from "@/components/customer-terms-acceptance";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import {
   ArrowLeft,
@@ -162,6 +166,9 @@ export default function ServiceEstimateDetailPage() {
   const [acceptSignature, setAcceptSignature] = useState("");
   const [rejectSignature, setRejectSignature] = useState("");
   const [signatureUploading, setSignatureUploading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [customerTerms, setCustomerTerms] = useState<BilingualCustomerTerms | null>(null);
+  const [termsLoading, setTermsLoading] = useState(false);
   const [startRepair, setStartRepair] = useState(false);
   const [showStartRepairDialog, setShowStartRepairDialog] = useState(false);
   const [acceptLeadTechnician, setAcceptLeadTechnician] = useState("");
@@ -247,6 +254,38 @@ export default function ServiceEstimateDetailPage() {
       }
     );
   }, [estimate?.vehicle_vin, estimate?.vehicle_model]);
+
+  useEffect(() => {
+    if (estimate?.status !== "Pending Customer Approval") {
+      setTermsAccepted(Boolean(estimate?.terms_accepted));
+      return;
+    }
+    let cancelled = false;
+    setTermsLoading(true);
+    void estimatesSvc
+      .getCustomerTermsAndConditions()
+      .then((terms) => {
+        if (cancelled) return;
+        setCustomerTerms(terms);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCustomerTerms(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTermsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [estimate?.status, estimate?.terms_accepted]);
+
+  useEffect(() => {
+    if (!termsAccepted) {
+      setAcceptSignature("");
+      setRejectSignature("");
+    }
+  }, [termsAccepted]);
 
   const populateFromServicePackage = useCallback(async (packageName: string) => {
     setIsLoadingPackageLines(true);
@@ -379,6 +418,7 @@ export default function ServiceEstimateDetailPage() {
       schedule_start_time?: string;
       schedule_end_time?: string;
       start_repair?: boolean;
+      terms_accepted?: boolean;
     }) => {
       setBusy(true);
       try {
@@ -410,6 +450,10 @@ export default function ServiceEstimateDetailPage() {
   };
 
   const handleAcceptClick = () => {
+    if (!termsAccepted) {
+      toast.error("Customer must accept the terms and conditions first");
+      return;
+    }
     if (!acceptSignature) {
       toast.error("Customer signature is required");
       return;
@@ -421,10 +465,15 @@ export default function ServiceEstimateDetailPage() {
     void acceptEstimateAndNavigate({
       customer_signature: acceptSignature,
       start_repair: false,
+      terms_accepted: true,
     });
   };
 
   const handleConfirmAcceptWithRepair = () => {
+    if (!termsAccepted) {
+      toast.error("Customer must accept the terms and conditions first");
+      return;
+    }
     if (!acceptLeadTechnician) {
       toast.error("Lead technician is required");
       return;
@@ -447,6 +496,7 @@ export default function ServiceEstimateDetailPage() {
       schedule_start_time: toFrappeDatetime(acceptScheduleStart),
       schedule_end_time: toFrappeDatetime(acceptScheduleEnd),
       start_repair: true,
+      terms_accepted: true,
     });
   };
 
@@ -1262,81 +1312,112 @@ export default function ServiceEstimateDetailPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <CustomerTermsAcceptance
+                terms={customerTerms}
+                loading={termsLoading}
+                accepted={termsAccepted}
+                onAcceptedChange={setTermsAccepted}
+              />
+
+              <Card className={!termsAccepted ? "opacity-60" : undefined}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-700">
                     <CheckCircle2 className="h-5 w-5" />
                     Customer accepts estimate
                   </CardTitle>
+                  {!termsAccepted ? (
+                    <CardDescription>
+                      Accept the terms and conditions above before signing.
+                    </CardDescription>
+                  ) : null}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <SignaturePad
-                    existingUrl={acceptSignature || undefined}
-                    uploading={signatureUploading}
-                    onSave={async (file) => {
-                      setSignatureUploading(true);
-                      try {
-                        const url = await uploadFile(file);
-                        setAcceptSignature(url);
-                      } finally {
-                        setSignatureUploading(false);
-                      }
-                    }}
-                    onClear={() => setAcceptSignature("")}
-                    className="max-w-full"
-                  />
+                  <div className={!termsAccepted ? "pointer-events-none" : undefined}>
+                    <SignaturePad
+                      existingUrl={acceptSignature || undefined}
+                      uploading={signatureUploading}
+                      onSave={async (file) => {
+                        if (!termsAccepted) return;
+                        setSignatureUploading(true);
+                        try {
+                          const url = await uploadFile(file);
+                          setAcceptSignature(url);
+                        } finally {
+                          setSignatureUploading(false);
+                        }
+                      }}
+                      onClear={() => setAcceptSignature("")}
+                      className="max-w-full"
+                    />
+                  </div>
                   {!isSupplementary && (
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="start-repair"
                         checked={startRepair}
+                        disabled={!termsAccepted}
                         onCheckedChange={(v) => setStartRepair(Boolean(v))}
                       />
                       <Label htmlFor="start-repair">Start repair immediately on job card</Label>
                     </div>
                   )}
-                  <Button disabled={!acceptSignature || busy} onClick={handleAcceptClick}>
+                  <Button
+                    disabled={!termsAccepted || !acceptSignature || busy}
+                    onClick={handleAcceptClick}
+                  >
                     {isSupplementary ? "Accept & update job card" : "Accept & create job card"}
                   </Button>
                 </CardContent>
               </Card>
 
               {!isSupplementary && (
-              <Card>
+              <Card className={!termsAccepted ? "opacity-60" : undefined}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
                     <XCircle className="h-5 w-5" />
                     Customer declines repair
                   </CardTitle>
+                  {!termsAccepted ? (
+                    <CardDescription>
+                      Accept the terms and conditions above before signing.
+                    </CardDescription>
+                  ) : null}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     A diagnostic invoice for {(estimate.diagnostic_fee || 0).toLocaleString()} ETB will
                     be created automatically.
                   </p>
-                  <SignaturePad
-                    existingUrl={rejectSignature || undefined}
-                    uploading={signatureUploading}
-                    onSave={async (file) => {
-                      setSignatureUploading(true);
-                      try {
-                        const url = await uploadFile(file);
-                        setRejectSignature(url);
-                      } finally {
-                        setSignatureUploading(false);
-                      }
-                    }}
-                    onClear={() => setRejectSignature("")}
-                    className="max-w-full"
-                  />
+                  <div className={!termsAccepted ? "pointer-events-none" : undefined}>
+                    <SignaturePad
+                      existingUrl={rejectSignature || undefined}
+                      uploading={signatureUploading}
+                      onSave={async (file) => {
+                        if (!termsAccepted) return;
+                        setSignatureUploading(true);
+                        try {
+                          const url = await uploadFile(file);
+                          setRejectSignature(url);
+                        } finally {
+                          setSignatureUploading(false);
+                        }
+                      }}
+                      onClear={() => setRejectSignature("")}
+                      className="max-w-full"
+                    />
+                  </div>
                   <Button
                     variant="destructive"
-                    disabled={!rejectSignature || busy}
-                    onClick={() =>
+                    disabled={!termsAccepted || !rejectSignature || busy}
+                    onClick={() => {
+                      if (!termsAccepted) {
+                        toast.error("Customer must accept the terms and conditions first");
+                        return;
+                      }
                       runAction("Estimate rejected — diagnostic invoice created", () =>
-                        estimatesSvc.rejectEstimate(id, rejectSignature)
-                      )
-                    }
+                        estimatesSvc.rejectEstimate(id, rejectSignature, true)
+                      );
+                    }}
                   >
                     Reject & invoice diagnostic fee
                   </Button>

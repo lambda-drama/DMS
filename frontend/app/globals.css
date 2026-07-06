@@ -225,7 +225,19 @@
   }
   @media (max-width: 639px) {
     .dms-form-page {
-      padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    }
+    .dms-form-compact-mobile [data-slot='card'] {
+      @apply gap-3 py-3 shadow-sm;
+    }
+    .dms-form-compact-mobile [data-slot='card-header'] {
+      @apply gap-1 px-3 [.border-b]:pb-3;
+    }
+    .dms-form-compact-mobile [data-slot='card-content'] {
+      @apply px-3;
+    }
+    .dms-form-compact-mobile [data-slot='card-footer'] {
+      @apply px-3 [.border-t]:pt-3;
     }
   }
   .dms-clickable {

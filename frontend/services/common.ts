@@ -417,3 +417,23 @@ export async function uploadFile(file: File): Promise<string> {
   if (typeof doc === 'string' && doc.startsWith('/')) return doc;
   throw new Error('Upload failed: no file URL in response');
 }
+
+export async function fetchCustomerTermsAndConditions(): Promise<{
+  english: {
+    name: string;
+    terms_title?: string;
+    language?: string;
+    more_details?: string;
+  } | null;
+  arabic: {
+    name: string;
+    terms_title?: string;
+    language?: string;
+    more_details?: string;
+  } | null;
+}> {
+  return apiRequest(`/api/method/${API}.get_customer_terms_and_conditions`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}

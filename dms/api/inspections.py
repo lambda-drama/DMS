@@ -312,6 +312,10 @@ def create_inspection(data):
 
 	_append_warning_lights(doc, data.get("warning_lights"))
 
+	from dms.dealer_management_system.utils.customer_terms import require_and_record_terms_acceptance
+
+	require_and_record_terms_acceptance(doc, data.get("terms_accepted"))
+
 	doc.insert()
 	doc.submit()
 	frappe.db.commit()

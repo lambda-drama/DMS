@@ -108,6 +108,14 @@ def get_service_estimate(name):
 
 
 @frappe.whitelist()
+def get_customer_terms_and_conditions():
+	"""English + Arabic customer terms for estimate approval."""
+	from dms.api.common import get_customer_terms_and_conditions as _get
+
+	return _get()
+
+
+@frappe.whitelist()
 def update_service_estimate(name, data):
 	if isinstance(data, str):
 		import json
