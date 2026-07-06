@@ -204,6 +204,18 @@ def start_estimation(estimate_name: str) -> dict:
 	return {"name": doc.name, "status": doc.status}
 
 
+def get_bilingual_customer_terms() -> dict:
+	from dms.dealer_management_system.utils.customer_terms import get_bilingual_customer_terms as _get
+
+	return _get()
+
+
+def _require_and_record_terms_acceptance(doc, terms_accepted: int | bool) -> None:
+	from dms.dealer_management_system.utils.customer_terms import require_and_record_terms_acceptance
+
+	require_and_record_terms_acceptance(doc, terms_accepted)
+
+
 @frappe.whitelist()
 def submit_for_customer_approval(estimate_name: str) -> dict:
 	doc = frappe.get_doc("DMS Service Estimate", estimate_name)
@@ -248,6 +260,7 @@ def accept_estimate(
 	schedule_start_time: str | None = None,
 	schedule_end_time: str | None = None,
 	start_repair: int | bool = 0,
+	terms_accepted: int | bool = 0,
 ) -> dict:
 	doc = frappe.get_doc("DMS Service Estimate", estimate_name)
 	doc.check_permission("write")
@@ -260,7 +273,13 @@ def accept_estimate(
 		if not customer_signature:
 			frappe.throw(_("Customer signature is required to accept the estimate."))
 
-		result = accept_supplementary_estimate_and_update_job_card(estimate_name, customer_signature)
+		_require_and_record_terms_acceptance(doc, terms_accepted)
+		result = accept_supplementary_estimate_and_update_job_card(
+			estimate_name,
+			customer_signature,
+			terms_doc=doc.terms_and_conditions,
+			terms_ar_doc=getattr(doc, "terms_and_conditions_ar", None),
+		)
 		return {"name": doc.name, "status": "Accepted", "job_card": result["job_card"]}
 
 	if doc.status != "Pending Customer Approval":
@@ -268,6 +287,8 @@ def accept_estimate(
 
 	if not customer_signature:
 		frappe.throw(_("Customer signature is required to accept the estimate."))
+
+	_require_and_record_terms_acceptance(doc, terms_accepted)
 
 	if cint(start_repair):
 		missing = []
@@ -312,7 +333,11 @@ def accept_estimate(
 
 
 @frappe.whitelist()
-def reject_estimate(estimate_name: str, rejection_signature: str | None = None) -> dict:
+def reject_estimate(
+	estimate_name: str,
+	rejection_signature: str | None = None,
+	terms_accepted: int | bool = 0,
+) -> dict:
 	doc = frappe.get_doc("DMS Service Estimate", estimate_name)
 	doc.check_permission("write")
 
@@ -321,6 +346,8 @@ def reject_estimate(estimate_name: str, rejection_signature: str | None = None) 
 
 	if not rejection_signature:
 		frappe.throw(_("Customer signature is required to reject the estimate."))
+
+	_require_and_record_terms_acceptance(doc, terms_accepted)
 
 	if doc.diagnostic_invoice and frappe.db.exists("Sales Invoice", doc.diagnostic_invoice):
 		frappe.throw(_("Diagnostic invoice already created for this estimate."))

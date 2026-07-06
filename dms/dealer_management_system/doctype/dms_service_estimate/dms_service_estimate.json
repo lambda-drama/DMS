@@ -60,6 +60,10 @@
   "section_customer_decision",
   "customer_decision",
   "decision_date",
+  "terms_and_conditions",
+  "terms_and_conditions_ar",
+  "terms_accepted",
+  "terms_accepted_at",
   "customer_signature",
   "rejection_signature",
   "section_notes",
@@ -403,6 +407,33 @@
    "fieldname": "decision_date",
    "fieldtype": "Datetime",
    "label": "Decision Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "terms_and_conditions",
+   "fieldtype": "Link",
+   "label": "Terms and Conditions (English)",
+   "options": "DMS Customer Terms and Conditions",
+   "read_only": 1
+  },
+  {
+   "fieldname": "terms_and_conditions_ar",
+   "fieldtype": "Link",
+   "label": "Terms and Conditions (Arabic)",
+   "options": "DMS Customer Terms and Conditions",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "terms_accepted",
+   "fieldtype": "Check",
+   "label": "Terms Accepted",
+   "read_only": 1
+  },
+  {
+   "fieldname": "terms_accepted_at",
+   "fieldtype": "Datetime",
+   "label": "Terms Accepted At",
    "read_only": 1
   },
   {

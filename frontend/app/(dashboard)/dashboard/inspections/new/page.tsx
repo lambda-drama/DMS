@@ -8,7 +8,11 @@ import { LinkWithCreate } from '@/components/link-with-create';
 import { ImageCaptureField } from '@/components/image-capture-field';
 import { MultiImageCaptureField } from '@/components/multi-image-capture-field';
 import { SignaturePad } from '@/components/signature-pad';
-import { uploadFile } from '@/services/common';
+import {
+  CustomerTermsAcceptance,
+  type BilingualCustomerTerms,
+} from '@/components/customer-terms-acceptance';
+import { uploadFile, fetchCustomerTermsAndConditions } from '@/services/common';
 import * as inspectionsSvc from '@/services/inspections';
 import { RequiredLabel } from '@/components/required-label';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
@@ -290,6 +294,9 @@ export default function NewInspectionPage() {
   const [customerSignatureUrl, setCustomerSignatureUrl] = useState<string | undefined>();
   const [advisorSignatureUrl, setAdvisorSignatureUrl] = useState<string | undefined>();
   const [signatureUploading, setSignatureUploading] = useState<'customer' | 'advisor' | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [customerTerms, setCustomerTerms] = useState<BilingualCustomerTerms | null>(null);
+  const [termsLoading, setTermsLoading] = useState(false);
   const [scanPerformed, setScanPerformed] = useState(false);
 
   // Real data hooks
@@ -322,6 +329,33 @@ export default function NewInspectionPage() {
       if (adv?.name) setServiceAdvisor(adv.name);
     }).catch(() => {});
   }, [appointmentId]);
+
+  useEffect(() => {
+    if (currentStep !== 8) return;
+    let cancelled = false;
+    setTermsLoading(true);
+    void fetchCustomerTermsAndConditions()
+      .then((terms) => {
+        if (cancelled) return;
+        setCustomerTerms(terms);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCustomerTerms(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTermsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (!termsAccepted) {
+      setCustomerSignatureUrl(undefined);
+    }
+  }, [termsAccepted]);
 
   useAutofillSingleCompany(
     companies,
@@ -539,6 +573,10 @@ export default function NewInspectionPage() {
   };
 
   const handleSignatureSave = async (which: 'customer' | 'advisor', file: File) => {
+    if (which === 'customer' && !termsAccepted) {
+      toast.error('Customer must accept the terms and conditions first');
+      return;
+    }
     setSignatureUploading(which);
     try {
       const url = await uploadFile(file);
@@ -606,6 +644,10 @@ export default function NewInspectionPage() {
       selectedWarnings.length > 0 && !selectedWarnings.includes('None');
     if (hasWarningLights && !dashboardPhoto) {
       toast.error('Please take a dashboard photo showing warning lights');
+      return;
+    }
+    if (!termsAccepted) {
+      toast.error('Customer must accept the terms and conditions before signing');
       return;
     }
     if (!customerSignatureUrl || !advisorSignatureUrl) {
@@ -679,6 +721,7 @@ export default function NewInspectionPage() {
         })),
         customer_signature: customerSignatureUrl,
         advisor_signature: advisorSignatureUrl,
+        terms_accepted: 1,
       };
       await createInspection(formData);
       toast.success('Inspection submitted successfully', {
@@ -1345,10 +1388,24 @@ export default function NewInspectionPage() {
                 <Textarea placeholder="Internal observations..." />
               </div>
 
-              <div className="scroll-mt-4 min-w-0 overflow-hidden rounded-lg border bg-muted/30 p-4 space-y-4 max-sm:mb-2">
+              <CustomerTermsAcceptance
+                terms={customerTerms}
+                loading={termsLoading}
+                accepted={termsAccepted}
+                onAcceptedChange={setTermsAccepted}
+              />
+
+              <div
+                className={`scroll-mt-4 min-w-0 overflow-hidden rounded-lg border bg-muted/30 p-4 space-y-4 max-sm:mb-2 ${!termsAccepted ? 'opacity-60' : ''}`}
+              >
                 <h4 className="font-medium">Signatures Required</h4>
+                {!termsAccepted ? (
+                  <p className="text-sm text-muted-foreground">
+                    Accept the terms and conditions above before collecting signatures.
+                  </p>
+                ) : null}
                 <div className="grid min-w-0 gap-6 sm:grid-cols-2">
-                  <div className="min-w-0 space-y-2">
+                  <div className={`min-w-0 space-y-2 ${!termsAccepted ? 'pointer-events-none' : ''}`}>
                     <RequiredLabel>Customer Signature</RequiredLabel>
                     <SignaturePad
                       existingUrl={customerSignatureUrl}
