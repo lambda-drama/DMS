@@ -40,6 +40,53 @@ export default function DashboardShell({
     return () => window.clearTimeout(t);
   }, [activeView]);
 
+  // iOS Safari scrolls the outer page/layout viewport to reveal a focused input
+  // above the on-screen keyboard, but does not restore it when the keyboard
+  // closes. That leaves dead space above the fixed action bar (a gap Android
+  // never shows). Snap the window/document scroll back to 0 once nothing is
+  // being edited so the layout re-anchors to the fixed footer.
+  useEffect(() => {
+    const isIOS =
+      /iP(hone|ad|od)/.test(navigator.platform) ||
+      (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
+    if (!isIOS) return;
+
+    const isEditing = () => {
+      const el = document.activeElement as HTMLElement | null;
+      return (
+        !!el &&
+        (el.tagName === 'INPUT' ||
+          el.tagName === 'TEXTAREA' ||
+          el.tagName === 'SELECT' ||
+          el.isContentEditable)
+      );
+    };
+
+    const snapBack = () => {
+      // Don't yank the view while the user is still typing (e.g. moving between
+      // fields) — only correct the leftover shift once editing has stopped.
+      if (isEditing()) return;
+      if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    const onFocusOut = () => window.setTimeout(snapBack, 100);
+    const onWindowScroll = () => {
+      if (!isEditing()) snapBack();
+    };
+
+    document.addEventListener('focusout', onFocusOut);
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+    window.visualViewport?.addEventListener('resize', onFocusOut);
+
+    return () => {
+      document.removeEventListener('focusout', onFocusOut);
+      window.removeEventListener('scroll', onWindowScroll);
+      window.visualViewport?.removeEventListener('resize', onFocusOut);
+    };
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">

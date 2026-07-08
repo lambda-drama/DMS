@@ -1,14 +1,16 @@
 "use client";
 
-import { ChevronDown, FileText, Loader2 } from "lucide-react";
+import { ChevronDown, FileText, Loader2, Printer } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { printCustomerTerms, type TermsPrintContext } from "@/lib/print-terms";
 
 export type CustomerTermsRecord = {
   name: string;
@@ -29,6 +31,8 @@ interface CustomerTermsAcceptanceProps {
   accepted: boolean;
   onAcceptedChange: (accepted: boolean) => void;
   className?: string;
+  /** Context printed above the terms (document title + detail rows). */
+  printContext?: TermsPrintContext;
 }
 
 function TermsColumn({
@@ -72,6 +76,7 @@ export function CustomerTermsAcceptance({
   accepted,
   onAcceptedChange,
   className,
+  printContext,
 }: CustomerTermsAcceptanceProps) {
   const hasEnglish = Boolean(terms?.english);
   const hasArabic = Boolean(terms?.arabic);
@@ -92,13 +97,27 @@ export function CustomerTermsAcceptance({
       ) : (
         <>
           <Collapsible defaultOpen={false}>
-            <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left hover:bg-muted/60">
-              <span className="flex min-w-0 items-center gap-2 font-medium">
-                <FileText className="h-4 w-4 shrink-0 text-primary" />
-                <span>Terms and Conditions / الشروط والأحكام</span>
-              </span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
-            </CollapsibleTrigger>
+            <div className="flex items-center gap-2">
+              <CollapsibleTrigger className="group flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-1 text-left hover:bg-muted/60">
+                <span className="flex min-w-0 items-center gap-2 font-medium">
+                  <FileText className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">Terms and Conditions / الشروط والأحكام</span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                disabled={!hasEnglish && !hasArabic}
+                onClick={() => printCustomerTerms(terms, printContext)}
+                title="Print terms and conditions"
+              >
+                <Printer className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Print</span>
+              </Button>
+            </div>
             <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                 {terms?.english ? (

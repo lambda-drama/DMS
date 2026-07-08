@@ -1393,6 +1393,22 @@ export default function NewInspectionPage() {
                 loading={termsLoading}
                 accepted={termsAccepted}
                 onAcceptedChange={setTermsAccepted}
+                printContext={{
+                  documentTitle: "Vehicle Inspection",
+                  details: [
+                    { label: "Owners Name", value: selectedCustomerMeta?.customer_name || selectedCustomer },
+                    { label: "Model", value: selectedVin?.model_name || selectedVin?.model },
+                    { label: "Tel No.", value: selectedCustomerMeta?.mobile_no },
+                    { label: "Reg. No.", value: "" },
+                    { label: "VIN", value: selectedVin?.name || selectedVehicle },
+                    { label: "License Plate", value: licensePlate },
+                    { label: "Model Year", value: selectedVin?.model_year },
+                    { label: "Odometer", value: currentOdometer ? `${currentOdometer} ${odometerUnit}` : "" },
+                    { label: "Delivery Date", value: "" },
+                    { label: "Job Type", value: "" },
+                    { label: "Service Advisor", value: serviceAdvisor },
+                  ],
+                }}
               />
 
               <div
