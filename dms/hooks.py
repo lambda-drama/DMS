@@ -101,6 +101,12 @@ fixtures = [
     },
     {
        "doctype": "Delivery Checklist Template"
+    },
+    {
+        "doctype": "Print Format",
+        "filters": [
+            ["name", "in", ["Vehicle Inspection - Terms", "Service Estimate - Terms"]]
+        ]
     }
 ]
 

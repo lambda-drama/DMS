@@ -1317,6 +1317,17 @@ export default function ServiceEstimateDetailPage() {
                 loading={termsLoading}
                 accepted={termsAccepted}
                 onAcceptedChange={setTermsAccepted}
+                printContext={{
+                  documentTitle: `Service Estimate ${estimate.name}`,
+                  details: [
+                    { label: "Owners Name", value: estimate.customer_name || estimate.customer },
+                    { label: "Estimate No.", value: estimate.name },
+                    { label: "VIN", value: estimate.vehicle_vin },
+                    { label: "Reg. No.", value: estimate.license_plate },
+                    { label: "Service Advisor", value: estimate.service_advisor },
+                    { label: "Grand Total", value: `${(estimate.grand_total || 0).toLocaleString()} ETB` },
+                  ],
+                }}
               />
 
               <Card className={!termsAccepted ? "opacity-60" : undefined}>
