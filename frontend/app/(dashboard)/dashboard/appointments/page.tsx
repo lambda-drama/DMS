@@ -382,7 +382,7 @@ export default function AppointmentsPage() {
               <div className="rounded-lg border border-dashed py-10 text-center">
                 <Calendar className="mx-auto h-10 w-10 text-muted-foreground/40" />
                 <p className="mt-3 text-sm font-medium">No appointments found</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Try adjusting search or filters, or create a new appointment
                 </p>
               </div>
@@ -571,8 +571,8 @@ export default function AppointmentsPage() {
                     <TableRow key={apt.name}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                            <Calendar className="h-5 w-5 text-primary" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                            <Calendar className="h-3.5 w-3.5 text-primary" />
                           </div>
                           <div>
                             <a
@@ -586,7 +586,7 @@ export default function AppointmentsPage() {
                               <Badge variant="outline" className={priorityConfig.color}>
                                 {priorityConfig.label}
                               </Badge>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                                 {apt.booking_source}
                               </span>
                             </div>
@@ -615,7 +615,7 @@ export default function AppointmentsPage() {
                           <p className="truncate text-sm">
                             {serviceTypes || '—'}
                           </p>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                             {apt.customer_complaint_summary}
                           </p>
                         </div>
@@ -672,7 +672,7 @@ export default function AppointmentsPage() {
                                   <MessageCircle className="h-4 w-4 mr-2" />
                                   Send reminder
                                   {sendReminderBlockReason(apt) ? (
-                                    <span className="ml-1 text-xs text-muted-foreground">
+                                    <span className="ml-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                                       ({sendReminderBlockReason(apt)})
                                     </span>
                                   ) : null}
@@ -782,53 +782,53 @@ export default function AppointmentsPage() {
             showMobileStats ? 'grid' : 'hidden md:grid',
           )}
         >
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="shrink-0 rounded-lg bg-primary/10 p-2 sm:p-3">
-                <Calendar className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="shrink-0 rounded-full bg-primary/10 p-1.5">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">{todayCount}</p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                <p className="dms-stat-value text-xl sm:text-2xl">{todayCount}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Today&apos;s Appointments
                 </p>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="shrink-0 rounded-lg bg-chart-3/10 p-2 sm:p-3">
-                <CheckCircle2 className="h-4 w-4 text-chart-3 sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="shrink-0 rounded-full bg-chart-3/10 p-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-chart-3" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">{arrivedCount}</p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Arrived</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{arrivedCount}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Arrived</p>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="shrink-0 rounded-lg bg-chart-4/10 p-2 sm:p-3">
-                <Clock className="h-4 w-4 text-chart-4 sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="shrink-0 rounded-full bg-chart-4/10 p-1.5">
+                <Clock className="h-3.5 w-3.5 text-chart-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">{pendingCount}</p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                <p className="dms-stat-value text-xl sm:text-2xl">{pendingCount}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Pending Arrival
                 </p>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="shrink-0 rounded-lg bg-destructive/10 p-2 sm:p-3">
-                <AlertTriangle className="h-4 w-4 text-destructive sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="shrink-0 rounded-full bg-destructive/10 p-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">
+                <p className="dms-stat-value text-xl sm:text-2xl">
                   {(appointments || []).filter((apt) => apt.priority === 'VIP' || apt.priority === 'Urgent').length}
                 </p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">Priority</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Priority</p>
               </div>
             </CardContent>
           </Card>

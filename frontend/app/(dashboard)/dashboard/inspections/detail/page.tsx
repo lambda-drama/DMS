@@ -145,7 +145,7 @@ export default function InspectionDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{inspection.name}</h1>
+              <h1 className="dms-stat-value text-xl text-foreground">{inspection.name}</h1>
               <Badge variant={statusConfig[inspectionStatus]?.variant || "secondary"}>
                 {inspectionStatus}
               </Badge>
@@ -201,11 +201,11 @@ export default function InspectionDetailPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Gauge className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-full bg-primary/10">
+                <Gauge className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Odometer</p>
@@ -214,11 +214,11 @@ export default function InspectionDetailPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Fuel className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-full bg-primary/10">
+                <Fuel className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Fuel Level</p>
@@ -235,11 +235,11 @@ export default function InspectionDetailPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <User className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-full bg-primary/10">
+                <User className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Inspector</p>
@@ -248,11 +248,11 @@ export default function InspectionDetailPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Calendar className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-full bg-primary/10">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Inspection Date</p>

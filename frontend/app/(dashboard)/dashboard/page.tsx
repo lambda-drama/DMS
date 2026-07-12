@@ -25,6 +25,7 @@ import {
 import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
 import { useDashboard } from '@/hooks/use-dms';
+import { cn } from '@/lib/utils';
 import type { JobCardStatus } from '@/types/dms';
 
 function getAppointmentStatusColor(status: string) {
@@ -162,23 +163,33 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-w-0 space-y-4 sm:space-y-6">
+    <div className="min-w-0 space-y-3 sm:space-y-4">
+      <div className="mb-0.5">
+        <p className="section-label mb-1">Overview</p>
+        <h1 className="font-serif-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          Dashboard
+        </h1>
+      </div>
+
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="mt-3 h-9 w-16" />
-                  <Skeleton className="mt-2 h-3 w-24" />
+              <Card key={i} className="gap-0 py-0">
+                <CardContent className="px-3.5 py-3">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="mt-2 h-7 w-12" />
+                  <Skeleton className="mt-1.5 h-2.5 w-20" />
                 </CardContent>
               </Card>
             ))
           : statCards.map((stat) => (
               <Card
                 key={stat.title}
-                className={stat.onClick ? 'cursor-pointer transition-colors hover:bg-muted/40' : undefined}
+                className={cn(
+                  'gap-0 py-0',
+                  stat.onClick && 'cursor-pointer transition-colors hover:bg-muted/40'
+                )}
                 onClick={stat.onClick}
                 role={stat.onClick ? 'button' : undefined}
                 tabIndex={stat.onClick ? 0 : undefined}
@@ -193,19 +204,19 @@ export default function DashboardPage() {
                     : undefined
                 }
               >
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between gap-3">
+                <CardContent className="px-3.5 py-3">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-[13px] font-medium leading-snug text-muted-foreground sm:text-sm">
+                      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                         {stat.title}
                       </p>
-                      <p className="mt-2 text-2xl font-bold sm:text-3xl">{stat.value}</p>
-                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
+                      <p className="dms-stat-value mt-1 text-xl sm:text-2xl">{stat.value}</p>
+                      <p className="mt-0.5 text-[11px] font-normal leading-snug text-muted-foreground">
                         {stat.change}
                       </p>
                     </div>
-                    <div className={`shrink-0 rounded-lg p-2 sm:p-3 ${stat.bgColor}`}>
-                      <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
+                    <div className={`shrink-0 rounded-full p-1.5 ${stat.bgColor}`}>
+                      <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
                     </div>
                   </div>
                 </CardContent>
@@ -214,10 +225,11 @@ export default function DashboardPage() {
       </div>
 
       {brd && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="gap-2 py-3">
+          <CardHeader className="flex flex-row items-center justify-between px-3.5 py-0 pb-1">
             <div>
-              <CardTitle className="text-lg">Management KPIs (last 30 days)</CardTitle>
+              <p className="section-label mb-1">Performance</p>
+              <CardTitle className="text-base">Management KPIs (last 30 days)</CardTitle>
             </div>
             {canUseReports ? (
               <Button variant="outline" size="sm" onClick={() => navigate('reports')}>
@@ -226,26 +238,26 @@ export default function DashboardPage() {
               </Button>
             ) : null}
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Open WIP</p>
-                <p className="text-2xl font-bold">{brd.open_job_cards ?? 0}</p>
-                <p className="text-xs text-muted-foreground">{brd.overdue_promised ?? 0} overdue</p>
+          <CardContent className="px-3.5 pt-0">
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-border/80 px-3 py-2.5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Open WIP</p>
+                <p className="dms-stat-value mt-0.5 text-xl">{brd.open_job_cards ?? 0}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{brd.overdue_promised ?? 0} overdue</p>
               </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground flex items-center gap-1"> Net revenue</p>
-                <p className="text-2xl font-bold">{formatMoney(brd.net_revenue ?? 0, brd.revenue_currency)}</p>
+              <div className="rounded-xl border border-border/80 px-3 py-2.5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Net revenue</p>
+                <p className="dms-stat-value mt-0.5 text-xl">{formatMoney(brd.net_revenue ?? 0, brd.revenue_currency)}</p>
               </div>
-                            <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Appointment arrival</p>
-                <p className="text-2xl font-bold">{brd.appointment_arrival_rate ?? 0}%</p>
-                <p className="text-xs text-muted-foreground">{brd.warranty_jobs ?? 0} warranty jobs</p>
+              <div className="rounded-xl border border-border/80 px-3 py-2.5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Appointment arrival</p>
+                <p className="dms-stat-value mt-0.5 text-xl">{brd.appointment_arrival_rate ?? 0}%</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{brd.warranty_jobs ?? 0} warranty jobs</p>
               </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">QC fail rate</p>
-                <p className="text-2xl font-bold">{brd.qc_fail_rate_pct ?? 0}%</p>
-                <p className="text-xs text-muted-foreground">Parts fill {brd.parts_fill_rate_pct ?? 0}%</p>
+              <div className="rounded-xl border border-border/80 px-3 py-2.5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">QC fail rate</p>
+                <p className="dms-stat-value mt-0.5 text-xl">{brd.qc_fail_rate_pct ?? 0}%</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Parts fill {brd.parts_fill_rate_pct ?? 0}%</p>
               </div>
             </div>
           </CardContent>
@@ -253,13 +265,14 @@ export default function DashboardPage() {
       )}
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         {/* Active Job Cards */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <Card className="gap-2 py-3 lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between px-3.5 py-0 pb-1">
             <div>
-              <CardTitle className="text-lg">Active Job Cards</CardTitle>
-              <CardDescription>Currently in progress</CardDescription>
+              <p className="section-label mb-1">Workshop</p>
+              <CardTitle className="text-base">Active Job Cards</CardTitle>
+              <CardDescription className="text-xs">Currently in progress</CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -270,32 +283,32 @@ export default function DashboardPage() {
               View all <ArrowRight className="h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3.5 pt-0">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : activeJobs.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
+              <p className="py-6 text-center text-sm text-muted-foreground">
                 No active job cards. Create one from an inspection or appointment.
               </p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {activeJobs.map((job) => (
                   <div
                     key={job.id}
-                    className="flex flex-col gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-2 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <Wrench className="h-5 w-5 text-primary" />
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Wrench className="h-4 w-4 text-primary" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
                             onClick={() => navigate('job-card-detail', { id: job.id })}
-                            className="font-medium hover:text-primary"
+                            className="text-[13px] font-medium tracking-tight hover:text-primary"
                           >
                             {job.id}
                           </button>
@@ -303,15 +316,15 @@ export default function DashboardPage() {
                             {job.priority}
                           </Badge>
                         </div>
-                        <p className="truncate text-sm text-muted-foreground">
+                        <p className="truncate text-xs text-muted-foreground">
                           {[job.customer, job.vehicle].filter(Boolean).join(' · ') || '—'}
                         </p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-4">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
                       <StatusBadge status={job.status as JobCardStatus} />
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Timer className="h-4 w-4" />
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Timer className="h-3.5 w-3.5" />
                         {job.eta}
                       </div>
                     </div>
@@ -323,11 +336,12 @@ export default function DashboardPage() {
         </Card>
 
         {/* Today's Appointments */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <Card className="gap-2 py-3">
+          <CardHeader className="flex flex-row items-center justify-between px-3.5 py-0 pb-1">
             <div>
-              <CardTitle className="text-lg">Today&apos;s Schedule</CardTitle>
-              <CardDescription>Upcoming appointments</CardDescription>
+              <p className="section-label mb-1">Schedule</p>
+              <CardTitle className="text-base">Today&apos;s Schedule</CardTitle>
+              <CardDescription className="text-xs">Upcoming appointments</CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -338,35 +352,35 @@ export default function DashboardPage() {
               View all <ArrowRight className="h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3.5 pt-0">
             {isLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                  <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
             ) : todayAppointments.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
+              <p className="py-6 text-center text-sm text-muted-foreground">
                 No appointments scheduled for today.
               </p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 {todayAppointments.map((apt, i) => (
-                  <div key={apt.id} className="flex gap-4">
+                  <div key={apt.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-8 min-w-16 items-center justify-center rounded bg-muted px-1 text-xs font-medium">
+                      <div className="flex h-7 min-w-14 items-center justify-center rounded-md bg-muted px-1 text-[11px] font-medium tracking-tight">
                         {apt.time || '—'}
                       </div>
                       {i < todayAppointments.length - 1 && (
-                        <div className="mt-2 h-full w-px bg-border" />
+                        <div className="mt-1.5 h-full w-px bg-border" />
                       )}
                     </div>
-                    <div className="flex-1 pb-4">
+                    <div className="flex-1 pb-2">
                       <div className="flex items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={() => navigate('appointment-detail', { id: apt.id })}
-                          className="font-medium hover:text-primary"
+                          className="text-[13px] font-medium tracking-tight hover:text-primary"
                         >
                           {apt.customer || 'Customer'}
                         </button>
@@ -374,8 +388,8 @@ export default function DashboardPage() {
                           {apt.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{apt.vehicle || '—'}</p>
-                      <p className="text-xs text-muted-foreground">{apt.service}</p>
+                      <p className="text-xs text-muted-foreground">{apt.vehicle || '—'}</p>
+                      <p className="text-[11px] text-muted-foreground">{apt.service}</p>
                     </div>
                   </div>
                 ))}
@@ -386,45 +400,46 @@ export default function DashboardPage() {
       </div>
 
       {/* Bay Occupancy */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="gap-2 py-3">
+        <CardHeader className="px-3.5 py-0 pb-1">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <CardTitle className="text-lg">Service Bay Status</CardTitle>
+              <p className="section-label mb-1">Floor</p>
+              <CardTitle className="text-base">Service Bay Status</CardTitle>
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:gap-x-4 sm:text-sm">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
               <div className="flex shrink-0 items-center gap-1.5">
-                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-chart-3 sm:h-3 sm:w-3" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-chart-3" />
                 <span className="whitespace-nowrap text-muted-foreground">Available</span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-chart-1 sm:h-3 sm:w-3" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-chart-1" />
                 <span className="whitespace-nowrap text-muted-foreground">Occupied</span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-destructive sm:h-3 sm:w-3" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-destructive" />
                 <span className="whitespace-nowrap text-muted-foreground">Maintenance</span>
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3.5 pt-0">
           {isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-28 w-full" />
+                <Skeleton key={i} className="h-20 w-full" />
               ))}
             </div>
           ) : serviceBays.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               No service bays configured. Add bays in ERPNext.
             </p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {serviceBays.map((bay) => (
                 <div
                   key={bay.id}
-                  className={`rounded-lg border p-4 ${
+                  className={`rounded-xl border px-3 py-2.5 ${
                     bay.status === 'available'
                       ? 'border-chart-3/30 bg-chart-3/5'
                       : bay.status === 'maintenance'
@@ -433,23 +448,23 @@ export default function DashboardPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{bay.bay}</span>
+                    <span className="text-[13px] font-medium tracking-tight">{bay.bay}</span>
                     {bay.status === 'occupied' ? (
-                      <Clock className="h-4 w-4 text-chart-1" />
+                      <Clock className="h-3.5 w-3.5 text-chart-1" />
                     ) : bay.status === 'maintenance' ? (
-                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
                     ) : (
-                      <CheckCircle2 className="h-4 w-4 text-chart-3" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-chart-3" />
                     )}
                   </div>
                   {bay.vehicle ? (
                     <>
-                      <p className="mt-2 truncate text-sm text-muted-foreground">{bay.vehicle}</p>
-                      <Progress value={bay.progress} className="mt-2 h-1.5" />
-                      <p className="mt-1 text-xs text-muted-foreground">{bay.progress}% complete</p>
+                      <p className="mt-1.5 truncate text-xs text-muted-foreground">{bay.vehicle}</p>
+                      <Progress value={bay.progress} className="mt-1.5 h-1" />
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{bay.progress}% complete</p>
                     </>
                   ) : (
-                    <p className="mt-2 truncate text-sm capitalize text-muted-foreground">
+                    <p className="mt-1.5 truncate text-xs capitalize text-muted-foreground">
                       {bay.erp_status || bay.status}
                     </p>
                   )}
@@ -461,40 +476,43 @@ export default function DashboardPage() {
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
         {canCreate('appointments') && (
-          <Button className="h-auto flex-col gap-2 p-6" onClick={() => navigate('appointment-new')}>
-            <Calendar className="h-6 w-6" />
+          <Button
+            className="h-auto rounded-xl flex-col gap-1.5 px-4 py-3.5 text-[13px] font-medium tracking-tight"
+            onClick={() => navigate('appointment-new')}
+          >
+            <Calendar className="h-5 w-5" />
             <span>New Appointment</span>
           </Button>
         )}
         {canCreate('inspections') && (
           <Button
             variant="outline"
-            className="h-auto flex-col gap-2 p-6"
+            className="h-auto rounded-xl flex-col gap-1.5 px-4 py-3.5 text-[13px] font-medium tracking-tight"
             onClick={() => navigate('inspection-new')}
           >
-            <Users className="h-6 w-6" />
+            <Users className="h-5 w-5" />
             <span>Walk-in Inspection</span>
           </Button>
         )}
         {canAccessView('job-cards') && (
           <Button
             variant="outline"
-            className="h-auto flex-col gap-2 p-6"
+            className="h-auto rounded-xl flex-col gap-1.5 px-4 py-3.5 text-[13px] font-medium tracking-tight"
             onClick={() => navigate('job-cards')}
           >
-            <Wrench className="h-6 w-6" />
+            <Wrench className="h-5 w-5" />
             <span>View Job Cards</span>
           </Button>
         )}
         {canAccessView('deliveries') && (
           <Button
             variant="outline"
-            className="h-auto flex-col gap-2 p-6"
+            className="h-auto rounded-xl flex-col gap-1.5 px-4 py-3.5 text-[13px] font-medium tracking-tight"
             onClick={() => navigate('deliveries')}
           >
-            <TrendingUp className="h-6 w-6" />
+            <TrendingUp className="h-5 w-5" />
             <span>Pending Deliveries</span>
           </Button>
         )}

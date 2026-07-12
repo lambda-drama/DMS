@@ -1,20 +1,26 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Geist_Mono } from 'next/font/google'
+import { Inter, Geist_Mono, Source_Serif_4 } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { APP_SHORT_NAME, APP_TITLE } from '@/lib/branding'
 import './globals.css'
 
-const inter = Inter({ 
-  subsets: ["latin"],
+const inter = Inter({
+  subsets: ['latin'],
   variable: '--font-inter',
-});
+})
 
-const geistMono = Geist_Mono({ 
-  subsets: ["latin"],
+const sourceSerif = Source_Serif_4({
+  subsets: ['latin'],
+  variable: '--font-serif-display',
+  weight: ['400', '600', '700'],
+})
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
   variable: '--font-geist-mono',
-});
+})
 
 export const metadata: Metadata = {
   title: `${APP_TITLE} - Dealer Management System`,
@@ -37,7 +43,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable} bg-background`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} ${sourceSerif.variable} ${geistMono.variable} bg-background`}
+      suppressHydrationWarning
+    >
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"

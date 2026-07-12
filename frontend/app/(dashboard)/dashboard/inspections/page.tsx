@@ -337,8 +337,8 @@ export default function InspectionsPage() {
                   <TableRow key={insp.name}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <ClipboardCheck className="h-5 w-5 text-primary" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
                         </div>
                         <div>
                           <button
@@ -387,7 +387,7 @@ export default function InspectionsPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                           {insp.customer_complaints?.length || 0} issues found
                         </p>
                       </div>
@@ -506,55 +506,55 @@ export default function InspectionsPage() {
             showMobileStats ? 'grid' : 'hidden md:grid',
           )}
         >
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="rounded-lg bg-primary/10 p-2 sm:p-3">
-                <ClipboardCheck className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="rounded-full bg-primary/10 p-1.5">
+                <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">{todayCount}</p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                <p className="dms-stat-value text-xl sm:text-2xl">{todayCount}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Today&apos;s Inspections
                 </p>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="rounded-lg bg-chart-4/10 p-2 sm:p-3">
-                <Clock className="h-4 w-4 text-chart-4 sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="rounded-full bg-chart-4/10 p-1.5">
+                <Clock className="h-3.5 w-3.5 text-chart-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">{pendingCount}</p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                <p className="dms-stat-value text-xl sm:text-2xl">{pendingCount}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Pending Submission
                 </p>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="rounded-lg bg-destructive/10 p-2 sm:p-3">
-                <AlertCircle className="h-4 w-4 text-destructive sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="rounded-full bg-destructive/10 p-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">{issuesCount}</p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                <p className="dms-stat-value text-xl sm:text-2xl">{issuesCount}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Issues Found
                 </p>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-              <div className="rounded-lg bg-chart-3/10 p-2 sm:p-3">
-                <CheckCircle2 className="h-4 w-4 text-chart-3 sm:h-5 sm:w-5" />
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="rounded-full bg-chart-3/10 p-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-chart-3" />
               </div>
               <div className="min-w-0">
-                <p className="text-xl font-bold sm:text-2xl">
+                <p className="dms-stat-value text-xl sm:text-2xl">
                   {inspections.filter((insp) => insp.job_card).length}
                 </p>
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Job Cards Created
                 </p>
               </div>

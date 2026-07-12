@@ -123,7 +123,7 @@ export default function VehiclesPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Vehicles</h1>
+          <h1 className="dms-stat-value text-xl tracking-tight">Vehicles</h1>
           <p
             className={
               customerFromUrl
@@ -145,54 +145,54 @@ export default function VehiclesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary/10 p-2.5">
-                <Car className="h-5 w-5 text-primary" />
+              <div className="rounded-full bg-primary/10 p-1.5">
+                <Car className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total Vehicles</p>
+                <p className="dms-stat-value text-xl">{stats.total}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Total Vehicles</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-2.5 dark:bg-blue-900/30">
-                <Car className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="rounded-full bg-blue-100 p-1.5 dark:bg-blue-900/30">
+                <Car className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.inStock}</p>
-                <p className="text-xs text-muted-foreground">In Stock</p>
+                <p className="dms-stat-value text-xl">{stats.inStock}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">In Stock</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-100 p-2.5 dark:bg-green-900/30">
-                <Car className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="rounded-full bg-green-100 p-1.5 dark:bg-green-900/30">
+                <Car className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.delivered}</p>
-                <p className="text-xs text-muted-foreground">Delivered</p>
+                <p className="dms-stat-value text-xl">{stats.delivered}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Delivered</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-amber-100 p-2.5 dark:bg-amber-900/30">
-                <Car className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="rounded-full bg-amber-100 p-1.5 dark:bg-amber-900/30">
+                <Car className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.inService}</p>
-                <p className="text-xs text-muted-foreground">In Service</p>
+                <p className="dms-stat-value text-xl">{stats.inService}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">In Service</p>
               </div>
             </div>
           </CardContent>
@@ -200,8 +200,8 @@ export default function VehiclesPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="dms-toolbar-card">
+        <CardContent className="px-3.5 py-3">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

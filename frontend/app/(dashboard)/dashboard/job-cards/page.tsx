@@ -513,47 +513,47 @@ export default function JobCardsPage() {
             showMobileStats ? "grid" : "hidden md:grid",
           )}
         >
-          <Card>
-            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center justify-between px-3.5 py-3">
               <div className="min-w-0">
-                <p className="text-[13px] text-muted-foreground sm:text-sm">Total Jobs</p>
-                <p className="text-xl font-bold sm:text-2xl">{stats.total}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Total Jobs</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{stats.total}</p>
               </div>
-              <div className="rounded-lg bg-primary/10 p-2 sm:p-2">
-                <FileText className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+              <div className="rounded-full bg-primary/10 p-2 sm:p-2">
+                <FileText className="h-3.5 w-3.5 text-primary" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center justify-between px-3.5 py-3">
               <div className="min-w-0">
-                <p className="text-[13px] text-muted-foreground sm:text-sm">Open</p>
-                <p className="text-xl font-bold sm:text-2xl">{stats.open}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Open</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{stats.open}</p>
               </div>
-              <div className="rounded-lg bg-[#1E88E5]/10 p-2 sm:p-2">
-                <Clock className="h-4 w-4 text-[#1E88E5] sm:h-5 sm:w-5" />
+              <div className="rounded-full bg-[#1E88E5]/10 p-2 sm:p-2">
+                <Clock className="h-3.5 w-3.5 text-[#1E88E5]" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center justify-between px-3.5 py-3">
               <div className="min-w-0">
-                <p className="text-[13px] text-muted-foreground sm:text-sm">In Progress</p>
-                <p className="text-xl font-bold sm:text-2xl">{stats.inProgress}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">In Progress</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{stats.inProgress}</p>
               </div>
-              <div className="rounded-lg bg-[#F9A825]/10 p-2 sm:p-2">
-                <Wrench className="h-4 w-4 text-[#F9A825] sm:h-5 sm:w-5" />
+              <div className="rounded-full bg-[#F9A825]/10 p-2 sm:p-2">
+                <Wrench className="h-3.5 w-3.5 text-[#F9A825]" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+          <Card className="dms-kpi-card">
+            <CardContent className="flex items-center justify-between px-3.5 py-3">
               <div className="min-w-0">
-                <p className="text-[13px] text-muted-foreground sm:text-sm">Completed</p>
-                <p className="text-xl font-bold sm:text-2xl">{stats.completed}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Completed</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{stats.completed}</p>
               </div>
-              <div className="rounded-lg bg-[#2E7D32]/10 p-2 sm:p-2">
-                <CheckCircle2 className="h-4 w-4 text-[#2E7D32] sm:h-5 sm:w-5" />
+              <div className="rounded-full bg-[#2E7D32]/10 p-2 sm:p-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#2E7D32]" />
               </div>
             </CardContent>
           </Card>
