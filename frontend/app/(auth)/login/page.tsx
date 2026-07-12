@@ -41,7 +41,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center space-y-4">
           <BrandLogo size="lg" showText={false} />
           <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-secondary-foreground">
+            <h1 className="font-serif-display text-3xl font-semibold tracking-tight text-secondary-foreground">
               {APP_TITLE}
             </h1>
             <p className="mt-2 text-sm text-secondary-foreground/70">

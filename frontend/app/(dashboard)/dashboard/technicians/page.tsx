@@ -127,7 +127,7 @@ export default function TechniciansPage() {
     <div className="min-w-0 space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Technicians</h1>
+          <h1 className="dms-stat-value text-xl tracking-tight">Technicians</h1>
           <p className="text-muted-foreground">
             Availability for {formatDisplayDate(viewDate)}
             {!isViewingToday && " (not today)"}
@@ -147,62 +147,62 @@ export default function TechniciansPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary/10 p-2.5">
-                <Users className="h-5 w-5 text-primary" />
+              <div className="rounded-full bg-primary/10 p-1.5">
+                <Users className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total Active</p>
+                <p className="dms-stat-value text-xl">{stats.total}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Total Active</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-100 p-2.5 dark:bg-green-900/30">
-                <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="rounded-full bg-green-100 p-1.5 dark:bg-green-900/30">
+                <UserCheck className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.available}</p>
-                <p className="text-xs text-muted-foreground">Available</p>
+                <p className="dms-stat-value text-xl">{stats.available}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Available</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-amber-100 p-2.5 dark:bg-amber-900/30">
-                <Wrench className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="rounded-full bg-amber-100 p-1.5 dark:bg-amber-900/30">
+                <Wrench className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.busy}</p>
-                <p className="text-xs text-muted-foreground">Busy</p>
+                <p className="dms-stat-value text-xl">{stats.busy}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Busy</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-destructive/10 p-2.5">
-                <UserX className="h-5 w-5 text-destructive" />
+              <div className="rounded-full bg-destructive/10 p-1.5">
+                <UserX className="h-3.5 w-3.5 text-destructive" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.unavailable}</p>
-                <p className="text-xs text-muted-foreground">Not Available</p>
+                <p className="dms-stat-value text-xl">{stats.unavailable}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Not Available</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardContent className="p-4 space-y-3">
+      <Card className="dms-toolbar-card">
+        <CardContent className="space-y-3 px-3.5 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="shrink-0 text-sm font-medium">View date</span>
@@ -284,7 +284,7 @@ export default function TechniciansPage() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : error ? (
-        <Card>
+        <Card className="dms-kpi-card">
           <CardContent className="flex items-center justify-center py-12">
             <p className="text-destructive">Failed to load technicians</p>
           </CardContent>

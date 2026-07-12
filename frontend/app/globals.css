@@ -41,6 +41,9 @@
   --dms-green: #2E7D32;
   --dms-green-light: #E8F5E9;
   --dms-green-medium: #43A047;
+  /* Brand gold (secondary accent — active chrome, highlights) */
+  --dms-gold: #C5A028;
+  --dms-gold-soft: rgba(197, 160, 40, 0.15);
   --radius: 0.5rem;
   /* Sidebar */
   --sidebar: #0F3D5E;
@@ -87,6 +90,8 @@
   --dms-green: #43A047;
   --dms-green-light: #1B3D1E;
   --dms-green-medium: #66BB6A;
+  --dms-gold: #D4AF37;
+  --dms-gold-soft: rgba(212, 175, 55, 0.18);
   --sidebar: #081E2D;
   --sidebar-foreground: #F5F7FA;
   --sidebar-primary: #1E88E5;
@@ -98,8 +103,9 @@
 }
 
 @theme inline {
-  --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif-display), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -145,6 +151,8 @@
   --color-dms-green: var(--dms-green);
   --color-dms-green-light: var(--dms-green-light);
   --color-dms-green-medium: var(--dms-green-medium);
+  --color-dms-gold: var(--dms-gold);
+  --color-dms-gold-soft: var(--dms-gold-soft);
 }
 
 @layer base {
@@ -158,8 +166,17 @@
   }
   body {
     @apply bg-background text-foreground overflow-x-hidden;
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    letter-spacing: -0.011em;
     height: 100%;
     overflow: hidden;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
   }
 
   /* Pointer on interactive controls so hover clearly signals clickability */
@@ -202,6 +219,28 @@
 }
 
 @layer utilities {
+  .font-serif-display {
+    font-family: var(--font-serif);
+  }
+  .section-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .dms-stat-value {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .dms-kpi-card {
+    @apply gap-0 py-0;
+  }
+  .dms-toolbar-card {
+    @apply gap-0 py-0;
+  }
   /* Horizontal scroll for wide tables on small screens */
   .dms-table-panel {
     @apply -mx-3 w-[calc(100%+1.5rem)] overflow-x-auto overscroll-x-contain px-3 sm:mx-0 sm:w-full sm:px-0;

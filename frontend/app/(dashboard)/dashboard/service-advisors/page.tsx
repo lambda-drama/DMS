@@ -75,7 +75,7 @@ export default function ServiceAdvisorsPage() {
     <div className="min-w-0 space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Service Advisors</h1>
+          <h1 className="dms-stat-value text-xl tracking-tight">Service Advisors</h1>
           <p className="mt-1 hidden text-muted-foreground sm:block">
             Manage advisors assigned to appointments and job cards
           </p>
@@ -87,15 +87,15 @@ export default function ServiceAdvisorsPage() {
         />
       </div>
 
-      <Card>
-        <CardContent className="p-4">
+      <Card className="dms-kpi-card">
+        <CardContent className="px-3.5 py-3">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2.5">
-              <Users className="h-5 w-5 text-primary" />
+            <div className="rounded-full bg-primary/10 p-1.5">
+              <Users className="h-3.5 w-3.5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{advisors?.length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="dms-stat-value text-xl">{advisors?.length ?? 0}</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                 {activeCount} active
                 {statusFilter !== "all" ? ` · filter: ${statusFilter}` : ""}
               </p>
@@ -104,8 +104,8 @@ export default function ServiceAdvisorsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 space-y-3">
+      <Card className="dms-toolbar-card">
+        <CardContent className="space-y-3 px-3.5 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

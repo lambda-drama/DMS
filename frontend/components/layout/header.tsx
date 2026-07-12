@@ -75,7 +75,9 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <BrandLogo size="sm" showText={false} className="shrink-0 lg:hidden" imageClassName="h-8 w-8" />
 
-        <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{title}</h1>
+        <h1 className="font-serif-display truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
+          {title}
+        </h1>
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-3">

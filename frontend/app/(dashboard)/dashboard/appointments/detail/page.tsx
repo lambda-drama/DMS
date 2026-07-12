@@ -189,7 +189,7 @@ export default function AppointmentDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="h-5 w-5 text-primary" />
+                <User className="h-3.5 w-3.5 text-primary" />
                 Customer & Vehicle
               </CardTitle>
             </CardHeader>
@@ -200,7 +200,7 @@ export default function AppointmentDetailPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <User className="h-5 w-5 text-primary" />
+                        <User className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <div>
                         <p className="font-medium">{appointment.customer_name}</p>
@@ -227,7 +227,7 @@ export default function AppointmentDetailPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Car className="h-5 w-5 text-primary" />
+                        <Car className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <div>
                         <p className="font-medium">{appointment.vehicle}</p>
@@ -261,7 +261,7 @@ export default function AppointmentDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Wrench className="h-5 w-5 text-primary" />
+                <Wrench className="h-3.5 w-3.5 text-primary" />
                 Service Details
               </CardTitle>
             </CardHeader>
@@ -306,7 +306,7 @@ export default function AppointmentDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="h-5 w-5 text-primary" />
+                <FileText className="h-3.5 w-3.5 text-primary" />
                 Linked Documents
               </CardTitle>
             </CardHeader>

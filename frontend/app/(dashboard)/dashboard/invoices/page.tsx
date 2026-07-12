@@ -179,55 +179,71 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Invoiced</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.total, defaultCurrency)}</p>
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        <Card className="gap-0 py-0">
+          <CardContent className="px-3.5 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  Total Invoiced
+                </p>
+                <p className="dms-stat-value mt-1 text-xl sm:text-2xl">
+                  {formatCurrency(stats.total, defaultCurrency)}
+                </p>
               </div>
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Collected</p>
-                <p className="text-2xl font-bold text-[#2E7D32]">{formatCurrency(stats.paid, defaultCurrency)}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-[#2E7D32]/10">
-                <CheckCircle2 className="h-5 w-5 text-[#2E7D32]" />
+              <div className="shrink-0 rounded-full bg-primary/10 p-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Outstanding</p>
-                <p className="text-2xl font-bold text-[#F9A825]">{formatCurrency(stats.outstanding, defaultCurrency)}</p>
+        <Card className="gap-0 py-0">
+          <CardContent className="px-3.5 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  Collected
+                </p>
+                <p className="dms-stat-value mt-1 text-xl sm:text-2xl text-[#2E7D32]">
+                  {formatCurrency(stats.paid, defaultCurrency)}
+                </p>
               </div>
-              <div className="p-2 rounded-lg bg-[#F9A825]/10">
-                <Clock className="h-5 w-5 text-[#F9A825]" />
+              <div className="shrink-0 rounded-full bg-[#2E7D32]/10 p-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#2E7D32]" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Overdue</p>
-                <p className="text-2xl font-bold text-destructive">{formatCurrency(stats.overdue, defaultCurrency)}</p>
+        <Card className="gap-0 py-0">
+          <CardContent className="px-3.5 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  Outstanding
+                </p>
+                <p className="dms-stat-value mt-1 text-xl sm:text-2xl text-[#F9A825]">
+                  {formatCurrency(stats.outstanding, defaultCurrency)}
+                </p>
               </div>
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertCircle className="h-5 w-5 text-destructive" />
+              <div className="shrink-0 rounded-full bg-[#F9A825]/10 p-1.5">
+                <Clock className="h-3.5 w-3.5 text-[#F9A825]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="gap-0 py-0">
+          <CardContent className="px-3.5 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  Overdue
+                </p>
+                <p className="dms-stat-value mt-1 text-xl sm:text-2xl text-destructive">
+                  {formatCurrency(stats.overdue, defaultCurrency)}
+                </p>
+              </div>
+              <div className="shrink-0 rounded-full bg-destructive/10 p-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
               </div>
             </div>
           </CardContent>
@@ -235,8 +251,8 @@ export default function InvoicesPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="dms-toolbar-card">
+        <CardContent className="px-3.5 py-3">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -206,8 +206,8 @@ export default function TechnicianDetailPage() {
       </Button>
 
       {/* Profile Header */}
-      <Card>
-        <CardContent className="p-6">
+      <Card className="dms-kpi-card">
+        <CardContent className="px-3.5 py-3">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
             <Avatar className="h-20 w-20">
               {tech.profile_photo && (
@@ -220,7 +220,7 @@ export default function TechnicianDetailPage() {
             <div className="flex-1">
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold">{tech.full_name}</h1>
+                  <h1 className="dms-stat-value text-xl">{tech.full_name}</h1>
                   <p className="text-sm text-muted-foreground">{tech.name}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge
@@ -416,64 +416,64 @@ export default function TechnicianDetailPage() {
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardContent className="p-4">
+            <Card className="dms-kpi-card">
+              <CardContent className="px-3.5 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-blue-100 p-2.5 dark:bg-blue-900/30">
-                    <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="rounded-full bg-blue-100 p-1.5 dark:bg-blue-900/30">
+                    <TrendingUp className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
+                    <p className="dms-stat-value text-xl">
                       {tech.efficiency_rating != null ? `${Math.round(tech.efficiency_rating)}%` : "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground">Efficiency</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Efficiency</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className="dms-kpi-card">
+              <CardContent className="px-3.5 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-green-100 p-2.5 dark:bg-green-900/30">
-                    <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div className="rounded-full bg-green-100 p-1.5 dark:bg-green-900/30">
+                    <Target className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
+                    <p className="dms-stat-value text-xl">
                       {tech.productivity_score != null ? tech.productivity_score.toFixed(1) : "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground">Productivity</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Productivity</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className="dms-kpi-card">
+              <CardContent className="px-3.5 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-amber-100 p-2.5 dark:bg-amber-900/30">
-                    <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  <div className="rounded-full bg-amber-100 p-1.5 dark:bg-amber-900/30">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
+                    <p className="dms-stat-value text-xl">
                       {tech.first_time_fix_rate != null ? `${Math.round(tech.first_time_fix_rate)}%` : "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground">First-Time Fix</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">First-Time Fix</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className="dms-kpi-card">
+              <CardContent className="px-3.5 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-purple-100 p-2.5 dark:bg-purple-900/30">
-                    <Star className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="rounded-full bg-purple-100 p-1.5 dark:bg-purple-900/30">
+                    <Star className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
+                    <p className="dms-stat-value text-xl">
                       {tech.customer_satisfaction_score != null
                         ? tech.customer_satisfaction_score.toFixed(1)
                         : "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground">Satisfaction (out of 5)</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Satisfaction (out of 5)</p>
                   </div>
                 </div>
               </CardContent>
@@ -635,7 +635,7 @@ export default function TechnicianDetailPage() {
                           <div>
                             <p className="font-medium text-sm">{c.certification_name}</p>
                             {c.issuing_authority && (
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                                 {c.issuing_authority}
                               </p>
                             )}

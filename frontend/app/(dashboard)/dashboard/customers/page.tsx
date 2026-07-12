@@ -66,50 +66,50 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Customers</h1>
+          <h1 className="dms-stat-value text-xl tracking-tight">Customers</h1>
           <p className="text-muted-foreground">Vehicle customers managed in DMS</p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        <Card>
-          <CardContent className="p-3 sm:p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="order-1 w-fit rounded-lg bg-primary/10 p-2 sm:p-2.5 sm:order-2">
-                <Users className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+              <div className="order-1 w-fit rounded-full bg-primary/10 p-1.5 sm:order-2">
+                <Users className="h-3.5 w-3.5 text-primary" />
               </div>
               <div className="order-2 min-w-0 sm:order-1">
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-xs">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Total Customers
                 </p>
-                <p className="text-xl font-bold sm:text-2xl">{stats.total}</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{stats.total}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="order-1 w-fit rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30 sm:p-2.5 sm:order-2">
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 sm:h-5 sm:w-5" />
+              <div className="order-1 w-fit rounded-full bg-blue-100 p-2 dark:bg-blue-900/30 sm:p-1.5 sm:order-2">
+                <Users className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="order-2 min-w-0 sm:order-1">
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-xs">Individual</p>
-                <p className="text-xl font-bold sm:text-2xl">{stats.individual}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Individual</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{stats.individual}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
+        <Card className="dms-kpi-card">
+          <CardContent className="px-3.5 py-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="order-1 w-fit rounded-lg bg-purple-100 p-2 dark:bg-purple-900/30 sm:p-2.5 sm:order-2">
-                <Users className="h-4 w-4 text-purple-600 dark:text-purple-400 sm:h-5 sm:w-5" />
+              <div className="order-1 w-fit rounded-full bg-purple-100 p-2 dark:bg-purple-900/30 sm:p-1.5 sm:order-2">
+                <Users className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="order-2 min-w-0 sm:order-1">
-                <p className="text-[13px] leading-snug text-muted-foreground sm:text-xs">Company</p>
-                <p className="text-xl font-bold sm:text-2xl">{stats.company}</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Company</p>
+                <p className="dms-stat-value text-xl sm:text-2xl">{stats.company}</p>
               </div>
             </div>
           </CardContent>
@@ -117,8 +117,8 @@ export default function CustomersPage() {
       </div>
 
       {/* Search */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="dms-toolbar-card">
+        <CardContent className="px-3.5 py-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
