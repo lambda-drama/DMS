@@ -47,6 +47,8 @@ import * as vehiclesSvc from "@/services/vehicles";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
 import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
+import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
+import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import {
   buildGroupDiscountPayload,
   groupDiscountAmount,
@@ -104,6 +106,10 @@ export default function NewInvoicePage() {
   const [serviceItemSearch, setServiceItemSearch] = useState("");
   const [sparePartSearch, setSparePartSearch] = useState("");
   const [vehicleModelFilter, setVehicleModelFilter] = useState("");
+  
+  // Create dialogs state
+  const [showCreateSparePartDialog, setShowCreateSparePartDialog] = useState(false);
+  const [showCreateServiceItemDialog, setShowCreateServiceItemDialog] = useState(false);
 
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
@@ -659,6 +665,8 @@ export default function NewInvoicePage() {
                   onSearchChange={setServiceItemSearch}
                   placeholder="Search labour items..."
                   isLoading={serviceItemsLoading}
+                  onCreateNew={() => setShowCreateServiceItemDialog(true)}
+                  createNewLabel="New Service Item"
                 />
               </div>
               <div className="col-span-2 space-y-1">
@@ -743,6 +751,8 @@ export default function NewInvoicePage() {
                   onSearchChange={setSparePartSearch}
                   placeholder="Search parts..."
                   isLoading={sparePartsLoading}
+                  onCreateNew={() => setShowCreateSparePartDialog(true)}
+                  createNewLabel="New Spare Part"
                 />
               </div>
               <div className="col-span-2 space-y-1">
@@ -871,6 +881,33 @@ export default function NewInvoicePage() {
           </Button>
         </FormActionsBar>
       </form>
+
+      {/* Create dialogs */}
+      <CreateSparePartDialog
+        open={showCreateSparePartDialog}
+        onOpenChange={setShowCreateSparePartDialog}
+        onCreated={(itemCode, itemName) => {
+          setNewPart((prev) => ({
+            ...prev,
+            item_code: itemCode,
+            item_name: itemName,
+          }));
+          setSparePartSearch(itemCode);
+          toast.success(`Spare part ${itemName} created and selected.`);
+        }}
+      />
+      <CreateServiceItemDialog
+        open={showCreateServiceItemDialog}
+        onOpenChange={setShowCreateServiceItemDialog}
+        onCreated={(serviceItemName) => {
+          setNewLabour((prev) => ({
+            ...prev,
+            vehicle_service_item: serviceItemName,
+          }));
+          setServiceItemSearch(serviceItemName);
+          toast.success(`Service item created and selected.`);
+        }}
+      />
     </div>
   );
 }

@@ -145,7 +145,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Vehicle ERPNext(Item)",
+   "label": "Vehicle ERP Item()",
    "options": "Item",
    "reqd": 1
   },

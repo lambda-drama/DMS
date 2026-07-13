@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
-import { useCustomers, useVehicleItems, useColors, useCompanies, useAutofillSingleCompany, useAutofillDefaultCustomer, useDmsCustomerDefaults } from "@/hooks/use-dms";
+import { useCustomers, useVehicleItems, useVehicleModels, useColors, useCompanies, useAutofillSingleCompany, useAutofillDefaultCustomer, useDmsCustomerDefaults } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, customerMetaFromDefaults, resolveCustomerFieldChange } from "@/lib/customer-default";
 import * as vehiclesSvc from "@/services/vehicles";
 import { SearchableSelect } from "@/components/searchable-select";
@@ -65,12 +65,14 @@ export default function NewVehiclePage() {
   };
   const [saving, setSaving] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
+  const [modelSearch, setModelSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [exteriorColorSearch, setExteriorColorSearch] = useState("");
   const [interiorColorSearch, setInteriorColorSearch] = useState("");
   const [companySearch, setCompanySearch] = useState("");
 
   const { data: vehicleItems } = useVehicleItems(itemSearch);
+  const { data: vehicleModels, isLoading: vehicleModelsLoading } = useVehicleModels(modelSearch);
   const { data: customers } = useCustomers(customerSearch);
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
@@ -89,6 +91,7 @@ export default function NewVehiclePage() {
     engine_number: "",
     plate_number: "",
     linked_item: "",
+    model: "",
     brand: "",
     model_variant: "",
     model_year: "",
@@ -137,7 +140,7 @@ export default function NewVehiclePage() {
       return;
     }
     if (!form.linked_item) {
-      toast({ title: "Vehicle model (Item) is required", variant: "destructive" });
+      toast({ title: "Vehicle ERP Item is required", variant: "destructive" });
       return;
     }
     if (!form.company) {
@@ -153,6 +156,7 @@ export default function NewVehiclePage() {
         engine_number: form.engine_number || undefined,
         plate_number: form.plate_number || undefined,
         linked_item: form.linked_item,
+        model: form.model || undefined,
         brand: form.brand || undefined,
         model_variant: form.model_variant || undefined,
         model_year: form.model_year ? parseInt(form.model_year) : undefined,
@@ -250,19 +254,19 @@ export default function NewVehiclePage() {
             </div>
             <div className="space-y-2">
               <Label>
-                Vehicle Model (Item) <span className="text-destructive">*</span>
+                Vehicle ERP Item() <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={form.linked_item}
                 onValueChange={(v) => update("linked_item", v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select vehicle model" />
+                  <SelectValue placeholder="Select ERP item" />
                 </SelectTrigger>
                 <SelectContent>
                   <div className="p-2">
                     <Input
-                      placeholder="Search models..."
+                      placeholder="Search items..."
                       value={itemSearch}
                       onChange={(e) => setItemSearch(e.target.value)}
                       className="mb-2"
@@ -276,11 +280,25 @@ export default function NewVehiclePage() {
                     ))
                   ) : (
                     <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                      No vehicle models found — adjust search or add Items in ERPNext
+                      No vehicle items found — adjust search or add Items in ERPNext
                     </div>
                   )}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Vehicle Model</Label>
+              <SearchableSelect
+                value={form.model}
+                onValueChange={(v) => update("model", v)}
+                onSearchChange={setModelSearch}
+                placeholder="Search vehicle models..."
+                isLoading={vehicleModelsLoading}
+                options={(vehicleModels || []).map((vm) => ({
+                  value: vm.name,
+                  label: `${vm.model_name || vm.name}${vm.variant ? ` ${vm.variant}` : ""}`,
+                }))}
+              />
             </div>
           </div>
         </CardContent>

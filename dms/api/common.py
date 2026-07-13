@@ -8,6 +8,18 @@ from dms.api.utils import get_dms_companies, get_dms_default_customer, get_dms_d
 _COLOR_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
 
 
+@frappe.whitelist(allow_guest=True)
+def get_csrf_token():
+	"""Return the current session CSRF token for the DMS SPA.
+
+	`frappe.sessions.get_csrf_token` is not an API-whitelisted method, so the
+	frontend cannot refresh the token after login via that path. Without a
+	fresh token, POSTs (create invoice, collect payment, etc.) fail with
+	CSRFTokenError once the page-load Guest token is stale.
+	"""
+	return frappe.sessions.get_csrf_token()
+
+
 @frappe.whitelist()
 def get_vehicle_customer_group_options():
 	"""Vehicle customer groups and DMS Settings default for quick-create."""
