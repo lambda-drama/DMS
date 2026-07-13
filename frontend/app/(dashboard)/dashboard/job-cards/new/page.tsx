@@ -74,6 +74,8 @@ import {
 import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
 import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
 import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
+import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
+import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import type { DMSJobCard, JobCardType, Priority, VINNo, VehicleWarrantySummary } from "@/types/dms";
 
 const jobCardTypes: JobCardType[] = [
@@ -193,6 +195,11 @@ export default function NewJobCardPage() {
   const [selectedServicePackage, setSelectedServicePackage] = useState("");
   const [isLoadingPackageLines, setIsLoadingPackageLines] = useState(false);
   const lastAppliedPackageRef = useRef<string | null>(null);
+  
+  // Create dialogs state
+  const [showCreateSparePartDialog, setShowCreateSparePartDialog] = useState(false);
+  const [showCreateServiceItemDialog, setShowCreateServiceItemDialog] = useState(false);
+  
   /** Keeps VIN label/details when customer changes and search results no longer include this VIN */
   const [selectedCustomer, setSelectedCustomer] = useState<{
     name: string;
@@ -1626,6 +1633,8 @@ export default function NewJobCardPage() {
                   onSearchChange={setServiceItemSearch}
                   placeholder="Search items..."
                   isLoading={serviceItemsLoading}
+                  onCreateNew={() => setShowCreateServiceItemDialog(true)}
+                  createNewLabel="New Service Item"
                 />
               </div>
               <div className="space-y-1 sm:col-span-3">
@@ -1734,6 +1743,8 @@ export default function NewJobCardPage() {
                   onSearchChange={setSparePartSearch}
                   placeholder="Search parts..."
                   isLoading={sparePartsLoading}
+                  onCreateNew={() => setShowCreateSparePartDialog(true)}
+                  createNewLabel="New Spare Part"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3 sm:contents">
@@ -1908,6 +1919,33 @@ export default function NewJobCardPage() {
           {isMutating ? "Creating..." : "Create Job Card"}
         </Button>
       </FormActionsBar>
+
+      {/* Create dialogs */}
+      <CreateSparePartDialog
+        open={showCreateSparePartDialog}
+        onOpenChange={setShowCreateSparePartDialog}
+        onCreated={(itemCode, itemName) => {
+          setNewPart((prev) => ({
+            ...prev,
+            item_code: itemCode,
+            item_name: itemName,
+          }));
+          setSparePartSearch(itemCode);
+          toast.success(`Spare part ${itemName} created and selected.`);
+        }}
+      />
+      <CreateServiceItemDialog
+        open={showCreateServiceItemDialog}
+        onOpenChange={setShowCreateServiceItemDialog}
+        onCreated={(serviceItemName) => {
+          setNewLabour((prev) => ({
+            ...prev,
+            vehicle_service_item: serviceItemName,
+          }));
+          setServiceItemSearch(serviceItemName);
+          toast.success(`Service item created and selected.`);
+        }}
+      />
     </div>
   );
 }

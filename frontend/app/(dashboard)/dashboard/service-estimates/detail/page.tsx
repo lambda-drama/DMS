@@ -75,6 +75,8 @@ import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
 import { AmountSummaryPopover } from "@/components/amount-summary-popover";
 import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
 import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
+import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
+import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import {
   buildGroupDiscountPayload,
   groupDiscountAmount,
@@ -175,6 +177,10 @@ export default function ServiceEstimateDetailPage() {
   const [acceptScheduleStart, setAcceptScheduleStart] = useState("");
   const [acceptScheduleEnd, setAcceptScheduleEnd] = useState("");
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+  
+  // Create dialogs state
+  const [showCreateSparePartDialog, setShowCreateSparePartDialog] = useState(false);
+  const [showCreateServiceItemDialog, setShowCreateServiceItemDialog] = useState(false);
   const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
   const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>("none");
   const [labourDiscountInput, setLabourDiscountInput] = useState("");
@@ -1034,6 +1040,8 @@ export default function ServiceEstimateDetailPage() {
                       onSearchChange={setServiceItemSearch}
                       placeholder="Search items..."
                       isLoading={serviceItemsLoading}
+                      onCreateNew={() => setShowCreateServiceItemDialog(true)}
+                      createNewLabel="New Service Item"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:contents">
@@ -1112,6 +1120,8 @@ export default function ServiceEstimateDetailPage() {
                       onSearchChange={setSparePartSearch}
                       placeholder="Search parts..."
                       isLoading={sparePartsLoading}
+                      onCreateNew={() => setShowCreateSparePartDialog(true)}
+                      createNewLabel="New Spare Part"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:contents">
@@ -1577,6 +1587,33 @@ export default function ServiceEstimateDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create dialogs */}
+      <CreateSparePartDialog
+        open={showCreateSparePartDialog}
+        onOpenChange={setShowCreateSparePartDialog}
+        onCreated={(itemCode, itemName) => {
+          setNewPart((prev) => ({
+            ...prev,
+            item_code: itemCode,
+            item_name: itemName,
+          }));
+          setSparePartSearch(itemCode);
+          toast.success(`Spare part ${itemName} created and selected.`);
+        }}
+      />
+      <CreateServiceItemDialog
+        open={showCreateServiceItemDialog}
+        onOpenChange={setShowCreateServiceItemDialog}
+        onCreated={(serviceItemName) => {
+          setNewLabour((prev) => ({
+            ...prev,
+            vehicle_service_item: serviceItemName,
+          }));
+          setServiceItemSearch(serviceItemName);
+          toast.success(`Service item created and selected.`);
+        }}
+      />
     </div>
   );
 }

@@ -490,24 +490,31 @@ def get_dms_warehouse_scope(company: str | None = None, warehouse: str | None = 
 	"""Warehouses used for stock display — mirrors inventory dashboard _warehouse_scope."""
 	warehouse = (warehouse or "").strip() or None
 	if warehouse:
+		frappe.logger().debug(f"Using specific warehouse: {warehouse}")
 		return [warehouse]
 
 	company = (company or "").strip() or get_default_dms_company()
+	frappe.logger().debug(f"Getting workshop warehouses for company: {company}")
 	whs = get_workshop_warehouse_names(company)
 	if whs:
+		frappe.logger().debug(f"Found {len(whs)} workshop warehouses: {whs}")
 		return whs
 
 	# Fallback when no workshop warehouses are configured for the company
+	frappe.logger().debug(f"No workshop warehouses found for company {company}, using fallback")
 	default_wh = frappe.db.get_value("Company", company, "default_warehouse")
 	if default_wh:
+		frappe.logger().debug(f"Using company default warehouse: {default_wh}")
 		return [default_wh]
 
-	return frappe.get_all(
+	fallback_whs = frappe.get_all(
 		"Warehouse",
 		filters={"is_group": 0, "disabled": 0},
 		pluck="name",
 		limit=50,
 	)
+	frappe.logger().debug(f"Using all warehouses fallback: {len(fallback_whs)} warehouses")
+	return fallback_whs
 
 
 def _bin_stock_balance(item_code: str, warehouse: str | None = None) -> float:
@@ -557,12 +564,16 @@ def get_dms_item_stock_balance(
 		if get_stock_balance:
 			try:
 				qty = flt(get_stock_balance(item_code, wh, as_on_date))
-			except Exception:
+			except Exception as e:
+				frappe.log_error(f"Error getting stock balance for {item_code} in {wh}: {str(e)}")
 				qty = _bin_stock_balance(item_code, wh)
 		else:
 			qty = _bin_stock_balance(item_code, wh)
+		if qty > 0:
+			frappe.logger().debug(f"Stock for {item_code} in {wh}: {qty}")
 		total += qty
 
+	frappe.logger().debug(f"Total stock for {item_code} across {len(warehouses)} warehouses: {total}")
 	return total
 
 
@@ -620,17 +631,23 @@ def attach_spare_part_stock_available(
 	company: str | None = None,
 ) -> None:
 	"""Set stock_available on spare part rows (mutates list in place)."""
+	frappe.logger().debug(f"Attaching stock for {len(parts)} parts, warehouse={warehouse}, company={company}")
+	
 	erp_by_part: dict[str, str] = {}
 	for part in parts:
 		erp_item = resolve_spare_part_row_erp_item(part)
 		if erp_item:
 			erp_by_part[part["name"]] = erp_item
+		else:
+			frappe.logger().debug(f"Could not resolve ERP item for spare part: {part.get('name')}")
 
 	if not erp_by_part:
+		frappe.logger().debug("No ERP items found for any spare parts, setting stock to 0")
 		for part in parts:
 			part["stock_available"] = 0.0
 		return
 
+	frappe.logger().debug(f"Resolved {len(erp_by_part)} ERP items from spare parts")
 	stock_by_erp = get_erp_items_stock_qty_batch(
 		list(erp_by_part.values()),
 		warehouse=warehouse,
@@ -639,7 +656,10 @@ def attach_spare_part_stock_available(
 
 	for part in parts:
 		erp_item = erp_by_part.get(part["name"])
-		part["stock_available"] = stock_by_erp.get(erp_item, 0.0) if erp_item else 0.0
+		stock_qty = stock_by_erp.get(erp_item, 0.0) if erp_item else 0.0
+		part["stock_available"] = stock_qty
+		if stock_qty > 0:
+			frappe.logger().debug(f"Part {part.get('name')} ({erp_item}): {stock_qty} in stock")
 
 
 def get_spare_part_names_for_vehicle(

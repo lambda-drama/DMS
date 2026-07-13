@@ -6,27 +6,54 @@
 
 let csrfFetchInFlight: Promise<string | null> | null = null;
 
+const CSRF_API = '/api/method/dms.api.common.get_csrf_token';
+
+function isUsableCsrf(token: string | null | undefined): token is string {
+  if (!token || typeof token !== 'string') return false;
+  const t = token.trim();
+  // Reject unrendered Jinja / empty placeholders from the www template.
+  if (!t || t.includes('{{') || t.includes('}}')) return false;
+  return true;
+}
+
 function readCsrfFromMeta(): string | null {
   if (typeof document === 'undefined') return null;
   const el = document.querySelector('meta[name="csrf-token"]');
   const c = el?.getAttribute('content');
-  return c && c.trim() ? c.trim() : null;
+  return isUsableCsrf(c) ? c.trim() : null;
+}
+
+function writeCsrfToMeta(token: string): void {
+  if (typeof document === 'undefined') return;
+  let el = document.querySelector('meta[name="csrf-token"]');
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute('name', 'csrf-token');
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', token);
+}
+
+function storeCsrf(token: string): void {
+  const win = typeof window !== 'undefined' ? (window as Record<string, unknown>) : null;
+  if (win) win.csrf_token = token;
+  writeCsrfToMeta(token);
 }
 
 /**
  * Resolve CSRF for session-based requests.
- * @param forceRefresh Skip window/meta cache and fetch a fresh token from the server (after CSRF failures).
+ * @param forceRefresh Skip window/meta cache and fetch a fresh token from the server (after CSRF failures / login).
  */
 export async function ensureCSRF(forceRefresh = false): Promise<string | null> {
   const win = typeof window !== 'undefined' ? (window as Record<string, unknown>) : null;
 
   if (!forceRefresh) {
-    if (win?.csrf_token && typeof win.csrf_token === 'string') {
-      return win.csrf_token as string;
+    if (isUsableCsrf(win?.csrf_token as string | undefined)) {
+      return (win!.csrf_token as string).trim();
     }
     const meta = readCsrfFromMeta();
-    if (meta && win) {
-      win.csrf_token = meta;
+    if (meta) {
+      if (win) win.csrf_token = meta;
       return meta;
     }
   }
@@ -35,15 +62,20 @@ export async function ensureCSRF(forceRefresh = false): Promise<string | null> {
 
   csrfFetchInFlight = (async () => {
     try {
-      const res = await fetch('/api/method/frappe.sessions.get_csrf_token', {
+      // GET is CSRF-exempt; dms.api.common.get_csrf_token is whitelisted
+      // (frappe.sessions.get_csrf_token is not).
+      const res = await fetch(CSRF_API, {
+        method: 'GET',
         credentials: 'include',
+        headers: { Accept: 'application/json' },
       });
       const data = await res.json().catch(() => ({}));
-      const token = data?.message || null;
-      if (token && win) {
-        win.csrf_token = token;
+      const token = data?.message ?? null;
+      if (isUsableCsrf(token)) {
+        storeCsrf(token.trim());
+        return token.trim();
       }
-      return token;
+      return null;
     } catch {
       return null;
     } finally {
@@ -57,11 +89,16 @@ export async function ensureCSRF(forceRefresh = false): Promise<string | null> {
 export function clearCSRF() {
   const win = typeof window !== 'undefined' ? (window as Record<string, unknown>) : null;
   if (win) delete win.csrf_token;
+  if (typeof document !== 'undefined') {
+    const el = document.querySelector('meta[name="csrf-token"]');
+    el?.setAttribute('content', '');
+  }
 }
 
 function getCSRF(): string | null {
   const win = typeof window !== 'undefined' ? (window as Record<string, unknown>) : null;
-  return (win?.csrf_token as string) || null;
+  const token = win?.csrf_token as string | undefined;
+  return isUsableCsrf(token) ? token.trim() : null;
 }
 
 function mergeHeaders(
