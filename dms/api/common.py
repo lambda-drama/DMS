@@ -181,6 +181,48 @@ def get_vins(customer=None, search=None, limit=20):
 
 
 @frappe.whitelist()
+def debug_spare_part_stock(spare_part_name):
+	"""Debug endpoint to check stock calculation for a specific spare part."""
+	from dms.dealer_management_system.utils.stock_operations import (
+		get_workshop_warehouses,
+		get_default_dms_company,
+		resolve_spare_part_erp_item_code,
+		get_dms_item_stock_balance,
+	)
+	
+	spare_part = frappe.get_doc("Spare Part", spare_part_name)
+	company = get_default_dms_company()
+	erp_item = resolve_spare_part_erp_item_code(spare_part_name)
+	
+	workshop_warehouses = get_workshop_warehouses(company)
+	
+	result = {
+		"spare_part": spare_part_name,
+		"erp_item": erp_item,
+		"company": company,
+		"workshop_warehouses": [wh.get("name") for wh in workshop_warehouses],
+		"stock_by_warehouse": {},
+		"total_stock": 0.0,
+	}
+	
+	if erp_item:
+		for wh_info in workshop_warehouses:
+			wh_name = wh_info.get("name")
+			if wh_name:
+				try:
+					from erpnext.stock.utils import get_stock_balance
+					qty = get_stock_balance(erp_item, wh_name)
+					result["stock_by_warehouse"][wh_name] = float(qty)
+					result["total_stock"] += float(qty)
+				except Exception as e:
+					result["stock_by_warehouse"][wh_name] = f"Error: {str(e)}"
+		
+		result["calculated_total"] = get_dms_item_stock_balance(erp_item, None, company)
+	
+	return result
+
+
+@frappe.whitelist()
 def get_vehicle_models(search=None, brand=None, limit=30):
 	"""Vehicle Model master records for dropdowns (not VIN model_name text)."""
 	filters: dict = {}
@@ -362,6 +404,7 @@ def get_spare_parts(search=None, limit=20, warehouse=None, company=None, vin=Non
 	from dms.dealer_management_system.utils.stock_operations import (
 		attach_spare_part_stock_available,
 		resolve_spare_parts_vehicle_filter,
+		get_default_dms_company,
 	)
 
 	_vehicle_model, _vehicle_brand, allowed_names = resolve_spare_parts_vehicle_filter(
@@ -421,7 +464,8 @@ def get_spare_parts(search=None, limit=20, warehouse=None, company=None, vin=Non
 	)
 
 	warehouse = (warehouse or "").strip() or None
-	company = (company or "").strip() or None
+	company = (company or "").strip() or get_default_dms_company()
+	frappe.logger().info(f"get_spare_parts: Using company={company}, warehouse={warehouse} for {len(parts)} parts")
 	attach_spare_part_stock_available(parts, warehouse, company)
 
 	return parts
