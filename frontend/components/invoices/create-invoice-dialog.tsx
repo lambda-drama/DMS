@@ -99,6 +99,7 @@ export function CreateInvoiceDialog({
   const [partsDiscountInput, setPartsDiscountInput] = useState('');
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [submitInvoice, setSubmitInvoice] = useState(true);
+  const [applyTaxes, setApplyTaxes] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
   const skipWarrantyRefetch = useRef(true);
 
@@ -175,6 +176,7 @@ export function CreateInvoiceDialog({
     setEditedRates({});
     setDueDate(defaultDueDate());
     setSubmitInvoice(true);
+    setApplyTaxes(false);
 
     invoicesSvc
       .getInvoicePreviewFromJobCard(jobCardId)
@@ -283,6 +285,7 @@ export function CreateInvoiceDialog({
       const invoiceName = await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
         dueDate: preview.has_labour ? dueDate : dueDate || undefined,
         submit: submitInvoice,
+        applyTaxes,
         warrantyApplicationType: warrantyApplicationType || undefined,
         labourDiscount: warrantyType === 'Discount' ? labourDiscount : undefined,
         partsDiscount: warrantyType === 'Discount' ? partsDiscount : undefined,
@@ -573,6 +576,23 @@ export function CreateInvoiceDialog({
               <Label htmlFor="submit-invoice" className="font-normal cursor-pointer">
                 Submit invoice after creation
               </Label>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="apply-taxes"
+                  checked={applyTaxes}
+                  onCheckedChange={(c) => setApplyTaxes(c === true)}
+                />
+                <Label htmlFor="apply-taxes" className="font-normal cursor-pointer">
+                  Include taxes / tax withholding
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground pl-6">
+                Leave unchecked to create the invoice without taxes or tax withholding. Check
+                only when the customer&apos;s tax template should apply.
+              </p>
             </div>
           </>
         ) : null}

@@ -245,6 +245,45 @@ def _apply_dms_settings_dimensions_to_sales_invoice(si, company: str):
 				tax.set(df.fieldname, val)
 
 
+def _clear_sales_invoice_taxes(si) -> None:
+	"""Remove auto-applied taxes / tax withholding so the invoice stays blank."""
+	si.taxes_and_charges = None
+	si.set("taxes", [])
+
+	if si.meta.has_field("apply_tds"):
+		si.apply_tds = 0
+	if si.meta.has_field("tax_withholding_category"):
+		si.tax_withholding_category = None
+	if si.meta.has_field("tax_withholding_group"):
+		si.tax_withholding_group = None
+	if si.meta.has_field("tax_withholding_entries"):
+		si.set("tax_withholding_entries", [])
+	if si.meta.has_field("override_tax_withholding_entries"):
+		si.override_tax_withholding_entries = 0
+
+	sii_meta = frappe.get_meta("Sales Invoice Item")
+	for item in si.get("items") or []:
+		if sii_meta.has_field("apply_tds"):
+			item.apply_tds = 0
+		if sii_meta.has_field("tax_withholding_category"):
+			item.tax_withholding_category = None
+		if sii_meta.has_field("item_tax_template"):
+			item.item_tax_template = None
+		if sii_meta.has_field("item_tax_rate"):
+			item.item_tax_rate = None
+
+	# Prevent AccountsController.validate from re-appending company/item tax templates.
+	si.set_taxes_and_charges = lambda *args, **kwargs: None
+	si.set_taxes = lambda *args, **kwargs: None
+
+
+def _apply_sales_invoice_tax_choice(si, apply_taxes: bool) -> None:
+	"""Keep party/company taxes when requested; otherwise leave taxes blank."""
+	if apply_taxes:
+		return
+	_clear_sales_invoice_taxes(si)
+
+
 def _resolve_part_warehouse(part, jc) -> str | None:
 	"""
 	Warehouse for Sales Invoice stock consumption.
@@ -285,6 +324,42 @@ def _apply_stock_item_warehouse(si_row, erp_item: str, part, jc):
 		)
 
 	si_row.warehouse = warehouse
+
+
+def _allow_zero_valuation_rate_when_missing(si) -> None:
+	"""
+	Enable Allow Zero Valuation Rate on stock items with no usable valuation
+	(Bin rate is missing/zero). Lets DMS Sales Invoices submit when COGS would
+	otherwise fail with Valuation Rate Missing.
+	"""
+	if not frappe.get_meta("Sales Invoice Item").has_field("allow_zero_valuation_rate"):
+		return
+
+	for row in si.get("items") or []:
+		item_code = (row.get("item_code") or "").strip()
+		if not item_code:
+			continue
+		if not cint(frappe.get_cached_value("Item", item_code, "is_stock_item")):
+			continue
+
+		bin_rate = 0.0
+		warehouse = (row.get("warehouse") or "").strip()
+		if warehouse:
+			bin_rate = flt(
+				frappe.db.get_value(
+					"Bin",
+					{"item_code": item_code, "warehouse": warehouse},
+					"valuation_rate",
+				)
+			)
+		item_rate = flt(frappe.get_cached_value("Item", item_code, "valuation_rate") or 0)
+		if bin_rate > 0 or item_rate > 0:
+			# Prefer existing valuation when present; still allow zero if Bin is empty/zero
+			# because ERPNext may fall back to a 0 SLE rate and throw.
+			if bin_rate > 0:
+				continue
+
+		row.allow_zero_valuation_rate = 1
 
 
 def assert_single_invoice_allowed(job_card_name: str):
@@ -472,6 +547,7 @@ def create_sales_invoice_from_dms_job_card(
 	labour_discount=None,
 	parts_discount=None,
 	rate_overrides=None,
+	apply_taxes: bool = False,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -555,10 +631,13 @@ def create_sales_invoice_from_dms_job_card(
 	si.set_missing_values()
 	# set_missing_values can reset currency from company / price list — re-apply from job card
 	_apply_sales_invoice_currency_from_job_card(si, jc)
+	_apply_sales_invoice_tax_choice(si, apply_taxes)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
 	apply_company_letter_head(si, jc.company)
 
 	_apply_job_card_discounts_to_si(si, jc, warranty_type)
+
+	_allow_zero_valuation_rate_when_missing(si)
 
 	si.run_method("calculate_taxes_and_totals")
 
@@ -1378,6 +1457,8 @@ def create_standalone_dms_sales_invoice(
 			item_row.discount_amount = 0
 			if use_dms_discount_field and idx < len(item_dms_discounts):
 				item_row.custom_dms_discount = item_dms_discounts[idx]
+
+	_allow_zero_valuation_rate_when_missing(si)
 
 	si.run_method("calculate_taxes_and_totals")
 	si.insert()
