@@ -665,6 +665,7 @@ export interface DMSJobCard {
   license_plate?: string;
   current_odometer?: number;
   appointment?: string;
+  skip_vehicle_inspection?: boolean | number;
   inspection: string;
   service_estimate?: string;
   warranty_status?: string;
@@ -1321,8 +1322,11 @@ export interface InvoicePreview {
 export interface SalesInvoiceDetail extends SalesInvoiceListItem {
   company?: string;
   remarks?: string;
+  net_total?: number;
+  total_taxes_and_charges?: number;
   items: {
     item_code: string;
+    item_name?: string;
     description?: string;
     qty: number;
     rate: number;

@@ -180,6 +180,7 @@ def get_sales_invoice_detail(sales_invoice):
 		items.append(
 			{
 				"item_code": row.item_code,
+				"item_name": row.item_name,
 				"description": row.description or row.item_name,
 				"qty": flt(row.qty),
 				"rate": flt(row.rate),
@@ -194,6 +195,8 @@ def get_sales_invoice_detail(sales_invoice):
 		"company": si.company,
 		"posting_date": si.posting_date,
 		"due_date": si.due_date,
+		"net_total": flt(si.net_total),
+		"total_taxes_and_charges": flt(si.total_taxes_and_charges),
 		"grand_total": flt(si.grand_total),
 		"outstanding_amount": flt(si.outstanding_amount),
 		"status": si.status,

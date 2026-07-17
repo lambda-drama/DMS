@@ -28,6 +28,7 @@
   "column_break_vehicle",
   "current_odometer",
   "appointment",
+  "skip_vehicle_inspection",
   "inspection",
   "service_estimate",
   "warranty_status",
@@ -273,10 +274,19 @@
    "options": "Service Appointment"
   },
   {
-   "description": "Required for customer jobs. Optional for Internal (company fleet) job cards.",
+   "default": "0",
+   "depends_on": "eval:doc.job_card_type != \"Internal\"",
+   "description": "When checked, Vehicle Inspection is not required for this job card.",
+   "fieldname": "skip_vehicle_inspection",
+   "fieldtype": "Check",
+   "label": "Skip Vehicle Inspection"
+  },
+  {
+   "description": "Required for customer jobs unless Skip Vehicle Inspection is checked. Optional for Internal (company fleet) job cards.",
    "fieldname": "inspection",
    "fieldtype": "Link",
    "label": "Vehicle Inspection",
+   "mandatory_depends_on": "eval:doc.job_card_type != \"Internal\" && !doc.skip_vehicle_inspection",
    "options": "Vehicle Inspection"
   },
   {
@@ -578,11 +588,11 @@
    "label": "Billing & Payment"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "invoice",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Sales Invoice",
-   "options": "Sales Invoice",
-   "read_only": 1
+   "options": "Sales Invoice"
   },
   {
    "default": "Unpaid",
@@ -873,7 +883,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-12 17:00:17.399428",
+ "modified": "2026-07-17 17:45:41.661599",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

@@ -448,8 +448,33 @@ export default function InvoicesPage() {
               <DetailRow label="Due Date" value={selectedInvoice.due_date ? new Date(selectedInvoice.due_date).toLocaleDateString() : undefined} />
             </DetailSection>
             <DetailSection title="Amounts">
-              <DetailRow label="Grand Total" value={formatCurrency(selectedInvoice.grand_total || 0, selectedInvoice.currency)} />
-              <DetailRow label="Outstanding" value={formatCurrency(selectedInvoice.outstanding_amount || 0, selectedInvoice.currency)} />
+              <DetailRow
+                label="Net Total"
+                value={formatCurrency(invoiceDetail?.net_total || 0, selectedInvoice.currency)}
+              />
+              <DetailRow
+                label="Tax"
+                value={formatCurrency(
+                  invoiceDetail?.total_taxes_and_charges || 0,
+                  selectedInvoice.currency
+                )}
+              />
+              <DetailRow
+                label="Grand Total"
+                value={formatCurrency(
+                  invoiceDetail?.grand_total ?? selectedInvoice.grand_total ?? 0,
+                  selectedInvoice.currency
+                )}
+              />
+              <DetailRow
+                label="Outstanding"
+                value={formatCurrency(
+                  invoiceDetail?.outstanding_amount ??
+                    selectedInvoice.outstanding_amount ??
+                    0,
+                  selectedInvoice.currency
+                )}
+              />
             </DetailSection>
             <DetailSection title="Info">
               <DetailRow label="Status" value={selectedInvoice.status} />
@@ -469,8 +494,19 @@ export default function InvoicesPage() {
                     <TableBody>
                       {invoiceDetail.items.map((line, idx) => (
                         <TableRow key={`${line.item_code}-${idx}`}>
-                          <TableCell className="max-w-[200px] truncate">
-                            {line.description || line.item_code}
+                          <TableCell className="max-w-[200px]">
+                            <div className="font-medium truncate" title={line.item_code}>
+                              {line.item_code}
+                            </div>
+                            {(line.item_name || line.description) &&
+                            (line.item_name || line.description) !== line.item_code ? (
+                              <div
+                                className="text-xs font-light text-muted-foreground truncate"
+                                title={line.item_name || line.description}
+                              >
+                                {line.item_name || line.description}
+                              </div>
+                            ) : null}
                           </TableCell>
                           <TableCell className="text-right">{line.qty}</TableCell>
                           <TableCell className="text-right">
@@ -480,6 +516,51 @@ export default function InvoicesPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+                <div className="mt-3 space-y-1.5 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Net Total</span>
+                    <span>
+                      {formatCurrency(invoiceDetail.net_total || 0, selectedInvoice.currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Tax</span>
+                    <span>
+                      {formatCurrency(
+                        invoiceDetail.total_taxes_and_charges || 0,
+                        selectedInvoice.currency
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-t pt-1.5 font-medium">
+                    <span>Grand Total</span>
+                    <span>
+                      {formatCurrency(
+                        invoiceDetail.grand_total || selectedInvoice.grand_total || 0,
+                        selectedInvoice.currency
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Outstanding</span>
+                    <span
+                      className={
+                        (invoiceDetail.outstanding_amount ??
+                          selectedInvoice.outstanding_amount ??
+                          0) > 0
+                          ? "font-medium text-amber-600 dark:text-amber-400"
+                          : undefined
+                      }
+                    >
+                      {formatCurrency(
+                        invoiceDetail.outstanding_amount ??
+                          selectedInvoice.outstanding_amount ??
+                          0,
+                        selectedInvoice.currency
+                      )}
+                    </span>
+                  </div>
                 </div>
               </DetailSection>
             )}

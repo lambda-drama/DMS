@@ -142,6 +142,7 @@ export default function NewInvoicePage() {
   const [dueDate, setDueDate] = useState(defaultDueDate());
   const [remarks, setRemarks] = useState("");
   const [submitInvoice, setSubmitInvoice] = useState(true);
+  const [applyTaxes, setApplyTaxes] = useState(false);
 
   const [labourRows, setLabourRows] = useState<LabourRow[]>([]);
   const [partRows, setPartRows] = useState<PartRow[]>([]);
@@ -377,6 +378,7 @@ export default function NewInvoicePage() {
         await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
           dueDate,
           submit: submitInvoice,
+          applyTaxes,
           rateOverrides: buildRateOverridesFromRows(labourRows, partRows),
         });
         toast.success("Invoice created successfully");
@@ -617,6 +619,23 @@ export default function NewInvoicePage() {
                   Submit invoice in ERPNext
                 </Label>
               </div>
+              {jobCardId ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="apply_taxes"
+                      checked={applyTaxes}
+                      onCheckedChange={(c) => setApplyTaxes(Boolean(c))}
+                    />
+                    <Label htmlFor="apply_taxes" className="cursor-pointer font-normal">
+                      Include taxes / tax withholding
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">
+                    Leave unchecked to create the invoice without taxes or tax withholding.
+                  </p>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </div>

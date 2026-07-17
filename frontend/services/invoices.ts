@@ -111,6 +111,8 @@ export async function createInvoiceFromJobCard(
     labourDiscount?: StandaloneInvoiceGroupDiscount;
     partsDiscount?: StandaloneInvoiceGroupDiscount;
     rateOverrides?: RateOverrides;
+    /** When true, keep party/company taxes and tax withholding. Default: false (blank). */
+    applyTaxes?: boolean;
   }
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${JC_API}.make_sales_invoice_from_job_card`, {
@@ -124,6 +126,7 @@ export async function createInvoiceFromJobCard(
       labour_discount: options?.labourDiscount ?? null,
       parts_discount: options?.partsDiscount ?? null,
       rate_overrides: options?.rateOverrides ?? null,
+      apply_taxes: options?.applyTaxes ? 1 : 0,
     }),
   });
 }

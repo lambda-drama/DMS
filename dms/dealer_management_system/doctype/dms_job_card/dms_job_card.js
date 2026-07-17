@@ -230,6 +230,18 @@ frappe.ui.form.on("DMS Job Card", {
         clear_warehouse_if_wrong_company(frm);
     },
 
+    job_card_type(frm) {
+        if (frm.doc.job_card_type === "Internal") {
+            frm.set_value("skip_vehicle_inspection", 0);
+        }
+    },
+
+    skip_vehicle_inspection(frm) {
+        if (cint(frm.doc.skip_vehicle_inspection)) {
+            frm.set_value("inspection", "");
+        }
+    },
+
     warehouse(frm) {
         apply_job_card_warehouse_to_parts(frm);
     },
@@ -505,16 +517,21 @@ function add_sales_invoice_button(frm) {
     frm.add_custom_button(
         __("Create Sales Invoice"),
         () => {
-            frappe.confirm(__("Create a draft Sales Invoice from this job card?"), () => {
-                frappe.call({
-                    method: "dms.dealer_management_system.doctype.dms_job_card.dms_job_card.make_sales_invoice_from_job_card",
-                    args: { job_card: frm.doc.name },
-                    freeze: true,
-                    callback: (r) => {
-                        if (r.message) frappe.set_route("Form", "Sales Invoice", r.message);
-                    }
-                });
-            });
+            frappe.confirm(
+                __(
+                    "Create a draft Sales Invoice from this job card without taxes / tax withholding? You can add taxes later on the invoice if needed."
+                ),
+                () => {
+                    frappe.call({
+                        method: "dms.dealer_management_system.doctype.dms_job_card.dms_job_card.make_sales_invoice_from_job_card",
+                        args: { job_card: frm.doc.name, apply_taxes: 0 },
+                        freeze: true,
+                        callback: (r) => {
+                            if (r.message) frappe.set_route("Form", "Sales Invoice", r.message);
+                        }
+                    });
+                }
+            );
         },
         ACTIONS_GROUP
     );

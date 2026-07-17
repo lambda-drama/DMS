@@ -44,6 +44,7 @@ import {
   SYMPTOM_CATEGORIES,
 } from "@/lib/customer-complaint-fields";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -257,6 +258,7 @@ export default function NewJobCardPage() {
 
   const [appointmentId, setAppointmentId] = useState(viewParams.get("appointment") || "");
   const [inspectionId, setInspectionId] = useState(viewParams.get("inspection") || "");
+  const [skipVehicleInspection, setSkipVehicleInspection] = useState(false);
   const [isLoadingInspectionComplaints, setIsLoadingInspectionComplaints] =
     useState(false);
   const lastAppliedInspectionRef = useRef<string | null>(null);
@@ -906,7 +908,7 @@ export default function NewJobCardPage() {
       toast.error("Please select a vehicle VIN");
       return;
     }
-    if (jobCardType !== "Internal" && !inspectionId) {
+    if (jobCardType !== "Internal" && !skipVehicleInspection && !inspectionId) {
       toast.error("Please select a vehicle inspection");
       return;
     }
@@ -996,7 +998,8 @@ export default function NewJobCardPage() {
       service_advisor_notes: serviceAdvisorNotes || undefined,
       internal_notes: internalNotes || undefined,
       appointment: appointmentId || undefined,
-      inspection: inspectionId || undefined,
+      skip_vehicle_inspection: skipVehicleInspection ? 1 : 0,
+      inspection: skipVehicleInspection ? undefined : inspectionId || undefined,
       job_items: jobItems.map((ji) => ({
         name: "",
         complaint_description: ji.complaint_description,
@@ -1073,7 +1076,15 @@ export default function NewJobCardPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="job_card_type">Job Card Type *</Label>
-                <Select value={jobCardType} onValueChange={setJobCardType}>
+                <Select
+                  value={jobCardType}
+                  onValueChange={(v) => {
+                    setJobCardType(v);
+                    if (v === "Internal") {
+                      setSkipVehicleInspection(false);
+                    }
+                  }}
+                >
                   <SelectTrigger id="job_card_type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -1247,23 +1258,55 @@ export default function NewJobCardPage() {
             <Separator />
 
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>
-                  Vehicle Inspection{jobCardType === "Internal" ? " (optional)" : " *"}
-                </Label>
-                <SearchableSelect
-                  options={inspectionSelectOptions}
-                  value={inspectionId}
-                  onValueChange={setInspectionId}
-                  placeholder={
-                    isLoadingInspectionComplaints
-                      ? "Loading complaints…"
-                      : jobCardType === "Internal"
-                        ? "Optional — link an inspection if available"
-                        : "Search inspections..."
-                  }
-                  isLoading={isLoadingInspectionComplaints}
-                />
+              <div className="space-y-2 sm:col-span-2 md:col-span-2">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  {jobCardType !== "Internal" && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Checkbox
+                        id="skip-vehicle-inspection"
+                        checked={skipVehicleInspection}
+                        onCheckedChange={(c) => {
+                          const skipped = c === true;
+                          setSkipVehicleInspection(skipped);
+                          if (skipped) {
+                            setInspectionId("");
+                            lastAppliedInspectionRef.current = null;
+                          }
+                        }}
+                      />
+                      <Label
+                        htmlFor="skip-vehicle-inspection"
+                        className="font-normal cursor-pointer whitespace-nowrap"
+                      >
+                        Skip vehicle inspection
+                      </Label>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Label>
+                      Vehicle Inspection
+                      {jobCardType === "Internal" || skipVehicleInspection
+                        ? " (optional)"
+                        : " *"}
+                    </Label>
+                    <SearchableSelect
+                      options={inspectionSelectOptions}
+                      value={inspectionId}
+                      onValueChange={setInspectionId}
+                      placeholder={
+                        isLoadingInspectionComplaints
+                          ? "Loading complaints…"
+                          : skipVehicleInspection
+                            ? "Skipped — optional"
+                            : jobCardType === "Internal"
+                              ? "Optional — link an inspection if available"
+                              : "Search inspections..."
+                      }
+                      isLoading={isLoadingInspectionComplaints}
+                      disabled={skipVehicleInspection}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

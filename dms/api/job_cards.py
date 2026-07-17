@@ -226,6 +226,7 @@ def create_job_card(data):
 		"estimated_duration_hours": data.get("estimated_duration_hours"),
 		"promised_delivery_date_time": data.get("promised_delivery_date_time"),
 		"appointment": data.get("appointment"),
+		"skip_vehicle_inspection": 1 if data.get("skip_vehicle_inspection") else 0,
 		"inspection": data.get("inspection"),
 		"warranty_status": data.get("warranty_status"),
 		"warranty_expiry_date": data.get("warranty_expiry_date"),

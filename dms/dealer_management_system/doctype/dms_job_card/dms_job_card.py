@@ -65,6 +65,8 @@ class DMSJobCard(Document):
 
 		if is_internal_job_card(self):
 			return
+		if cint(self.get("skip_vehicle_inspection")):
+			return
 		if not (self.inspection or "").strip():
 			frappe.throw(_("Vehicle Inspection is required for this job card type."))
 
@@ -226,6 +228,7 @@ def make_sales_invoice_from_job_card(
 	labour_discount=None,
 	parts_discount=None,
 	rate_overrides=None,
+	apply_taxes=0,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
@@ -247,6 +250,7 @@ def make_sales_invoice_from_job_card(
 		labour_discount=labour_discount,
 		parts_discount=parts_discount,
 		rate_overrides=rate_overrides,
+		apply_taxes=bool(int(apply_taxes or 0)),
 	)
 
 

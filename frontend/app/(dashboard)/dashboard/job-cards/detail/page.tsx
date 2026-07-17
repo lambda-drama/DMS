@@ -70,6 +70,7 @@ import {
 import { toast } from "sonner";
 import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
 import { htmlToPlainText } from "@/lib/plain-text";
+import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { StatusBadge } from "@/components/job-card/status-badge";
 import { WorkshopAssignmentBadge } from "@/components/job-card/workshop-assignment-badge";
 import { WorkflowStepper } from "@/components/job-card/workflow-stepper";
@@ -163,6 +164,7 @@ export default function JobCardDetailPage() {
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
   const [partsFlowRefreshKey, setPartsFlowRefreshKey] = useState(0);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
   const [signatureUploading, setSignatureUploading] = useState(false);
   const [savedSignatureUrl, setSavedSignatureUrl] = useState<string | null>(null);
@@ -1259,11 +1261,14 @@ export default function JobCardDetailPage() {
                 )}
                 {jobCard.invoice && (
                   <>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`/app/sales-invoice/${jobCard.invoice}`} target="_blank" rel="noreferrer">
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Invoice
-                      </a>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowInvoiceSheet(true)}
+                      disabled={busy}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Invoice
                     </Button>
                     {canCollectPayment && (
                       <Button size="sm" onClick={() => setShowPaymentDialog(true)} disabled={busy}>
@@ -2638,6 +2643,191 @@ export default function JobCardDetailPage() {
       />
 
       {jobCard.invoice && (
+        <DetailSheet
+          open={showInvoiceSheet}
+          onOpenChange={setShowInvoiceSheet}
+          title={invoiceDetail?.name || jobCard.invoice}
+          subtitle={invoiceDetail?.customer_name || invoiceDetail?.customer || jobCard.customer_name}
+          badge={invoiceDetail?.status ? { label: invoiceDetail.status } : undefined}
+          footer={
+            <div className="flex flex-col gap-2 w-full">
+              <PrintFormatDropdown
+                doctype="Sales Invoice"
+                docName={jobCard.invoice}
+                className="w-full"
+              />
+              {canCollectPayment ? (
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setShowInvoiceSheet(false);
+                    setShowPaymentDialog(true);
+                  }}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Collect Payment
+                </Button>
+              ) : null}
+            </div>
+          }
+        >
+          {invoiceDetail ? (
+            <>
+              <DetailSection title="Customer">
+                <DetailRow label="Customer" value={invoiceDetail.customer} />
+                <DetailRow label="Customer Name" value={invoiceDetail.customer_name} />
+              </DetailSection>
+              <DetailSection title="Dates">
+                <DetailRow
+                  label="Posting Date"
+                  value={
+                    invoiceDetail.posting_date
+                      ? new Date(invoiceDetail.posting_date).toLocaleDateString()
+                      : undefined
+                  }
+                />
+                <DetailRow
+                  label="Due Date"
+                  value={
+                    invoiceDetail.due_date
+                      ? new Date(invoiceDetail.due_date).toLocaleDateString()
+                      : undefined
+                  }
+                />
+              </DetailSection>
+              <DetailSection title="Amounts">
+                <DetailRow
+                  label="Net Total"
+                  value={formatInvoiceMoney(
+                    invoiceDetail.net_total || 0,
+                    invoiceDetail.currency
+                  )}
+                />
+                <DetailRow
+                  label="Tax"
+                  value={formatInvoiceMoney(
+                    invoiceDetail.total_taxes_and_charges || 0,
+                    invoiceDetail.currency
+                  )}
+                />
+                <DetailRow
+                  label="Grand Total"
+                  value={formatInvoiceMoney(
+                    invoiceDetail.grand_total || 0,
+                    invoiceDetail.currency
+                  )}
+                />
+                <DetailRow
+                  label="Outstanding"
+                  value={formatInvoiceMoney(
+                    invoiceDetail.outstanding_amount || 0,
+                    invoiceDetail.currency
+                  )}
+                />
+              </DetailSection>
+              <DetailSection title="Info">
+                <DetailRow label="Status" value={invoiceDetail.status} />
+                <DetailRow label="Currency" value={invoiceDetail.currency} />
+                {invoiceDetail.company ? (
+                  <DetailRow label="Company" value={invoiceDetail.company} />
+                ) : null}
+              </DetailSection>
+              {invoiceDetail.items?.length > 0 && (
+                <DetailSection title="Line Items">
+                  <div className="dms-table-panel rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Qty</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invoiceDetail.items.map((line, idx) => (
+                          <TableRow key={`${line.item_code}-${idx}`}>
+                            <TableCell className="max-w-[200px]">
+                              <div className="font-medium truncate" title={line.item_code}>
+                                {line.item_code}
+                              </div>
+                              {(line.item_name || line.description) &&
+                              (line.item_name || line.description) !== line.item_code ? (
+                                <div
+                                  className="text-xs font-light text-muted-foreground truncate"
+                                  title={line.item_name || line.description}
+                                >
+                                  {line.item_name || line.description}
+                                </div>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="text-right">{line.qty}</TableCell>
+                            <TableCell className="text-right">
+                              {formatInvoiceMoney(line.amount || 0, invoiceDetail.currency)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div className="mt-3 space-y-1.5 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Net Total</span>
+                      <span>
+                        {formatInvoiceMoney(
+                          invoiceDetail.net_total || 0,
+                          invoiceDetail.currency
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Tax</span>
+                      <span>
+                        {formatInvoiceMoney(
+                          invoiceDetail.total_taxes_and_charges || 0,
+                          invoiceDetail.currency
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4 border-t pt-1.5 font-medium">
+                      <span>Grand Total</span>
+                      <span>
+                        {formatInvoiceMoney(
+                          invoiceDetail.grand_total || 0,
+                          invoiceDetail.currency
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Outstanding</span>
+                      <span
+                        className={
+                          (invoiceDetail.outstanding_amount || 0) > 0
+                            ? "font-medium text-amber-600 dark:text-amber-400"
+                            : undefined
+                        }
+                      >
+                        {formatInvoiceMoney(
+                          invoiceDetail.outstanding_amount || 0,
+                          invoiceDetail.currency
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </DetailSection>
+              )}
+              {invoiceDetail.docstatus !== 1 && (
+                <p className="text-sm text-muted-foreground px-1">
+                  Invoice is a draft — submit in ERPNext to collect payment.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Loading invoice details…</p>
+          )}
+        </DetailSheet>
+      )}
+
+      {jobCard.invoice && (
         <CollectPaymentDialog
           open={showPaymentDialog}
           onOpenChange={setShowPaymentDialog}
@@ -2650,4 +2840,12 @@ export default function JobCardDetailPage() {
       )}
     </div>
   );
+}
+
+function formatInvoiceMoney(amount: number, currency?: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency || "ETB",
+    minimumFractionDigits: 2,
+  }).format(amount);
 }
