@@ -500,18 +500,38 @@ function add_sales_invoice_button(frm) {
     ) return;
     if (!frappe.model.can_read("DMS Job Card")) return;
 
-    if (frm.doc.invoice) {
-        if (frappe.model.can_read("Sales Invoice")) {
-            frm.add_custom_button(
-                __("Sales Invoice"),
-                () => frappe.set_route("Form", "Sales Invoice", frm.doc.invoice),
-                ACTIONS_GROUP
-            );
-        }
-        add_sales_invoice_payment_action(frm, frm.doc.invoice);
+    const invoice_name = frm.doc.invoice;
+    if (invoice_name) {
+        frappe.db.get_value("Sales Invoice", invoice_name, "docstatus").then((r) => {
+            const docstatus = cint((r.message || {}).docstatus);
+            if (docstatus === 2) {
+                // Cancelled — allow creating a new invoice
+                add_create_sales_invoice_button(frm);
+                if (frappe.model.can_read("Sales Invoice")) {
+                    frm.add_custom_button(
+                        __("Cancelled Sales Invoice"),
+                        () => frappe.set_route("Form", "Sales Invoice", invoice_name),
+                        ACTIONS_GROUP
+                    );
+                }
+                return;
+            }
+            if (frappe.model.can_read("Sales Invoice")) {
+                frm.add_custom_button(
+                    __("Sales Invoice"),
+                    () => frappe.set_route("Form", "Sales Invoice", invoice_name),
+                    ACTIONS_GROUP
+                );
+            }
+            add_sales_invoice_payment_action(frm, invoice_name);
+        });
         return;
     }
 
+    add_create_sales_invoice_button(frm);
+}
+
+function add_create_sales_invoice_button(frm) {
     if (!frappe.model.can_create("Sales Invoice")) return;
 
     frm.add_custom_button(

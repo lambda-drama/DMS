@@ -232,6 +232,16 @@ def cancel_sales_invoice(sales_invoice):
 
 	si.check_permission("cancel")
 	si.cancel()
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		clear_job_card_invoice_link_on_cancel,
+	)
+
+	clear_job_card_invoice_link_on_cancel(
+		si.name,
+		si.get("custom_dms_job_card") if hasattr(si, "custom_dms_job_card") else None,
+	)
+
 	frappe.db.commit()
 	si.reload()
 

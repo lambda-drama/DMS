@@ -362,30 +362,71 @@ def _allow_zero_valuation_rate_when_missing(si) -> None:
 		row.allow_zero_valuation_rate = 1
 
 
-def assert_single_invoice_allowed(job_card_name: str):
-	"""Job Card invoice is canonical; disallow a second SI for the same job."""
-	existing = frappe.db.get_value("DMS Job Card", job_card_name, "invoice")
-	if existing:
-		frappe.throw(
-			_("A Sales Invoice is already linked ({0}). Only one invoice is allowed.").format(
-				frappe.bold(existing)
-			),
-			title=_("Invoice already exists"),
-		)
+def get_active_job_card_invoice(job_card_name: str) -> str | None:
+	"""
+	Return the job card's linked Sales Invoice if it is still active
+	(draft or submitted). Cancelled invoices do not count.
+	"""
+	existing = (frappe.db.get_value("DMS Job Card", job_card_name, "invoice") or "").strip()
+	if existing and frappe.db.exists("Sales Invoice", existing):
+		if cint(frappe.db.get_value("Sales Invoice", existing, "docstatus")) != 2:
+			return existing
 
 	if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
-		existing_si = frappe.db.get_value(
+		linked = frappe.db.get_value(
 			"Sales Invoice",
 			{"custom_dms_job_card": job_card_name, "docstatus": ["!=", 2]},
 			"name",
 		)
-		if existing_si:
-			frappe.throw(
-				_("Sales Invoice {0} is already linked to this Job Card.").format(
-					frappe.bold(existing_si)
-				),
-				title=_("Invoice already exists"),
-			)
+		if linked:
+			return linked
+
+	return None
+
+
+def assert_single_invoice_allowed(job_card_name: str):
+	"""Disallow a second active Sales Invoice for the same job (cancelled ones are ignored)."""
+	active = get_active_job_card_invoice(job_card_name)
+	if active:
+		frappe.throw(
+			_("A Sales Invoice is already linked ({0}). Only one invoice is allowed.").format(
+				frappe.bold(active)
+			),
+			title=_("Invoice already exists"),
+		)
+
+
+def clear_job_card_invoice_link_on_cancel(si_name: str, job_card_name: str | None = None) -> None:
+	"""When an SI is cancelled, clear Job Card.invoice if it still points at that SI."""
+	si_name = (si_name or "").strip()
+	if not si_name:
+		return
+
+	job_cards = set()
+	jc_from_si = (job_card_name or "").strip()
+	if not jc_from_si and frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
+		jc_from_si = (frappe.db.get_value("Sales Invoice", si_name, "custom_dms_job_card") or "").strip()
+	if jc_from_si:
+		job_cards.add(jc_from_si)
+
+	for jc_name in frappe.get_all(
+		"DMS Job Card",
+		filters={"invoice": si_name},
+		pluck="name",
+	):
+		job_cards.add(jc_name)
+
+	for jc_name in job_cards:
+		if frappe.db.get_value("DMS Job Card", jc_name, "invoice") == si_name:
+			frappe.db.set_value("DMS Job Card", jc_name, "invoice", None, update_modified=True)
+
+
+def on_sales_invoice_cancel(doc, method=None):
+	"""Desk / API cancel: free the job card so a new invoice can be created."""
+	clear_job_card_invoice_link_on_cancel(
+		doc.name,
+		doc.get("custom_dms_job_card") if hasattr(doc, "get") else None,
+	)
 
 
 def _sync_job_card_warranty_for_invoice(
@@ -533,7 +574,7 @@ def build_invoice_preview_from_job_card(
 			labour_total, parts_total, warranty_type, discount
 		),
 		"currency": _currency_from_job_card(jc),
-		"existing_invoice": frappe.db.get_value("DMS Job Card", jc.name, "invoice"),
+		"existing_invoice": get_active_job_card_invoice(jc.name),
 		"add_full_warranty_item_on_invoice": add_full_warranty_item_on_invoice(),
 	}
 
