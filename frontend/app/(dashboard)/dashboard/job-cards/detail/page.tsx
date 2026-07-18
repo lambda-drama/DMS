@@ -392,8 +392,13 @@ export default function JobCardDetailPage() {
     "Waiting Customer Approval",
     "Rework",
   ].includes(workflowStatus);
+  const invoiceIsCancelled =
+    invoiceDetail?.docstatus === 2 ||
+    String(invoiceDetail?.status || "").toLowerCase() === "cancelled";
+  /** Cancelled invoices do not block creating a new one. */
+  const hasActiveInvoice = Boolean(jobCard.invoice) && !invoiceIsCancelled;
   const canEditLinePricing =
-    !jobCard.invoice &&
+    !hasActiveInvoice &&
     !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
 
   const assignmentDirty =
@@ -1253,7 +1258,7 @@ export default function JobCardDetailPage() {
             {/* Completed → Invoice (customer jobs) / Delivery */}
             {(status === "Completed" || status === "Delivered") && !isInternal && (
               <>
-                {!jobCard.invoice && (
+                {!hasActiveInvoice && (
                   <Button onClick={() => setShowCreateInvoiceDialog(true)} disabled={busy}>
                     <DollarSign className="h-4 w-4 mr-2" />
                     Create Sales Invoice
@@ -1268,7 +1273,7 @@ export default function JobCardDetailPage() {
                       disabled={busy}
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      View Invoice
+                      {invoiceIsCancelled ? "View Cancelled Invoice" : "View Invoice"}
                     </Button>
                     {canCollectPayment && (
                       <Button size="sm" onClick={() => setShowPaymentDialog(true)} disabled={busy}>
@@ -1306,7 +1311,7 @@ export default function JobCardDetailPage() {
         </CardContent>
       </Card>
 
-      {jobCard.invoice && invoiceDetail && (
+      {jobCard.invoice && invoiceDetail && !invoiceIsCancelled && (
         <Card>
           <CardHeader className="pb-2">
             <div className="flex flex-wrap items-center justify-between gap-2">

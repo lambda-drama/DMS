@@ -245,6 +245,9 @@ doc_events = {
 	"Stock Ledger Entry": {
 		"after_insert": "dms.utils.serial_vin_sync.sync_vin_on_stock_ledger_entry",
 	},
+	"Sales Invoice": {
+		"on_cancel": "dms.dealer_management_system.doctype.dms_job_card.invoice_utils.on_sales_invoice_cancel",
+	},
 }
 
 # Scheduled Tasks
