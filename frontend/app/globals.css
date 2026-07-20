@@ -41,9 +41,9 @@
   --dms-green: #2E7D32;
   --dms-green-light: #E8F5E9;
   --dms-green-medium: #43A047;
-  /* Brand gold (secondary accent — active chrome, highlights) */
-  --dms-gold: #C5A028;
-  --dms-gold-soft: rgba(197, 160, 40, 0.15);
+  /* Brand gold — bright amber accent (active chrome, highlights, CTAs) */
+  --dms-gold: #F2B705;
+  --dms-gold-soft: rgba(242, 183, 5, 0.16);
   --radius: 0.5rem;
   /* Sidebar */
   --sidebar: #0F3D5E;
@@ -90,8 +90,8 @@
   --dms-green: #43A047;
   --dms-green-light: #1B3D1E;
   --dms-green-medium: #66BB6A;
-  --dms-gold: #D4AF37;
-  --dms-gold-soft: rgba(212, 175, 55, 0.18);
+  --dms-gold: #F5C518;
+  --dms-gold-soft: rgba(245, 197, 24, 0.22);
   --sidebar: #081E2D;
   --sidebar-foreground: #F5F7FA;
   --sidebar-primary: #1E88E5;

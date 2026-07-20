@@ -99,6 +99,10 @@ export default function InvoicesPage() {
   useEffect(() => {
     const id = viewParams.get("id");
     if (id) setSelectedId(id);
+    const status = viewParams.get("status");
+    if (status && (status === "all" || status in statusConfig)) {
+      setStatusFilter(status);
+    }
   }, [viewParams]);
   const { data: invoices, isLoading, error } = useInvoices({
     status: statusFilter !== "all" ? statusFilter : undefined,

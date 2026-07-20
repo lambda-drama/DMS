@@ -12,7 +12,7 @@ const DT_PATH = 'dms.dealer_management_system.doctype.dms_job_card.dms_job_card'
 
 export async function listJobCards(options?: {
   status?: string;
-  filter?: 'active' | 'qc';
+  filter?: 'active' | 'qc' | 'qc_failed' | 'overdue';
   customer?: string;
   search?: string;
   limit?: number;

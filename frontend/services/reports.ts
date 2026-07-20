@@ -1,5 +1,5 @@
 /**
- * BRD §20 management reports — dms.api.reports
+ * Aftersales management reports — dms.api.reports
  */
 import { apiRequest } from './apiClient';
 
@@ -9,8 +9,22 @@ export interface ReportMeta {
   id: string;
   title: string;
   description: string;
-  /** When "stock", UI shows company / warehouse / spare part filters instead of date range. */
   filter_type?: 'default' | 'stock';
+  section_id?: string;
+  section_title?: string;
+}
+
+export interface ReportSection {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+  reports: ReportMeta[];
+}
+
+export interface ReportCatalog {
+  sections: ReportSection[];
+  reports: ReportMeta[];
 }
 
 export interface ReportColumn {
@@ -27,27 +41,26 @@ export interface ReportResult {
   rows: Record<string, unknown>[];
 }
 
-export interface BrdDashboardKpis {
-  from_date?: string;
-  to_date?: string;
-  open_job_cards?: number;
-  overdue_promised?: number;
-  net_revenue?: number;
-  labour_revenue?: number;
-  parts_revenue?: number;
-  appointment_arrival_rate?: number;
-  qc_fail_rate_pct?: number;
-  parts_fill_rate_pct?: number;
-  warranty_jobs?: number;
+export interface SectionDashboard {
+  section_id: string;
+  title: string;
+  filters?: Record<string, string>;
+  summary: Record<string, unknown>;
 }
 
 export interface ReportFilters {
   from_date?: string;
   to_date?: string;
+  /** daily | weekly | monthly | quarterly | yearly — overrides from/to on the server */
+  period?: string;
   company?: string;
-  /** Partial VIN / chassis number search (legacy) */
+  branch?: string;
+  service_advisor?: string;
+  technician?: string;
+  vehicle_model?: string;
+  vehicle_model_label?: string;
+  job_card_type?: string;
   vehicle_vin?: string;
-  /** VIN No document name from searchable dropdown */
   vin_no?: string;
   warehouse?: string;
   spare_part?: string;
@@ -61,11 +74,26 @@ export function isStockReportId(reportId: string | undefined): boolean {
   return reportId === STOCK_REPORT_ID;
 }
 
-export async function listReports(): Promise<ReportMeta[]> {
-  return apiRequest<ReportMeta[]>(`/api/method/${API}.list_reports`, {
+export async function listReports(): Promise<ReportCatalog> {
+  const data = await apiRequest<ReportCatalog | ReportMeta[]>(`/api/method/${API}.list_reports`, {
     method: 'POST',
     body: JSON.stringify({}),
   });
+  // Backward-compatible if API still returns a flat array
+  if (Array.isArray(data)) {
+    return {
+      sections: [
+        {
+          id: 'all',
+          title: 'Reports',
+          description: 'All reports',
+          reports: data,
+        },
+      ],
+      reports: data,
+    };
+  }
+  return data;
 }
 
 export async function getReport(
@@ -76,6 +104,19 @@ export async function getReport(
     method: 'POST',
     body: JSON.stringify({
       report_id: reportId,
+      filters: filters || {},
+    }),
+  });
+}
+
+export async function getSectionDashboard(
+  sectionId: string,
+  filters?: ReportFilters
+): Promise<SectionDashboard> {
+  return apiRequest<SectionDashboard>(`/api/method/${API}.get_section_dashboard`, {
+    method: 'POST',
+    body: JSON.stringify({
+      section_id: sectionId,
       filters: filters || {},
     }),
   });

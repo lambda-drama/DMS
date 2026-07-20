@@ -52,6 +52,7 @@
   "section_signatures",
   "customer_signature",
   "customer_satisfaction_initial",
+  "customer_satisfaction_score",
   "customer_comments",
   "column_break_signatures",
   "delivered_by_signature",
@@ -343,12 +344,20 @@
    "reqd": 1
   },
   {
-   "description": "Initial feedback at time of delivery",
+   "description": "Initial feedback at time of delivery (synced from Rating Score)",
    "fieldname": "customer_satisfaction_initial",
    "fieldtype": "Select",
    "label": "Customer Satisfaction (Initial)",
    "options": "Happy\nNeutral\nUnhappy",
    "reqd": 1
+  },
+  {
+   "description": "Numeric score 1\u20135 shown as stars on the delivery form",
+   "fieldname": "customer_satisfaction_score",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Rating Score",
+   "non_negative": 1
   },
   {
    "fieldname": "customer_comments",

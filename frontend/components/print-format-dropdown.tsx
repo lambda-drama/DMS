@@ -23,7 +23,7 @@ export function openDocumentPrintView(
   params.set("doctype", doctype);
   params.set("name", docName);
   params.set("format", format);
-  params.set("trigger_print", String(options?.triggerPrint ?? 1));
+  params.set("trigger_print", String(options?.triggerPrint ?? 0));
   params.set("no_letterhead", String(options?.noLetterhead ?? 0));
   const base = typeof window !== "undefined" ? window.location.origin : "";
   window.open(`${base}/printview?${params.toString()}`, "_blank", "noopener,noreferrer");
@@ -33,6 +33,7 @@ interface PrintFormatDropdownProps {
   doctype: string;
   docName: string;
   noLetterhead?: number;
+  /** 0 = preview first (default), 1 = open browser print dialog immediately */
   triggerPrint?: number;
   className?: string;
   /** `icon` — compact printer icon for list rows (after ⋯ menu) */
@@ -43,7 +44,7 @@ export function PrintFormatDropdown({
   doctype,
   docName,
   noLetterhead = 0,
-  triggerPrint = 1,
+  triggerPrint = 0,
   className,
   variant = "default",
 }: PrintFormatDropdownProps) {

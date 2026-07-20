@@ -1214,6 +1214,7 @@ export interface Delivery {
   payment_cleared?: boolean;
   payment_method?: string;
   customer_satisfaction_initial?: string;
+  customer_satisfaction_score?: number;
   customer_comments?: string;
   customer_signature?: string;
   delivered_by_signature?: string;

@@ -63,6 +63,7 @@ const statusFilterOptions: { value: string; label: string }[] = [
   { value: "Road Test In Progress", label: "Road Test In Progress" },
   { value: "Road Test Completed", label: "Road Test Completed" },
   { value: "QC In Progress", label: "QC In Progress" },
+  { value: "QC Failed", label: "QC Failed" },
   { value: "Rework", label: "Rework" },
   { value: "Completed", label: "Completed" },
   { value: "Delivered", label: "Delivered" },
@@ -170,13 +171,15 @@ function WorkflowProgress({
 const presetFilterLabels: Record<string, string> = {
   active: "Active job cards",
   qc: "Pending QC",
+  qc_failed: "QC failed / rework",
+  overdue: "Overdue promised",
 };
 
 export default function JobCardsPage() {
   const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [presetFilter, setPresetFilter] = useState<"active" | "qc" | null>(null);
+  const [presetFilter, setPresetFilter] = useState<"active" | "qc" | "qc_failed" | "overdue" | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -188,7 +191,7 @@ export default function JobCardsPage() {
     if (status) {
       setStatusFilter(status);
       setPresetFilter(null);
-    } else if (filter === "active" || filter === "qc") {
+    } else if (filter === "active" || filter === "qc" || filter === "qc_failed" || filter === "overdue") {
       setPresetFilter(filter);
       setStatusFilter("all");
     }

@@ -38,6 +38,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { ListRowActions } from "@/components/list-row-actions";
+import { StarRating } from "@/components/reports/star-rating";
 
 const docstatusMap: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   0: { label: "Draft", variant: "secondary" },
@@ -291,6 +292,29 @@ export default function DeliveriesPage() {
                     : undefined
                 }
               />
+            </DetailSection>
+            <DetailSection title="Customer feedback">
+              <DetailRow
+                label="Satisfaction"
+                value={
+                  <StarRating
+                    value={
+                      selectedDelivery.customer_satisfaction_score ??
+                      selectedDelivery.customer_satisfaction_initial
+                    }
+                    size="md"
+                  />
+                }
+              />
+              {selectedDelivery.customer_satisfaction_initial ? (
+                <DetailRow
+                  label="Label"
+                  value={selectedDelivery.customer_satisfaction_initial}
+                />
+              ) : null}
+              {selectedDelivery.customer_comments ? (
+                <DetailRow label="Comments" value={selectedDelivery.customer_comments} />
+              ) : null}
             </DetailSection>
             <DetailSection title="Next Service">
               <DetailRow

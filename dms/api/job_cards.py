@@ -71,14 +71,20 @@ JOB_CARD_FILTER_PRESETS = {
 		"Rework",
 	],
 	"qc": ["QC In Progress", "QC Failed"],
+	"qc_failed": ["QC Failed", "Rework"],
 }
 
 
 @frappe.whitelist()
 def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, search=None):
+	from frappe.utils import now_datetime
+
 	filters = {}
 	if status:
 		filters["status"] = status
+	elif filter == "overdue":
+		filters["status"] = ["in", JOB_CARD_FILTER_PRESETS["active"]]
+		filters["promised_delivery_date_time"] = ["<", now_datetime()]
 	elif filter and filter in JOB_CARD_FILTER_PRESETS:
 		filters["status"] = ["in", JOB_CARD_FILTER_PRESETS[filter]]
 	if customer:
