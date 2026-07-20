@@ -85,22 +85,39 @@ def get_deliveries(limit=50, offset=0, search=None):
 
 	filters = add_branch_filter(filters, doctype="Vehicle Delivery Note")
 
+	meta = frappe.get_meta("Vehicle Delivery Note")
+	fields = [
+		"name", "job_card", "customer",
+		"vehicle_vin", "vehicle_model", "license_plate",
+		"delivered_by", "delivery_date_time", "status",
+		"final_odometer_km", "next_service_due_km",
+		"next_service_due_date",
+		"customer_satisfaction_initial",
+		"customer_comments",
+		"docstatus", "creation", "modified",
+	]
+	if meta.has_field("customer_satisfaction_score"):
+		fields.append("customer_satisfaction_score")
+
 	deliveries = frappe.get_all(
 		"Vehicle Delivery Note",
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
-		fields=[
-			"name", "job_card", "customer",
-			"vehicle_vin", "vehicle_model", "license_plate",
-			"delivered_by", "delivery_date_time", "status",
-			"final_odometer_km", "next_service_due_km",
-			"next_service_due_date",
-			"docstatus", "creation", "modified",
-		],
+		fields=fields,
 		limit=int(limit),
 		limit_start=int(offset),
 		order_by=LIST_ORDER_LATEST_CREATED,
 	)
+
+	from dms.dealer_management_system.doctype.vehicle_delivery_note.vehicle_delivery_note import (
+		satisfaction_label_to_score,
+	)
+
+	for row in deliveries:
+		score = row.get("customer_satisfaction_score")
+		if not score and row.get("customer_satisfaction_initial"):
+			score = satisfaction_label_to_score(row.customer_satisfaction_initial)
+		row["customer_satisfaction_score"] = score
 
 	return deliveries
 
@@ -177,6 +194,7 @@ def create_delivery(data):
 		"customer_signature": data.get("customer_signature"),
 		"delivered_by_signature": data.get("delivered_by_signature"),
 		"customer_satisfaction_initial": data.get("customer_satisfaction_initial"),
+		"customer_satisfaction_score": data.get("customer_satisfaction_score"),
 		"customer_comments": _build_customer_comments(
 			data.get("received_by"), data.get("customer_comments")
 		),
@@ -206,10 +224,26 @@ def create_delivery(data):
 				"is_completed": 1 if completed.get(item) else 0,
 			})
 
+	# Prefer numeric score; derive Happy/Neutral/Unhappy when only score is sent
+	from dms.dealer_management_system.doctype.vehicle_delivery_note.vehicle_delivery_note import (
+		score_to_satisfaction_label,
+		satisfaction_label_to_score,
+	)
+	from frappe.utils import cint
+
+	score = cint(doc.customer_satisfaction_score) if doc.get("customer_satisfaction_score") not in (None, "") else 0
+	if not (1 <= score <= 5):
+		score = satisfaction_label_to_score(doc.customer_satisfaction_initial) or 0
+	if 1 <= score <= 5:
+		doc.customer_satisfaction_score = score
+		doc.customer_satisfaction_initial = score_to_satisfaction_label(score)
+
 	if not doc.customer_signature:
 		frappe.throw(_("Customer signature is required"))
 	if not doc.delivered_by_signature:
 		frappe.throw(_("Delivered by signature is required"))
+	if not doc.customer_satisfaction_initial and not (1 <= cint(doc.customer_satisfaction_score) <= 5):
+		frappe.throw(_("Customer satisfaction is required"))
 	if not doc.customer_satisfaction_initial:
 		frappe.throw(_("Customer satisfaction is required"))
 
@@ -243,7 +277,7 @@ def update_delivery(name, data):
 		"final_fuel_level", "vehicle_condition", "new_damage_notes",
 		"next_service_due_km", "next_service_due_date",
 		"customer_signature", "delivered_by_signature",
-		"customer_satisfaction_initial", "customer_comments",
+		"customer_satisfaction_initial", "customer_satisfaction_score", "customer_comments",
 		"delivery_notes", "invoice_explained", "invoice_copy_given",
 		"payment_cleared", "payment_method", "payment_receipt_no",
 	]

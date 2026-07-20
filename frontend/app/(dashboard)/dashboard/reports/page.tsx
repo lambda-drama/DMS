@@ -7,21 +7,64 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { SearchableSelect } from '@/components/searchable-select';
 import { ReportViewer } from '@/components/reports/report-viewer';
+import { SectionDashboardView } from '@/components/reports/section-dashboard';
 import { useNavigation } from '@/contexts/navigation-context';
 import * as reportsSvc from '@/services/reports';
-import { PRINTABLE_DOCUMENTS, isStockReportId } from '@/services/reports';
-import type { ReportMeta, ReportResult } from '@/services/reports';
+import { isStockReportId } from '@/services/reports';
+import type { ReportResult, ReportSection, SectionDashboard } from '@/services/reports';
+import {
+  exportReportCsv,
+  exportReportExcel,
+  buildReportPdfHtml,
+} from '@/lib/report-export';
+import { PdfPreviewDialog } from '@/components/reports/pdf-preview-dialog';
 import { fetchVINs, fetchSpareParts, sparePartToSelectOption } from '@/services/common';
-import type { VINNo } from '@/types/dms';
-import { useCompanies, useWarehouses, useAutofillSingleCompany } from '@/hooks/use-dms';
+import type { JobCardType, VINNo } from '@/types/dms';
+import {
+  useCompanies,
+  useBranches,
+  useWarehouses,
+  useAutofillSingleCompany,
+  useServiceAdvisors,
+  useTechnicians,
+  useVehicleModels,
+} from '@/hooks/use-dms';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RequiredLabel } from '@/components/required-label';
-import { BarChart3, ChevronDown, Download, FileText, Filter, Loader2, RefreshCw } from 'lucide-react';
+import { FileSpreadsheet, FileText, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { reportActionBtnClass } from '@/components/reports/dashboards/shared';
 import { cn } from '@/lib/utils';
+
+const PERIOD_OPTIONS = [
+  { value: 'custom', label: 'Custom range' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'yearly', label: 'Yearly' },
+] as const;
+
+const JOB_CARD_TYPES: JobCardType[] = [
+  'Customer Paid',
+  'Warranty',
+  'Internal',
+  'PDI',
+  'Campaign/Recall',
+  'Insurance',
+  'Goodwill',
+  'Fleet Contract',
+];
 
 function vinOptionLabel(v: VINNo) {
   const plate = v.plate_number ? ` · ${v.plate_number}` : '';
@@ -29,569 +72,562 @@ function vinOptionLabel(v: VINNo) {
   return model;
 }
 
-function defaultFromDate() {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
+function isoDate(d: Date) {
   return d.toISOString().split('T')[0];
 }
 
-function escapeCsvCell(value: unknown): string {
-  const s = value == null ? '' : String(value);
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
+function defaultFromDate() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return isoDate(d);
 }
 
-function exportReportCsv(result: ReportResult) {
-  const keys = result.columns.map((c) => c.key);
-  const header = result.columns.map((c) => escapeCsvCell(c.label)).join(',');
-  const body = result.rows
-    .map((row) => keys.map((k) => escapeCsvCell(row[k])).join(','))
-    .join('\n');
-  const blob = new Blob([`${header}\n${body}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${result.report_id || 'report'}_export.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+/** Client-side date range for period presets (matches server logic for display). */
+function datesForPeriod(period: string): { from: string; to: string } {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  if (period === 'daily') {
+    const s = isoDate(today);
+    return { from: s, to: s };
+  }
+  if (period === 'weekly') {
+    const start = new Date(today);
+    const day = (start.getDay() + 6) % 7; // Monday=0
+    start.setDate(start.getDate() - day);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { from: isoDate(start), to: isoDate(end) };
+  }
+  if (period === 'monthly') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { from: isoDate(start), to: isoDate(end) };
+  }
+  if (period === 'quarterly') {
+    const q = Math.floor(today.getMonth() / 3);
+    const start = new Date(today.getFullYear(), q * 3, 1);
+    const end = new Date(today.getFullYear(), q * 3 + 3, 0);
+    return { from: isoDate(start), to: isoDate(end) };
+  }
+  if (period === 'yearly') {
+    return {
+      from: isoDate(new Date(today.getFullYear(), 0, 1)),
+      to: isoDate(new Date(today.getFullYear(), 11, 31)),
+    };
+  }
+  return { from: defaultFromDate(), to: isoDate(today) };
 }
 
 export default function ReportsPage() {
-  const { navigate } = useNavigation();
-  const [catalog, setCatalog] = useState<ReportMeta[]>([]);
-  const [selectedId, setSelectedId] = useState('daily_wip');
-  const [fromDate, setFromDate] = useState(defaultFromDate);
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const { viewParams, navigate } = useNavigation();
+  const [sections, setSections] = useState<ReportSection[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+
+  const sectionId = viewParams.get('section') || '';
+  const reportId = viewParams.get('report') || 'dashboard';
+
+  const [period, setPeriod] = useState<string>('monthly');
+  const [fromDate, setFromDate] = useState(() => datesForPeriod('monthly').from);
+  const [toDate, setToDate] = useState(() => datesForPeriod('monthly').to);
   const [vinNo, setVinNo] = useState('');
   const [vinLabel, setVinLabel] = useState('');
-  const [draftFrom, setDraftFrom] = useState(defaultFromDate);
-  const [draftTo, setDraftTo] = useState(() => new Date().toISOString().split('T')[0]);
-  const [draftVinNo, setDraftVinNo] = useState('');
-  const [draftVinLabel, setDraftVinLabel] = useState('');
   const [vinSearch, setVinSearch] = useState('');
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [docsOpen, setDocsOpen] = useState(false);
+  const [serviceAdvisor, setServiceAdvisor] = useState('');
+  const [technician, setTechnician] = useState('');
+  const [vehicleModel, setVehicleModel] = useState('');
+  const [vehicleModelLabel, setVehicleModelLabel] = useState('');
+  const [modelSearch, setModelSearch] = useState('');
+  const [jobCardType, setJobCardType] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [result, setResult] = useState<ReportResult | null>(null);
+  const [sectionDash, setSectionDash] = useState<SectionDashboard | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfPreviewHtml, setPdfPreviewHtml] = useState<string | null>(null);
 
   const [company, setCompany] = useState('');
+  const [branch, setBranch] = useState('');
   const [warehouse, setWarehouse] = useState('');
   const [sparePart, setSparePart] = useState('');
   const [sparePartLabel, setSparePartLabel] = useState('');
   const [belowMinimumOnly, setBelowMinimumOnly] = useState(false);
-  const [draftCompany, setDraftCompany] = useState('');
-  const [draftWarehouse, setDraftWarehouse] = useState('');
-  const [draftSparePart, setDraftSparePart] = useState('');
-  const [draftSparePartLabel, setDraftSparePartLabel] = useState('');
-  const [draftBelowMinimumOnly, setDraftBelowMinimumOnly] = useState(false);
   const [companySearch, setCompanySearch] = useState('');
+  const [branchSearch, setBranchSearch] = useState('');
   const [warehouseSearch, setWarehouseSearch] = useState('');
   const [sparePartSearch, setSparePartSearch] = useState('');
 
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
+  const { data: branches, isLoading: branchesLoading } = useBranches(branchSearch);
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
     warehouseSearch,
-    draftCompany || company || undefined
+    company || undefined
   );
+  const { data: advisors, isLoading: advisorsLoading } = useServiceAdvisors();
+  const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+  const { data: vehicleModels, isLoading: modelsLoading } = useVehicleModels(modelSearch);
 
-  const isStockReport = isStockReportId(selectedId);
-
-  useAutofillSingleCompany(
-    companies,
-    companiesLoading,
-    draftCompany,
-    (c) => setDraftCompany(c.name),
-    { search: companySearch, enabled: isStockReport }
+  const activeSection = useMemo(
+    () => sections.find((s) => s.id === sectionId) || null,
+    [sections, sectionId]
   );
+  const isStockReport = isStockReportId(reportId);
 
-  const sparePartQuery = sparePartSearch.trim();
-  const { data: sparePartOptions = [], isLoading: sparePartsLoading } = useSWR(
-    selectedId === 'spare_parts_stock' || filtersOpen
-      ? ['report-spare-parts', sparePartQuery, draftWarehouse || null, draftCompany || null]
-      : null,
-    () =>
-      fetchSpareParts(
-        sparePartQuery || undefined,
-        draftWarehouse || undefined,
-        draftCompany || undefined
-      ),
-    { dedupingInterval: 3000 }
-  );
+  useAutofillSingleCompany(companies, companiesLoading, company, (c) => setCompany(c.name), {
+    search: companySearch,
+    enabled: isStockReport,
+  });
+
+  const applyPeriod = (value: string) => {
+    setPeriod(value);
+    if (value === 'custom') return;
+    const range = datesForPeriod(value);
+    setFromDate(range.from);
+    setToDate(range.to);
+  };
 
   useEffect(() => {
     reportsSvc
       .listReports()
-      .then(setCatalog)
+      .then((catalog) => setSections(catalog.sections || []))
       .catch(() => toast.error('Failed to load reports'))
       .finally(() => setLoadingCatalog(false));
   }, []);
 
+  // Default into first section when opened without params (sidebar always sends section)
+  useEffect(() => {
+    if (loadingCatalog || sectionId || !sections.length) return;
+    navigate('reports', { section: sections[0].id, report: 'dashboard' });
+  }, [loadingCatalog, sectionId, sections, navigate]);
+
+  const sparePartQuery = sparePartSearch.trim();
+  const { data: sparePartOptions = [], isLoading: sparePartsLoading } = useSWR(
+    isStockReport
+      ? ['report-spare-parts', sparePartQuery, warehouse || null, company || null]
+      : null,
+    () => fetchSpareParts(sparePartQuery || undefined, warehouse || undefined, company || undefined),
+    { dedupingInterval: 3000 }
+  );
+
   const vinQuery = vinSearch.trim();
   const { data: vinOptions = [], isLoading: vinsLoading } = useSWR<VINNo[]>(
-    filtersOpen ? ['report-filter-vins', vinQuery] : null,
+    sectionId && !isStockReport ? ['report-filter-vins', vinQuery] : null,
     () => fetchVINs(undefined, vinQuery || undefined),
     { dedupingInterval: 3000 }
   );
 
-  const runReport = useCallback(
-    async (
-      reportId: string,
-      opts?: {
-        from?: string;
-        to?: string;
-        vinNo?: string;
-        company?: string;
-        warehouse?: string;
-        sparePart?: string;
-        belowMinimumOnly?: boolean;
-      }
-    ) => {
-      const isStock = isStockReportId(reportId);
-      setSelectedId(reportId);
+  const openReportTab = (id: string) => {
+    if (!sectionId) return;
+    navigate('reports', { section: sectionId, report: id });
+  };
 
-      if (isStock) {
-        const reportCompany = opts?.company ?? company;
-        const reportWarehouse = opts?.warehouse ?? warehouse;
-        if (!reportCompany || !reportWarehouse) {
-          toast.error('Select company and warehouse below, then click Apply.');
-          setResult(null);
-          return;
-        }
-      }
-
-      setLoading(true);
-      try {
-        const filters: reportsSvc.ReportFilters = isStock
-          ? {
-              company: opts?.company ?? company,
-              warehouse: opts?.warehouse ?? warehouse,
-              spare_part: (opts?.sparePart ?? sparePart) || undefined,
-              below_minimum_only: (opts?.belowMinimumOnly ?? belowMinimumOnly) ? 1 : 0,
-              include_zero_stock: 1,
-            }
-          : {
-              from_date: opts?.from ?? fromDate,
-              to_date: opts?.to ?? toDate,
-              ...((opts?.vinNo ?? vinNo) ? { vin_no: opts?.vinNo ?? vinNo } : {}),
-            };
-        setResult(await reportsSvc.getReport(reportId, filters));
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to run report');
-        setResult(null);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [catalog, fromDate, toDate, vinNo, company, warehouse, sparePart, belowMinimumOnly]
-  );
-
-  useEffect(() => {
-    if (!loadingCatalog) runReport('daily_wip');
-  }, [loadingCatalog]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (filtersOpen) {
-      setDraftFrom(fromDate);
-      setDraftTo(toDate);
-      setDraftVinNo(vinNo);
-      setDraftVinLabel(vinLabel);
-      setDraftCompany(company);
-      setDraftWarehouse(warehouse);
-      setDraftSparePart(sparePart);
-      setDraftSparePartLabel(sparePartLabel);
-      setDraftBelowMinimumOnly(belowMinimumOnly);
-      setVinSearch('');
-      setCompanySearch('');
-      setWarehouseSearch('');
-      setSparePartSearch('');
+  const buildFilters = useCallback((): reportsSvc.ReportFilters => {
+    if (isStockReport) {
+      return {
+        company: company || undefined,
+        warehouse: warehouse || undefined,
+        spare_part: sparePart || undefined,
+        below_minimum_only: belowMinimumOnly ? 1 : 0,
+        include_zero_stock: 1,
+      };
     }
+    return {
+      from_date: fromDate,
+      to_date: toDate,
+      ...(period && period !== 'custom' ? { period } : {}),
+      ...(branch ? { branch } : {}),
+      ...(serviceAdvisor ? { service_advisor: serviceAdvisor } : {}),
+      ...(technician ? { technician } : {}),
+      ...(vehicleModel
+        ? { vehicle_model: vehicleModel, vehicle_model_label: vehicleModelLabel || undefined }
+        : {}),
+      ...(jobCardType ? { job_card_type: jobCardType } : {}),
+      ...(vinNo ? { vin_no: vinNo } : {}),
+    };
   }, [
-    filtersOpen,
-    fromDate,
-    toDate,
-    vinNo,
-    vinLabel,
+    isStockReport,
     company,
     warehouse,
     sparePart,
-    sparePartLabel,
     belowMinimumOnly,
+    fromDate,
+    toDate,
+    period,
+    branch,
+    serviceAdvisor,
+    technician,
+    vehicleModel,
+    vehicleModelLabel,
+    jobCardType,
+    vinNo,
   ]);
 
-  const selectedMeta = catalog.find((r) => r.id === selectedId);
+  const refresh = useCallback(async () => {
+    if (!sectionId) return;
+    setLoading(true);
+    try {
+      if (reportId === 'dashboard') {
+        setSectionDash(await reportsSvc.getSectionDashboard(sectionId, buildFilters()));
+        setResult(null);
+      } else {
+        if (isStockReport && (!company || !warehouse)) {
+          toast.error('Select company and warehouse, then refresh.');
+          setResult(null);
+          return;
+        }
+        setResult(await reportsSvc.getReport(reportId, buildFilters()));
+        setSectionDash(null);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load report');
+      setResult(null);
+      setSectionDash(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [sectionId, reportId, buildFilters, isStockReport, company, warehouse]);
 
   useEffect(() => {
-    if (!isStockReport) return;
-    setDraftCompany(company);
-    setDraftWarehouse(warehouse);
-    setDraftSparePart(sparePart);
-    setDraftSparePartLabel(sparePartLabel);
-    setDraftBelowMinimumOnly(belowMinimumOnly);
-  }, [isStockReport, selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const activeFilterCount = useMemo(() => {
-    if (isStockReport) {
-      let n = 0;
-      if (company) n += 1;
-      if (warehouse) n += 1;
-      if (sparePart) n += 1;
-      if (belowMinimumOnly) n += 1;
-      return n;
+    if (!loadingCatalog && sectionId) {
+      void refresh();
     }
-    let n = 0;
-    if (fromDate !== defaultFromDate()) n += 1;
-    if (toDate !== new Date().toISOString().split('T')[0]) n += 1;
-    if (vinNo) n += 1;
-    return n;
-  }, [isStockReport, fromDate, toDate, vinNo, company, warehouse, sparePart, belowMinimumOnly]);
+  }, [loadingCatalog, sectionId, reportId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const vinSelectOptions = useMemo(() => {
-    const fromApi = (vinOptions || []).map((v) => ({
-      value: v.name,
-      label: vinOptionLabel(v),
-      description: v.vin_number,
-    }));
-    if (draftVinNo && !fromApi.some((o) => o.value === draftVinNo)) {
-      return [
-        {
-          value: draftVinNo,
-          label: draftVinLabel || draftVinNo,
-          description: draftVinLabel || undefined,
-        },
-        ...fromApi,
-      ];
-    }
-    return fromApi;
-  }, [vinOptions, draftVinNo, draftVinLabel]);
-
-  const companySelectOptions = useMemo(
-    () =>
-      (companies || []).map((c) => ({
-        value: c.name,
-        label: c.company_name || c.name,
-      })),
-    [companies]
-  );
-
-  const warehouseSelectOptions = useMemo(
-    () =>
-      (warehouses || []).map((w) => ({
-        value: w.name,
-        label: w.warehouse_name || w.name,
-      })),
-    [warehouses]
-  );
-
-  const sparePartSelectOptions = useMemo(() => {
-    const fromApi = (sparePartOptions || []).map(sparePartToSelectOption);
-    if (draftSparePart && !fromApi.some((o) => o.value === draftSparePart)) {
-      return [
-        {
-          value: draftSparePart,
-          label: draftSparePartLabel || draftSparePart,
-        },
-        ...fromApi,
-      ];
-    }
-    return fromApi;
-  }, [sparePartOptions, draftSparePart, draftSparePartLabel]);
-
-  const applyFilters = () => {
-    if (isStockReport) {
-      if (!draftCompany || !draftWarehouse) {
-        toast.error('Company and warehouse are required for Spare Parts Stock.');
-        return;
-      }
-      setCompany(draftCompany);
-      setWarehouse(draftWarehouse);
-      setSparePart(draftSparePart);
-      setSparePartLabel(draftSparePartLabel);
-      setBelowMinimumOnly(draftBelowMinimumOnly);
-      setFiltersOpen(false);
-      void runReport(selectedId, {
-        company: draftCompany,
-        warehouse: draftWarehouse,
-        sparePart: draftSparePart,
-        belowMinimumOnly: draftBelowMinimumOnly,
-      });
+  const onExport = (kind: 'csv' | 'excel' | 'pdf') => {
+    if (!result) {
+      toast.error('Open a report tab first, then export.');
       return;
     }
-    setFromDate(draftFrom);
-    setToDate(draftTo);
-    setVinNo(draftVinNo);
-    setVinLabel(draftVinLabel);
-    setFiltersOpen(false);
-    void runReport(selectedId, { from: draftFrom, to: draftTo, vinNo: draftVinNo });
-  };
-
-  const resetFilters = () => {
-    if (isStockReport) {
-      setDraftCompany('');
-      setDraftWarehouse('');
-      setDraftSparePart('');
-      setDraftSparePartLabel('');
-      setDraftBelowMinimumOnly(false);
-      setCompany('');
-      setWarehouse('');
-      setSparePart('');
-      setSparePartLabel('');
-      setBelowMinimumOnly(false);
-      void runReport(selectedId, {
-        company: '',
-        warehouse: '',
-        sparePart: '',
-        belowMinimumOnly: false,
-      });
-      return;
+    if (kind === 'csv') exportReportCsv(result);
+    else if (kind === 'excel') exportReportExcel(result);
+    else {
+      setPdfPreviewHtml(buildReportPdfHtml(result));
+      setPdfPreviewOpen(true);
     }
-    const from = defaultFromDate();
-    const to = new Date().toISOString().split('T')[0];
-    setDraftFrom(from);
-    setDraftTo(to);
-    setDraftVinNo('');
-    setDraftVinLabel('');
-    setVinSearch('');
-    setFromDate(from);
-    setToDate(to);
-    setVinNo('');
-    setVinLabel('');
-    void runReport(selectedId, { from, to, vinNo: '' });
   };
 
-  const handleExport = () => {
-    if (!result?.rows?.length) {
-      toast.error('No data to export. Run the report first.');
-      return;
-    }
-    exportReportCsv(result);
-    toast.success('Exported as CSV');
-  };
-
-  return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-3">
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between shrink-0">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Reports & Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-            {selectedMeta?.description || 'Select a report below'}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {!isStockReport && (
-            <Button
-              type="button"
-              variant={filtersOpen ? 'secondary' : 'outline'}
-              size="sm"
-              onClick={() => setFiltersOpen((o) => !o)}
-              className="gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
-                  {activeFilterCount}
-                </span>
-              )}
-            </Button>
-          )}
-          <Button type="button" variant="outline" size="sm" onClick={() => runReport(selectedId)} disabled={loading} className="gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Refresh
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={handleExport} disabled={!result?.rows?.length} className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+  if (loadingCatalog || !sectionId) {
+    return (
+      <div className="space-y-3 p-1">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-10 w-full" />
+        <div className="grid gap-2 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
         </div>
       </div>
+    );
+  }
 
-      <div className="shrink-0 overflow-hidden rounded-lg border bg-card shadow-sm">
-        <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-2">
-          <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Reports</span>
-        </div>
-        <div className="flex gap-1.5 overflow-x-auto p-2 scrollbar-thin">
-          {loadingCatalog ? (
-            <Skeleton className="h-9 w-40 shrink-0" />
-          ) : (
-            catalog.map((r) => (
-              <button
+  return (
+    <div className="space-y-3">
+      <PdfPreviewDialog
+        open={pdfPreviewOpen}
+        onOpenChange={(open) => {
+          setPdfPreviewOpen(open);
+          if (!open) setPdfPreviewHtml(null);
+        }}
+        title={result?.title || 'Report'}
+        html={pdfPreviewHtml}
+      />
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={reportActionBtnClass}
+          onClick={() => void refresh()}
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          Refresh
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={reportActionBtnClass}
+          onClick={() => onExport('excel')}
+          disabled={!result}
+        >
+          <FileSpreadsheet className="h-3.5 w-3.5" />
+          Excel
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={reportActionBtnClass}
+          onClick={() => onExport('pdf')}
+          disabled={!result}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          PDF
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={reportActionBtnClass}
+          onClick={() => onExport('csv')}
+          disabled={!result}
+        >
+          CSV
+        </Button>
+      </div>
+
+      <Tabs value={reportId} onValueChange={openReportTab}>
+        <div className="overflow-x-auto">
+          <TabsList className="h-9 w-max max-w-none justify-start gap-0.5 bg-muted/40 p-1">
+            <TabsTrigger
+              value="dashboard"
+              className={cn(
+                'h-7 border border-transparent px-3 text-xs',
+                'data-[state=active]:border-dms-gold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm'
+              )}
+            >
+              Overview
+            </TabsTrigger>
+            {(activeSection?.reports || []).map((r) => (
+              <TabsTrigger
                 key={r.id}
-                type="button"
-                onClick={() => void runReport(r.id)}
+                value={r.id}
                 className={cn(
-                  'shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap',
-                  selectedId === r.id
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  'h-7 border border-transparent px-3 text-xs',
+                  'data-[state=active]:border-dms-gold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm'
                 )}
               >
                 {r.title}
-              </button>
-            ))
-          )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </div>
-      </div>
+      </Tabs>
 
-      {isStockReport ? (
-        <Card className="shrink-0 border-dashed shadow-none">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="space-y-1.5 min-w-[12rem] sm:min-w-[14rem]">
-              <RequiredLabel>Company</RequiredLabel>
-              <SearchableSelect
-                options={companySelectOptions}
-                value={draftCompany}
-                onValueChange={(val) => {
-                  setDraftCompany(val);
-                  setDraftWarehouse('');
-                }}
-                onSearchChange={setCompanySearch}
-                placeholder="Select company…"
-                isLoading={companiesLoading}
-              />
-            </div>
-            <div className="space-y-1.5 min-w-[12rem] sm:min-w-[14rem]">
-              <RequiredLabel>Warehouse</RequiredLabel>
-              <SearchableSelect
-                options={warehouseSelectOptions}
-                value={draftWarehouse}
-                onValueChange={setDraftWarehouse}
-                onSearchChange={setWarehouseSearch}
-                placeholder={draftCompany ? 'Select warehouse…' : 'Select company first'}
-                disabled={!draftCompany}
-                isLoading={warehousesLoading}
-              />
-            </div>
-            <div className="space-y-1.5 min-w-[14rem] sm:min-w-[18rem] sm:flex-[1.5]">
-              <Label>Spare part (optional)</Label>
-              <SearchableSelect
-                options={sparePartSelectOptions}
-                value={draftSparePart}
-                valueLabel={draftSparePartLabel || undefined}
-                onValueChange={(val) => {
-                  const picked = sparePartOptions?.find((p) => p.name === val);
-                  setDraftSparePart(val);
-                  setDraftSparePartLabel(picked?.item_name || val);
-                }}
-                onSearchChange={setSparePartSearch}
-                placeholder="All parts or search…"
-                isLoading={sparePartsLoading}
-              />
-            </div>
-            <label className="flex items-center gap-2 pb-2 text-sm cursor-pointer">
-              <Checkbox
-                checked={draftBelowMinimumOnly}
-                onCheckedChange={(c) => setDraftBelowMinimumOnly(c === true)}
-              />
-              Below minimum only
-            </label>
-            <div className="flex gap-2 pb-0.5">
-              <Button type="button" size="sm" onClick={applyFilters}>
-                Apply
-              </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={resetFilters}>
-                Reset
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-          <CollapsibleContent className="shrink-0 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-            <Card className="border-dashed shadow-none">
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-end">
-                <div className="space-y-1.5 min-w-[14rem] sm:min-w-[20rem] sm:flex-[1.5]">
-                  <Label htmlFor="rvin">VIN / chassis no.</Label>
+      <Card className="border-border/80 shadow-none">
+        <CardContent className="space-y-3 pt-4">
+          <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+            {isStockReport ? (
+              <>
+                <div className="space-y-1">
+                  <RequiredLabel className="text-xs">Company</RequiredLabel>
                   <SearchableSelect
-                    options={vinSelectOptions}
-                    value={draftVinNo}
-                    valueLabel={draftVinLabel || undefined}
-                    onValueChange={(val) => {
-                      const picked = vinOptions?.find((v) => v.name === val);
-                      setDraftVinNo(val);
-                      setDraftVinLabel(
-                        picked
-                          ? `${picked.vin_number}${picked.plate_number ? ` · ${picked.plate_number}` : ''}`
-                          : ''
-                      );
+                    options={(companies || []).map((c) => ({
+                      value: c.name,
+                      label: c.company_name || c.name,
+                    }))}
+                    value={company}
+                    onValueChange={(v) => {
+                      setCompany(v);
+                      setWarehouse('');
+                    }}
+                    onSearchChange={setCompanySearch}
+                    placeholder="Select company"
+                    isLoading={companiesLoading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <RequiredLabel className="text-xs">Warehouse</RequiredLabel>
+                  <SearchableSelect
+                    options={(warehouses || []).map((w) => ({
+                      value: w.name,
+                      label: w.warehouse_name || w.name,
+                    }))}
+                    value={warehouse}
+                    onValueChange={setWarehouse}
+                    onSearchChange={setWarehouseSearch}
+                    placeholder="Select warehouse"
+                    isLoading={warehousesLoading}
+                    disabled={!company}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Spare part</Label>
+                  <SearchableSelect
+                    options={sparePartOptions.map(sparePartToSelectOption)}
+                    value={sparePart}
+                    valueLabel={sparePartLabel}
+                    onValueChange={(v) => {
+                      setSparePart(v);
+                      const opt = sparePartOptions.find((p) => p.name === v);
+                      setSparePartLabel(opt ? sparePartToSelectOption(opt).label : '');
+                    }}
+                    onSearchChange={setSparePartSearch}
+                    placeholder="All parts"
+                    isLoading={sparePartsLoading}
+                  />
+                </div>
+                <div className="flex items-end gap-2 pb-1.5">
+                  <Checkbox
+                    id="below-min"
+                    checked={belowMinimumOnly}
+                    onCheckedChange={(c) => setBelowMinimumOnly(c === true)}
+                  />
+                  <Label htmlFor="below-min" className="cursor-pointer text-xs font-normal">
+                    Below minimum only
+                  </Label>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-xs">Period</Label>
+                  <Select value={period} onValueChange={applyPeriod}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PERIOD_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">From</Label>
+                  <Input
+                    type="date"
+                    className="h-9"
+                    value={fromDate}
+                    disabled={period !== 'custom'}
+                    onChange={(e) => {
+                      setPeriod('custom');
+                      setFromDate(e.target.value);
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">To</Label>
+                  <Input
+                    type="date"
+                    className="h-9"
+                    value={toDate}
+                    disabled={period !== 'custom'}
+                    onChange={(e) => {
+                      setPeriod('custom');
+                      setToDate(e.target.value);
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Branch</Label>
+                  <SearchableSelect
+                    options={(branches || []).map((b) => ({
+                      value: b.name,
+                      label: b.branch || b.name,
+                    }))}
+                    value={branch}
+                    onValueChange={setBranch}
+                    onSearchChange={setBranchSearch}
+                    placeholder="All branches"
+                    isLoading={branchesLoading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Advisor</Label>
+                  <SearchableSelect
+                    options={(advisors || []).map((a) => ({
+                      value: a.name,
+                      label: a.full_name || a.name,
+                    }))}
+                    value={serviceAdvisor}
+                    onValueChange={setServiceAdvisor}
+                    placeholder="All advisors"
+                    isLoading={advisorsLoading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Technician</Label>
+                  <SearchableSelect
+                    options={(technicians || []).map((t) => ({
+                      value: t.name,
+                      label: t.full_name || t.name,
+                    }))}
+                    value={technician}
+                    onValueChange={setTechnician}
+                    placeholder="All technicians"
+                    isLoading={techniciansLoading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Model</Label>
+                  <SearchableSelect
+                    options={(vehicleModels || []).map((m) => ({
+                      value: m.name,
+                      label: m.model_name || m.name,
+                      description: m.brand_label || m.brand,
+                    }))}
+                    value={vehicleModel}
+                    valueLabel={vehicleModelLabel}
+                    onValueChange={(v) => {
+                      setVehicleModel(v);
+                      const hit = (vehicleModels || []).find((m) => m.name === v);
+                      setVehicleModelLabel(hit?.model_name || hit?.name || '');
+                    }}
+                    onSearchChange={setModelSearch}
+                    placeholder="All models"
+                    isLoading={modelsLoading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Job type</Label>
+                  <Select
+                    value={jobCardType || '__all__'}
+                    onValueChange={(v) => setJobCardType(v === '__all__' ? '' : v)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All types</SelectItem>
+                      {JOB_CARD_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <Label className="text-xs">VIN</Label>
+                  <SearchableSelect
+                    options={vinOptions.map((v) => ({
+                      value: v.name,
+                      label: v.vin_number || v.name,
+                      description: vinOptionLabel(v),
+                    }))}
+                    value={vinNo}
+                    valueLabel={vinLabel}
+                    onValueChange={(v) => {
+                      setVinNo(v);
+                      const hit = vinOptions.find((x) => x.name === v);
+                      setVinLabel(hit?.vin_number || hit?.name || '');
                     }}
                     onSearchChange={setVinSearch}
-                    placeholder="Search VIN, plate, or model…"
-                    emptyMessage={vinQuery ? 'No vehicles found' : 'Type to search vehicles'}
+                    placeholder="Optional filter…"
                     isLoading={vinsLoading}
                   />
                 </div>
-                <div className="space-y-1.5 min-w-[10rem]">
-                  <Label htmlFor="rf">From date</Label>
-                  <Input id="rf" type="date" value={draftFrom} onChange={(e) => setDraftFrom(e.target.value)} />
-                </div>
-                <div className="space-y-1.5 min-w-[10rem]">
-                  <Label htmlFor="rt">To date</Label>
-                  <Input id="rt" type="date" value={draftTo} onChange={(e) => setDraftTo(e.target.value)} />
-                </div>
-                <div className="flex gap-2 pb-0.5">
-                  <Button type="button" size="sm" onClick={applyFilters}>
-                    Apply
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={resetFilters}>
-                    Reset
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+              </>
+            )}
+          </div>
 
-      <Card className="min-h-0 flex-1 flex flex-col overflow-hidden border shadow-sm">
-        <CardContent className="flex-1 overflow-y-auto p-4 md:p-6">
-          {loading && !result ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-7 w-7 animate-spin text-dms-gold" />
             </div>
+          ) : reportId === 'dashboard' && sectionDash ? (
+            <SectionDashboardView data={sectionDash} />
           ) : result ? (
             <ReportViewer data={result} />
           ) : (
-            <p className="py-20 text-center text-muted-foreground">
-              {isStockReport
-                ? 'Select company and warehouse above, then click Apply.'
-                : 'Choose a report tab and click Refresh'}
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              Adjust filters and click Refresh.
             </p>
           )}
         </CardContent>
       </Card>
-
-      <div className="shrink-0">
-        <button
-          type="button"
-          onClick={() => setDocsOpen((o) => !o)}
-          className="flex w-full items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm font-medium hover:bg-muted/50"
-        >
-          <span className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Printable documents
-          </span>
-          <ChevronDown className={cn('h-4 w-4 transition-transform', docsOpen && 'rotate-180')} />
-        </button>
-        {docsOpen && (
-          <div className="mt-2 grid gap-2 rounded-lg border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
-            {PRINTABLE_DOCUMENTS.map((doc) => (
-              <Button
-                key={doc.label}
-                variant="outline"
-                size="sm"
-                className="h-auto justify-start py-2 text-left text-xs"
-                onClick={() => navigate(doc.view)}
-              >
-                {doc.label}
-              </Button>
-            ))}
-          </div>
-        )}
-      </div>
-
     </div>
   );
 }

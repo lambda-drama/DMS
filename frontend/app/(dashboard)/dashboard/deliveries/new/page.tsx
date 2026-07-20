@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { SignaturePad } from "@/components/signature-pad";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
+import { StarRating, scoreToDeliveryLabel } from "@/components/reports/star-rating";
 import { uploadFile } from "@/services/common";
 import * as deliveriesSvc from "@/services/deliveries";
 import { ArrowLeft, Truck, Car, User, FileText, CheckCircle2, PenLine, Loader2 } from "lucide-react";
@@ -27,7 +28,6 @@ import { toast } from "sonner";
 
 const FUEL_LEVELS = ["Empty", "1/8", "1/4", "3/8", "1/2", "5/8", "3/4", "7/8", "Full"];
 const VEHICLE_CONDITIONS = ["Excellent", "Good", "Fair", "Customer Reported New Damage"];
-const SATISFACTION_OPTIONS = ["Happy", "Neutral", "Unhappy"];
 const PAYMENT_METHODS = [
   "Cash",
   "Card",
@@ -94,7 +94,7 @@ export default function NewDeliveryPage() {
   const [invoiceCopyGiven, setInvoiceCopyGiven] = useState(true);
   const [paymentCleared, setPaymentCleared] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
-  const [customerSatisfaction, setCustomerSatisfaction] = useState("Happy");
+  const [customerSatisfactionScore, setCustomerSatisfactionScore] = useState(0);
   const [customerComments, setCustomerComments] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [customerSignatureUrl, setCustomerSignatureUrl] = useState("");
@@ -178,7 +178,7 @@ export default function NewDeliveryPage() {
     allChecklistCompleted &&
     Boolean(customerSignatureUrl) &&
     Boolean(deliveredBySignatureUrl) &&
-    Boolean(customerSatisfaction) &&
+    customerSatisfactionScore >= 1 &&
     Boolean(finalOdometerKm) &&
     invoiceExplained &&
     paymentCleared;
@@ -212,6 +212,10 @@ export default function NewDeliveryPage() {
       toast.error("Customer and staff signatures are required");
       return;
     }
+    if (!(customerSatisfactionScore >= 1 && customerSatisfactionScore <= 5)) {
+      toast.error("Please rate customer satisfaction (1–5 stars)");
+      return;
+    }
 
     try {
       await createDelivery({
@@ -231,7 +235,8 @@ export default function NewDeliveryPage() {
         invoice_copy_given: invoiceCopyGiven,
         payment_cleared: paymentCleared,
         payment_method: paymentCleared ? paymentMethod : undefined,
-        customer_satisfaction_initial: customerSatisfaction,
+        customer_satisfaction_score: customerSatisfactionScore,
+        customer_satisfaction_initial: scoreToDeliveryLabel(customerSatisfactionScore),
         customer_comments: customerComments || undefined,
         customer_signature: customerSignatureUrl,
         delivered_by_signature: deliveredBySignatureUrl,
@@ -614,18 +619,19 @@ export default function NewDeliveryPage() {
             </div>
             <div className="space-y-2 max-w-md">
               <Label>Customer satisfaction *</Label>
-              <Select value={customerSatisfaction} onValueChange={setCustomerSatisfaction}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SATISFACTION_OPTIONS.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="rounded-lg border border-border/80 bg-card px-3 py-3">
+                <StarRating
+                  value={customerSatisfactionScore || null}
+                  size="lg"
+                  interactive
+                  onChange={setCustomerSatisfactionScore}
+                />
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Tap a star (1–5). {customerSatisfactionScore
+                    ? `Selected: ${customerSatisfactionScore}/5 · ${scoreToDeliveryLabel(customerSatisfactionScore)}`
+                    : "No rating yet"}
+                </p>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="customer_comments">Customer comments</Label>

@@ -3,22 +3,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
-  BarChart3,
+  Banknote,
   Calendar,
   Car,
   ChevronDown,
   ClipboardCheck,
   FileSpreadsheet,
   FileText,
+  Gauge,
   HardHat,
   Headphones,
   LayoutDashboard,
   LogOut,
+  Package,
+  ScrollText,
   Settings,
+  Shield,
   Truck,
+  UserCheck,
   Users,
   Wrench,
-  Package,
   ArrowDownUp,
   ClipboardList,
   PackageCheck,
@@ -35,13 +39,26 @@ import { usePermissions } from '@/contexts/permissions-context';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import type { LucideIcon } from 'lucide-react';
 
-const navigation = [
+type NavItem = {
+  name: string;
+  view: string;
+  icon: LucideIcon;
+  params?: Record<string, string>;
+  /** Permission gate — defaults to `view` */
+  accessView?: string;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+const navigation: NavSection[] = [
   {
     title: 'Overview',
-    items: [
-      { name: 'Dashboard', view: 'dashboard', icon: LayoutDashboard },
-    ],
+    items: [{ name: 'Dashboard', view: 'dashboard', icon: LayoutDashboard }],
   },
   {
     title: 'Workshop',
@@ -61,7 +78,6 @@ const navigation = [
       { name: 'Customers', view: 'customers', icon: Users },
       { name: 'Vehicles', view: 'vehicles', icon: Car },
       { name: 'Invoices', view: 'invoices', icon: FileText },
-      { name: 'Reports', view: 'reports', icon: BarChart3 },
     ],
   },
   {
@@ -84,6 +100,81 @@ const navigation = [
       { name: 'Proforma Invoices', view: 'proforma-invoices', icon: FileText },
     ],
   },
+  {
+    title: 'Reports',
+    items: [
+      {
+        name: 'Executive',
+        view: 'reports',
+        accessView: 'reports',
+        icon: Gauge,
+        params: { section: 'executive', report: 'dashboard' },
+      },
+      {
+        name: 'Workshop',
+        view: 'reports',
+        accessView: 'reports',
+        icon: Wrench,
+        params: { section: 'workshop', report: 'dashboard' },
+      },
+      {
+        name: 'Service Advisor',
+        view: 'reports',
+        accessView: 'reports',
+        icon: UserCheck,
+        params: { section: 'advisor', report: 'dashboard' },
+      },
+      {
+        name: 'Technician',
+        view: 'reports',
+        accessView: 'reports',
+        icon: HardHat,
+        params: { section: 'technician', report: 'dashboard' },
+      },
+      {
+        name: 'Parts & Inventory',
+        view: 'reports',
+        accessView: 'reports',
+        icon: Package,
+        params: { section: 'parts', report: 'dashboard' },
+      },
+      {
+        name: 'Warranty',
+        view: 'reports',
+        accessView: 'reports',
+        icon: Shield,
+        params: { section: 'warranty', report: 'dashboard' },
+      },
+      {
+        name: 'Quality Control',
+        view: 'reports',
+        accessView: 'reports',
+        icon: ClipboardCheck,
+        params: { section: 'qc', report: 'dashboard' },
+      },
+      {
+        name: 'Customer & CRM',
+        view: 'reports',
+        accessView: 'reports',
+        icon: Users,
+        params: { section: 'crm', report: 'dashboard' },
+      },
+      {
+        name: 'Finance',
+        view: 'reports',
+        accessView: 'reports',
+        icon: Banknote,
+        params: { section: 'finance', report: 'dashboard' },
+      },
+      {
+        name: 'Compliance',
+        view: 'reports',
+        accessView: 'reports',
+        icon: ScrollText,
+        params: { section: 'compliance', report: 'dashboard' },
+      },
+    ],
+  },
 ];
 
 const SECTION_VIEWS: Record<string, string[]> = Object.fromEntries(
@@ -96,6 +187,7 @@ const DEFAULT_OPEN: Record<string, boolean> = {
   Management: true,
   Master: false,
   Inventory: false,
+  Reports: false,
 };
 
 interface SidebarProps {
@@ -104,7 +196,7 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
-  const { viewGroup, navigate } = useNavigation();
+  const { viewGroup, viewParams, navigate } = useNavigation();
   const { canAccessView } = usePermissions();
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(DEFAULT_OPEN);
 
@@ -125,7 +217,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       navigation
         .map((section) => ({
           ...section,
-          items: section.items.filter((item) => canAccessView(item.view)),
+          items: section.items.filter((item) => canAccessView(item.accessView || item.view)),
         }))
         .filter((section) => section.items.length > 0),
     [canAccessView]
@@ -135,19 +227,23 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     setSectionOpen((prev) => ({ ...prev, [title]: open }));
   };
 
-  const renderNavItems = (
-    items: (typeof navigation)[number]['items']
-  ) => (
+  const isItemActive = (item: NavItem) => {
+    if (viewGroup !== item.view) return false;
+    if (!item.params?.section) return !viewParams.get('section');
+    return viewParams.get('section') === item.params.section;
+  };
+
+  const renderNavItems = (items: NavItem[]) => (
     <div className="space-y-0.5">
       {items.map((item) => {
-        const isActive = viewGroup === item.view;
+        const isActive = isItemActive(item);
         return (
           <a
-            key={item.name}
-            href={`#${item.view}`}
+            key={`${item.view}-${item.params?.section || item.name}`}
+            href={`#${item.view}${item.params ? `?${new URLSearchParams(item.params)}` : ''}`}
             onClick={(e) => {
               e.preventDefault();
-              navigate(item.view);
+              navigate(item.view, item.params);
               onNavigate?.();
             }}
             className={cn(
@@ -172,12 +268,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
-      {/* Logo — same height as top navbar */}
       <div className={cn(shellTopBarClassName, 'shrink-0 border-b border-sidebar-border px-6')}>
         <BrandLogo size="sm" variant="sidebar" className="min-w-0" />
       </div>
 
-      {/* Navigation — scrolls independently; logo and user footer stay pinned */}
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-5">
         <nav className="space-y-5">
           {visibleSections.map((section) => {
@@ -208,7 +302,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       <Separator className="shrink-0 bg-sidebar-border" />
 
-      {/* User Section */}
       <div className="shrink-0 p-4">
         <div className="mb-3 flex items-center gap-3 px-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-sm font-medium tracking-tight">
@@ -237,7 +330,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             variant="ghost"
             size="sm"
             className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            onClick={async () => { await logout(); window.location.reload(); }}
+            onClick={async () => {
+              await logout();
+              window.location.reload();
+            }}
           >
             <LogOut className="h-4 w-4 stroke-[1.5]" />
           </Button>

@@ -131,6 +131,12 @@ export interface CompanyOption {
   default_currency?: string;
 }
 
+export interface BranchOption {
+  name: string;
+  branch?: string;
+  company?: string;
+}
+
 export interface Workshop {
   name: string;
   company?: string;
@@ -321,6 +327,13 @@ export async function fetchCompanies(search?: string): Promise<CompanyOption[]> 
   return apiRequest<CompanyOption[]>(`/api/method/${API}.get_companies`, {
     method: 'POST',
     body: JSON.stringify({ search: search || null }),
+  });
+}
+
+export async function fetchBranches(search?: string, company?: string): Promise<BranchOption[]> {
+  return apiRequest<BranchOption[]>(`/api/method/${API}.get_branches`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, company: company || null }),
   });
 }
 

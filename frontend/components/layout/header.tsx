@@ -10,6 +10,19 @@ import { shellTopBarClassName } from '@/lib/app-shell';
 import { cn } from '@/lib/utils';
 import { useNavigation } from '@/contexts/navigation-context';
 
+const SECTION_TITLES: Record<string, string> = {
+  executive: 'Executive Reports',
+  workshop: 'Workshop Reports',
+  advisor: 'Service Advisor Reports',
+  technician: 'Technician Reports',
+  parts: 'Parts & Inventory Reports',
+  warranty: 'Warranty Reports',
+  qc: 'Quality Control Reports',
+  crm: 'Customer & CRM Reports',
+  finance: 'Finance Reports',
+  compliance: 'Compliance Reports',
+};
+
 const viewTitles: Record<string, string> = {
   dashboard: 'Dashboard',
   appointments: 'Appointments',
@@ -34,7 +47,7 @@ const viewTitles: Record<string, string> = {
   customers: 'Customers',
   vehicles: 'Vehicles',
   'vehicle-new': 'New Vehicle',
-  reports: 'Reports & Analytics',
+  reports: 'Reports',
   'stock-entry': 'Stock Entry',
   'stock-reconciliation': 'Stock Reconciliation',
   'material-request': 'Material Request',
@@ -52,8 +65,12 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { activeView } = useNavigation();
-  const title = viewTitles[activeView] || 'Dashboard';
+  const { activeView, viewParams } = useNavigation();
+  const section = viewParams.get('section') || '';
+  const title =
+    activeView === 'reports' && section && SECTION_TITLES[section]
+      ? SECTION_TITLES[section]
+      : viewTitles[activeView] || 'Dashboard';
 
   return (
     <header

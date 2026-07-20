@@ -232,9 +232,13 @@ export default function DashboardPage() {
               <CardTitle className="text-base">Management KPIs (last 30 days)</CardTitle>
             </div>
             {canUseReports ? (
-              <Button variant="outline" size="sm" onClick={() => navigate('reports')}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('reports', { section: 'executive', report: 'dashboard' })}
+              >
                 <BarChart3 className="h-4 w-4 mr-2" />
-                All reports
+                Reports
               </Button>
             ) : null}
           </CardHeader>

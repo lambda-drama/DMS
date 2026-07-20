@@ -4,25 +4,68 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days
+from frappe.utils import add_days, cint
+
+
+def score_to_satisfaction_label(score) -> str | None:
+	n = cint(score)
+	if n >= 4:
+		return "Happy"
+	if n == 3:
+		return "Neutral"
+	if 1 <= n <= 2:
+		return "Unhappy"
+	return None
+
+
+def satisfaction_label_to_score(label) -> int | None:
+	s = (label or "").strip().lower()
+	if s == "happy":
+		return 5
+	if s == "neutral":
+		return 3
+	if s == "unhappy":
+		return 1
+	return None
 
 
 class VehicleDeliveryNote(Document):
+	def validate(self):
+		self.sync_satisfaction_score()
+
+	def sync_satisfaction_score(self):
+		"""Keep Int 1–5 score and Happy/Neutral/Unhappy label aligned."""
+		score = cint(self.customer_satisfaction_score) if self.customer_satisfaction_score not in (None, "") else 0
+		if 1 <= score <= 5:
+			self.customer_satisfaction_score = score
+			label = score_to_satisfaction_label(score)
+			if label:
+				self.customer_satisfaction_initial = label
+			return
+
+		from_label = satisfaction_label_to_score(self.customer_satisfaction_initial)
+		if from_label:
+			self.customer_satisfaction_score = from_label
+
 	def on_submit(self):
 		"""Auto-create follow-up record when delivery is submitted."""
-		follow_up = frappe.get_doc(
-			{
-				"doctype": "Customer Follow Up",
-				"job_card": self.job_card,
-				"delivery": self.name,
-				"follow_up_due_date": add_days(self.delivery_date_time, 2),
-				"assigned_to": self.delivered_by,
-				"contact_status": "Pending",
-				"case_status": "Pending",
-			}
-		)
+		follow_up_data = {
+			"doctype": "Customer Follow Up",
+			"job_card": self.job_card,
+			"delivery": self.name,
+			"follow_up_due_date": add_days(self.delivery_date_time, 2),
+			"assigned_to": self.delivered_by,
+			"contact_status": "Pending",
+			"case_status": "Pending",
+		}
+		# Seed follow-up rating from delivery score when available
+		score = cint(self.customer_satisfaction_score)
+		if 1 <= score <= 5:
+			follow_up_data["customer_rating_score"] = score
+
+		follow_up = frappe.get_doc(follow_up_data)
 		follow_up.insert()
-		
+
 		# Update Job Card status
 		frappe.db.set_value("DMS Job Card", self.job_card, "status", "Delivered")
 

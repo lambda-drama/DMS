@@ -28,6 +28,7 @@
   "call_duration_minutes",
   "section_satisfaction",
   "customer_rating",
+  "customer_rating_score",
   "nps_score",
   "issue_resolved",
   "not_resolved_reason",
@@ -202,9 +203,20 @@
    "default": "3 - Neutral",
    "fieldname": "customer_rating",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Customer Rating (1-5)",
    "options": "\n1 - Very Unsatisfied\n2 - Unsatisfied\n3 - Neutral\n4 - Satisfied\n5 - Very Satisfied",
    "reqd": 1
+  },
+  {
+   "description": "Numeric score 1\u20135 (kept in sync with Customer Rating). Used by reports and dashboards.",
+   "fieldname": "customer_rating_score",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Rating Score",
+   "non_negative": 1
   },
   {
    "description": "How likely to recommend us? (0=Not likely, 10=Very likely)",
@@ -287,7 +299,7 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:doc.customer_rating == '1 - Very Unsatisfied' || doc.customer_rating == '2 - Unsatisfied'",
+   "depends_on": "eval:doc.customer_rating_score == 1 || doc.customer_rating_score == 2 || doc.customer_rating == '1 - Very Unsatisfied' || doc.customer_rating == '2 - Unsatisfied'",
    "fieldname": "escalated_to_manager",
    "fieldtype": "Check",
    "label": "Escalated to Service Manager"

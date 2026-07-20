@@ -168,7 +168,7 @@ export function useServiceEstimate(name: string | null) {
 
 export function useJobCards(options?: {
   status?: string;
-  filter?: 'active' | 'qc';
+  filter?: 'active' | 'qc' | 'qc_failed' | 'overdue';
   customer?: string;
   limit?: number;
   offset?: number;
@@ -426,6 +426,14 @@ export function useCompanies(search?: string) {
   return useSWR(
     ['companies', search],
     () => commonSvc.fetchCompanies(search),
+    { dedupingInterval: 30000 }
+  );
+}
+
+export function useBranches(search?: string, company?: string) {
+  return useSWR(
+    ['branches', search || '', company || ''],
+    () => commonSvc.fetchBranches(search, company),
     { dedupingInterval: 30000 }
   );
 }
