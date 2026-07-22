@@ -688,6 +688,9 @@ def create_sales_invoice_from_dms_job_card(
 		si.submit()
 
 	frappe.db.set_value("DMS Job Card", jc.name, "invoice", si.name, update_modified=True)
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import stamp_job_card_timestamp
+
+	stamp_job_card_timestamp(jc.name, "invoiced_at")
 
 	return si.name
 

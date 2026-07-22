@@ -735,9 +735,15 @@ export interface DMSJobCard {
   qc_inspector?: string;
   qc_result?: QCResult;
   qc_fail_reason?: string;
+  qc_started_at?: string;
   qc_checked_date?: string;
   rework_required?: boolean;
   rework_job_item?: string;
+
+  // Journey timestamps (TAT — permanent stamps)
+  technician_assigned_at?: string;
+  repair_started_at?: string;
+  invoiced_at?: string;
   
   // Billing & Payment
   invoice?: string;

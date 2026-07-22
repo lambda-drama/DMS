@@ -66,8 +66,23 @@ class VehicleDeliveryNote(Document):
 		follow_up = frappe.get_doc(follow_up_data)
 		follow_up.insert()
 
-		# Update Job Card status
-		frappe.db.set_value("DMS Job Card", self.job_card, "status", "Delivered")
+		# Update Job Card status + permanent delivery timestamp (§2.3 TAT)
+		from frappe.utils import now_datetime
+		from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+			log_job_card_status_change,
+		)
+
+		delivered_at = self.delivery_date_time or now_datetime()
+		prev = frappe.db.get_value("DMS Job Card", self.job_card, "status")
+		frappe.db.set_value(
+			"DMS Job Card",
+			self.job_card,
+			{"status": "Delivered", "delivery_date_time": delivered_at},
+			update_modified=True,
+		)
+		log_job_card_status_change(
+			self.job_card, "Delivered", previous_status=prev, when=delivered_at
+		)
 
 
 @frappe.whitelist()

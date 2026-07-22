@@ -768,8 +768,28 @@ def pass_job_card_qc(name):
 
 	doc.qc_result = "Pass"
 	doc.qc_checked_date = frappe.utils.now_datetime()
+	if not doc.get("qc_started_at"):
+		doc.qc_started_at = doc.qc_checked_date
 	doc.status = "Completed"
 	doc.flags.ignore_validate_update_after_submit = True
 	doc.save(ignore_permissions=True)
 	frappe.db.commit()
 	return {"status": doc.status, "material_issue": doc.material_issue}
+
+
+@frappe.whitelist()
+def start_job_card_qc(name):
+	"""Move job card into QC and stamp qc_started_at (§2.3 TAT)."""
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+	now = frappe.utils.now_datetime()
+	doc.status = "QC In Progress"
+	if not doc.get("qc_started_at"):
+		doc.qc_started_at = now
+	doc.flags.ignore_validate_update_after_submit = True
+	doc.save(ignore_permissions=True)
+	frappe.db.commit()
+	return {"status": doc.status, "qc_started_at": str(doc.qc_started_at)}
