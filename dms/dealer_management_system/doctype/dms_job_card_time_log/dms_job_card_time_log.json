@@ -68,7 +68,7 @@
    "fieldname": "pause_reason",
    "fieldtype": "Select",
    "label": "Pause Reason",
-   "options": "\nWaiting Parts\nWaiting Approval\nLunch Break\nTool Unavailable\nTechnical Support\nRoad Test\nDiagnosis Pending\nOther"
+   "options": "\nWaiting Parts\nWaiting Approval\nLunch Break\nTool Unavailable\nTechnical Support\nBay Unavailable\nRoad Test\nDiagnosis Pending\nOther"
   },
   {
    "allow_on_submit": 1,

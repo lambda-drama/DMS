@@ -376,13 +376,15 @@ export default function ReportsPage() {
       </div>
 
       <Tabs value={reportId} onValueChange={openReportTab}>
-        <div className="overflow-x-auto">
-          <TabsList className="h-9 w-max max-w-none justify-start gap-0.5 bg-muted/40 p-1">
+        <div className="overflow-x-auto pb-0.5">
+          <TabsList className="h-11 w-max max-w-none justify-start gap-1 rounded-xl bg-muted/50 p-1.5">
             <TabsTrigger
               value="dashboard"
               className={cn(
-                'h-7 border border-transparent px-3 text-xs',
-                'data-[state=active]:border-dms-gold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm'
+                'font-serif-display h-8 rounded-lg border border-transparent px-3.5 text-[14px] font-normal tracking-wide',
+                'text-muted-foreground transition-colors',
+                'data-[state=active]:border-dms-gold/60 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+                'data-[state=active]:font-normal'
               )}
             >
               Overview
@@ -392,8 +394,10 @@ export default function ReportsPage() {
                 key={r.id}
                 value={r.id}
                 className={cn(
-                  'h-7 border border-transparent px-3 text-xs',
-                  'data-[state=active]:border-dms-gold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm'
+                  'font-serif-display h-8 rounded-lg border border-transparent px-3.5 text-[14px] font-normal tracking-wide',
+                  'text-muted-foreground transition-colors',
+                  'data-[state=active]:border-dms-gold/60 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+                  'data-[state=active]:font-normal'
                 )}
               >
                 {r.title}

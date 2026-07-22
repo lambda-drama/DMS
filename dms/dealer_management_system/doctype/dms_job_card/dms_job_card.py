@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, now_datetime
 
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	is_labour_row_billable,
@@ -29,6 +29,72 @@ SEVERITY_NORMALIZATION_MAP = {
 }
 
 
+def stamp_job_card_timestamp(job_card, fieldname, when=None, *, only_if_empty=True):
+	"""Persist a permanent journey timestamp on DMS Job Card (never overwrite if set)."""
+	name = job_card if isinstance(job_card, str) else getattr(job_card, "name", None)
+	if not name or not fieldname:
+		return False
+	if not frappe.get_meta("DMS Job Card").has_field(fieldname):
+		return False
+	when = when or now_datetime()
+	if only_if_empty:
+		existing = frappe.db.get_value("DMS Job Card", name, fieldname)
+		if existing:
+			return False
+	frappe.db.set_value("DMS Job Card", name, fieldname, when, update_modified=False)
+	if not isinstance(job_card, str) and hasattr(job_card, "set"):
+		job_card.set(fieldname, when)
+	return True
+
+
+def log_job_card_status_change(job_card, new_status, previous_status=None, when=None, notes=None):
+	"""Append a permanent status-change row (Spec §2.3 — do not rely on editable text)."""
+	name = job_card if isinstance(job_card, str) else getattr(job_card, "name", None)
+	new_status = (new_status or "").strip()
+	if not name or not new_status:
+		return
+	if not frappe.db.exists("DocType", "DMS Job Card Status Log"):
+		return
+	when = when or now_datetime()
+	if previous_status is None:
+		previous_status = frappe.db.get_value("DMS Job Card", name, "status") or ""
+	if (previous_status or "") == new_status:
+		# Still allow first log when table empty
+		existing = frappe.db.count("DMS Job Card Status Log", {"parent": name})
+		if existing:
+			return
+
+	idx = cint(frappe.db.sql(
+		"SELECT MAX(idx) FROM `tabDMS Job Card Status Log` WHERE parent=%s", name
+	)[0][0] or 0) + 1
+	child = frappe.get_doc({
+		"doctype": "DMS Job Card Status Log",
+		"parent": name,
+		"parenttype": "DMS Job Card",
+		"parentfield": "status_log",
+		"idx": idx,
+		"status": new_status,
+		"previous_status": previous_status or "",
+		"changed_at": when,
+		"changed_by": frappe.session.user,
+		"notes": notes or "",
+	})
+	child.db_insert()
+
+	# Mirror key journey stamps from status transitions
+	status_to_field = {
+		"Assigned": "technician_assigned_at",
+		"Repair In Progress": "repair_started_at",
+		"QC In Progress": "qc_started_at",
+		"Repair Completed": "completed_date_time",
+		"Completed": "completed_date_time",
+		"Delivered": "delivery_date_time",
+	}
+	field = status_to_field.get(new_status)
+	if field:
+		stamp_job_card_timestamp(name, field, when)
+
+
 class DMSJobCard(Document):
 	def before_validate(self):
 		# Must run before Frappe's select-option validation.
@@ -48,6 +114,45 @@ class DMSJobCard(Document):
 		self.validate_inspection_for_job_type()
 		self.validate_internal_workflow()
 		self.calculate_costing_and_totals()
+		self.stamp_journey_timestamps()
+		self._queue_status_log()
+
+	def after_insert(self):
+		if self.status:
+			log_job_card_status_change(self.name, self.status, previous_status="")
+
+	def on_update(self):
+		pending = getattr(self.flags, "pending_status_log", None)
+		if pending:
+			log_job_card_status_change(
+				self.name,
+				pending.get("status"),
+				previous_status=pending.get("previous_status"),
+			)
+			self.flags.pending_status_log = None
+
+	def _queue_status_log(self):
+		if self.is_new():
+			return
+		if not self.has_value_changed("status"):
+			return
+		prev = self.get_db_value("status")
+		self.flags.pending_status_log = {
+			"status": self.status,
+			"previous_status": prev or "",
+		}
+
+	def stamp_journey_timestamps(self):
+		"""Auto-stamp permanent TAT fields from document state (first write wins)."""
+		now = now_datetime()
+		if self.lead_technician and not self.get("technician_assigned_at"):
+			self.technician_assigned_at = now
+		if self.status == "QC In Progress" and not self.get("qc_started_at"):
+			self.qc_started_at = now
+		if self.invoice and not self.get("invoiced_at"):
+			self.invoiced_at = now
+		if self.status == "Delivered" and not self.get("delivery_date_time"):
+			self.delivery_date_time = now
 
 	def validate_internal_workflow(self):
 		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
@@ -295,7 +400,7 @@ and direct frappe.db operations for child table rows.
 import frappe
 import json
 from frappe import _
-from frappe.utils import add_to_date, get_datetime, now_datetime, flt
+from frappe.utils import add_to_date, flt, get_datetime, now_datetime, time_diff_in_hours
 
 
 def _time_log_has_active_end(end_time) -> bool:
@@ -314,6 +419,70 @@ def _is_open_time_log(row) -> bool:
 		start_time = getattr(row, "start_time", None)
 		end_time = getattr(row, "end_time", None)
 	return bool(start_time) and not _time_log_has_active_end(end_time)
+
+
+def _duration_hours(start_time, end_time) -> float:
+	"""Hours between two datetimes; never negative (guards timezone/clock glitches)."""
+	if not start_time or not end_time:
+		return 0.0
+	try:
+		hours = flt(time_diff_in_hours(get_datetime(end_time), get_datetime(start_time)))
+	except Exception:
+		return 0.0
+	return round(max(0.0, hours), 2)
+
+
+def _close_open_time_logs(job_card, open_logs=None, end_time=None):
+	"""Close open repair logs using server time (same TZ as start_time stamps).
+
+	Client-sent end_time/duration are ignored for the clock — browsers often send
+	UTC via toISOString while start_time was stamped with now_datetime() (system TZ),
+	which produces negative durations.
+	"""
+	end_time = end_time or now_datetime()
+	if isinstance(open_logs, str):
+		open_logs = json.loads(open_logs) if open_logs else []
+
+	payload_by_name = {}
+	for log in open_logs or []:
+		name = (log or {}).get("name")
+		if name:
+			payload_by_name[name] = log
+
+	rows = frappe.get_all(
+		"DMS Job Card Time Log",
+		filters={"parent": job_card},
+		fields=["name", "start_time", "end_time"],
+	)
+
+	# If client named specific open logs, close those; otherwise close every open log.
+	targets = []
+	for row in rows:
+		if not _is_open_time_log(row):
+			continue
+		if payload_by_name and row.name not in payload_by_name:
+			continue
+		targets.append(row)
+
+	closed = []
+	for row in targets:
+		meta = payload_by_name.get(row.name) or {}
+		row_update = {
+			"end_time": end_time,
+			"duration_hours": _duration_hours(row.start_time, end_time),
+		}
+		if meta.get("pause_reason"):
+			row_update["pause_reason"] = meta.get("pause_reason")
+		if meta.get("notes"):
+			row_update["notes"] = meta.get("notes")
+		frappe.db.set_value(
+			"DMS Job Card Time Log",
+			row.name,
+			row_update,
+			update_modified=False,
+		)
+		closed.append(row.name)
+	return closed, end_time
 
 
 def repair_session_start_ms(time_logs) -> int | None:
@@ -452,6 +621,8 @@ def start_repair(job_card, time_logs=None):
 		)
 
 	doc.status = "Repair In Progress"
+	if not doc.get("repair_started_at"):
+		doc.repair_started_at = repair_started_at
 	doc.flags.ignore_validate_update_after_submit = True
 	doc.save()
 
@@ -480,70 +651,55 @@ def resume_repair(job_card):
 		pluck="name",
 	)
 	if open_logs:
+		prev = frappe.db.get_value("DMS Job Card", job_card, "status")
 		frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
+		log_job_card_status_change(job_card, "Repair In Progress", previous_status=prev)
 		frappe.db.commit()
 		return "ok"
 
 	_insert_repair_time_logs(job_card, technicians)
+	prev = frappe.db.get_value("DMS Job Card", job_card, "status")
 	frappe.db.set_value("DMS Job Card", job_card, "status", "Repair In Progress", update_modified=True)
+	log_job_card_status_change(job_card, "Repair In Progress", previous_status=prev)
 	frappe.db.commit()
 	return "ok"
 
 
 @frappe.whitelist()
 def pause_repair(job_card, new_status, open_logs=None):
-    if isinstance(open_logs, str):
-        open_logs = json.loads(open_logs) if open_logs else []
-
-    for log in (open_logs or []):
-        row_update = {
-            "end_time": log.get("end_time"),
-            "duration_hours": flt(log.get("duration_hours")),
-            "pause_reason": log.get("pause_reason"),
-        }
-        if log.get("notes"):
-            row_update["notes"] = log.get("notes")
-        frappe.db.set_value(
-            "DMS Job Card Time Log",
-            log.get("name"),
-            row_update,
-            update_modified=False,
-        )
-
-    frappe.db.set_value("DMS Job Card", job_card, "status", new_status, update_modified=True)
-    frappe.db.commit()
-    return "ok"
+	prev = frappe.db.get_value("DMS Job Card", job_card, "status")
+	_close_open_time_logs(job_card, open_logs=open_logs)
+	frappe.db.set_value("DMS Job Card", job_card, "status", new_status, update_modified=True)
+	log_job_card_status_change(job_card, new_status, previous_status=prev)
+	frappe.db.commit()
+	return "ok"
 
 
 @frappe.whitelist()
 def stop_repair(job_card, open_logs=None, completed_date_time=None):
-    if isinstance(open_logs, str):
-        open_logs = json.loads(open_logs) if open_logs else []
+	# Always stamp completion with server time so it matches start_time timezone.
+	prev = frappe.db.get_value("DMS Job Card", job_card, "status")
+	_, completed_at = _close_open_time_logs(job_card, open_logs=open_logs)
 
-    for log in (open_logs or []):
-        frappe.db.set_value(
-            "DMS Job Card Time Log", log.get("name"),
-            {
-                "end_time": log.get("end_time"),
-                "duration_hours": flt(log.get("duration_hours")),
-            },
-            update_modified=False
-        )
+	all_logs = frappe.get_all(
+		"DMS Job Card Time Log",
+		filters={"parent": job_card},
+		fields=["duration_hours"],
+	)
+	total_hours = round(sum(flt(l.duration_hours) for l in all_logs), 2)
 
-    # Sum ALL logs including previously paused ones
-    all_logs = frappe.get_all(
-        "DMS Job Card Time Log",
-        filters={"parent": job_card},
-        fields=["duration_hours"]
-    )
-    total_hours = sum(flt(l.duration_hours) for l in all_logs)
+	frappe.db.set_value(
+		"DMS Job Card",
+		job_card,
+		{
+			"status": "Repair Completed",
+			"actual_duration_hours": total_hours,
+			"total_hours": total_hours,
+			"completed_date_time": completed_at,
+		},
+		update_modified=True,
+	)
+	log_job_card_status_change(job_card, "Repair Completed", previous_status=prev, when=completed_at)
 
-    frappe.db.set_value("DMS Job Card", job_card, {
-        "status": "Repair Completed",
-        "actual_duration_hours": total_hours,
-        "total_hours": total_hours,
-        "completed_date_time": completed_date_time or now_datetime(),
-    }, update_modified=True)
-
-    frappe.db.commit()
-    return "ok"
+	frappe.db.commit()
+	return "ok"

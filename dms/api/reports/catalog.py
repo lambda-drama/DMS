@@ -46,11 +46,13 @@ def _report_catalog():
 			"description": _("Live operations"),
 			"icon": "wrench",
 			"reports": [
-				{"id": "daily_wip", "title": _("Work in Progress"), "description": _("Open jobs by status and bay.")},
-				{"id": "job_card_status", "title": _("Job Card Status"), "description": _("Status and ownership.")},
-				{"id": "vehicle_turnaround", "title": _("Turnaround Time"), "description": _("Stage elapsed time.")},
+				{"id": "daily_wip", "title": _("Work in Progress"), "description": _("Open jobs with promise alerts, parts and payment status.")},
+				{"id": "job_card_status", "title": _("Job Card Status"), "description": _("Status ownership and age in current status.")},
+				{"id": "vehicle_turnaround", "title": _("Turnaround Time"), "description": _("Stage elapsed time from arrival to delivery.")},
 				{"id": "aging", "title": _("Aging"), "description": _("Days open in workshop.")},
-				{"id": "repeat_repair", "title": _("Comebacks"), "description": _("Repeat repairs by VIN.")},
+				{"id": "bay_utilization", "title": _("Bay Utilization"), "description": _("Occupied, idle and blocked bays.")},
+				{"id": "repair_delay", "title": _("Repair Delay"), "description": _("Jobs past promised completion.")},
+				{"id": "repeat_repair", "title": _("Comebacks"), "description": _("Repeat repairs and comeback cost.")},
 			],
 		},
 		{
@@ -69,7 +71,8 @@ def _report_catalog():
 			"description": _("Productivity"),
 			"icon": "hard-hat",
 			"reports": [
-				{"id": "technician_productivity", "title": _("Productivity"), "description": _("Hours and efficiency.")},
+				{"id": "technician_productivity", "title": _("Productivity"), "description": _("Hours, efficiency, comebacks and sales.")},
+				{"id": "technician_time_analysis", "title": _("Time Analysis"), "description": _("Clock and pause detail per time log.")},
 			],
 		},
 		{

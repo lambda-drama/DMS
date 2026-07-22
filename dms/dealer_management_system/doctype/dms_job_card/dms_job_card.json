@@ -18,6 +18,14 @@
   "opened_date_time",
   "completed_date_time",
   "promised_delivery_date_time",
+  "section_journey_timestamps",
+  "technician_assigned_at",
+  "repair_started_at",
+  "qc_started_at",
+  "column_break_journey",
+  "invoiced_at",
+  "delivery_date_time",
+  "status_log",
   "section_customer_vehicle",
   "customer",
   "customer_name",
@@ -87,7 +95,6 @@
   "section_delivery",
   "delivered_to",
   "delivered_to_phone",
-  "delivery_date_time",
   "final_odometer",
   "customer_signature",
   "column_break_delivery",
@@ -100,6 +107,9 @@
   "customer_satisfaction",
   "section_break_cehe",
   "reason_for_stop",
+  "delay_department",
+  "delay_corrective_action",
+  "customer_notified",
   "road_test_tab",
   "road_test_template",
   "road_test_results",
@@ -204,6 +214,64 @@
    "fieldname": "promised_delivery_date_time",
    "fieldtype": "Datetime",
    "label": "Promised Delivery Date & Time"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_journey_timestamps",
+   "fieldtype": "Section Break",
+   "label": "Journey Timestamps (TAT)"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Set when lead technician is first assigned. Used for Turnaround Time.",
+   "fieldname": "technician_assigned_at",
+   "fieldtype": "Datetime",
+   "label": "Technician Assigned At",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Set when repair is first started. Used for Turnaround Time.",
+   "fieldname": "repair_started_at",
+   "fieldtype": "Datetime",
+   "label": "Repair Started At",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Set when QC starts. Used for Turnaround Time.",
+   "fieldname": "qc_started_at",
+   "fieldtype": "Datetime",
+   "label": "QC Started At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_journey",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Set when Sales Invoice is linked. Used for Turnaround Time.",
+   "fieldname": "invoiced_at",
+   "fieldtype": "Datetime",
+   "label": "Invoiced At",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Set when vehicle is delivered. Used for Turnaround Time.",
+   "fieldname": "delivery_date_time",
+   "fieldtype": "Datetime",
+   "label": "Delivery Date & Time",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "status_log",
+   "fieldtype": "Table",
+   "label": "Status Change Log",
+   "options": "DMS Job Card Status Log",
+   "read_only": 1
   },
   {
    "collapsible": 1,
@@ -655,11 +723,6 @@
    "label": "Delivered To Phone"
   },
   {
-   "fieldname": "delivery_date_time",
-   "fieldtype": "Datetime",
-   "label": "Delivery Date & Time"
-  },
-  {
    "fieldname": "final_odometer",
    "fieldtype": "Int",
    "label": "Final Odometer"
@@ -778,7 +841,27 @@
    "allow_on_submit": 1,
    "fieldname": "reason_for_stop",
    "fieldtype": "Text Editor",
-   "label": "Reason for Stop"
+   "label": "Reason for Stop / Delay"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "delay_department",
+   "fieldtype": "Select",
+   "label": "Delay Responsible Department",
+   "options": "\nWorkshop\nParts\nService Advisor\nCustomer\nQC\nWarranty\nBody Shop\nOther"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "delay_corrective_action",
+   "fieldtype": "Small Text",
+   "label": "Delay Corrective Action"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "customer_notified",
+   "fieldtype": "Check",
+   "label": "Customer Notified of Delay"
   },
   {
    "fieldname": "road_test_tab",

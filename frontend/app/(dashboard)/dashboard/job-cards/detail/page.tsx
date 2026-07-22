@@ -103,7 +103,7 @@ import * as invoicesSvc from "@/services/invoices";
 import type { SalesInvoiceDetail } from "@/types/dms";
 function toDatetimeLocal(value?: string) {
   if (!value) return "";
-  const d = new Date(value);
+  const d = new Date(value.includes("T") ? value : value.replace(" ", "T"));
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -112,6 +112,26 @@ function toDatetimeLocal(value?: string) {
 function toFrappeDatetime(local: string) {
   if (!local) return "";
   return `${local.replace("T", " ")}:00`;
+}
+
+/** Wall-clock datetime in system-local time (matches Frappe now_datetime, not UTC). */
+function nowAsFrappeDatetime() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function parseFrappeDatetime(value: string) {
+  // Frappe returns "YYYY-MM-DD HH:mm:ss" without TZ — treat as local wall clock.
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  return new Date(normalized);
+}
+
+function durationHoursSince(startTime?: string | null) {
+  if (!startTime) return 0;
+  const start = parseFrappeDatetime(startTime);
+  if (Number.isNaN(start.getTime())) return 0;
+  return Math.max(0, (Date.now() - start.getTime()) / 3600000);
 }
 
 function collectRepairTechnicians(jobCard: DMSJobCard): string[] {
@@ -621,11 +641,11 @@ export default function JobCardDetailPage() {
     saveRepairTimerState(id, { offsetSeconds: totalElapsed, startedAtMs: null });
 
     const openLogs = (jobCard.time_logs || []).filter(isOpenTimeLog);
-    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const now = nowAsFrappeDatetime();
     const closedLogs = openLogs.map((l) => ({
       name: l.name,
       end_time: now,
-      duration_hours: (Date.now() - new Date(l.start_time).getTime()) / 3600000,
+      duration_hours: durationHoursSince(l.start_time),
       pause_reason,
       ...(notes ? { notes } : {}),
     }));
@@ -640,11 +660,11 @@ export default function JobCardDetailPage() {
     setRepairTimerOffsetSeconds(0);
 
     const openLogs = (jobCard.time_logs || []).filter(isOpenTimeLog);
-    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const now = nowAsFrappeDatetime();
     const closedLogs = openLogs.map((l) => ({
       name: l.name,
       end_time: now,
-      duration_hours: (Date.now() - new Date(l.start_time).getTime()) / 3600000,
+      duration_hours: durationHoursSince(l.start_time),
     }));
     runAction("Repair Completed", () => jobCardsSvc.completeRepair(id, closedLogs, now));
   };

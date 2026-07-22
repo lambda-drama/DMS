@@ -8,6 +8,13 @@ import type { DMSJobCard, JobCardQCResult, PaginatedResponse, RoadTestItemResult
 const API = 'dms.api.job_cards';
 const DT_PATH = 'dms.dealer_management_system.doctype.dms_job_card.dms_job_card';
 
+/** Local wall-clock for Frappe Datetime fields — never use toISOString() (UTC). */
+function nowAsFrappeDatetime() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 // ─── List & Get ──────────────────────────────────────────────
 
 export async function listJobCards(options?: {
@@ -163,7 +170,7 @@ export async function startRepair(
   const timeLogs = technicians.map((technician) => ({
     technician,
     // Server always stamps its own start_time — payload is for technician list only.
-    start_time: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    start_time: nowAsFrappeDatetime(),
   }));
 
   return apiRequest<{ status: string; repair_session_start_ms?: number }>(
@@ -209,7 +216,7 @@ export async function completeRepair(
     body: JSON.stringify({
       job_card: name,
       open_logs: openLogs ? JSON.stringify(openLogs) : undefined,
-      completed_date_time: completedDateTime || new Date().toISOString().replace('T', ' ').slice(0, 19),
+      completed_date_time: completedDateTime || nowAsFrappeDatetime(),
     }),
   });
 }
@@ -291,7 +298,10 @@ export async function failRoadTest(name: string, reason: string): Promise<void> 
 }
 
 export async function startQC(name: string): Promise<void> {
-  await setFieldValue(name, 'status', 'QC In Progress');
+  await apiRequest(`/api/method/${API}.start_job_card_qc`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
 }
 
 export interface QCChecklistTemplateOption {

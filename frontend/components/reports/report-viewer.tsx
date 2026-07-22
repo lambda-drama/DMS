@@ -10,6 +10,10 @@ import {
 } from '@/components/ui/table';
 import type { ReportResult } from '@/services/reports';
 import { StarRating, isStarRatingField } from '@/components/reports/star-rating';
+import {
+  ReportStatusChip,
+  isReportStatusField,
+} from '@/components/reports/report-status-chip';
 
 function formatCell(value: unknown): string {
   if (value == null || value === '') return '—';
@@ -63,6 +67,8 @@ export function ReportViewer({ data }: { data: ReportResult }) {
                     <TableCell key={col.key} className="text-[13px]">
                       {isStarRatingField(col.key) ? (
                         <StarRating value={row[col.key] ?? row.rating_stars} size="sm" />
+                      ) : isReportStatusField(col.key) ? (
+                        <ReportStatusChip fieldKey={col.key} value={row[col.key]} />
                       ) : (
                         formatCell(row[col.key])
                       )}

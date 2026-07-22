@@ -8,7 +8,7 @@ from datetime import timedelta
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, date_diff, flt, get_first_day, getdate, nowdate
+from frappe.utils import add_days, cint, date_diff, flt, get_datetime, get_first_day, getdate, nowdate
 
 from dms.api.dashboard import ACTIVE_JOB_CARD_STATUSES
 
@@ -259,6 +259,16 @@ def _apply_vin_numbers(rows, link_field="vehicle_vin", output_field="vin_number"
 
 def _apply_vin_numbers_from_field(rows, link_field="vin", output_field="vin_number"):
 	return _apply_vin_numbers(rows, link_field=link_field, output_field=output_field)
+
+def _format_datetime_minute(value):
+	"""Format datetime as YYYY-MM-DD HH:MM (no seconds / fractions)."""
+	if not value:
+		return ""
+	dt = get_datetime(value)
+	if not dt:
+		return ""
+	return dt.strftime("%Y-%m-%d %H:%M")
+
 
 def _row_get(row, field):
 	if isinstance(row, dict):

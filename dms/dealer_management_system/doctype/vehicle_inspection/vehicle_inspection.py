@@ -20,6 +20,11 @@ _APPOINTMENT_PRIORITY_TO_JOB_CARD = {
 
 
 class VehicleInspection(Document):
+	def before_submit(self):
+		# Permanent stage timestamp for TAT (§2.3) — do not rely on modified/editable text
+		if not self.inspection_completed_date:
+			self.inspection_completed_date = now_datetime()
+
 	def on_submit(self):
 		"""When inspection is submitted, update VIN owner and odometer on the VIN record."""
 		if not self.vin_chassis or not frappe.db.exists("VIN No", self.vin_chassis):
