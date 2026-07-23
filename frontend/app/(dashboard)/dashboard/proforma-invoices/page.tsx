@@ -27,6 +27,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { DetailSheet, DetailRow, DetailSection } from '@/components/detail-sheet';
+import { PrintFormatDropdown } from '@/components/print-format-dropdown';
+import { ListRowActions } from '@/components/list-row-actions';
 import * as sparePartSalesSvc from '@/services/sparePartSales';
 import type { SparePartProformaDetail, SparePartProformaListItem } from '@/services/sparePartSales';
 import { FileText, Loader2, Receipt, Search } from 'lucide-react';
@@ -180,21 +182,23 @@ export default function ProformaInvoicesPage() {
                     <TableCell className="text-right">
                       {formatMoney(row.grand_total, row.currency)}
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => void openDetail(row.name)}>
-                        View
-                      </Button>
-                      {!row.converted && row.docstatus === 1 && canCreate('invoices') ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setConvertTarget(row)}
-                        >
-                          <Receipt className="h-3.5 w-3.5 mr-1" />
-                          To invoice
+                    <TableCell className="text-right">
+                      <ListRowActions doctype="Sales Order" docName={row.name}>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => void openDetail(row.name)}>
+                          View
                         </Button>
-                      ) : null}
+                        {!row.converted && row.docstatus === 1 && canCreate('invoices') ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConvertTarget(row)}
+                          >
+                            <Receipt className="h-3.5 w-3.5 mr-1" />
+                            To invoice
+                          </Button>
+                        ) : null}
+                      </ListRowActions>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -210,6 +214,25 @@ export default function ProformaInvoicesPage() {
         title={selected?.name || 'Proforma'}
         subtitle={selected?.customer_name}
         isLoading={detailLoading}
+        onOpenInDesk={
+          selected ? () => window.open(`/app/sales-order/${selected.name}`, '_blank') : undefined
+        }
+        footer={
+          selected ? (
+            <div className="flex flex-col gap-2 w-full">
+              <PrintFormatDropdown
+                doctype="Sales Order"
+                docName={selected.name}
+                className="w-full"
+              />
+              {!selected.converted && selected.docstatus === 1 && canCreate('invoices') ? (
+                <Button type="button" className="w-full" onClick={() => setConvertTarget(selected)}>
+                  Convert to sales invoice
+                </Button>
+              ) : null}
+            </div>
+          ) : undefined
+        }
       >
         {selected ? (
           <>
@@ -233,15 +256,6 @@ export default function ProformaInvoicesPage() {
                 />
               ))}
             </DetailSection>
-            {!selected.converted && selected.docstatus === 1 && canCreate('invoices') ? (
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => setConvertTarget(selected)}
-              >
-                Convert to sales invoice
-              </Button>
-            ) : null}
           </>
         ) : null}
       </DetailSheet>

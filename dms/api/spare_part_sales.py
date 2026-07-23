@@ -194,7 +194,10 @@ def _proforma_so_filters() -> dict:
 	meta = frappe.get_meta("Sales Order")
 	if meta.has_field("custom_spare_parts_proforma"):
 		return {"custom_spare_parts_proforma": 1}
-	return {"remarks": ["like", f"%{PROFORMA_REMARKS_PREFIX}%"]}
+	if meta.has_field("remarks"):
+		return {"remarks": ["like", f"%{PROFORMA_REMARKS_PREFIX}%"]}
+	# No reliable filter field — return empty (caller still lists by permission)
+	return {}
 
 
 def _ensure_spare_part_proforma(so) -> None:
@@ -203,10 +206,12 @@ def _ensure_spare_part_proforma(so) -> None:
 		if not cint(so.get("custom_spare_parts_proforma")):
 			frappe.throw(_("Document {0} is not a spare part proforma.").format(frappe.bold(so.name)))
 		return
-	remarks = (so.get("remarks") or "").strip()
-	if PROFORMA_REMARKS_PREFIX not in remarks:
-		frappe.throw(_("Document {0} is not a spare part proforma.").format(frappe.bold(so.name)))
-
+	if meta.has_field("remarks"):
+		remarks = (so.get("remarks") or "").strip()
+		if PROFORMA_REMARKS_PREFIX not in remarks:
+			frappe.throw(_("Document {0} is not a spare part proforma.").format(frappe.bold(so.name)))
+		return
+	# Without custom flag or remarks, skip strict check (legacy sites)
 
 def _validate_spare_part_lines(
 	data,
@@ -217,14 +222,26 @@ def _validate_spare_part_lines(
 	company = (data.get("company") or "").strip() or get_default_dms_company()
 	warehouse = (data.get("warehouse") or "").strip()
 	parts_lines = data.get("parts") or data.get("parts_lines") or []
+	labour_lines = data.get("labour") or data.get("labour_lines") or []
 
 	if not customer:
 		frappe.throw(
 			_("Select a customer or configure Default Customer in DMS Settings."),
 			title=_("Customer required"),
 		)
-	if not parts_lines:
-		frappe.throw(_("Add at least one spare part line."))
+
+	has_parts = any(
+		(row.get("spare_part") or row.get("item_code") or "").strip()
+		and flt(row.get("qty") or row.get("quantity") or 0) > 0
+		for row in parts_lines
+	)
+	has_labour = any(
+		(row.get("vehicle_service_item") or "").strip()
+		and flt(row.get("hours") or row.get("estimated_hours") or row.get("qty") or 0) > 0
+		for row in labour_lines
+	)
+	if not has_parts and not has_labour:
+		frappe.throw(_("Add at least one labour or spare part line."))
 
 	allowed_wh = {w["name"] for w in get_dms_allowed_warehouses(company)}
 	if warehouse and allowed_wh and warehouse not in allowed_wh:
@@ -246,6 +263,14 @@ def _validate_spare_part_lines(
 					)
 				)
 
+	for row in labour_lines:
+		vsi = (row.get("vehicle_service_item") or "").strip()
+		if not vsi:
+			continue
+		hours = flt(row.get("hours") or row.get("estimated_hours") or row.get("qty") or 0)
+		if hours <= 0:
+			frappe.throw(_("Hours must be greater than zero for labour item {0}.").format(vsi))
+
 	vin = (data.get("vehicle_vin") or data.get("vin") or "").strip()
 	vehicle_model = (data.get("vehicle_model") or "").strip()
 	vehicle_brand = (data.get("vehicle_brand") or data.get("vehicle_make") or "").strip()
@@ -256,6 +281,7 @@ def _validate_spare_part_lines(
 		"company": company,
 		"warehouse": warehouse,
 		"parts_lines": parts_lines,
+		"labour_lines": labour_lines,
 		"vin": vin,
 		"vehicle_model": vehicle_model,
 		"vehicle_brand": vehicle_brand,
@@ -386,7 +412,7 @@ def get_spare_part_proforma(name):
 		"docstatus": so.docstatus,
 		"per_billed": flt(so.per_billed),
 		"converted": flt(so.per_billed) >= 100,
-		"remarks": so.remarks,
+		"remarks": so.get("remarks") if frappe.get_meta("Sales Order").has_field("remarks") else None,
 		"items": items,
 		"sales_invoices": invoice_names,
 	}
@@ -410,6 +436,7 @@ def create_spare_part_proforma(data):
 	name = create_standalone_dms_sales_order(
 		customer=ctx["customer"],
 		company=ctx["company"],
+		labour_lines=ctx.get("labour_lines") or [],
 		parts_lines=ctx["parts_lines"],
 		warehouse=ctx["warehouse"],
 		currency=data.get("currency"),
@@ -417,6 +444,7 @@ def create_spare_part_proforma(data):
 		transaction_date=data.get("posting_date") or data.get("transaction_date"),
 		remarks=remarks,
 		submit=cint(data.get("submit", 1)),
+		labour_discount=data.get("labour_discount"),
 		parts_discount=data.get("parts_discount"),
 	)
 

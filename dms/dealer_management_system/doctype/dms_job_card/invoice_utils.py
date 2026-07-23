@@ -1583,6 +1583,7 @@ def _apply_standalone_stock_warehouse_so(so_row, erp_item: str, warehouse: str, 
 def create_standalone_dms_sales_order(
 	customer: str,
 	company: str,
+	labour_lines=None,
 	parts_lines=None,
 	warehouse: str | None = None,
 	currency: str | None = "ETB",
@@ -1590,9 +1591,10 @@ def create_standalone_dms_sales_order(
 	transaction_date: str | None = None,
 	remarks: str | None = None,
 	submit: bool = False,
+	labour_discount=None,
 	parts_discount=None,
 ) -> str:
-	"""Create a Sales Order for DMS spare-part proforma (counter quote)."""
+	"""Create a Sales Order for DMS proforma (labour and/or spare parts)."""
 	_ensure_erpnext()
 
 	customer = (customer or "").strip()
@@ -1604,6 +1606,7 @@ def create_standalone_dms_sales_order(
 	if not frappe.db.exists("Customer", customer):
 		frappe.throw(_("Customer {0} not found.").format(customer))
 
+	labour_lines = labour_lines or []
 	parts_lines = parts_lines or []
 	warehouse = (warehouse or "").strip()
 
@@ -1628,7 +1631,7 @@ def create_standalone_dms_sales_order(
 	so.customer = customer
 	so.transaction_date = transaction_date or today()
 	so.delivery_date = delivery_date or so.transaction_date
-	if remarks:
+	if remarks and frappe.get_meta("Sales Order").has_field("remarks"):
 		so.remarks = remarks
 	mark_sales_order_as_spare_part_proforma(so)
 
@@ -1637,7 +1640,23 @@ def create_standalone_dms_sales_order(
 		frappe.throw(_("Currency {0} is not defined in ERPNext.").format(frappe.bold(order_currency)))
 	so.currency = order_currency
 
+	labour_disc = _normalize_standalone_discount(labour_discount)
 	parts_disc = _normalize_standalone_discount(parts_discount)
+
+	def _standalone_labour_line_amount(row) -> tuple[float, float, float, str | None]:
+		vsi = (row.get("vehicle_service_item") or "").strip()
+		if not vsi:
+			return 0.0, 0.0, 0.0, None
+		qty = flt(row.get("hours") or row.get("estimated_hours") or row.get("qty") or 0)
+		if qty <= 0:
+			return 0.0, 0.0, 0.0, None
+		item_code = resolve_vehicle_service_item_to_item_code(vsi)
+		if not item_code:
+			return 0.0, 0.0, 0.0, vsi
+		base_rate = flt(row.get("rate_per_hour") or row.get("rate") or 0)
+		if base_rate <= 0:
+			base_rate = vehicle_service_item_labour_rate(vsi)
+		return qty, base_rate, qty * base_rate, None
 
 	def _standalone_parts_line_amount(row) -> tuple[float, float, float]:
 		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
@@ -1651,11 +1670,22 @@ def create_standalone_dms_sales_order(
 			base_rate = spare_part_default_selling_price(spare_part)
 		return qty, base_rate, qty * base_rate
 
+	labour_group_total = 0.0
+	for row in labour_lines:
+		_qty, _rate, amount, _missing = _standalone_labour_line_amount(row)
+		labour_group_total += amount
+
 	parts_group_total = 0.0
 	for row in parts_lines:
 		_qty, _rate, amount = _standalone_parts_line_amount(row)
 		parts_group_total += amount
 
+	if labour_disc and labour_disc["type"] == "amount" and flt(labour_disc["value"]) > labour_group_total:
+		frappe.throw(
+			_("Labour discount amount cannot exceed labour total ({0}).").format(
+				labour_group_total
+			)
+		)
 	if parts_disc and parts_disc["type"] == "amount" and flt(parts_disc["value"]) > parts_group_total:
 		frappe.throw(
 			_("Parts discount amount cannot exceed parts total ({0}).").format(
@@ -1664,6 +1694,31 @@ def create_standalone_dms_sales_order(
 		)
 
 	item_final_rates: list[float] = []
+
+	for row in labour_lines:
+		qty, base_rate, line_amount, missing_vsi = _standalone_labour_line_amount(row)
+		if missing_vsi:
+			frappe.throw(
+				_(
+					"Vehicle Service Item {0}: link to an ERP Item before creating a proforma."
+				).format(frappe.bold(missing_vsi))
+			)
+		if qty <= 0:
+			continue
+		vsi = (row.get("vehicle_service_item") or "").strip()
+		item_code = resolve_vehicle_service_item_to_item_code(vsi)
+		final_rate = _standalone_discounted_unit_rate(
+			qty, base_rate, line_amount, labour_group_total, labour_disc
+		)
+		item_final_rates.append(final_rate)
+		item_row = {
+			"item_code": item_code,
+			"qty": qty,
+			"rate": final_rate,
+			"delivery_date": so.delivery_date,
+			"description": (row.get("description") or "")[:4096] or None,
+		}
+		so.append("items", item_row)
 
 	for row in parts_lines:
 		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
@@ -1691,7 +1746,7 @@ def create_standalone_dms_sales_order(
 		_apply_standalone_stock_warehouse_so(child, erp_item, warehouse, company)
 
 	if not so.get("items"):
-		frappe.throw(_("Add at least one spare part line to create a proforma."))
+		frappe.throw(_("Add at least one labour or spare part line to create a proforma."))
 
 	if hasattr(so, "ignore_pricing_rule"):
 		so.ignore_pricing_rule = 1
