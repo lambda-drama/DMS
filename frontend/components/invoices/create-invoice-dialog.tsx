@@ -98,6 +98,7 @@ export function CreateInvoiceDialog({
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [partsDiscountInput, setPartsDiscountInput] = useState('');
   const [dueDate, setDueDate] = useState(defaultDueDate);
+  const [postingDate, setPostingDate] = useState(todayLocalDate);
   const [submitInvoice, setSubmitInvoice] = useState(true);
   const [applyTaxes, setApplyTaxes] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
@@ -175,6 +176,7 @@ export function CreateInvoiceDialog({
     setPreview(null);
     setEditedRates({});
     setDueDate(defaultDueDate());
+    setPostingDate(todayLocalDate());
     setSubmitInvoice(true);
     setApplyTaxes(false);
 
@@ -255,6 +257,11 @@ export function CreateInvoiceDialog({
       return;
     }
 
+    if (!postingDate) {
+      toast.error('Posting date is required');
+      return;
+    }
+
     const labourDiscount = buildGroupDiscountPayload(
       labourDiscountMode,
       labourDiscountInput
@@ -284,6 +291,7 @@ export function CreateInvoiceDialog({
         warrantyType === 'none' ? '' : (warrantyType as WarrantyApplicationType);
       const invoiceName = await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
         dueDate: preview.has_labour ? dueDate : dueDate || undefined,
+        postingDate,
         submit: submitInvoice,
         applyTaxes,
         warrantyApplicationType: warrantyApplicationType || undefined,
@@ -555,17 +563,39 @@ export function CreateInvoiceDialog({
               )}
             </div>
 
-            {preview.has_labour && (
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="invoice-due-date">Due payment date *</Label>
+                <Label htmlFor="invoice-posting-date">Posting date</Label>
                 <Input
-                  id="invoice-due-date"
+                  id="invoice-posting-date"
                   type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                  value={postingDate}
+                  onChange={(e) => setPostingDate(e.target.value)}
+                  required
                 />
               </div>
-            )}
+              {preview.has_labour ? (
+                <div className="space-y-2">
+                  <Label htmlFor="invoice-due-date">Due payment date *</Label>
+                  <Input
+                    id="invoice-due-date"
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="invoice-due-date">Due payment date</Label>
+                  <Input
+                    id="invoice-due-date"
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <Checkbox
@@ -617,8 +647,15 @@ export function CreateInvoiceDialog({
   );
 }
 
+function todayLocalDate() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function defaultDueDate() {
   const d = new Date();
   d.setDate(d.getDate() + 30);
-  return d.toISOString().split('T')[0];
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }

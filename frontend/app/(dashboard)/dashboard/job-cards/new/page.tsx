@@ -228,6 +228,11 @@ export default function NewJobCardPage() {
   const [workshop, setWorkshop] = useState("");
 
   const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
+  const [postingDate, setPostingDate] = useState(() => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
   const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>("none");
   const [labourDiscountInput, setLabourDiscountInput] = useState("");
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>("none");
@@ -987,6 +992,7 @@ export default function NewJobCardPage() {
       warehouse: warehouse || undefined,
       company: company || undefined,
       currency: currency || "ETB",
+      posting_date: postingDate || undefined,
       warranty_application_type: (warrantyApplicationType && warrantyApplicationType !== "none") ? warrantyApplicationType : undefined,
       ...(warrantyApplicationType === "Discount"
         ? {
@@ -1168,6 +1174,17 @@ export default function NewJobCardPage() {
                     <SelectItem value="Discount">Discount</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="posting_date">Posting Date</Label>
+                <Input
+                  id="posting_date"
+                  type="date"
+                  value={postingDate}
+                  onChange={(e) => setPostingDate(e.target.value)}
+                  required
+                />
               </div>
 
             </div>

@@ -214,9 +214,12 @@ def create_job_card(data):
 	company = (data.get("company") or "").strip() or None
 	currency = _resolve_job_card_currency(data.get("currency"), company)
 
+	posting_date = data.get("posting_date") or None
+
 	doc = frappe.get_doc({
 		"doctype": "DMS Job Card",
 		"job_card_type": data.get("job_card_type"),
+		"posting_date": posting_date,
 		"company": company,
 		"currency": currency,
 		"customer": resolve_dms_customer(data.get("customer")),
@@ -345,6 +348,7 @@ def update_job_card(name, data):
 		frappe.throw(_("Cannot change technician or bay assignment after repair has started."))
 
 	updatable_fields = [
+		"posting_date",
 		"priority", "service_advisor", "lead_technician", "assigned_bay",
 		"estimated_duration_hours", "promised_delivery_date_time",
 		"warranty_status", "warranty_expiry_date", "warranty_application_type",

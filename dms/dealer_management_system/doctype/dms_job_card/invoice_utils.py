@@ -5,7 +5,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, today
+from frappe.utils import cint, flt, getdate, today
 
 from frappe.model.naming import make_autoname
 from datetime import datetime
@@ -589,6 +589,7 @@ def create_sales_invoice_from_dms_job_card(
 	parts_discount=None,
 	rate_overrides=None,
 	apply_taxes: bool = False,
+	posting_date: str | None = None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -646,8 +647,9 @@ def create_sales_invoice_from_dms_job_card(
 	si.custom_invoice_no = _generate_invoice_no(jc.company)
 	si.company = jc.company
 	si.customer = jc.customer
-	si.posting_date = today()
-	si.due_date = due_date or si.posting_date
+	si.posting_date = getdate(posting_date) if posting_date else getdate(today())
+	si.set_posting_time = 1
+	si.due_date = getdate(due_date) if due_date else si.posting_date
 	si.remarks = _("DMS Job Card: {0}").format(jc.name)
 	_set_sales_invoice_job_card_link(si, jc.name)
 	_apply_sales_invoice_currency_from_job_card(si, jc)
@@ -1352,8 +1354,9 @@ def create_standalone_dms_sales_invoice(
 		si.custom_invoice_no = _generate_invoice_no(company)
 	si.company = company
 	si.customer = customer
-	si.posting_date = posting_date or today()
-	si.due_date = due_date or si.posting_date
+	si.posting_date = getdate(posting_date) if posting_date else getdate(today())
+	si.set_posting_time = 1
+	si.due_date = getdate(due_date) if due_date else si.posting_date
 	if remarks:
 		si.remarks = remarks
 	mark_sales_invoice_as_dms_ui_transaction(si)
