@@ -377,6 +377,7 @@ export default function NewInvoicePage() {
       try {
         await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
           dueDate,
+          postingDate,
           submit: submitInvoice,
           applyTaxes,
           rateOverrides: buildRateOverridesFromRows(labourRows, partRows),

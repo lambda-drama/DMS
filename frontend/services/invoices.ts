@@ -105,6 +105,7 @@ export async function createInvoiceFromJobCard(
   jobCard: string,
   options?: {
     dueDate?: string;
+    postingDate?: string;
     submit?: boolean;
     warrantyApplicationType?: string;
     discountAmount?: number;
@@ -120,6 +121,7 @@ export async function createInvoiceFromJobCard(
     body: JSON.stringify({
       job_card: jobCard,
       due_date: options?.dueDate || null,
+      posting_date: options?.postingDate || null,
       submit: options?.submit ? 1 : 0,
       warranty_application_type: options?.warrantyApplicationType ?? null,
       discount_amount: options?.discountAmount ?? null,

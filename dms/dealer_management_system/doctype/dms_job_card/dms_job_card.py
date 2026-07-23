@@ -334,6 +334,7 @@ def make_sales_invoice_from_job_card(
 	parts_discount=None,
 	rate_overrides=None,
 	apply_taxes=0,
+	posting_date=None,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
@@ -356,6 +357,7 @@ def make_sales_invoice_from_job_card(
 		parts_discount=parts_discount,
 		rate_overrides=rate_overrides,
 		apply_taxes=bool(int(apply_taxes or 0)),
+		posting_date=posting_date or None,
 	)
 
 

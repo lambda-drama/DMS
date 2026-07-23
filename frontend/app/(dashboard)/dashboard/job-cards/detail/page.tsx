@@ -1624,6 +1624,14 @@ export default function JobCardDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
+                    <p className="text-sm text-muted-foreground">Posting Date</p>
+                    <p className="font-medium">
+                      {jobCard.posting_date
+                        ? new Date(jobCard.posting_date).toLocaleDateString()
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-sm text-muted-foreground">Currency</p>
                     <p className="font-medium">{jobCard.currency || "ETB"}</p>
                   </div>
