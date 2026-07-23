@@ -78,12 +78,16 @@ class VINNo(Document):
     
     def apply_dms_warranty_schedule(self):
         """Warranty period/km from DMS Settings; start date = vehicle sale from stock."""
+        if frappe.flags.get("preserve_warranty_status"):
+            return
         from dms.utils.warranty import apply_dms_warranty_schedule
 
         apply_dms_warranty_schedule(self, persist=False)
 
     def calculate_warranty_status(self):
         """Active / Inactive (time) / Expired by Mileage — see dms.utils.warranty."""
+        if frappe.flags.get("preserve_warranty_status"):
+            return
         from dms.utils.warranty import compute_warranty_status
 
         compute_warranty_status(self)

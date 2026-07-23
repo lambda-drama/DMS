@@ -100,6 +100,11 @@ def apply_dms_warranty_schedule(vin, persist: bool = False) -> None:
 
 def compute_warranty_status(vin) -> str:
 	"""Active, Inactive (time / not sold), or Expired by Mileage."""
+	current = (vin.get("warranty_status") or "").strip()
+	# Manual statuses set from Desk / DMS UI — do not overwrite
+	if current in ("Void", "Pending Verification"):
+		return current
+
 	sale_date = resolve_vehicle_sale_date(vin)
 	if not sale_date:
 		vin.warranty_status = WARRANTY_INACTIVE

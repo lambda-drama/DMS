@@ -359,7 +359,7 @@
    "label": "Warranty KM Limit"
   },
   {
-   "default": "Active",
+   "default": "Inactive",
    "fieldname": "warranty_status",
    "fieldtype": "Select",
    "label": "Warranty Status",
