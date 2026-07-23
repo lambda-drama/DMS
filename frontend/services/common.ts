@@ -297,7 +297,8 @@ export async function fetchSpareParts(
 export async function fetchVehicleServiceItems(
   search?: string,
   vehicleModel?: string,
-  vin?: string
+  vin?: string,
+  limit = 50
 ): Promise<VehicleServiceItem[]> {
   return apiRequest<VehicleServiceItem[]>(`/api/method/${API}.get_vehicle_service_items`, {
     method: 'POST',
@@ -305,6 +306,7 @@ export async function fetchVehicleServiceItems(
       search: search || null,
       vehicle_model: vehicleModel || null,
       vin: vin || null,
+      limit,
     }),
   });
 }

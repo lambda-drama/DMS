@@ -33,6 +33,15 @@ export interface SparePartSaleLine {
   unit_price?: number;
 }
 
+export interface ProformaLabourLine {
+  vehicle_service_item: string;
+  hours?: number;
+  estimated_hours?: number;
+  rate_per_hour?: number;
+  rate?: number;
+  description?: string;
+}
+
 export async function fetchSparePartSalesDefaults(
   company?: string
 ): Promise<SparePartSalesDefaults> {
@@ -152,13 +161,15 @@ export async function getSparePartProforma(name: string): Promise<SparePartProfo
 export async function createSparePartProforma(data: {
   customer?: string;
   company: string;
-  warehouse: string;
-  parts: SparePartSaleLine[];
+  warehouse?: string;
+  labour?: ProformaLabourLine[];
+  parts?: SparePartSaleLine[];
   currency?: string;
   posting_date?: string;
   due_date?: string;
   remarks?: string;
   submit?: boolean;
+  labour_discount?: StandaloneInvoiceGroupDiscount;
   parts_discount?: StandaloneInvoiceGroupDiscount;
   vehicle_vin?: string;
   vehicle_brand?: string;

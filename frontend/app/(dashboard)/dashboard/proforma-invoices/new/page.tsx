@@ -11,11 +11,13 @@ import {
   useCustomers,
   useVINs,
   useVehicleModels,
+  useVehicleServiceItems,
 } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
 import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
+import { CreateServiceItemDialog } from '@/components/create-service-item-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +39,12 @@ import {
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from '@/lib/invoice-discount';
+import {
+  formatVehicleServiceItemLabel,
+  fetchLabourRate,
+  fetchVehicleServiceItemLineDefaults,
+  vehicleServiceItemEstimatedHours,
+} from '@/services/common';
 import * as sparePartSalesSvc from '@/services/sparePartSales';
 import * as vehiclesSvc from '@/services/vehicles';
 import type { VINNo, VehicleModelOption } from '@/types/dms';
@@ -51,8 +59,26 @@ type LineRow = {
   unit_price: string;
 };
 
+type LabourRow = {
+  id: string;
+  vehicle_service_item: string;
+  vehicle_service_item_name: string;
+  hours: string;
+  rate_per_hour: string;
+};
+
 function emptyLine(): LineRow {
   return { id: crypto.randomUUID(), spare_part: '', item_name: '', qty: '1', unit_price: '' };
+}
+
+function emptyLabour(): LabourRow {
+  return {
+    id: crypto.randomUUID(),
+    vehicle_service_item: '',
+    vehicle_service_item_name: '',
+    hours: '1',
+    rate_per_hour: '',
+  };
 }
 
 function defaultDueDate() {
@@ -100,6 +126,12 @@ export default function ProformaInvoiceNewPage() {
   const [submitProforma, setSubmitProforma] = useState(true);
   const [inStockOnly, setInStockOnly] = useState(true);
   const [lines, setLines] = useState<LineRow[]>([emptyLine()]);
+  const [labourRows, setLabourRows] = useState<LabourRow[]>([emptyLabour()]);
+  const [serviceItemSearch, setServiceItemSearch] = useState('');
+  const [showCreateServiceItemDialog, setShowCreateServiceItemDialog] = useState(false);
+  const [labourCreateTargetId, setLabourCreateTargetId] = useState<string | null>(null);
+  const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>('none');
+  const [labourDiscountInput, setLabourDiscountInput] = useState('');
   const [partSearch, setPartSearch] = useState('');
   const [partOptions, setPartOptions] = useState<
     { value: string; label: string; description?: string }[]
@@ -116,6 +148,14 @@ export default function ProformaInvoiceNewPage() {
   const { data: vehicleModels, isLoading: vehicleModelsLoading } = useVehicleModels(
     vehicleModelSearch,
     vehicleBrand || undefined
+  );
+  // Same as job card: filter labour by VIN-linked model only — not the parts model picker.
+  const labourVehicleModel =
+    selectedVin?.model || selectedVin?.resolved_vehicle_model || undefined;
+  const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(
+    serviceItemSearch,
+    labourVehicleModel,
+    vehicleVin || undefined
   );
 
   const vehicleModelOptions = useMemo(() => {
@@ -254,13 +294,17 @@ export default function ProformaInvoiceNewPage() {
   const handleVehicleModelChange = (vm: string) => {
     setVehicleModel(vm);
     setLines([emptyLine()]);
+    setLabourRows([emptyLabour()]);
     setPartSearch('');
+    setServiceItemSearch('');
   };
 
   const handleVinSelect = async (vinName: string) => {
     setVehicleVin(vinName);
     setLines([emptyLine()]);
+    setLabourRows([emptyLabour()]);
     setPartSearch('');
+    setServiceItemSearch('');
     setVehicleModel('');
     if (!vinName) {
       setSelectedVin(null);
@@ -328,24 +372,89 @@ export default function ProformaInvoiceNewPage() {
     setCustomerMeta({ name, customer_name: label || name });
   };
 
+  const applyServiceItemToLabourRow = async (rowId: string, itemName: string) => {
+    if (!itemName) {
+      setLabourRows((prev) =>
+        prev.map((row) =>
+          row.id === rowId
+            ? {
+                ...row,
+                vehicle_service_item: '',
+                vehicle_service_item_name: '',
+                hours: '1',
+                rate_per_hour: '',
+              }
+            : row
+        )
+      );
+      return;
+    }
+
+    const item = serviceItems?.find((i) => i.name === itemName);
+    let rate = item?.custom_rate || 0;
+    let estHours = vehicleServiceItemEstimatedHours(item);
+    let serviceLabel = formatVehicleServiceItemLabel(item) || itemName;
+
+    try {
+      const defaults = await fetchVehicleServiceItemLineDefaults(itemName);
+      if (defaults.estimated_hours > 0) estHours = defaults.estimated_hours;
+      if (defaults.rate_per_hour > 0) rate = defaults.rate_per_hour;
+      if (defaults.service_name || defaults.service_code) {
+        serviceLabel = defaults.service_code
+          ? `${defaults.service_code}: ${defaults.service_name || itemName}`
+          : defaults.service_name || serviceLabel;
+      }
+    } catch {
+      if (!rate) {
+        try {
+          rate = await fetchLabourRate(itemName);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    setLabourRows((prev) =>
+      prev.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              vehicle_service_item: itemName,
+              vehicle_service_item_name: serviceLabel,
+              hours: String(estHours || 1),
+              rate_per_hour: rate ? String(rate) : row.rate_per_hour,
+            }
+          : row
+      )
+    );
+  };
+
   const partsTotal = lines.reduce((sum, row) => {
     const qty = Number(row.qty) || 0;
     const rate = Number(row.unit_price) || 0;
     return sum + qty * rate;
   }, 0);
 
+  const labourTotal = labourRows.reduce((sum, row) => {
+    const hours = Number(row.hours) || 0;
+    const rate = Number(row.rate_per_hour) || 0;
+    return sum + hours * rate;
+  }, 0);
+
   const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
   const partsDiscountTotal = groupDiscountAmount(partsTotal, partsDiscountMode, partsDiscountValue);
-  const grandTotal = partsTotal - partsDiscountTotal;
+  const labourDiscountValue = parseDiscountValue(labourDiscountMode, labourDiscountInput);
+  const labourDiscountTotal = groupDiscountAmount(
+    labourTotal,
+    labourDiscountMode,
+    labourDiscountValue
+  );
+  const grandTotal = labourTotal - labourDiscountTotal + partsTotal - partsDiscountTotal;
 
   const handleSubmit = async () => {
     if (!canCreate('proforma-invoices')) return;
-    if (!warehouse) {
-      toast.error('Select a warehouse');
-      return;
-    }
 
-    const payloadLines = lines
+    const payloadParts = lines
       .filter((l) => l.spare_part && Number(l.qty) > 0)
       .map((l) => ({
         spare_part: l.spare_part,
@@ -353,8 +462,21 @@ export default function ProformaInvoiceNewPage() {
         unit_price: Number(l.unit_price || 0),
       }));
 
-    if (!payloadLines.length) {
-      toast.error('Add at least one spare part with quantity');
+    const payloadLabour = labourRows
+      .filter((l) => l.vehicle_service_item && Number(l.hours) > 0)
+      .map((l) => ({
+        vehicle_service_item: l.vehicle_service_item,
+        hours: Number(l.hours),
+        rate_per_hour: Number(l.rate_per_hour || 0),
+      }));
+
+    if (!payloadParts.length && !payloadLabour.length) {
+      toast.error('Add at least one labour or spare part line');
+      return;
+    }
+
+    if (payloadParts.length && !warehouse) {
+      toast.error('Select a warehouse for spare parts');
       return;
     }
 
@@ -363,12 +485,14 @@ export default function ProformaInvoiceNewPage() {
       const result = await sparePartSalesSvc.createSparePartProforma({
         customer: customer || undefined,
         company: company || defaults?.company || '',
-        warehouse,
-        parts: payloadLines,
+        warehouse: warehouse || undefined,
+        labour: payloadLabour.length ? payloadLabour : undefined,
+        parts: payloadParts.length ? payloadParts : undefined,
         posting_date: postingDate,
         due_date: dueDate,
         remarks: remarks || undefined,
         submit: submitProforma,
+        labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
         parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
         vehicle_vin: vehicleVin || undefined,
         vehicle_brand: vehicleBrand || undefined,
@@ -380,6 +504,11 @@ export default function ProformaInvoiceNewPage() {
           : `Proforma ${result.name} saved as draft`
       );
       setLines([emptyLine()]);
+      setLabourRows([emptyLabour()]);
+      setLabourDiscountMode('none');
+      setLabourDiscountInput('');
+      setPartsDiscountMode('none');
+      setPartsDiscountInput('');
       setRemarks('');
       setVehicleVin('');
       setSelectedVin(null);
@@ -522,7 +651,122 @@ export default function ProformaInvoiceNewPage() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Spare parts *</Label>
+              <Label>Labour</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setLabourRows((p) => [...p, emptyLabour()])}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add line
+              </Button>
+            </div>
+            {labourRows.map((line) => (
+              <div key={line.id} className="grid gap-3 md:grid-cols-12 items-end border rounded-lg p-3">
+                <div className="md:col-span-5 space-y-2">
+                  <Label className="text-xs">Service item *</Label>
+                  <SearchableSelect
+                    options={
+                      serviceItems?.map((si) => ({
+                        value: si.name,
+                        label: formatVehicleServiceItemLabel(si),
+                        description: si.custom_rate || si.estimated_hours
+                          ? [
+                              si.custom_rate ? `Rate: ${si.custom_rate}` : null,
+                              si.estimated_hours ? `${si.estimated_hours}h` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')
+                          : undefined,
+                      })) || []
+                    }
+                    value={line.vehicle_service_item}
+                    valueLabel={line.vehicle_service_item_name || undefined}
+                    onValueChange={(value) => void applyServiceItemToLabourRow(line.id, value)}
+                    onSearchChange={setServiceItemSearch}
+                    placeholder="Search labour items..."
+                    isLoading={serviceItemsLoading}
+                    onCreateNew={() => {
+                      setLabourCreateTargetId(line.id);
+                      setShowCreateServiceItemDialog(true);
+                    }}
+                    createNewLabel="New Service Item"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs">Hours *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={line.hours}
+                    onChange={(e) =>
+                      setLabourRows((prev) =>
+                        prev.map((row) =>
+                          row.id === line.id ? { ...row, hours: e.target.value } : row
+                        )
+                      )
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs">Rate/hr</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={line.rate_per_hour}
+                    onChange={(e) =>
+                      setLabourRows((prev) =>
+                        prev.map((row) =>
+                          row.id === line.id ? { ...row, rate_per_hour: e.target.value } : row
+                        )
+                      )
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs">Amount</Label>
+                  <Input
+                    readOnly
+                    value={(
+                      (Number(line.hours) || 0) * (Number(line.rate_per_hour) || 0)
+                    ).toFixed(2)}
+                  />
+                </div>
+                <div className="md:col-span-1 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={labourRows.length <= 1}
+                    onClick={() =>
+                      setLabourRows((prev) => prev.filter((row) => row.id !== line.id))
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <GroupDiscountFields
+            label="Labour"
+            mode={labourDiscountMode}
+            onModeChange={(m) => {
+              setLabourDiscountMode(m);
+              if (m === 'none') setLabourDiscountInput('');
+            }}
+            value={labourDiscountInput}
+            onValueChange={setLabourDiscountInput}
+            subtotal={labourTotal}
+          />
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Spare parts</Label>
               <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
                 <Plus className="h-4 w-4 mr-1" />
                 Add line
@@ -657,8 +901,11 @@ export default function ProformaInvoiceNewPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Package className="h-4 w-4" />
               <span>
-                {lines.filter((l) => l.spare_part).length} line(s)
-                {partsDiscountTotal > 0 ? ` · discount: ${partsDiscountTotal.toFixed(2)}` : ''}
+                {labourRows.filter((l) => l.vehicle_service_item).length} labour ·{' '}
+                {lines.filter((l) => l.spare_part).length} part(s)
+                {labourDiscountTotal > 0 || partsDiscountTotal > 0
+                  ? ` · discount: ${(labourDiscountTotal + partsDiscountTotal).toFixed(2)}`
+                  : ''}
               </span>
             </div>
             <p className="text-xl font-semibold">Total: {grandTotal.toFixed(2)}</p>
@@ -677,7 +924,7 @@ export default function ProformaInvoiceNewPage() {
         </CardContent>
       </Card>
 
-      {lines.length > 1 && (
+      {(labourRows.some((l) => l.vehicle_service_item) || lines.some((l) => l.spare_part)) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Line summary</CardTitle>
@@ -686,17 +933,32 @@ export default function ProformaInvoiceNewPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Part</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead className="text-right">Qty/Hrs</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {labourRows
+                  .filter((l) => l.vehicle_service_item)
+                  .map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell>Labour</TableCell>
+                      <TableCell>{l.vehicle_service_item_name || l.vehicle_service_item}</TableCell>
+                      <TableCell className="text-right">{l.hours}</TableCell>
+                      <TableCell className="text-right">{l.rate_per_hour}</TableCell>
+                      <TableCell className="text-right">
+                        {((Number(l.hours) || 0) * (Number(l.rate_per_hour) || 0)).toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 {lines
                   .filter((l) => l.spare_part)
                   .map((l) => (
                     <TableRow key={l.id}>
+                      <TableCell>Parts</TableCell>
                       <TableCell>{l.item_name || l.spare_part}</TableCell>
                       <TableCell className="text-right">{l.qty}</TableCell>
                       <TableCell className="text-right">{l.unit_price}</TableCell>
@@ -710,6 +972,20 @@ export default function ProformaInvoiceNewPage() {
           </CardContent>
         </Card>
       )}
+
+      <CreateServiceItemDialog
+        open={showCreateServiceItemDialog}
+        onOpenChange={(open) => {
+          setShowCreateServiceItemDialog(open);
+          if (!open) setLabourCreateTargetId(null);
+        }}
+        onCreated={(name) => {
+          const targetId = labourCreateTargetId || labourRows[labourRows.length - 1]?.id;
+          setShowCreateServiceItemDialog(false);
+          setLabourCreateTargetId(null);
+          if (targetId) void applyServiceItemToLabourRow(targetId, name);
+        }}
+      />
     </div>
   );
 }
