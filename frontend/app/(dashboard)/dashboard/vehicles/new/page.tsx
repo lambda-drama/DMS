@@ -33,6 +33,14 @@ const driveTypeOptions = ["FWD", "RWD", "AWD", "4WD"];
 const vehicleStatusOptions = [
   "In Stock", "Delivered to Customer", "In Service", "In Transit",
 ];
+const warrantyStatusOptions = [
+  "Inactive",
+  "Active",
+  "Expired by Time",
+  "Expired by Mileage",
+  "Void",
+  "Pending Verification",
+];
 
 export default function NewVehiclePage() {
   const { navigate, viewParams } = useNavigation();
@@ -92,6 +100,7 @@ export default function NewVehiclePage() {
     plate_number: "",
     linked_item: "",
     model: "",
+    warranty_status: "Inactive",
     brand: "",
     model_variant: "",
     model_year: "",
@@ -157,6 +166,7 @@ export default function NewVehiclePage() {
         plate_number: form.plate_number || undefined,
         linked_item: form.linked_item,
         model: form.model || undefined,
+        warranty_status: form.warranty_status || "Inactive",
         brand: form.brand || undefined,
         model_variant: form.model_variant || undefined,
         model_year: form.model_year ? parseInt(form.model_year) : undefined,
@@ -300,6 +310,24 @@ export default function NewVehiclePage() {
                   description: [vm.model_name, vm.variant].filter(Boolean).join(" ") || undefined,
                 }))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Warranty Status</Label>
+              <Select
+                value={form.warranty_status}
+                onValueChange={(v) => update("warranty_status", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {warrantyStatusOptions.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

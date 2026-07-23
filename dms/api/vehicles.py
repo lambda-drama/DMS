@@ -112,6 +112,8 @@ def create_vehicle(data):
 	if company not in allowed:
 		frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
 
+	warranty_status = (data.get("warranty_status") or "Inactive").strip() or "Inactive"
+
 	doc = frappe.get_doc({
 		"doctype": "VIN No",
 		"vin_number": data.get("vin_number"),
@@ -119,6 +121,7 @@ def create_vehicle(data):
 		"plate_number": data.get("plate_number"),
 		"company": company,
 		"linked_item": data.get("linked_item"),
+		"model": data.get("model"),
 		"brand": data.get("brand"),
 		"model_variant": data.get("model_variant"),
 		"model_year": data.get("model_year"),
@@ -135,19 +138,27 @@ def create_vehicle(data):
 		"warranty_start_date": data.get("warranty_start_date"),
 		"warranty_end_date": data.get("warranty_end_date"),
 		"warranty_km_limit": data.get("warranty_km_limit"),
+		"warranty_status": warranty_status,
 		"vehicle_status": data.get("vehicle_status", "In Stock"),
 		"import_type": data.get("import_type"),
 		"registration_date": data.get("registration_date"),
 		"special_notes": data.get("special_notes"),
 	})
 
-	doc.insert()
+	# Keep the UI-selected warranty status; validate() would otherwise recompute it.
+	frappe.flags.preserve_warranty_status = True
+	try:
+		doc.insert()
+	finally:
+		frappe.flags.preserve_warranty_status = False
 	frappe.db.commit()
 
 	return {
 		"name": doc.name,
 		"vin_number": doc.vin_number,
+		"model": doc.model,
 		"model_name": doc.model_name,
+		"warranty_status": doc.warranty_status,
 		"vehicle_status": doc.vehicle_status,
 	}
 
@@ -162,11 +173,12 @@ def update_vehicle(name, data):
 	doc.check_permission("write")
 
 	updatable = [
-		"engine_number", "plate_number", "brand", "model_variant",
+		"engine_number", "plate_number", "model", "brand", "model_variant",
 		"model_year", "fuel_type", "transmission", "drive_type",
 		"exterior_color", "interior_color", "interior_material",
 		"current_customer", "current_odometer", "odometer_unit",
 		"warranty_start_date", "warranty_end_date", "warranty_km_limit",
+		"warranty_status",
 		"vehicle_status", "special_notes", "internal_notes",
 		"insurance_company", "insurance_policy_number", "insurance_expiry_date",
 	]
@@ -175,10 +187,19 @@ def update_vehicle(name, data):
 		if field in data:
 			doc.set(field, data[field])
 
-	doc.save()
+	if "warranty_status" in data:
+		frappe.flags.preserve_warranty_status = True
+	try:
+		doc.save()
+	finally:
+		frappe.flags.preserve_warranty_status = False
 	frappe.db.commit()
 
-	return {"name": doc.name, "vehicle_status": doc.vehicle_status}
+	return {
+		"name": doc.name,
+		"vehicle_status": doc.vehicle_status,
+		"warranty_status": doc.warranty_status,
+	}
 
 
 @frappe.whitelist()
