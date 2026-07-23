@@ -161,7 +161,9 @@ export function CreateServiceItemDialog({
                 isLoading={modelsLoading}
                 options={(vehicleModels || []).map((vm) => ({
                   value: vm.name,
-                  label: `${vm.model_name || vm.name}${vm.variant ? ` ${vm.variant}` : ""}`,
+                  label: vm.model_code || vm.name,
+                  description:
+                    [vm.model_name, vm.variant].filter(Boolean).join(' ') || undefined,
                 }))}
               />
             </div>
