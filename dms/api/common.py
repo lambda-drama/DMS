@@ -492,10 +492,24 @@ def get_vehicle_service_items(search=None, limit=20, vehicle_model=None, vin=Non
 
 	vehicle_model = (vehicle_model or "").strip()
 	vin = (vin or "").strip()
-	if not vehicle_model and vin:
+
+	# Job cards often expose model_name as vehicle_model; prefer VIN → Vehicle Model id.
+	if vin:
 		from dms.api.service_packages import resolve_vehicle_model_from_vin
 
-		vehicle_model, _vm_label = resolve_vehicle_model_from_vin(vin)
+		resolved, _vm_label = resolve_vehicle_model_from_vin(vin)
+		if resolved:
+			vehicle_model = resolved
+	elif vehicle_model and frappe.db.exists("DocType", "Vehicle Model"):
+		if not frappe.db.exists("Vehicle Model", vehicle_model):
+			# Display label (model_name) was passed instead of the link name.
+			vehicle_model = (
+				frappe.db.get_value("Vehicle Model", {"model_name": vehicle_model}, "name")
+				or frappe.db.get_value(
+					"Vehicle Model", {"model_name": ["like", vehicle_model.strip()]}, "name"
+				)
+				or ""
+			)
 
 	if vehicle_model and meta.has_field("custom_vehicle_model"):
 		filters["custom_vehicle_model"] = vehicle_model

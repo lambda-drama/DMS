@@ -326,10 +326,10 @@
   },
   {
    "fetch_from": "vehicle_vin.current_odometer",
+   "fetch_if_empty": 1,
    "fieldname": "current_odometer",
    "fieldtype": "Int",
-   "label": "Current Odometer",
-   "read_only": 1
+   "label": "Current Odometer"
   },
   {
    "fieldname": "column_break_vehicle",
@@ -393,7 +393,7 @@
   },
   {
    "default": "0",
-   "description": "Same complaint within last 90 days",
+   "description": "Comeback within After Repair Probation Period (DMS Settings). Linked via Previous Job Card Reference.",
    "fieldname": "is_repeat_repair",
    "fieldtype": "Check",
    "label": "Repeat Repair"
@@ -723,6 +723,7 @@
    "label": "Delivered To Phone"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "final_odometer",
    "fieldtype": "Int",
    "label": "Final Odometer"
@@ -966,7 +967,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-17 17:45:41.661599",
+ "modified": "2026-07-24 12:08:43.722318",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

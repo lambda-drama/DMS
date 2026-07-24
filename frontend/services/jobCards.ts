@@ -370,6 +370,93 @@ export async function reworkCompleted(name: string): Promise<void> {
   });
 }
 
+export async function createRepeatJobCard(
+  sourceJobCard: string,
+  options?: {
+    customerComplaintSummary?: string;
+    labour?: Array<{
+      vehicle_service_item: string;
+      service_name?: string;
+      estimated_hours?: number;
+      rate_per_hour?: number;
+      technician?: string;
+      complaint?: string;
+      notes?: string;
+      is_warranty?: number | boolean;
+    }>;
+    parts?: Array<{
+      item_code: string;
+      quantity_requested?: number;
+      unit_price?: number;
+      notes?: string;
+      is_warranty?: number | boolean;
+    }>;
+  } | string
+): Promise<{
+  name: string;
+  status: string;
+  is_repeat_repair: number;
+  repeat_repair_reference: string;
+  customer: string;
+  customer_name: string;
+  vehicle_vin: string;
+  labour_count?: number;
+  parts_count?: number;
+}> {
+  const opts =
+    typeof options === "string"
+      ? { customerComplaintSummary: options }
+      : options || {};
+
+  return apiRequest(`/api/method/${API}.create_repeat_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({
+      source_job_card: sourceJobCard,
+      customer_complaint_summary: opts.customerComplaintSummary || null,
+      // Stringify nested arrays — Frappe form_dict can drop/mangle raw lists.
+      labour: opts.labour?.length ? JSON.stringify(opts.labour) : null,
+      parts: opts.parts?.length ? JSON.stringify(opts.parts) : null,
+    }),
+  });
+}
+
+export async function addLabourLineToJobCard(
+  jobCard: string,
+  data: {
+    vehicle_service_item: string;
+    estimated_hours?: number;
+    rate_per_hour?: number;
+    technician?: string;
+    complaint?: string;
+    notes?: string;
+    is_warranty?: number | boolean;
+  }
+): Promise<{
+  job_card: string;
+  labour_row: string;
+  vehicle_service_item: string;
+  service_name: string;
+  estimated_hours: number;
+  rate_per_hour: number;
+  amount: number;
+  total_labor_cost: number;
+  total_amount: number;
+}> {
+  return apiRequest(`/api/method/${API}.add_labour_line_to_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({
+      job_card: jobCard,
+      vehicle_service_item: data.vehicle_service_item,
+      estimated_hours: data.estimated_hours ?? null,
+      rate_per_hour: data.rate_per_hour ?? null,
+      technician: data.technician || null,
+      complaint: data.complaint || null,
+      notes: data.notes || null,
+      is_warranty: data.is_warranty ? 1 : 0,
+    }),
+  });
+}
+
 // ─── Actions (Invoice & Delivery) ────────────────────────────
 
 export async function makeSalesInvoice(name: string): Promise<string> {

@@ -36,7 +36,7 @@ interface PrintFormatDropdownProps {
   /** 0 = preview first (default), 1 = open browser print dialog immediately */
   triggerPrint?: number;
   className?: string;
-  /** `icon` — compact printer icon for list rows (after ⋯ menu) */
+  /** `icon` — compact printer icon for list/detail rows (after ⋯ menu) */
   variant?: "default" | "icon";
 }
 

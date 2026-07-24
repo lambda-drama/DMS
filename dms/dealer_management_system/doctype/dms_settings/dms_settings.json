@@ -36,6 +36,7 @@
   "section_break_nwax",
   "warranty_period",
   "warranty_mileage",
+  "after_repair_probation_period",
   "column_break_dmgn",
   "add_full_warranty_item_on_invoice",
   "send_reminders_for_servicing",
@@ -252,13 +253,19 @@
    "fieldtype": "Link",
    "label": "Default Price List",
    "options": "Price List"
+  },
+  {
+   "description": "Days after completion/delivery during which a linked repeat job card can be created (same VIN).",
+   "fieldname": "after_repair_probation_period",
+   "fieldtype": "Int",
+   "label": "After Repair Probation Period (Days)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-07-06 00:35:21.443236",
+ "modified": "2026-07-24 12:24:57.731425",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",
