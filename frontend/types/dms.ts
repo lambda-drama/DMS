@@ -674,8 +674,17 @@ export interface DMSJobCard {
   
   // Priority & Assignment
   priority: Priority;
-  is_repeat_repair?: boolean;
+  is_repeat_repair?: boolean | number;
   repeat_repair_reference?: string;
+  repeat_repair_eligible?: boolean;
+  repeat_repair_eligibility?: {
+    eligible?: boolean;
+    probation_days?: number;
+    days_since_closure?: number | null;
+    days_remaining?: number | null;
+    closure_date?: string | null;
+    reason?: string;
+  };
   service_advisor: string;
   assigned_bay: string;
   workshop?: string;
@@ -686,7 +695,6 @@ export interface DMSJobCard {
   total_hours?: number;
   lead_technician?: string;
   lead_technician_name?: string;
-  /** True when lead technician and service bay are both set (independent of workflow status). */
   workshop_assigned?: boolean;
   assistant_technicians?: JobCardTechnicianAssignment[];
   schedule_start_time?: string;

@@ -43,13 +43,22 @@ import {
   CheckCircle2,
   ChevronDown,
   BarChart3,
+  RotateCcw,
 } from "lucide-react";
-import { StatusBadge } from "@/components/job-card/status-badge";
+import { RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
+import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-dialog";
 import { resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import { PaginationControls } from "@/components/pagination-controls";
 import { ListRowActions } from "@/components/list-row-actions";
 import { cn } from "@/lib/utils";
-import type { JobCardStatus } from "@/types/dms";
+import type { DMSJobCard, JobCardStatus } from "@/types/dms";
+
+function canCreateRepeatJob(jc: Pick<DMSJobCard, "status" | "job_card_type">) {
+  return (
+    jc.job_card_type !== "Internal" &&
+    (jc.status === "Completed" || jc.status === "Delivered")
+  );
+}
 
 const statusFilterOptions: { value: string; label: string }[] = [
   { value: "all", label: "All Statuses" },
@@ -184,6 +193,11 @@ export default function JobCardsPage() {
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const [repeatSource, setRepeatSource] = useState<DMSJobCard | null>(null);
+
+  const openRepeatDialog = (jc: DMSJobCard) => {
+    setRepeatSource(jc);
+  };
 
   useEffect(() => {
     const filter = viewParams.get("filter");
@@ -343,6 +357,9 @@ export default function JobCardsPage() {
                       </button>
                       <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
                         <StatusBadge status={resolveJobCardWorkflowStatus(jc.status, jc.docstatus)} />
+                        {jc.is_repeat_repair ? (
+                          <RepeatJobBadge reference={jc.repeat_repair_reference} />
+                        ) : null}
                         <div className="mt-auto">
                           <ListRowActions doctype="DMS Job Card" docName={jc.name}>
                             <DropdownMenu>
@@ -362,6 +379,12 @@ export default function JobCardsPage() {
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Open Job Card
                                 </DropdownMenuItem>
+                                {canCreateRepeatJob(jc) ? (
+                                  <DropdownMenuItem onClick={() => openRepeatDialog(jc)}>
+                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                    Create Repeat Job
+                                  </DropdownMenuItem>
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </ListRowActions>
@@ -424,7 +447,12 @@ export default function JobCardsPage() {
                         <Badge variant="outline">{jc.job_card_type}</Badge>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={resolveJobCardWorkflowStatus(jc.status, jc.docstatus)} />
+                        <div className="flex flex-col items-start gap-1.5">
+                          <StatusBadge status={resolveJobCardWorkflowStatus(jc.status, jc.docstatus)} />
+                          {jc.is_repeat_repair ? (
+                            <RepeatJobBadge reference={jc.repeat_repair_reference} />
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <WorkflowProgress
@@ -455,6 +483,12 @@ export default function JobCardsPage() {
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
+                              {canCreateRepeatJob(jc) ? (
+                                <DropdownMenuItem onClick={() => openRepeatDialog(jc)}>
+                                  <RotateCcw className="h-4 w-4 mr-2" />
+                                  Create Repeat Job
+                                </DropdownMenuItem>
+                              ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </ListRowActions>
@@ -584,6 +618,21 @@ export default function JobCardsPage() {
           />
         )}
       </DetailSheet>
+
+      <CreateRepeatJobDialog
+        open={!!repeatSource}
+        onOpenChange={(open) => {
+          if (!open) setRepeatSource(null);
+        }}
+        sourceJobCard={repeatSource?.name || ""}
+        defaultComplaint={repeatSource?.customer_complaint_summary}
+        vehicleVin={repeatSource?.vehicle_vin}
+        company={repeatSource?.company}
+        onCreated={(name) => {
+          setRepeatSource(null);
+          navigate("job-card-detail", { id: name });
+        }}
+      />
     </div>
   );
 }

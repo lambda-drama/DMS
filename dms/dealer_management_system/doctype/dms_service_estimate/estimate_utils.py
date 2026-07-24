@@ -151,7 +151,7 @@ def make_dms_job_card_from_estimate(
 		jc.schedule_end_time = schedule_end_time
 
 	if est.diagnosis_findings or est.recommended_repairs or est.get("diagnosis_summary"):
-		jc.customer_complaint_summary = _estimate_diagnosis_text(est)
+		jc.service_advisor_notes = _estimate_diagnosis_text(est)
 
 	has_job_row = False
 	if est.inspection:
@@ -301,7 +301,9 @@ def sync_job_card_from_accepted_estimate(est) -> str | None:
 	jc.parts_discount_value = est.parts_discount_value
 	jc.discount_amount = est.discount_amount
 	jc.approved_amount = est.grand_total
-	jc.customer_complaint_summary = _estimate_diagnosis_text(est) or jc.customer_complaint_summary
+	diagnosis = _estimate_diagnosis_text(est)
+	if diagnosis:
+		jc.service_advisor_notes = diagnosis
 
 	if hasattr(jc, "calculate_costing_and_totals"):
 		jc.calculate_costing_and_totals()

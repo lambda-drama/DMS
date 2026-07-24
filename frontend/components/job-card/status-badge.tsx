@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Truck,
   Package,
+  RotateCcw,
 } from "lucide-react";
 import type { JobCardStatus } from "@/types/dms";
 
@@ -48,6 +49,27 @@ export function StatusBadge({ status }: { status: JobCardStatus }) {
     <Badge variant="outline" className={`${config.bgColor} ${config.color} border-0 gap-1.5`}>
       <Icon className="h-3.5 w-3.5" />
       {config.label}
+    </Badge>
+  );
+}
+
+/** Sticker for comeback / linked repeat job cards (not a workflow status). */
+export function RepeatJobBadge({
+  reference,
+  className,
+}: {
+  reference?: string | null;
+  className?: string;
+}) {
+  return (
+    <Badge
+      variant="outline"
+      className={`border-0 gap-1.5 bg-orange-100 text-orange-900 font-medium ${className || ""}`}
+      title={reference ? `Linked to ${reference}` : "Repeat / comeback job"}
+    >
+      <RotateCcw className="h-3.5 w-3.5" />
+      Repeat Job
+      {reference ? <span className="opacity-80 font-normal">· {reference}</span> : null}
     </Badge>
   );
 }

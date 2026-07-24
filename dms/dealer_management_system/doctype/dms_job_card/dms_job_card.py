@@ -120,6 +120,7 @@ class DMSJobCard(Document):
 	def after_insert(self):
 		if self.status:
 			log_job_card_status_change(self.name, self.status, previous_status="")
+		self.sync_vin_odometer_from_job_card()
 
 	def on_update(self):
 		pending = getattr(self.flags, "pending_status_log", None)
@@ -130,6 +131,29 @@ class DMSJobCard(Document):
 				previous_status=pending.get("previous_status"),
 			)
 			self.flags.pending_status_log = None
+		if self.has_value_changed("current_odometer"):
+			self.sync_vin_odometer_from_job_card()
+
+	def sync_vin_odometer_from_job_card(self):
+		"""Push job-card odometer to VIN when higher (UI reading must stick on vehicle)."""
+		vin = (self.vehicle_vin or "").strip()
+		odo = self.current_odometer
+		if not vin or odo is None or odo == "":
+			return
+		if not frappe.db.exists("VIN No", vin):
+			return
+		new_odo = cint(odo)
+		if new_odo <= 0:
+			return
+		old_odo = cint(frappe.db.get_value("VIN No", vin, "current_odometer") or 0)
+		if new_odo < old_odo:
+			return
+		if new_odo == old_odo:
+			return
+		values = {"current_odometer": new_odo}
+		if frappe.get_meta("VIN No").has_field("odometer_last_updated"):
+			values["odometer_last_updated"] = now_datetime()
+		frappe.db.set_value("VIN No", vin, values, update_modified=True)
 
 	def _queue_status_log(self):
 		if self.is_new():
@@ -264,14 +288,11 @@ class DMSJobCard(Document):
 		elif warranty_application_type == "Discount":
 			discount_amount = job_card_combined_discount_amount(self)
 			self.discount_amount = discount_amount
+			# Discount is optional — if none set yet, charge full amount.
 			if discount_amount < 1:
-				frappe.throw(
-					_(
-						"Set a labour and/or parts discount (total at least 1) when "
-						"Warranty Application Type is Discount."
-					)
-				)
-			self.net_amount = round(total_amount - discount_amount, 2)
+				self.net_amount = round(total_amount, 2)
+			else:
+				self.net_amount = round(total_amount - discount_amount, 2)
 		else:
 			self.net_amount = round(total_amount - discount_amount, 2)
 

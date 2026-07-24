@@ -124,6 +124,7 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 			"customer_approval_status", "payment_status",
 			"promised_delivery_date_time", "opened_date_time",
 			"completed_date_time", "invoice", "docstatus",
+			"is_repeat_repair", "repeat_repair_reference",
 			"creation", "modified",
 		],
 		limit=int(limit),
@@ -202,7 +203,441 @@ def get_job_card(name):
 	if (data.get("status") or "").strip() == "Assigned":
 		data["status"] = "Estimation Approved" if data.get("docstatus") == 1 else "Open"
 
+	eligibility = _get_repeat_repair_eligibility(name, doc=doc)
+	data["repeat_repair_eligible"] = eligibility.get("eligible")
+	data["repeat_repair_eligibility"] = eligibility
+	# Synthetic for UI — JC stores complaints on job_items, not a summary field.
+	data["customer_complaint_summary"] = _job_card_complaint_text(doc)
+
 	return data
+
+
+def _get_after_repair_probation_days() -> int:
+	return cint(frappe.db.get_single_value("DMS Settings", "after_repair_probation_period") or 0)
+
+
+def _job_card_closure_date(jc):
+	"""Best date for comeback window: delivery → completed → modified."""
+	from frappe.utils import getdate
+
+	for field in ("delivery_date_time", "completed_date_time", "modified"):
+		val = jc.get(field) if hasattr(jc, "get") else None
+		if val:
+			return getdate(val)
+	return None
+
+
+def _get_repeat_repair_eligibility(source_job_card, doc=None):
+	"""Whether a linked repeat job can be created from this completed/delivered JC."""
+	from frappe.utils import date_diff, getdate, today
+
+	name = (source_job_card or "").strip()
+	if not name:
+		return {"eligible": False, "reason": _("Job Card is required.")}
+
+	jc = doc or frappe.get_doc("DMS Job Card", name)
+	status = (jc.status or "").strip()
+	probation_days = _get_after_repair_probation_days()
+
+	result = {
+		"eligible": False,
+		"probation_days": probation_days,
+		"source_status": status,
+		"closure_date": None,
+		"days_since_closure": None,
+		"days_remaining": None,
+		"reason": "",
+	}
+
+	if status not in ("Completed", "Delivered"):
+		result["reason"] = _("Only Completed or Delivered job cards can start a repeat job.")
+		return result
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+	)
+
+	if is_internal_job_card(jc):
+		result["reason"] = _("Internal job cards cannot start a customer repeat job.")
+		return result
+
+	if probation_days <= 0:
+		result["reason"] = _(
+			"Set After Repair Probation Period (Days) on DMS Settings before creating repeat jobs."
+		)
+		return result
+
+	closure = _job_card_closure_date(jc)
+	if not closure:
+		result["reason"] = _("No completion/delivery date found on this job card.")
+		return result
+
+	days_since = date_diff(getdate(today()), getdate(closure))
+	days_remaining = probation_days - days_since
+	result["closure_date"] = str(getdate(closure))
+	result["days_since_closure"] = days_since
+	result["days_remaining"] = days_remaining
+
+	if days_since < 0:
+		result["reason"] = _("Closure date is in the future.")
+		return result
+
+	if days_since > probation_days:
+		result["reason"] = _(
+			"Comeback window expired ({0} days after repair; probation is {1} days)."
+		).format(days_since, probation_days)
+		return result
+
+	result["eligible"] = True
+	result["reason"] = _("Within probation period ({0} day(s) remaining).").format(
+		max(0, days_remaining)
+	)
+	return result
+
+
+@frappe.whitelist()
+def get_repeat_repair_eligibility(source_job_card):
+	return _get_repeat_repair_eligibility(source_job_card)
+
+
+def _job_card_complaint_text(jc) -> str:
+	"""Build complaint text from job items (JC has no customer_complaint_summary field)."""
+	parts = []
+	for item in jc.get("job_items") or []:
+		desc = (getattr(item, "complaint_description", None) or "").strip()
+		if desc:
+			# Strip simple HTML if Text Editor was used
+			if "<" in desc:
+				from frappe.utils import strip_html
+
+				desc = strip_html(desc).strip()
+			if desc:
+				parts.append(desc)
+	if parts:
+		return "\n".join(parts)
+	notes = (getattr(jc, "service_advisor_notes", None) or "").strip()
+	if notes and "<" in notes:
+		from frappe.utils import strip_html
+
+		notes = strip_html(notes).strip()
+	return notes or ""
+
+
+def _parse_child_line_list(value):
+	"""Accept list, JSON string, or None for labour/parts payloads from the client."""
+	if value is None or value == "":
+		return []
+	if isinstance(value, str):
+		import json
+
+		value = value.strip()
+		if not value or value in ("null", "undefined"):
+			return []
+		try:
+			value = json.loads(value)
+		except Exception:
+			frappe.throw(_("Invalid labour/parts payload."))
+	if isinstance(value, dict):
+		return [value]
+	if isinstance(value, (list, tuple)):
+		return list(value)
+	return []
+
+
+@frappe.whitelist()
+def create_repeat_job_card(source_job_card, customer_complaint_summary=None, labour=None, parts=None):
+	"""
+	Create a new Open job card linked to a Completed/Delivered one (comeback).
+	Same VIN; complaint may match or differ. Warranty/billing left for the user.
+	Optional labour / parts lines seed the Services and Parts tables on create.
+	"""
+	from frappe.utils import today
+
+	source_name = (source_job_card or "").strip()
+	if not source_name:
+		frappe.throw(_("Source Job Card is required."))
+
+	frappe.has_permission("DMS Job Card", "create", throw=True)
+	frappe.has_permission("DMS Job Card", "read", source_name, throw=True)
+
+	labour = _parse_child_line_list(labour)
+	parts = _parse_child_line_list(parts)
+
+	source = frappe.get_doc("DMS Job Card", source_name)
+	eligibility = _get_repeat_repair_eligibility(source_name, doc=source)
+	if not eligibility.get("eligible"):
+		frappe.throw(eligibility.get("reason") or _("Not eligible for repeat repair."))
+
+	complaint = (customer_complaint_summary or "").strip()
+	if not complaint:
+		complaint = _job_card_complaint_text(source)
+	if not complaint:
+		complaint = _("Repeat repair / comeback for {0}").format(source_name)
+
+	advisor_notes = _("Repeat job linked to {0}").format(source_name)
+	if complaint:
+		advisor_notes = f"{advisor_notes}\n\n{complaint}"
+
+	doc = frappe.get_doc({
+		"doctype": "DMS Job Card",
+		"job_card_type": source.job_card_type or "Repair",
+		"posting_date": today(),
+		"company": source.company,
+		"currency": source.currency,
+		"customer": source.customer,
+		"vehicle_vin": source.vehicle_vin,
+		"license_plate": source.license_plate,
+		"current_odometer": source.current_odometer,
+		"priority": "Comeback/Repeat Repair",
+		"is_repeat_repair": 1,
+		"repeat_repair_reference": source_name,
+		"service_advisor": source.service_advisor,
+		"workshop": source.workshop,
+		"warehouse": source.warehouse,
+		"warranty_status": source.warranty_status,
+		# Leave billing/warranty application for the user on the new card.
+		"warranty_application_type": "",
+		"skip_vehicle_inspection": 1,
+		"status": "Open",
+		"service_advisor_notes": advisor_notes,
+	})
+
+	# Prefer an explicit complaint row when the user typed one in the dialog.
+	user_complaint = (customer_complaint_summary or "").strip()
+	if user_complaint:
+		doc.append("job_items", {
+			"complaint_description": user_complaint,
+			"severity": "3 - Moderate",
+		})
+	else:
+		for item in source.get("job_items") or []:
+			desc = (getattr(item, "complaint_description", None) or "").strip()
+			if not desc:
+				continue
+			doc.append("job_items", {
+				"complaint_description": desc,
+				"symptom_category": item.symptom_category,
+				"severity": item.severity,
+				"labor_operation": item.labor_operation,
+			})
+
+	if not doc.job_items:
+		doc.append("job_items", {
+			"complaint_description": complaint,
+			"severity": "3 - Moderate",
+		})
+
+	for line in labour:
+		_append_labour_line_payload(doc, line, default_complaint=complaint)
+
+	job_warehouse = (source.warehouse or "").strip() or None
+	for part in parts:
+		_append_part_line_payload(doc, part, default_warehouse=job_warehouse)
+
+	doc.insert()
+	frappe.db.commit()
+
+	return {
+		"name": doc.name,
+		"status": doc.status,
+		"is_repeat_repair": 1,
+		"repeat_repair_reference": source_name,
+		"customer": doc.customer,
+		"customer_name": doc.customer_name,
+		"vehicle_vin": doc.vehicle_vin,
+		"labour_count": len(doc.labour or []),
+		"parts_count": len(doc.parts or []),
+	}
+
+
+_ADD_LABOUR_ALLOWED_STATUSES = frozenset(
+	{
+		"Open",
+		"Assigned",
+		"Estimation Approved",
+		"Repair In Progress",
+		"Waiting Parts",
+		"Waiting Customer Approval",
+		"Rework",
+	}
+)
+
+
+def _labour_service_name(vehicle_service_item: str) -> str:
+	vsi = (vehicle_service_item or "").strip()
+	if not vsi:
+		return ""
+	name = frappe.db.get_value("Vehicle Service Item", vsi, "service_item") or ""
+	code = ""
+	meta = frappe.get_meta("Vehicle Service Item")
+	if meta.has_field("custom_service_code"):
+		code = frappe.db.get_value("Vehicle Service Item", vsi, "custom_service_code") or ""
+	if meta.has_field("custom_item_name"):
+		custom_name = frappe.db.get_value("Vehicle Service Item", vsi, "custom_item_name") or ""
+		if custom_name:
+			name = custom_name
+	name = (name or vsi).strip()
+	code = (code or "").strip()
+	if code and name and code != name:
+		return f"{code}: {name}"
+	return name or code
+
+
+def _append_labour_line_payload(doc, line, default_complaint=None):
+	"""Append one Vehicle Labour Item row from a dict payload."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		vehicle_service_item_estimated_hours,
+		vehicle_service_item_labour_rate,
+	)
+
+	if isinstance(line, str):
+		return None
+
+	vsi = (line.get("vehicle_service_item") or "").strip()
+	if not vsi:
+		return None
+	if not frappe.db.exists("Vehicle Service Item", vsi):
+		frappe.throw(_("Vehicle Service Item {0} does not exist.").format(vsi))
+
+	hours = flt(line.get("estimated_hours"))
+	if hours <= 0:
+		hours = vehicle_service_item_estimated_hours(vsi) or 1.0
+
+	rate = flt(line.get("rate_per_hour"))
+	if rate <= 0:
+		rate = vehicle_service_item_labour_rate(vsi)
+
+	complaint = (line.get("complaint") or "").strip() or (default_complaint or "")
+	technician = (line.get("technician") or "").strip() or None
+	service_name = (line.get("service_name") or "").strip() or _labour_service_name(vsi)
+
+	doc.append(
+		"labour",
+		{
+			"vehicle_service_item": vsi,
+			"service_name": service_name,
+			"technician": technician,
+			"estimated_hours": hours,
+			"rate_per_hour": rate,
+			"complaint": complaint,
+			"notes": (line.get("notes") or "").strip() or None,
+			"is_warranty": 1 if line.get("is_warranty") else 0,
+		},
+	)
+	return doc.labour[-1]
+
+
+def _append_part_line_payload(doc, part, default_warehouse=None):
+	"""Append one Job Card Part Item row from a dict payload."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		spare_part_default_selling_price,
+	)
+
+	if isinstance(part, str):
+		return None
+
+	item_code = (part.get("item_code") or "").strip()
+	if not item_code:
+		return None
+	if not frappe.db.exists("Spare Part", item_code):
+		frappe.throw(_("Spare Part {0} does not exist.").format(item_code))
+
+	qty = flt(part.get("quantity_requested") or part.get("quantity") or 1)
+	if qty <= 0:
+		frappe.throw(_("Part quantity must be greater than zero."))
+
+	price = flt(part.get("unit_price"))
+	if price <= 0:
+		price = spare_part_default_selling_price(item_code)
+
+	bin_location = (part.get("bin_location") or "").strip()
+	if not bin_location:
+		bin_location = frappe.db.get_value("Spare Part", item_code, "bin_location") or ""
+
+	warehouse = (part.get("warehouse") or "").strip() or (default_warehouse or None)
+
+	doc.append(
+		"parts",
+		{
+			"item_code": item_code,
+			"quantity_requested": qty,
+			"unit_price": price,
+			"bin_location": bin_location,
+			"warehouse": warehouse,
+			"total_amount": round(qty * price, 2),
+			"line_status": "Requested",
+			"notes": (part.get("notes") or "").strip() or None,
+			"is_warranty": 1 if part.get("is_warranty") else 0,
+		},
+	)
+	return doc.parts[-1]
+
+
+@frappe.whitelist()
+def add_labour_line_to_job_card(
+	job_card,
+	vehicle_service_item,
+	estimated_hours=None,
+	rate_per_hour=None,
+	technician=None,
+	complaint=None,
+	notes=None,
+	is_warranty=0,
+):
+	"""Add a service/labour line to an open job card (same window as add extra part)."""
+	vsi = (vehicle_service_item or "").strip()
+	if not vsi:
+		frappe.throw(_("Vehicle Service Item is required."))
+
+	jc_name = (job_card or "").strip()
+	if not jc_name:
+		frappe.throw(_("Job Card is required."))
+
+	jc = frappe.get_doc("DMS Job Card", jc_name)
+	jc.check_permission("write")
+
+	if jc.status not in _ADD_LABOUR_ALLOWED_STATUSES:
+		frappe.throw(
+			_("Cannot add labour when job card status is {0}.").format(jc.status or _("Unknown"))
+		)
+
+	if jc.invoice:
+		frappe.throw(_("Cannot add labour after an invoice has been created."))
+
+	row = _append_labour_line_payload(
+		jc,
+		{
+			"vehicle_service_item": vsi,
+			"estimated_hours": estimated_hours,
+			"rate_per_hour": rate_per_hour,
+			"technician": technician,
+			"complaint": complaint,
+			"notes": notes,
+			"is_warranty": is_warranty,
+		},
+		default_complaint=_job_card_complaint_text(jc),
+	)
+	if not row:
+		frappe.throw(_("Could not add labour line."))
+
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"job_card": jc.name,
+		"labour_row": row.name,
+		"vehicle_service_item": row.vehicle_service_item,
+		"service_name": row.service_name,
+		"estimated_hours": row.estimated_hours,
+		"rate_per_hour": row.rate_per_hour,
+		"amount": row.amount,
+		"total_labor_cost": jc.total_labor_cost,
+		"total_amount": jc.total_amount,
+		"net_amount": getattr(jc, "net_amount", None),
+	}
 
 
 @frappe.whitelist()
@@ -240,7 +675,6 @@ def create_job_card(data):
 		"warranty_status": data.get("warranty_status"),
 		"warranty_expiry_date": data.get("warranty_expiry_date"),
 		"warranty_application_type": data.get("warranty_application_type"),
-		"customer_complaint_summary": data.get("customer_complaint_summary"),
 		"service_advisor_notes": data.get("service_advisor_notes"),
 		"internal_notes": data.get("internal_notes"),
 		"schedule_start_time": data.get("schedule_start_time"),
@@ -271,6 +705,15 @@ def create_job_card(data):
 				"severity": item.get("severity"),
 				"labor_operation": item.get("labor_operation"),
 			})
+	else:
+		summary = (data.get("customer_complaint_summary") or "").strip()
+		if summary:
+			doc.append("job_items", {
+				"complaint_description": summary,
+				"severity": "3 - Moderate",
+			})
+			if not (data.get("service_advisor_notes") or "").strip():
+				doc.service_advisor_notes = summary
 
 	if data.get("labour"):
 		for line in data["labour"]:
@@ -310,6 +753,19 @@ def create_job_card(data):
 		prepare_internal_job_card(doc)
 
 	doc.insert()
+
+	# Persist UI odometer even if DocType fetch_from still overwrites on insert
+	# (before migrate picks up fetch_if_empty).
+	odo = data.get("current_odometer")
+	if odo is not None and odo != "":
+		odo = cint(odo)
+		if odo >= 0 and cint(doc.current_odometer or 0) != odo:
+			frappe.db.set_value(
+				"DMS Job Card", doc.name, "current_odometer", odo, update_modified=False
+			)
+			doc.current_odometer = odo
+		doc.sync_vin_odometer_from_job_card()
+
 	frappe.db.commit()
 
 	result = {
@@ -317,6 +773,7 @@ def create_job_card(data):
 		"status": doc.status,
 		"customer": doc.customer,
 		"customer_name": doc.customer_name,
+		"current_odometer": doc.current_odometer,
 	}
 
 	if is_internal_job_card(doc):
@@ -352,8 +809,10 @@ def update_job_card(name, data):
 		"priority", "service_advisor", "lead_technician", "assigned_bay",
 		"estimated_duration_hours", "promised_delivery_date_time",
 		"warranty_status", "warranty_expiry_date", "warranty_application_type",
-		"customer_complaint_summary", "service_advisor_notes", "internal_notes",
+		"service_advisor_notes", "internal_notes",
 		"schedule_start_time", "schedule_end_time", "workshop", "warehouse",
+		"current_odometer",
+		"license_plate",
 		"discount_amount",
 		"labour_discount_type",
 		"labour_discount_value",

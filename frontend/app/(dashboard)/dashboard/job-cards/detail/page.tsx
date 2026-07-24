@@ -66,12 +66,13 @@ import {
   Trash2,
   Headphones,
   HardHat,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
 import { htmlToPlainText } from "@/lib/plain-text";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
-import { StatusBadge } from "@/components/job-card/status-badge";
+import { RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
 import { WorkshopAssignmentBadge } from "@/components/job-card/workshop-assignment-badge";
 import { WorkflowStepper } from "@/components/job-card/workflow-stepper";
 import {
@@ -86,6 +87,13 @@ import { QCSection } from "@/components/job-card/qc-section";
 import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { AmountSummaryPopover } from "@/components/amount-summary-popover";
+import { ListRowActions } from "@/components/list-row-actions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { fetchServiceBayDetail, uploadFile } from "@/services/common";
 import { SearchableSelect } from "@/components/searchable-select";
 import { LinkWithCreate } from "@/components/link-with-create";
@@ -96,6 +104,8 @@ import { PartsAcquisitionFlowBanner } from "@/components/job-card/parts-acquisit
 import { PartsReturnSection } from "@/components/job-card/parts-return-section";
 import { AdditionalWorkSection } from "@/components/job-card/additional-work-section";
 import { AddExtraPartSection } from "@/components/job-card/add-extra-part-section";
+import { AddExtraLabourSection } from "@/components/job-card/add-extra-labour-section";
+import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-dialog";
 import * as partsRequestsSvc from "@/services/partsRequests";
 import type { AdditionalWorkRequestSummary } from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
@@ -182,6 +192,7 @@ export default function JobCardDetailPage() {
   const [showQCFailDialog, setShowQCFailDialog] = useState(false);
   const [qcFailReason, setQcFailReason] = useState("");
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
+  const [showRepeatJobDialog, setShowRepeatJobDialog] = useState(false);
   const [partsFlowRefreshKey, setPartsFlowRefreshKey] = useState(0);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
@@ -412,6 +423,7 @@ export default function JobCardDetailPage() {
     "Waiting Customer Approval",
     "Rework",
   ].includes(workflowStatus);
+  const canAddExtraLabour = canAddExtraPart;
   const invoiceIsCancelled =
     invoiceDetail?.docstatus === 2 ||
     String(invoiceDetail?.status || "").toLowerCase() === "cancelled";
@@ -882,11 +894,25 @@ export default function JobCardDetailPage() {
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="text-xl font-bold text-foreground sm:text-2xl">{jobCard.name}</h1>
               <StatusBadge status={workflowStatus} />
+              {jobCard.is_repeat_repair ? (
+                <RepeatJobBadge reference={jobCard.repeat_repair_reference} />
+              ) : null}
               {workshopAssigned ? <WorkshopAssignmentBadge /> : null}
             </div>
             <p className="mt-1 truncate text-muted-foreground">
               {jobCard.license_plate} – {jobCard.vehicle_model}
             </p>
+            {jobCard.is_repeat_repair && jobCard.repeat_repair_reference ? (
+              <button
+                type="button"
+                className="mt-1 text-sm text-primary hover:underline"
+                onClick={() =>
+                  navigate("job-card-detail", { id: jobCard.repeat_repair_reference! })
+                }
+              >
+                Original job: {jobCard.repeat_repair_reference}
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -914,13 +940,53 @@ export default function JobCardDetailPage() {
               },
             ]}
           />
-          <PrintFormatDropdown doctype="DMS Job Card" docName={id} />
-          {status === "Draft" && (
-            <Button variant="outline" size="sm" onClick={() => navigate("job-card-detail", { id, mode: "edit" })}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
+          <ListRowActions doctype="DMS Job Card" docName={id}>
+            {status === "Draft" ||
+            (!isInternal && (status === "Completed" || status === "Delivered")) ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="shrink-0" disabled={busy}>
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">More actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {status === "Draft" && (
+                    <DropdownMenuItem
+                      onClick={() => navigate("job-card-detail", { id, mode: "edit" })}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  )}
+                  {!isInternal && (status === "Completed" || status === "Delivered") ? (
+                    <DropdownMenuItem
+                      disabled={jobCard.repeat_repair_eligible === false}
+                      title={
+                        jobCard.repeat_repair_eligible === false
+                          ? jobCard.repeat_repair_eligibility?.reason ||
+                            "Not eligible for repeat job"
+                          : undefined
+                      }
+                      onClick={() => {
+                        if (jobCard.repeat_repair_eligible === false) {
+                          toast.error(
+                            jobCard.repeat_repair_eligibility?.reason ||
+                              "Not eligible for repeat job"
+                          );
+                          return;
+                        }
+                        setShowRepeatJobDialog(true);
+                      }}
+                    >
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Create Repeat Job
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </ListRowActions>
         </div>
       </div>
 
@@ -1784,7 +1850,14 @@ export default function JobCardDetailPage() {
         </TabsContent>
 
         {/* Services (Labour) Tab */}
-        <TabsContent value="services" className="mt-6">
+        <TabsContent value="services" className="mt-6 space-y-6">
+          {canAddExtraLabour && (
+            <AddExtraLabourSection
+              jobCardId={id}
+              vehicleVin={jobCard.vehicle_vin}
+              onAdded={() => void mutate()}
+            />
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -2667,6 +2740,17 @@ export default function JobCardDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CreateRepeatJobDialog
+        open={showRepeatJobDialog}
+        onOpenChange={setShowRepeatJobDialog}
+        sourceJobCard={id}
+        defaultComplaint={jobCard.customer_complaint_summary}
+        vehicleVin={jobCard.vehicle_vin}
+        company={jobCard.company}
+        daysRemaining={jobCard.repeat_repair_eligibility?.days_remaining}
+        onCreated={(name) => navigate("job-card-detail", { id: name })}
+      />
 
       <CreateInvoiceDialog
         open={showCreateInvoiceDialog}

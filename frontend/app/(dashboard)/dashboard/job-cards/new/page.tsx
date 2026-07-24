@@ -983,7 +983,7 @@ export default function NewJobCardPage() {
       customer,
       vehicle_vin: vehicleVin,
       license_plate: licensePlate || undefined,
-      current_odometer: currentOdometer || undefined,
+      current_odometer: Number.isFinite(currentOdometer) ? currentOdometer : undefined,
       warranty_status: warrantyStatus || undefined,
       service_advisor: serviceAdvisor || undefined,
       lead_technician: leadTechnician || undefined,

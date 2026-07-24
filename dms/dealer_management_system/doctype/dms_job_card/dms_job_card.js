@@ -188,11 +188,21 @@ frappe.ui.form.on("DMS Job Card", {
         set_job_card_warehouse_queries(frm);
         add_vehicle_delivery_button(frm);
         add_sales_invoice_button(frm);
+        add_repeat_job_button(frm);
         refresh_qc_dashboard(frm);
         add_status_flow_buttons(frm);
         apply_customer_filter_advanced(frm);
         add_customer_approval_button(frm);
         control_submit_button(frm);
+
+        if (cint(frm.doc.is_repeat_repair)) {
+            frm.dashboard.add_indicator(
+                frm.doc.repeat_repair_reference
+                    ? __("Repeat Job · {0}", [frm.doc.repeat_repair_reference])
+                    : __("Repeat Job"),
+                "orange"
+            );
+        }
 
         // AFTER the document is submitted (docstatus=1), start the repair process
         if (frm.doc.docstatus === 1) {
@@ -555,6 +565,64 @@ function add_create_sales_invoice_button(frm) {
         },
         ACTIONS_GROUP
     );
+}
+
+function add_repeat_job_button(frm) {
+    if (is_internal_job_card(frm)) return;
+    if (frm.is_new() || frm.doc.docstatus === 2) return;
+    if (frm.doc.status !== "Completed" && frm.doc.status !== "Delivered") return;
+    if (!frappe.model.can_create("DMS Job Card")) return;
+
+    frappe.call({
+        method: "dms.api.job_cards.get_repeat_repair_eligibility",
+        args: { source_job_card: frm.doc.name },
+        callback: (r) => {
+            const eligibility = r.message || {};
+            if (!eligibility.eligible) return;
+
+            frm.add_custom_button(
+                __("Create Repeat Job"),
+                () => {
+                    frappe.prompt(
+                        [
+                            {
+                                fieldname: "customer_complaint_summary",
+                                fieldtype: "Small Text",
+                                label: __("Customer Complaint (optional)"),
+                                description: __(
+                                    "Leave blank to copy from this job card. Same or different complaint is allowed."
+                                ),
+                                default: "",
+                            },
+                        ],
+                        (values) => {
+                            frappe.call({
+                                method: "dms.api.job_cards.create_repeat_job_card",
+                                args: {
+                                    source_job_card: frm.doc.name,
+                                    customer_complaint_summary:
+                                        values.customer_complaint_summary || null,
+                                },
+                                freeze: true,
+                                freeze_message: __("Creating repeat job…"),
+                                callback: (res) => {
+                                    if (!res.message || !res.message.name) return;
+                                    frappe.show_alert({
+                                        message: __("Repeat job {0} created", [res.message.name]),
+                                        indicator: "green",
+                                    });
+                                    frappe.set_route("Form", "DMS Job Card", res.message.name);
+                                },
+                            });
+                        },
+                        __("Create Repeat Job"),
+                        __("Create")
+                    );
+                },
+                ACTIONS_GROUP
+            );
+        },
+    });
 }
 
 function add_sales_invoice_payment_action(frm, sales_invoice_name) {
