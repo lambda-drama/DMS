@@ -66,6 +66,9 @@
   "terms_accepted_at",
   "customer_signature",
   "rejection_signature",
+  "rejection_reason",
+  "lost_sale_follow_up_date",
+  "lost_sale_status",
   "section_notes",
   "service_advisor_notes",
   "internal_notes"
@@ -445,6 +448,30 @@
    "fieldname": "rejection_signature",
    "fieldtype": "Attach Image",
    "label": "Customer Signature (Rejection)"
+  },
+  {
+   "depends_on": "eval:doc.customer_decision=='Rejected' || doc.customer_decision=='Partially Accepted' || doc.status=='Rejected'",
+   "fieldname": "rejection_reason",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Rejection Reason",
+   "options": "\nPrice\nPostponed\nUnavailable Part\nWent Elsewhere\nWaiting for Salary\nVehicle Sold\nNo Response\nOther"
+  },
+  {
+   "depends_on": "eval:doc.customer_decision=='Rejected' || doc.customer_decision=='Partially Accepted' || doc.status=='Rejected'",
+   "description": "When to re-contact the customer about declined work",
+   "fieldname": "lost_sale_follow_up_date",
+   "fieldtype": "Date",
+   "label": "Lost Sale Follow-up Date"
+  },
+  {
+   "default": "Open",
+   "depends_on": "eval:doc.customer_decision=='Rejected' || doc.customer_decision=='Partially Accepted' || doc.status=='Rejected'",
+   "fieldname": "lost_sale_status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Lost Sale Status",
+   "options": "\nOpen\nIn Progress\nClosed\nConverted"
   },
   {
    "fieldname": "section_notes",

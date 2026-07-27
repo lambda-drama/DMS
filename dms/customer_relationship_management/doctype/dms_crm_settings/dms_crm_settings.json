@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "creation": "2026-07-27 22:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_general",
+  "default_company",
+  "default_lead_owner_role",
+  "column_break_1",
+  "hot_response_minutes",
+  "warm_response_minutes",
+  "standard_response_hours",
+  "section_flags",
+  "require_next_action_on_lead",
+  "require_close_date_on_opportunity"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_general",
+   "fieldtype": "Section Break",
+   "label": "Defaults"
+  },
+  {
+   "fieldname": "default_company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company"
+  },
+  {
+   "default": "DMS CRM User",
+   "fieldname": "default_lead_owner_role",
+   "fieldtype": "Link",
+   "label": "Default Lead Owner Role",
+   "options": "Role"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "10",
+   "fieldname": "hot_response_minutes",
+   "fieldtype": "Int",
+   "label": "Hot Lead Response (minutes)"
+  },
+  {
+   "default": "30",
+   "fieldname": "warm_response_minutes",
+   "fieldtype": "Int",
+   "label": "Warm Lead Response (minutes)"
+  },
+  {
+   "default": "2",
+   "fieldname": "standard_response_hours",
+   "fieldtype": "Int",
+   "label": "Standard Lead Response (hours)"
+  },
+  {
+   "fieldname": "section_flags",
+   "fieldtype": "Section Break",
+   "label": "Rules"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_next_action_on_lead",
+   "fieldtype": "Check",
+   "label": "Require Next Action on Open Leads"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_close_date_on_opportunity",
+   "fieldtype": "Check",
+   "label": "Require Expected Close on Open Opportunities"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-27 22:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "DMS CRM Manager",
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "DMS CRM User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

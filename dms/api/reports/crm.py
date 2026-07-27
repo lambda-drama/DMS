@@ -43,6 +43,7 @@ def _rating_stars(value) -> float | None:
 
 
 def get_customer_follow_up_report(filters=None):
+	"""§3.5 Customer Follow-Up Report."""
 	f = _parse_filters(filters)
 	if not frappe.db.exists("DocType", "Customer Follow Up"):
 		return _result("customer_follow_up", _("Customer Follow-Up"), f, {"total": 0}, [], [])
@@ -51,6 +52,7 @@ def get_customer_follow_up_report(filters=None):
 	fields = ["name", "customer", "job_card", "follow_up_due_date", "follow_up_completed_date"]
 	for optional in (
 		"vehicle_vin",
+		"delivery",
 		"customer_rating",
 		"customer_rating_score",
 		"customer_complaint",
@@ -83,14 +85,76 @@ def get_customer_follow_up_report(filters=None):
 			fields=["name", "customer_name"],
 		):
 			customer_names[c.name] = c.customer_name or c.name
+
+	jc_names = list({r.job_card for r in rows if r.get("job_card")})
+	next_service_map = {}
+	if jc_names and frappe.db.exists("DocType", "DMS Job Card"):
+		jc_meta = frappe.get_meta("DMS Job Card")
+		jc_fields = ["name"]
+		if jc_meta.has_field("next_service_due_date"):
+			jc_fields.append("next_service_due_date")
+		if jc_meta.has_field("next_service_due_km"):
+			jc_fields.append("next_service_due_km")
+		for jc in frappe.get_all("DMS Job Card", filters={"name": ["in", jc_names]}, fields=jc_fields):
+			parts = []
+			if jc.get("next_service_due_date"):
+				parts.append(str(jc.next_service_due_date))
+			if jc.get("next_service_due_km"):
+				parts.append(f"{cint(jc.next_service_due_km)} km")
+			next_service_map[jc.name] = " · ".join(parts) if parts else ""
+
+	# Fallback: VIN next service
+	vin_field = "vehicle_vin" if meta.has_field("vehicle_vin") else None
+	vin_ids = list({r.get(vin_field) for r in rows if vin_field and r.get(vin_field)})
+	vin_next = {}
+	if vin_ids and frappe.db.exists("DocType", "VIN No"):
+		vin_meta = frappe.get_meta("VIN No")
+		vfields = ["name"]
+		if vin_meta.has_field("next_service_due_date"):
+			vfields.append("next_service_due_date")
+		if vin_meta.has_field("next_service_due_km"):
+			vfields.append("next_service_due_km")
+		for v in frappe.get_all("VIN No", filters={"name": ["in", vin_ids]}, fields=vfields):
+			parts = []
+			if v.get("next_service_due_date"):
+				parts.append(str(v.next_service_due_date))
+			if v.get("next_service_due_km"):
+				parts.append(f"{cint(v.next_service_due_km)} km")
+			vin_next[v.name] = " · ".join(parts) if parts else ""
+
+	delivered = 0
+	complaints_raised = 0
+	complaints_resolved = 0
 	for row in rows:
 		row["customer_name"] = customer_names.get(row.get("customer"), row.get("customer") or "")
 		row["contact_result"] = row.get("contact_status") or row.get("case_status") or ""
 		score = _rating_stars(row.get("customer_rating_score")) or _rating_stars(row.get("customer_rating"))
 		row["customer_rating_score"] = cint(score) if score is not None else None
+		complaint = _strip_html(row.get("customer_complaint"))
+		row["complaint_raised"] = _("Yes") if complaint else _("No")
+		if complaint:
+			complaints_raised += 1
+			resolved = (row.get("issue_resolved") or "").strip()
+			if resolved == "Yes":
+				complaints_resolved += 1
+				row["complaint_resolved"] = _("Yes")
+			else:
+				row["complaint_resolved"] = resolved or _("No")
+		else:
+			row["complaint_resolved"] = "—"
 
-	vin_field = "vehicle_vin" if meta.has_field("vehicle_vin") else "vin"
-	if meta.has_field(vin_field):
+		if row.get("delivery") or row.get("job_card"):
+			delivered += 1
+		row["vehicle_delivered"] = _("Yes") if (row.get("delivery") or row.get("job_card")) else _("No")
+
+		ns = ""
+		if row.get("job_card"):
+			ns = next_service_map.get(row.job_card, "")
+		if not ns and vin_field and row.get(vin_field):
+			ns = vin_next.get(row.get(vin_field), "")
+		row["next_service_reminder"] = ns or "—"
+
+	if vin_field:
 		_apply_vin_numbers(rows, link_field=vin_field, output_field="vin_number")
 	else:
 		for row in rows:
@@ -104,20 +168,26 @@ def get_customer_follow_up_report(filters=None):
 		f,
 		{
 			"total": len(rows),
+			"vehicles_delivered": delivered,
 			"completed": done,
 			"outstanding": due,
 			"completion_pct": round(100.0 * done / len(rows), 1) if rows else 0,
+			"complaints_raised": complaints_raised,
+			"complaints_resolved": complaints_resolved,
 		},
 		[
 			{"key": "name", "label": _("Follow Up")},
 			{"key": "customer_name", "label": _("Customer")},
-			{"key": "job_card", "label": _("Job Card")},
 			{"key": "vin_number", "label": _("VIN")},
+			{"key": "vehicle_delivered", "label": _("Delivered")},
+			{"key": "job_card", "label": _("Job Card")},
 			{"key": "follow_up_due_date", "label": _("Due")},
 			{"key": "follow_up_completed_date", "label": _("Completed")},
-			{"key": "customer_rating_score", "label": _("Rating")},
-			{"key": "contact_result", "label": _("Result")},
-			{"key": "issue_resolved", "label": _("Resolved")},
+			{"key": "contact_result", "label": _("Contact Result")},
+			{"key": "customer_rating_score", "label": _("Satisfaction")},
+			{"key": "complaint_raised", "label": _("Complaint")},
+			{"key": "complaint_resolved", "label": _("Complaint Resolved")},
+			{"key": "next_service_reminder", "label": _("Next Service")},
 		],
 		rows,
 	)

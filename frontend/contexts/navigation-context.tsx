@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { resetAppScroll } from '@/lib/reset-app-scroll';
 
-const ALL_VIEWS = [
+const DMS_VIEWS = [
   'dashboard',
   'appointments', 'appointment-detail', 'appointment-new',
   'inspections', 'inspection-detail', 'inspection-new',
@@ -12,6 +12,7 @@ const ALL_VIEWS = [
   'parts-requisitions', 'parts-requisition-detail',
   'deliveries', 'delivery-new',
   'invoices', 'invoice-new',
+  'follow-ups', 'follow-up-new',
   'technicians', 'technician-detail',
   'service-advisors',
   'parts-advisors',
@@ -27,7 +28,22 @@ const ALL_VIEWS = [
   'proforma-invoices', 'proforma-invoice-new',
   'inventory-dashboard',
   'settings',
-];
+] as const;
+
+const CRM_VIEWS = [
+  'crm-dashboard',
+  'crm-leads',
+  'crm-lead-new',
+  'crm-opportunities',
+  'crm-opportunity-new',
+  'crm-contacts',
+  'crm-customers',
+  'crm-activities',
+  'crm-calendar',
+  'crm-cases',
+] as const;
+
+const ALL_VIEWS = [...DMS_VIEWS, ...CRM_VIEWS];
 
 const VIEW_GROUPS: Record<string, string> = {
   'dashboard': 'dashboard',
@@ -48,6 +64,8 @@ const VIEW_GROUPS: Record<string, string> = {
   'delivery-new': 'deliveries',
   'invoices': 'invoices',
   'invoice-new': 'invoices',
+  'follow-ups': 'follow-ups',
+  'follow-up-new': 'follow-ups',
   'technicians': 'technicians',
   'technician-detail': 'technicians',
   'service-advisors': 'service-advisors',
@@ -66,7 +84,21 @@ const VIEW_GROUPS: Record<string, string> = {
   'proforma-invoice-new': 'proforma-invoices',
   'inventory-dashboard': 'inventory-dashboard',
   'settings': 'settings',
+  'crm-dashboard': 'crm-dashboard',
+  'crm-leads': 'crm-leads',
+  'crm-lead-new': 'crm-leads',
+  'crm-opportunities': 'crm-opportunities',
+  'crm-opportunity-new': 'crm-opportunities',
+  'crm-contacts': 'crm-contacts',
+  'crm-customers': 'crm-customers',
+  'crm-activities': 'crm-activities',
+  'crm-calendar': 'crm-calendar',
+  'crm-cases': 'crm-cases',
 };
+
+export function isCrmView(view: string): boolean {
+  return view.startsWith('crm-');
+}
 
 interface NavigationContextType {
   activeView: string;
@@ -82,7 +114,7 @@ function parseHash(): { view: string; params: URLSearchParams } {
   const view = (qIdx >= 0 ? raw.slice(0, qIdx) : raw).trim().toLowerCase();
   const search = qIdx >= 0 ? raw.slice(qIdx) : '';
   return {
-    view: ALL_VIEWS.includes(view) ? view : '',
+    view: ALL_VIEWS.includes(view as (typeof ALL_VIEWS)[number]) ? view : '',
     params: new URLSearchParams(search),
   };
 }

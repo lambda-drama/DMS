@@ -1,0 +1,264 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-27 22:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_main",
+  "naming_series",
+  "title",
+  "stage",
+  "status",
+  "column_break_main",
+  "lead",
+  "customer",
+  "opportunity_owner",
+  "company",
+  "branch",
+  "section_value",
+  "expected_value",
+  "currency",
+  "probability",
+  "expected_close_date",
+  "column_break_value",
+  "brand",
+  "model",
+  "variant",
+  "quantity",
+  "section_followup",
+  "next_action",
+  "next_action_due",
+  "lost_reason",
+  "competitor",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_main",
+   "fieldtype": "Section Break",
+   "label": "Opportunity"
+  },
+  {
+   "default": "CRM-OPP-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-OPP-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "default": "New",
+   "fieldname": "stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Stage",
+   "options": "New\nContact Attempted\nContacted\nQualified\nAppointment Scheduled\nTest Drive\nQuotation Submitted\nNegotiation\nBooking / Deposit\nOrder Confirmed\nWon\nLost\nNurture",
+   "reqd": 1
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nOn Hold\nWon\nLost\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "label": "Lead",
+   "options": "DMS CRM Lead"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "opportunity_owner",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Data",
+   "label": "Branch"
+  },
+  {
+   "fieldname": "section_value",
+   "fieldtype": "Section Break",
+   "label": "Value & Product"
+  },
+  {
+   "default": "0",
+   "fieldname": "expected_value",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Expected Value",
+   "options": "currency"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "default": "10",
+   "fieldname": "probability",
+   "fieldtype": "Percent",
+   "label": "Probability"
+  },
+  {
+   "fieldname": "expected_close_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expected Close"
+  },
+  {
+   "fieldname": "column_break_value",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Data",
+   "label": "Brand"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "variant",
+   "fieldtype": "Data",
+   "label": "Variant"
+  },
+  {
+   "default": "1",
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity"
+  },
+  {
+   "fieldname": "section_followup",
+   "fieldtype": "Section Break",
+   "label": "Follow-up"
+  },
+  {
+   "fieldname": "next_action",
+   "fieldtype": "Data",
+   "label": "Next Action"
+  },
+  {
+   "fieldname": "next_action_due",
+   "fieldtype": "Datetime",
+   "label": "Next Action Due"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Lost\" || doc.stage==\"Lost\"",
+   "fieldname": "lost_reason",
+   "fieldtype": "Data",
+   "label": "Lost Reason"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Lost\" || doc.stage==\"Lost\"",
+   "fieldname": "competitor",
+   "fieldtype": "Data",
+   "label": "Competitor"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Opportunity",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-27 22:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Opportunity",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "title,customer,stage,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

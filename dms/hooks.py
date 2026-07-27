@@ -72,7 +72,16 @@ fixtures = [
     {
         "doctype": "Role",
         "filters": [
-            ["name", "in", ["Dealer Manager", "Spare Parts Manager"]]
+            [
+                "name",
+                "in",
+                [
+                    "Dealer Manager",
+                    "Spare Parts Manager",
+                    "DMS CRM User",
+                    "DMS CRM Manager",
+                ],
+            ]
         ]
     },
 
@@ -365,4 +374,11 @@ scheduler_events = {
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
+
+# ---------------------------------------------------------------------------
+# CRM (parallel module) — fixtures / events live in dms.crm_hooks only
+# ---------------------------------------------------------------------------
+from dms.crm_hooks import apply_crm_hooks  # noqa: E402
+
+apply_crm_hooks(globals())
 

@@ -111,25 +111,18 @@ def _parts_cost_by_job(job_names):
 
 
 def _estimate_conversion(f):
+	"""Spec §3.2: Approved / Submitted × 100 (includes partially approved)."""
 	if not frappe.db.exists("DocType", "DMS Service Estimate"):
 		return 0.0, 0, 0
-	meta = frappe.get_meta("DMS Service Estimate")
-	date_field = "posting_date" if meta.has_field("posting_date") else "creation"
-	filters = {date_field: ["between", [f["from_date"], f["to_date"]]]}
-	if f.get("company") and meta.has_field("company"):
-		filters["company"] = f["company"]
-	if f.get("branch") and meta.has_field("branch"):
-		filters["branch"] = f["branch"]
-	rows = frappe.get_all(
-		"DMS Service Estimate",
-		filters=filters,
-		fields=["name", "status"],
-		limit=5000,
+	from dms.api.reports.advisor import get_estimate_conversion_report
+
+	rep = get_estimate_conversion_report(f)
+	s = rep.get("summary") or {}
+	return (
+		flt(s.get("conversion_pct")),
+		cint(s.get("estimates_approved", 0)) + cint(s.get("estimates_partially_approved", 0)),
+		cint(s.get("estimates_submitted", 0)),
 	)
-	accepted = sum(1 for r in rows if r.status == "Accepted")
-	decided = sum(1 for r in rows if r.status in ("Accepted", "Rejected"))
-	rate = round((accepted / decided) * 100, 1) if decided else 0.0
-	return rate, accepted, decided
 
 
 def _csat_score(f):

@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
-import { NavigationProvider, useNavigation } from '@/contexts/navigation-context';
+import { NavigationProvider, useNavigation, isCrmView } from '@/contexts/navigation-context';
 import { PermissionsProvider, usePermissions } from '@/contexts/permissions-context';
+import { WorkspaceProvider } from '@/contexts/workspace-context';
 import { PermissionGate } from '@/components/permission-gate';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -29,6 +30,8 @@ const DeliveriesPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/
 const DeliveryNewPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/new/page'));
 const InvoicesPage = dynamic(() => import('./(dashboard)/dashboard/invoices/page'));
 const InvoiceNewPage = dynamic(() => import('./(dashboard)/dashboard/invoices/new/page'));
+const FollowUpsPage = dynamic(() => import('./(dashboard)/dashboard/follow-ups/page'));
+const FollowUpNewPage = dynamic(() => import('./(dashboard)/dashboard/follow-ups/new/page'));
 const TechniciansPage = dynamic(() => import('./(dashboard)/dashboard/technicians/page'));
 const TechnicianDetailPage = dynamic(() => import('./(dashboard)/dashboard/technicians/detail/page'));
 const ServiceAdvisorsPage = dynamic(() => import('./(dashboard)/dashboard/service-advisors/page'));
@@ -47,6 +50,17 @@ const ProformaInvoicesPage = dynamic(() => import('./(dashboard)/dashboard/profo
 const ProformaInvoiceNewPage = dynamic(() => import('./(dashboard)/dashboard/proforma-invoices/new/page'));
 const InventoryDashboardPage = dynamic(() => import('./(dashboard)/dashboard/inventory/page'));
 const SettingsPage = dynamic(() => import('./(dashboard)/dashboard/settings/page'));
+
+const CrmDashboardPage = dynamic(() => import('./(dashboard)/crm/dashboard/page'));
+const CrmLeadsPage = dynamic(() => import('./(dashboard)/crm/leads/page'));
+const CrmLeadNewPage = dynamic(() => import('./(dashboard)/crm/leads/new/page'));
+const CrmOpportunitiesPage = dynamic(() => import('./(dashboard)/crm/opportunities/page'));
+const CrmOpportunityNewPage = dynamic(() => import('./(dashboard)/crm/opportunities/new/page'));
+const CrmContactsPage = dynamic(() => import('./(dashboard)/crm/contacts/page'));
+const CrmCustomersPage = dynamic(() => import('./(dashboard)/crm/customers/page'));
+const CrmActivitiesPage = dynamic(() => import('./(dashboard)/crm/activities/page'));
+const CrmCalendarPage = dynamic(() => import('./(dashboard)/crm/calendar/page'));
+const CrmCasesPage = dynamic(() => import('./(dashboard)/crm/cases/page'));
 
 function LoadingScreen() {
   return (
@@ -72,6 +86,7 @@ const FALLBACK_VIEWS = [
   'customers',
   'vehicles',
   'invoices',
+  'follow-ups',
   'service-advisors',
   'parts-advisors',
   'inventory-dashboard',
@@ -129,6 +144,8 @@ function AppContent() {
       case 'delivery-new':       return <DeliveryNewPage />;
       case 'invoices':           return <InvoicesPage />;
       case 'invoice-new':        return <InvoiceNewPage />;
+      case 'follow-ups':         return <FollowUpsPage />;
+      case 'follow-up-new':      return <FollowUpNewPage />;
       case 'technicians':        return <TechniciansPage />;
       case 'technician-detail':  return <TechnicianDetailPage />;
       case 'service-advisors':   return <ServiceAdvisorsPage />;
@@ -147,26 +164,42 @@ function AppContent() {
       case 'proforma-invoice-new': return <ProformaInvoiceNewPage />;
       case 'inventory-dashboard': return <InventoryDashboardPage />;
       case 'settings':           return <SettingsPage />;
+      case 'crm-dashboard':      return <CrmDashboardPage />;
+      case 'crm-leads':          return <CrmLeadsPage />;
+      case 'crm-lead-new':       return <CrmLeadNewPage />;
+      case 'crm-opportunities':  return <CrmOpportunitiesPage />;
+      case 'crm-opportunity-new': return <CrmOpportunityNewPage />;
+      case 'crm-contacts':       return <CrmContactsPage />;
+      case 'crm-customers':      return <CrmCustomersPage />;
+      case 'crm-activities':     return <CrmActivitiesPage />;
+      case 'crm-calendar':       return <CrmCalendarPage />;
+      case 'crm-cases':          return <CrmCasesPage />;
       default:                   return <DashboardMain />;
     }
   };
 
-  return (
-    <DashboardShell>
+  const content = isCrmView(activeView || 'dashboard') ? (
+    renderView()
+  ) : (
+    <>
       <RestrictedViewRedirect />
       <PermissionGate view={activeView || 'dashboard'}>{renderView()}</PermissionGate>
-    </DashboardShell>
+    </>
   );
+
+  return <DashboardShell>{content}</DashboardShell>;
 }
 
 export default function Home() {
   return (
     <AuthProvider>
-      <NavigationProvider>
-        <PermissionsProvider>
-          <AppContent />
-        </PermissionsProvider>
-      </NavigationProvider>
+      <WorkspaceProvider>
+        <NavigationProvider>
+          <PermissionsProvider>
+            <AppContent />
+          </PermissionsProvider>
+        </NavigationProvider>
+      </WorkspaceProvider>
     </AuthProvider>
   );
 }

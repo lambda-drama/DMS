@@ -1,0 +1,233 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-27 22:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_main",
+  "naming_series",
+  "subject",
+  "category",
+  "priority",
+  "status",
+  "column_break_main",
+  "customer",
+  "vehicle_vin",
+  "source",
+  "case_owner",
+  "company",
+  "branch",
+  "section_detail",
+  "customer_statement",
+  "requested_outcome",
+  "section_sla",
+  "response_deadline",
+  "resolution_target",
+  "sla_breached",
+  "column_break_sla",
+  "resolution_summary",
+  "closure_code",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_main",
+   "fieldtype": "Section Break",
+   "label": "Case"
+  },
+  {
+   "default": "CRM-CASE-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-CASE-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Category",
+   "options": "\nSales Conduct\nVehicle Quality\nDelivery Delay\nRegistration / Documentation\nPricing / Payment\nWorkshop Repair Quality\nRepeat Repair\nParts Availability\nWarranty Decision\nStaff Behavior\nFacility\nRoadside Assistance\nDigital / System\nSafety\nGeneral Request\nCompliment"
+  },
+  {
+   "default": "Medium",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Priority",
+   "options": "Critical\nHigh\nMedium\nLow",
+   "reqd": 1
+  },
+  {
+   "default": "New",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "New\nAcknowledged\nAssigned\nInvestigation\nAwaiting Customer\nAwaiting Internal Action\nResolution Proposed\nResolved\nClosed\nReopened",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "label": "Vehicle (VIN)",
+   "options": "VIN No"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "\nPhone\nWhatsApp\nEmail\nWalk-in\nSurvey\nSocial Media\nInternal"
+  },
+  {
+   "fieldname": "case_owner",
+   "fieldtype": "Link",
+   "label": "Case Owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Data",
+   "label": "Branch"
+  },
+  {
+   "fieldname": "section_detail",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "customer_statement",
+   "fieldtype": "Text Editor",
+   "label": "Customer Statement"
+  },
+  {
+   "fieldname": "requested_outcome",
+   "fieldtype": "Small Text",
+   "label": "Requested Outcome"
+  },
+  {
+   "fieldname": "section_sla",
+   "fieldtype": "Section Break",
+   "label": "SLA & Resolution"
+  },
+  {
+   "fieldname": "response_deadline",
+   "fieldtype": "Datetime",
+   "label": "Response Deadline"
+  },
+  {
+   "fieldname": "resolution_target",
+   "fieldtype": "Datetime",
+   "label": "Resolution Target"
+  },
+  {
+   "default": "0",
+   "fieldname": "sla_breached",
+   "fieldtype": "Check",
+   "label": "SLA Breached",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sla",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "resolution_summary",
+   "fieldtype": "Small Text",
+   "label": "Resolution Summary"
+  },
+  {
+   "fieldname": "closure_code",
+   "fieldtype": "Data",
+   "label": "Closure Code"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Case",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-27 22:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Case",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "subject",
+ "track_changes": 1
+}

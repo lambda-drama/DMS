@@ -139,7 +139,11 @@ export async function acceptEstimate(
 export async function rejectEstimate(
   estimateName: string,
   rejectionSignature: string,
-  termsAccepted = false
+  termsAccepted = false,
+  options?: {
+    rejection_reason?: string;
+    lost_sale_follow_up_date?: string;
+  }
 ): Promise<{ name: string; status: string; diagnostic_invoice: string }> {
   return apiRequest(`/api/method/${DT}.reject_estimate`, {
     method: 'POST',
@@ -147,6 +151,8 @@ export async function rejectEstimate(
       estimate_name: estimateName,
       rejection_signature: rejectionSignature,
       terms_accepted: termsAccepted ? 1 : 0,
+      rejection_reason: options?.rejection_reason || null,
+      lost_sale_follow_up_date: options?.lost_sale_follow_up_date || null,
     }),
   });
 }

@@ -7,6 +7,7 @@ import * as serviceEstimatesSvc from '@/services/serviceEstimates';
 import * as jobCardsSvc from '@/services/jobCards';
 import * as deliveriesSvc from '@/services/deliveries';
 import * as invoicesSvc from '@/services/invoices';
+import * as followUpsSvc from '@/services/followUps';
 import * as commonSvc from '@/services/common';
 import type { ColorOption, CompanyOption } from '@/services/common';
 import * as techniciansSvc from '@/services/technicians';
@@ -170,6 +171,7 @@ export function useJobCards(options?: {
   status?: string;
   filter?: 'active' | 'qc' | 'qc_failed' | 'overdue';
   customer?: string;
+  search?: string;
   limit?: number;
   offset?: number;
 }) {
@@ -219,6 +221,39 @@ export function useCreateDelivery() {
     'deliveries',
     (_, { arg }: { arg: Partial<Delivery> }) =>
       deliveriesSvc.createDeliveryUI(arg)
+  );
+}
+
+// ============ FOLLOW-UPS ============
+
+export function useFollowUps(options?: {
+  status?: string;
+  filter?: string;
+  customer?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useSWR(
+    ['follow-ups', options],
+    () => followUpsSvc.listFollowUps(options),
+    { refreshInterval: 30000 }
+  );
+}
+
+export function useFollowUp(name: string | null) {
+  return useSWR(
+    name ? ['follow-up', name] : null,
+    () => followUpsSvc.getFollowUp(name!),
+    { refreshInterval: 15000 }
+  );
+}
+
+export function useCreateFollowUp() {
+  return useSWRMutation(
+    'follow-ups',
+    (_, { arg }: { arg: followUpsSvc.CreateFollowUpPayload }) =>
+      followUpsSvc.createFollowUp(arg)
   );
 }
 

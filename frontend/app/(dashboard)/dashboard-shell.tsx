@@ -3,8 +3,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/contexts/auth-context';
-import { useNavigation } from '@/contexts/navigation-context';
+import { useNavigation, isCrmView } from '@/contexts/navigation-context';
+import { useWorkspace } from '@/contexts/workspace-context';
 import { Sidebar } from '@/components/layout/sidebar';
+import { CrmSidebar } from '@/components/crm/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { cn } from '@/lib/utils';
 import { resetAppScroll } from '@/lib/reset-app-scroll';
@@ -27,8 +29,24 @@ export default function DashboardShell({
 }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { activeView } = useNavigation();
+  const { isCrm, switchToCrm, switchToDms } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+
+  // Keep CRM chrome when opening DMS appointments from CRM.
+  const CRM_KEEPS_APPOINTMENTS = new Set([
+    'appointments',
+    'appointment-detail',
+    'appointment-new',
+  ]);
+
+  useEffect(() => {
+    if (isCrmView(activeView)) {
+      if (!isCrm) switchToCrm();
+    } else if (activeView && isCrm && !CRM_KEEPS_APPOINTMENTS.has(activeView)) {
+      switchToDms();
+    }
+  }, [activeView, isCrm, switchToCrm, switchToDms]);
 
   useLayoutEffect(() => {
     setSidebarOpen(false);
@@ -118,7 +136,11 @@ export default function DashboardShell({
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <Sidebar onNavigate={() => setSidebarOpen(false)} />
+        {isCrm ? (
+          <CrmSidebar onNavigate={() => setSidebarOpen(false)} />
+        ) : (
+          <Sidebar onNavigate={() => setSidebarOpen(false)} />
+        )}
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:ml-64">

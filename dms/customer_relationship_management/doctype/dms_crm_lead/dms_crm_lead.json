@@ -1,0 +1,393 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-27 22:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_identity",
+  "naming_series",
+  "lead_name",
+  "status",
+  "priority",
+  "column_break_id",
+  "source",
+  "campaign",
+  "lead_owner",
+  "branch",
+  "company",
+  "section_prospect",
+  "salutation",
+  "first_name",
+  "last_name",
+  "organization_name",
+  "customer_type",
+  "column_break_prospect",
+  "mobile_no",
+  "phone",
+  "email",
+  "preferred_contact_method",
+  "language",
+  "section_interest",
+  "brand",
+  "model",
+  "variant",
+  "new_or_used",
+  "quantity",
+  "column_break_interest",
+  "budget_range",
+  "preferred_color",
+  "intended_use",
+  "timeframe",
+  "section_qualification",
+  "lead_score",
+  "need",
+  "authority",
+  "budget_confirmed",
+  "column_break_qual",
+  "next_action",
+  "next_action_due",
+  "section_links",
+  "customer",
+  "opportunity",
+  "consent_marketing",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_identity",
+   "fieldtype": "Section Break",
+   "label": "Lead"
+  },
+  {
+   "default": "CRM-LEAD-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-LEAD-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "lead_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Lead Name",
+   "reqd": 1
+  },
+  {
+   "default": "New",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "New\nAssigned\nContact Attempted\nContacted\nQualified\nDisqualified\nConverted\nNurture\nDuplicate\nInvalid",
+   "reqd": 1
+  },
+  {
+   "default": "Standard",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Hot\nWarm\nStandard\nFleet / Tender"
+  },
+  {
+   "fieldname": "column_break_id",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Source",
+   "options": "\nShowroom Walk-in\nWebsite Form\nWhatsApp\nPhone Call\nEmail\nFacebook\nInstagram\nTikTok\nLinkedIn\nAuto Marketplace\nRoadshow\nOwner Event\nReferral\nCorporate Tender\nGovernment Inquiry\nFleet Prospecting\nService Upgrade\nCampaign Upload\nOther"
+  },
+  {
+   "fieldname": "campaign",
+   "fieldtype": "Data",
+   "label": "Campaign"
+  },
+  {
+   "fieldname": "lead_owner",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Lead Owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Data",
+   "label": "Branch"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "section_prospect",
+   "fieldtype": "Section Break",
+   "label": "Prospect"
+  },
+  {
+   "fieldname": "salutation",
+   "fieldtype": "Link",
+   "label": "Salutation",
+   "options": "Salutation"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "organization_name",
+   "fieldtype": "Data",
+   "label": "Organization"
+  },
+  {
+   "default": "Individual",
+   "fieldname": "customer_type",
+   "fieldtype": "Select",
+   "label": "Customer Type",
+   "options": "Individual\nCompany\nGovernment\nEmbassy\nNGO\nFleet Operator\nTaxi / Mobility\nLeasing / Rental\nDealer / Reseller\nProspect"
+  },
+  {
+   "fieldname": "column_break_prospect",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mobile",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "default": "Phone",
+   "fieldname": "preferred_contact_method",
+   "fieldtype": "Select",
+   "label": "Preferred Contact",
+   "options": "Phone\nWhatsApp\nEmail\nSMS\nIn Person"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Data",
+   "label": "Language"
+  },
+  {
+   "fieldname": "section_interest",
+   "fieldtype": "Section Break",
+   "label": "Interest"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Data",
+   "label": "Brand"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "variant",
+   "fieldtype": "Data",
+   "label": "Variant"
+  },
+  {
+   "default": "New",
+   "fieldname": "new_or_used",
+   "fieldtype": "Select",
+   "label": "New / Used",
+   "options": "New\nUsed\nEither"
+  },
+  {
+   "default": "1",
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity"
+  },
+  {
+   "fieldname": "column_break_interest",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "budget_range",
+   "fieldtype": "Data",
+   "label": "Budget Range"
+  },
+  {
+   "fieldname": "preferred_color",
+   "fieldtype": "Data",
+   "label": "Preferred Color"
+  },
+  {
+   "fieldname": "intended_use",
+   "fieldtype": "Data",
+   "label": "Intended Use"
+  },
+  {
+   "fieldname": "timeframe",
+   "fieldtype": "Select",
+   "label": "Purchase Timeframe",
+   "options": "\nImmediate\n1-3 Months\n3-6 Months\n6-12 Months\nUnknown"
+  },
+  {
+   "fieldname": "section_qualification",
+   "fieldtype": "Section Break",
+   "label": "Qualification"
+  },
+  {
+   "default": "0",
+   "fieldname": "lead_score",
+   "fieldtype": "Int",
+   "label": "Lead Score"
+  },
+  {
+   "default": "0",
+   "fieldname": "need",
+   "fieldtype": "Check",
+   "label": "Need Confirmed"
+  },
+  {
+   "default": "0",
+   "fieldname": "authority",
+   "fieldtype": "Check",
+   "label": "Authority Confirmed"
+  },
+  {
+   "default": "0",
+   "fieldname": "budget_confirmed",
+   "fieldtype": "Check",
+   "label": "Budget Confirmed"
+  },
+  {
+   "fieldname": "column_break_qual",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "next_action",
+   "fieldtype": "Data",
+   "label": "Next Action"
+  },
+  {
+   "fieldname": "next_action_due",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Next Action Due"
+  },
+  {
+   "fieldname": "section_links",
+   "fieldtype": "Section Break",
+   "label": "Links & Consent"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "label": "Opportunity",
+   "options": "DMS CRM Opportunity",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "consent_marketing",
+   "fieldtype": "Check",
+   "label": "Marketing Consent"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Lead",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-27 22:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Lead",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "lead_name,mobile_no,email,organization_name,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "lead_name",
+ "track_changes": 1
+}

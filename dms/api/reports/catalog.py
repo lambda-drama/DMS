@@ -61,8 +61,40 @@ def _report_catalog():
 			"description": _("Advisor KPIs"),
 			"icon": "user-check",
 			"reports": [
-				{"id": "service_advisor_performance", "title": _("Advisor Performance"), "description": _("Jobs, sales and approval rate.")},
-				{"id": "appointment_conversion", "title": _("Appointments"), "description": _("Booked, arrived and no-show.")},
+				{
+					"id": "service_advisor_performance",
+					"title": _("Advisor Performance"),
+					"description": _(
+						"Vehicles, estimates, sales, CSAT, comebacks and follow-up."
+					),
+				},
+				{
+					"id": "estimate_conversion",
+					"title": _("Estimate Conversion"),
+					"description": _("Quoted vs approved value, conversion % and lost revenue."),
+				},
+				{
+					"id": "lost_sales",
+					"title": _("Lost Sales"),
+					"description": _("Declined work and parts with rejection reason."),
+				},
+				{
+					"id": "discount_report",
+					"title": _("Discount Report"),
+					"description": _("Discount amount, % split and approval."),
+				},
+				{
+					"id": "customer_follow_up",
+					"title": _("Customer Follow-Up"),
+					"description": _(
+						"Delivered vehicles, contact result, CSAT and next service."
+					),
+				},
+				{
+					"id": "appointment_conversion",
+					"title": _("Appointments"),
+					"description": _("Booked, arrived and no-show."),
+				},
 			],
 		},
 		{
@@ -111,7 +143,7 @@ def _report_catalog():
 			"description": _("Follow-up"),
 			"icon": "users",
 			"reports": [
-				{"id": "customer_follow_up", "title": _("Follow-Up"), "description": _("Due and completed.")},
+				{"id": "customer_follow_up", "title": _("Follow-Up"), "description": _("Delivered vehicles, contact result, CSAT and next service.")},
 				{"id": "customer_satisfaction", "title": _("Satisfaction"), "description": _("Ratings and complaints.")},
 				{"id": "customer_retention", "title": _("Retention"), "description": _("Returning customers.")},
 			],

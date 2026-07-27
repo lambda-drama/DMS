@@ -167,6 +167,8 @@ export default function ServiceEstimateDetailPage() {
   const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(sparePartSearch);
   const [acceptSignature, setAcceptSignature] = useState("");
   const [rejectSignature, setRejectSignature] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [lostSaleFollowUpDate, setLostSaleFollowUpDate] = useState("");
   const [signatureUploading, setSignatureUploading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [customerTerms, setCustomerTerms] = useState<BilingualCustomerTerms | null>(null);
@@ -1409,6 +1411,44 @@ export default function ServiceEstimateDetailPage() {
                     A diagnostic invoice for {(estimate.diagnostic_fee || 0).toLocaleString()} ETB will
                     be created automatically.
                   </p>
+                  <div className="space-y-2">
+                    <Label>Rejection reason</Label>
+                    <Select
+                      value={rejectionReason || undefined}
+                      onValueChange={setRejectionReason}
+                      disabled={!termsAccepted || busy}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reason…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          "Price",
+                          "Postponed",
+                          "Unavailable Part",
+                          "Went Elsewhere",
+                          "Waiting for Salary",
+                          "Vehicle Sold",
+                          "No Response",
+                          "Other",
+                        ].map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lost-sale-fu">Lost-sale follow-up date (optional)</Label>
+                    <Input
+                      id="lost-sale-fu"
+                      type="date"
+                      value={lostSaleFollowUpDate}
+                      onChange={(e) => setLostSaleFollowUpDate(e.target.value)}
+                      disabled={!termsAccepted || busy}
+                    />
+                  </div>
                   <div className={!termsAccepted ? "pointer-events-none" : undefined}>
                     <SignaturePad
                       existingUrl={rejectSignature || undefined}
@@ -1429,14 +1469,21 @@ export default function ServiceEstimateDetailPage() {
                   </div>
                   <Button
                     variant="destructive"
-                    disabled={!termsAccepted || !rejectSignature || busy}
+                    disabled={!termsAccepted || !rejectSignature || !rejectionReason || busy}
                     onClick={() => {
                       if (!termsAccepted) {
                         toast.error("Customer must accept the terms and conditions first");
                         return;
                       }
+                      if (!rejectionReason) {
+                        toast.error("Select a rejection reason");
+                        return;
+                      }
                       runAction("Estimate rejected — diagnostic invoice created", () =>
-                        estimatesSvc.rejectEstimate(id, rejectSignature, true)
+                        estimatesSvc.rejectEstimate(id, rejectSignature, true, {
+                          rejection_reason: rejectionReason,
+                          lost_sale_follow_up_date: lostSaleFollowUpDate || undefined,
+                        })
                       );
                     }}
                   >
