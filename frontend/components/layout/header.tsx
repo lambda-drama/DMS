@@ -40,6 +40,8 @@ const viewTitles: Record<string, string> = {
   'delivery-new': 'New Delivery',
   invoices: 'Invoices',
   'invoice-new': 'New Invoice',
+  'follow-ups': 'Follow-ups',
+  'follow-up-new': 'Schedule Follow-up',
   technicians: 'Technicians',
   'technician-detail': 'Technician Details',
   'service-advisors': 'Service Advisors',
@@ -58,6 +60,16 @@ const viewTitles: Record<string, string> = {
   'proforma-invoice-new': 'New Proforma Invoice',
   'inventory-dashboard': 'Inventory Dashboard',
   settings: 'Settings',
+  'crm-dashboard': 'CRM Overview',
+  'crm-leads': 'Leads',
+  'crm-lead-new': 'New Lead',
+  'crm-opportunities': 'Deals',
+  'crm-opportunity-new': 'New Deal',
+  'crm-contacts': 'Contacts',
+  'crm-customers': 'Customers',
+  'crm-activities': 'Activities',
+  'crm-calendar': 'Calendar',
+  'crm-cases': 'Cases',
 };
 
 interface HeaderProps {

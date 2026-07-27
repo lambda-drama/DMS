@@ -18,6 +18,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"customers": "Customer",
 	"vehicles": "VIN No",
 	"invoices": "Sales Invoice",
+	"follow-ups": "Customer Follow Up",
 	"stock-entry": "Stock Entry",
 	"stock-reconciliation": "Stock Reconciliation",
 	"material-request": "Material Request",

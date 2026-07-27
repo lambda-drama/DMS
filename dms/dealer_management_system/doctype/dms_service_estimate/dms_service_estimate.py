@@ -337,6 +337,8 @@ def reject_estimate(
 	estimate_name: str,
 	rejection_signature: str | None = None,
 	terms_accepted: int | bool = 0,
+	rejection_reason: str | None = None,
+	lost_sale_follow_up_date=None,
 ) -> dict:
 	doc = frappe.get_doc("DMS Service Estimate", estimate_name)
 	doc.check_permission("write")
@@ -353,6 +355,12 @@ def reject_estimate(
 		frappe.throw(_("Diagnostic invoice already created for this estimate."))
 
 	doc.rejection_signature = rejection_signature
+	if rejection_reason:
+		doc.rejection_reason = rejection_reason
+	if lost_sale_follow_up_date:
+		doc.lost_sale_follow_up_date = lost_sale_follow_up_date
+	if not doc.lost_sale_status:
+		doc.lost_sale_status = "Open"
 	doc.customer_decision = "Rejected"
 	doc.decision_date = now_datetime()
 	doc.status = "Rejected"

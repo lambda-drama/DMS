@@ -77,33 +77,32 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Job Card",
-   "options": "DMS Job Card",
-   "reqd": 1
+   "options": "DMS Job Card"
   },
   {
    "description": "Delivery record for this job",
    "fieldname": "delivery",
    "fieldtype": "Link",
    "label": "Vehicle Delivery Note",
-   "options": "Vehicle Delivery Note",
-   "reqd": 1
+   "options": "Vehicle Delivery Note"
   },
   {
    "fetch_from": "job_card.customer",
+   "fetch_if_empty": 1,
    "fieldname": "customer",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Customer",
    "options": "Customer",
-   "read_only": 1
+   "reqd": 1
   },
   {
    "fetch_from": "job_card.vehicle_vin",
+   "fetch_if_empty": 1,
    "fieldname": "vehicle_vin",
    "fieldtype": "Link",
    "label": "Vehicle (VIN)",
-   "options": "VIN No",
-   "read_only": 1
+   "options": "VIN No"
   },
   {
    "fieldname": "column_break_header",
@@ -114,8 +113,7 @@
    "description": "When to contact customer (typically 24-72 hours after delivery)",
    "fieldname": "follow_up_due_date",
    "fieldtype": "Date",
-   "label": "Follow-up Due Date",
-   "reqd": 1
+   "label": "Follow-up Due Date"
   },
   {
    "fieldname": "follow_up_completed_date",
@@ -129,8 +127,7 @@
    "fieldname": "assigned_to",
    "fieldtype": "Link",
    "label": "Assigned To",
-   "options": "User",
-   "reqd": 1
+   "options": "User"
   },
   {
    "fieldname": "section_contact",
@@ -138,6 +135,7 @@
    "label": "Contact Attempt"
   },
   {
+   "default": "Phone Call",
    "fieldname": "contact_method",
    "fieldtype": "Select",
    "label": "Contact Method",
@@ -206,8 +204,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Customer Rating (1-5)",
-   "options": "\n1 - Very Unsatisfied\n2 - Unsatisfied\n3 - Neutral\n4 - Satisfied\n5 - Very Satisfied",
-   "reqd": 1
+   "options": "\n1 - Very Unsatisfied\n2 - Unsatisfied\n3 - Neutral\n4 - Satisfied\n5 - Very Satisfied"
   },
   {
    "description": "Numeric score 1\u20135 (kept in sync with Customer Rating). Used by reports and dashboards.",
@@ -226,6 +223,7 @@
    "options": "\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
   },
   {
+   "default": "N/A",
    "fieldname": "issue_resolved",
    "fieldtype": "Select",
    "label": "Issue Resolved?",
@@ -247,8 +245,7 @@
    "fieldname": "service_quality_rating",
    "fieldtype": "Select",
    "label": "Service Quality Rating",
-   "options": "\nExcellent\nGood\nAverage\nPoor",
-   "reqd": 1
+   "options": "\nExcellent\nGood\nAverage\nPoor"
   },
   {
    "fieldname": "technician_courtesy_rating",
@@ -380,7 +377,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-10 01:25:44.753370",
+ "modified": "2026-07-25 13:24:19.313495",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Customer Follow Up",
