@@ -31,6 +31,10 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
 
 function readStored(): AppWorkspace {
   if (typeof window === 'undefined') return 'dms';
+  const fromQuery = new URLSearchParams(window.location.search).get('workspace');
+  if (fromQuery === 'crm' || fromQuery === 'dms') {
+    return fromQuery;
+  }
   const v = window.localStorage.getItem(STORAGE_KEY);
   return v === 'crm' ? 'crm' : 'dms';
 }
@@ -39,7 +43,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspace, setWorkspaceState] = useState<AppWorkspace>('dms');
 
   useEffect(() => {
-    setWorkspaceState(readStored());
+    const initial = readStored();
+    setWorkspaceState(initial);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, initial);
+      document.documentElement.dataset.workspace = initial;
+    }
   }, []);
 
   const setWorkspace = useCallback((ws: AppWorkspace) => {

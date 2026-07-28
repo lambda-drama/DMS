@@ -1,0 +1,13 @@
+{
+ "app": "dms",
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "App",
+ "idx": 0,
+ "label": "DMS CRM",
+ "link": "/dms?workspace=crm",
+ "link_type": "External",
+ "logo_url": "/assets/dms/image/dms_crm_icon.svg",
+ "name": "DMS CRM",
+ "standard": 1
+}

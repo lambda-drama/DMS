@@ -58,6 +58,8 @@ const CrmOpportunitiesPage = dynamic(() => import('./(dashboard)/crm/opportuniti
 const CrmOpportunityNewPage = dynamic(() => import('./(dashboard)/crm/opportunities/new/page'));
 const CrmContactsPage = dynamic(() => import('./(dashboard)/crm/contacts/page'));
 const CrmCustomersPage = dynamic(() => import('./(dashboard)/crm/customers/page'));
+const CrmCustomerNewPage = dynamic(() => import('./(dashboard)/crm/customers/new/page'));
+const CrmCustomerDetailPage = dynamic(() => import('./(dashboard)/crm/customers/detail/page'));
 const CrmActivitiesPage = dynamic(() => import('./(dashboard)/crm/activities/page'));
 const CrmCalendarPage = dynamic(() => import('./(dashboard)/crm/calendar/page'));
 const CrmCasesPage = dynamic(() => import('./(dashboard)/crm/cases/page'));
@@ -171,6 +173,8 @@ function AppContent() {
       case 'crm-opportunity-new': return <CrmOpportunityNewPage />;
       case 'crm-contacts':       return <CrmContactsPage />;
       case 'crm-customers':      return <CrmCustomersPage />;
+      case 'crm-customer-new':   return <CrmCustomerNewPage />;
+      case 'crm-customer-detail': return <CrmCustomerDetailPage />;
       case 'crm-activities':     return <CrmActivitiesPage />;
       case 'crm-calendar':       return <CrmCalendarPage />;
       case 'crm-cases':          return <CrmCasesPage />;

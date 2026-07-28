@@ -109,6 +109,11 @@ def create_opportunity(data=None):
 	for key, value in payload.items():
 		if key in allowed:
 			doc.set(key, value)
+	# Link fields: empty / partial typed values must not be saved
+	if not (doc.customer or "").strip():
+		doc.customer = None
+	elif not frappe.db.exists("Customer", doc.customer):
+		frappe.throw(_("Customer {0} not found. Select a customer from the list.").format(doc.customer))
 	if not doc.opportunity_owner:
 		doc.opportunity_owner = frappe.session.user
 	if not doc.status:
