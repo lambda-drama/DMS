@@ -15,13 +15,12 @@ import {
   PhoneCall,
   Target,
   Users,
-  Wrench,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
+import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { shellTopBarClassName } from '@/lib/app-shell';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
-import { useWorkspace } from '@/contexts/workspace-context';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -63,7 +62,6 @@ interface CrmSidebarProps {
 export function CrmSidebar({ onNavigate }: CrmSidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, navigate } = useNavigation();
-  const { switchToDms } = useWorkspace();
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({
     'Main Menu': true,
   });
@@ -161,19 +159,7 @@ export function CrmSidebar({ onNavigate }: CrmSidebarProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 justify-start text-[13px] font-medium tracking-tight"
-            onClick={() => {
-              switchToDms();
-              navigate('dashboard');
-              onNavigate?.();
-            }}
-          >
-            <Wrench className="mr-2 h-4 w-4 stroke-[1.5]" />
-            DMS
-          </Button>
+          <WorkspaceSwitcher onNavigate={onNavigate} variant="crm" />
           <Button
             variant="ghost"
             size="sm"

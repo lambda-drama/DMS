@@ -12,3 +12,4 @@ dms.patches.refresh_vin_warranty_from_dms_settings
 dms.patches.seed_delivery_checklist_template
 dms.patches.set_dms_template_defaults
 dms.patches.backfill_customer_rating_score
+dms.patches.fix_dms_desktop_icons

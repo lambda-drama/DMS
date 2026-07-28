@@ -30,14 +30,13 @@ import {
   Boxes,
   Clock,
   PackagePlus,
-  Target,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
+import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { shellTopBarClassName } from '@/lib/app-shell';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
-import { useWorkspace } from '@/contexts/workspace-context';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -201,7 +200,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, viewParams, navigate } = useNavigation();
   const { canAccessView } = usePermissions();
-  const { switchToCrm } = useWorkspace();
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(DEFAULT_OPEN);
 
   useEffect(() => {
@@ -319,19 +317,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 justify-start text-[13px] font-medium tracking-tight text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            onClick={() => {
-              switchToCrm();
-              navigate('crm-dashboard');
-              onNavigate?.();
-            }}
-          >
-            <Target className="mr-2 h-4 w-4 stroke-[1.5]" />
-            CRM
-          </Button>
+          <WorkspaceSwitcher onNavigate={onNavigate} variant="dms" />
           <Button
             variant="ghost"
             size="sm"
