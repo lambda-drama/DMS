@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
+import { SearchableSelect } from '@/components/searchable-select';
 import { Loader2 } from 'lucide-react';
 
 export default function CrmLeadNewPage() {
@@ -89,32 +90,32 @@ export default function CrmLeadNewPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Source</label>
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            <SearchableSelect
+              options={[
+                'Showroom Walk-in',
+                'Website Form',
+                'WhatsApp',
+                'Phone Call',
+                'Referral',
+                'Facebook',
+                'Other',
+              ].map((s) => ({ value: s, label: s }))}
               value={form.source}
-              onChange={(e) => set('source', e.target.value)}
-            >
-              <option>Showroom Walk-in</option>
-              <option>Website Form</option>
-              <option>WhatsApp</option>
-              <option>Phone Call</option>
-              <option>Referral</option>
-              <option>Facebook</option>
-              <option>Other</option>
-            </select>
+              onValueChange={(v) => set('source', v || 'Showroom Walk-in')}
+              placeholder="Select source…"
+            />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Priority</label>
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            <SearchableSelect
+              options={['Hot', 'Warm', 'Standard', 'Fleet / Tender'].map((s) => ({
+                value: s,
+                label: s,
+              }))}
               value={form.priority}
-              onChange={(e) => set('priority', e.target.value)}
-            >
-              <option>Hot</option>
-              <option>Warm</option>
-              <option>Standard</option>
-              <option>Fleet / Tender</option>
-            </select>
+              onValueChange={(v) => set('priority', v || 'Standard')}
+              placeholder="Select priority…"
+            />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Brand</label>

@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { listCustomers } from '@/services/crm';
+import { useNavigation } from '@/contexts/navigation-context';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 
 export default function CrmCustomersPage() {
+  const { navigate } = useNavigation();
   const [search, setSearch] = useState('');
   const { data, isLoading } = useSWR(['crm-customers', search], () =>
     listCustomers({ search: search || undefined, limit: 50 })
@@ -20,6 +23,13 @@ export default function CrmCustomersPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => navigate('crm-customer-new')}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Customer
+        </Button>
+      </div>
+
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-3">
           <div className="relative">
@@ -56,7 +66,13 @@ export default function CrmCustomersPage() {
                     </tr>
                   ) : (
                     rows.map((row: Record<string, unknown>) => (
-                      <tr key={String(row.name)} className="border-b border-border/60 last:border-0">
+                      <tr
+                        key={String(row.name)}
+                        className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40"
+                        onClick={() =>
+                          navigate('crm-customer-detail', { id: String(row.name) })
+                        }
+                      >
                         <td className="py-3">
                           <p className="font-medium">{String(row.customer_name || row.name)}</p>
                           <p className="text-xs text-muted-foreground">{String(row.name)}</p>
