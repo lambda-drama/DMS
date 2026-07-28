@@ -10,13 +10,14 @@ app_license = "mit"
 
 # required_apps = []
 
-# Each item in the list will be shown as an app in the apps page
+# Each item in the list will be shown as an app in the apps page.
+# Desk uses Desktop Icon folder "DMS" (Aftersales + CRM workspaces). Apps entry stays DMS home.
 add_to_apps_screen = [
 	{
 		"name": "dms",
 		"logo": "/assets/dms/image/suwey_logo.png",
 		"title": "DMS",
-		"route": "/dms",
+		"route": "/app",
 	}
 ]
 
