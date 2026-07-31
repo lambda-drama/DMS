@@ -12,8 +12,11 @@ import {
   LayoutDashboard,
   LogOut,
   Megaphone,
+  Phone,
   PhoneCall,
   Target,
+  Gauge,
+  ClipboardCheck,
   Users,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
@@ -47,6 +50,9 @@ const navigation: NavSection[] = [
       { name: 'Contacts', view: 'crm-contacts', icon: Contact },
       { name: 'Leads', view: 'crm-leads', icon: Target },
       { name: 'Activities', view: 'crm-activities', icon: PhoneCall },
+      { name: 'Call Logs', view: 'crm-call-logs', icon: Phone },
+      { name: 'Test Drives', view: 'crm-test-drives', icon: Gauge },
+      { name: 'Delivery Readiness', view: 'crm-delivery-readiness', icon: ClipboardCheck },
       { name: 'Appointments', view: 'appointments', icon: Calendar },
       { name: 'Calendar', view: 'crm-calendar', icon: CalendarDays },
       { name: 'Cases', view: 'crm-cases', icon: CircleHelp },

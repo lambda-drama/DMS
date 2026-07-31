@@ -1,0 +1,130 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:POOL-{####}",
+ "creation": "2026-07-31 14:20:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "pool_name",
+  "branch",
+  "assigned_team",
+  "column_break_1",
+  "active",
+  "last_user",
+  "last_assigned_on",
+  "section_users",
+  "users"
+ ],
+ "fields": [
+  {
+   "fieldname": "pool_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Pool Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "assigned_team",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Assigned Team",
+   "options": "\nShowroom Sales\nDigital Sales\nKey Accounts\nFleet / Tender\nGovernment Accounts\nAftersales Upgrade\nRelationship Owner",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "last_user",
+   "fieldtype": "Link",
+   "label": "Last Assigned User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_assigned_on",
+   "fieldtype": "Datetime",
+   "label": "Last Assigned On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_users",
+   "fieldtype": "Section Break",
+   "label": "Assignees"
+  },
+  {
+   "fieldname": "users",
+   "fieldtype": "Table",
+   "label": "Users",
+   "options": "DMS CRM Lead Assignment Pool User",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-31 14:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Lead Assignment Pool",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User"
+  }
+ ],
+ "search_fields": "pool_name,branch,assigned_team",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "pool_name",
+ "track_changes": 1
+}

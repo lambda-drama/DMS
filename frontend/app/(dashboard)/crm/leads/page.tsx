@@ -2,19 +2,25 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import { listLeads } from '@/services/crm';
+import { acceptLead, listLeads } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Search } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, Plus, Search } from 'lucide-react';
 
 export default function CrmLeadsPage() {
   const { navigate } = useNavigation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const { data, isLoading } = useSWR(
+  const { data, isLoading, mutate } = useSWR(
     ['crm-leads', search, status],
     () => listLeads({ search: search || undefined, status, limit: 50 })
   );
@@ -49,10 +55,13 @@ export default function CrmLeadsPage() {
             >
               <option value="all">All statuses</option>
               <option value="New">New</option>
+              <option value="Assigned">Assigned</option>
+              <option value="Contact Attempted">Contact Attempted</option>
               <option value="Contacted">Contacted</option>
               <option value="Qualified">Qualified</option>
               <option value="Converted">Converted</option>
               <option value="Nurture">Nurture</option>
+              <option value="Disqualified">Disqualified</option>
             </select>
           </div>
         </CardHeader>
@@ -64,7 +73,7 @@ export default function CrmLeadsPage() {
               <Skeleton className="h-10" />
             </div>
           ) : (
-            <div className="dms-table-panel">
+            <div className="dms-table-panel overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs text-muted-foreground">
@@ -72,24 +81,35 @@ export default function CrmLeadsPage() {
                     <th className="pb-2 font-medium">Mobile</th>
                     <th className="pb-2 font-medium">Source</th>
                     <th className="pb-2 font-medium">Model</th>
+                    <th className="pb-2 font-medium">Priority</th>
+                    <th className="pb-2 font-medium">SLA</th>
                     <th className="pb-2 font-medium">Owner</th>
                     <th className="pb-2 font-medium">Status</th>
+                    <th className="pb-2 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-10 text-center text-muted-foreground">
+                      <td colSpan={9} className="py-10 text-center text-muted-foreground">
                         No leads yet. Create your first enquiry.
                       </td>
                     </tr>
                   ) : (
                     rows.map((row: Record<string, unknown>) => (
-                      <tr key={String(row.name)} className="border-b border-border/60 last:border-0">
+                      <tr
+                        key={String(row.name)}
+                        className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40"
+                        onClick={() => navigate('crm-lead-detail', { id: String(row.name) })}
+                      >
                         <td className="py-3 font-medium">{String(row.lead_name || '')}</td>
                         <td className="py-3 text-muted-foreground">{String(row.mobile_no || '—')}</td>
                         <td className="py-3 text-muted-foreground">{String(row.source || '—')}</td>
                         <td className="py-3 text-muted-foreground">{String(row.model || '—')}</td>
+                        <td className="py-3 text-muted-foreground">{String(row.priority || '—')}</td>
+                        <td className="py-3 text-muted-foreground">
+                          {String(row.sla_status || '—').replace('First Response ', '')}
+                        </td>
                         <td className="py-3 text-muted-foreground">
                           {String(row.owner_name || row.lead_owner || '—')}
                         </td>
@@ -97,6 +117,63 @@ export default function CrmLeadsPage() {
                           <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground">
                             {String(row.status || '')}
                           </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(event) => event.stopPropagation()}
+                                aria-label="Lead actions"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate('crm-lead-detail', { id: String(row.name) })
+                                }
+                              >
+                                Open Lead
+                              </DropdownMenuItem>
+                              {!row.accepted_on &&
+                              ['New', 'Assigned'].includes(String(row.status || '')) ? (
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    await acceptLead(String(row.name));
+                                    await mutate();
+                                  }}
+                                >
+                                  Accept Lead
+                                </DropdownMenuItem>
+                              ) : null}
+                              {String(row.status) !== 'Converted' ? (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate('crm-lead-detail', {
+                                      id: String(row.name),
+                                      action: 'convert',
+                                    })
+                                  }
+                                >
+                                  Convert to Deal
+                                </DropdownMenuItem>
+                              ) : null}
+                              {row.opportunity ? (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate('crm-opportunity-detail', {
+                                      id: String(row.opportunity),
+                                    })
+                                  }
+                                >
+                                  Open Deal
+                                </DropdownMenuItem>
+                              ) : null}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))

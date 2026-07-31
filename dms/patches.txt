@@ -13,3 +13,6 @@ dms.patches.seed_delivery_checklist_template
 dms.patches.set_dms_template_defaults
 dms.patches.backfill_customer_rating_score
 dms.patches.fix_dms_desktop_icons
+dms.patches.add_quotation_dms_opportunity_link
+dms.patches.add_test_drive_checklist_template
+dms.patches.add_delivery_readiness_template

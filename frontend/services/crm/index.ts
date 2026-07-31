@@ -76,6 +76,116 @@ export async function createLead(data: Record<string, unknown>) {
   });
 }
 
+export async function getLead(name: string) {
+  return apiRequest(`/api/method/${LEADS}.get_lead`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateLead(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${LEADS}.update_lead`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function addLeadNote(name: string, content: string) {
+  return apiRequest(`/api/method/${LEADS}.add_lead_note`, {
+    method: 'POST',
+    body: JSON.stringify({ name, content }),
+  });
+}
+
+export async function convertLeadToOpportunity(name: string, data?: Record<string, unknown>) {
+  return apiRequest(`/api/method/${LEADS}.convert_lead_to_opportunity`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data: data || {} }),
+  });
+}
+
+export async function acceptLead(name: string) {
+  return apiRequest(`/api/method/${LEADS}.accept_lead`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export interface LeadFormOptions {
+  sources: string[];
+  priorities: string[];
+  statuses: string[];
+  customer_types: string[];
+  teams: string[];
+  finance_methods: string[];
+  timeframes: string[];
+  contact_methods: string[];
+  urgencies: string[];
+  new_or_used: string[];
+  branches: string[];
+  countries: string[];
+  companies: string[];
+  default_company?: string | null;
+  currency?: string | null;
+  currency_symbol?: string | null;
+  users: Array<{ value: string; label: string }>;
+}
+
+export async function fetchLeadFormOptions(): Promise<LeadFormOptions> {
+  return apiRequest(`/api/method/${LEADS}.get_lead_form_options`);
+}
+
+export async function fetchCrmBranches(company?: string): Promise<Array<{ name: string; branch?: string }>> {
+  return apiRequest('/api/method/dms.crm_api.common.get_branches', {
+    method: 'POST',
+    body: JSON.stringify({ company: company || null, limit: 500 }),
+  });
+}
+
+export async function fetchCrmBrands(search?: string) {
+  return apiRequest<Array<{ name: string; label?: string }>>('/api/method/dms.crm_api.common.get_brands', {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, limit: 40 }),
+  });
+}
+
+export async function fetchCrmVehicleModels(search?: string, brand?: string) {
+  return apiRequest<
+    Array<{
+      name: string;
+      model_name?: string;
+      model_code?: string;
+      brand?: string;
+      variant?: string;
+      brand_label?: string;
+    }>
+  >('/api/method/dms.crm_api.common.get_vehicle_models', {
+    method: 'POST',
+    body: JSON.stringify({
+      search: search || null,
+      brand: brand || null,
+      limit: 30,
+    }),
+  });
+}
+
+export async function fetchCrmColors(search?: string) {
+  return apiRequest<Array<{ name: string; label?: string }>>('/api/method/dms.crm_api.common.get_colors', {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, limit: 40 }),
+  });
+}
+
+export async function fetchCrmCompanyCurrency(company?: string) {
+  return apiRequest<{ company?: string | null; currency?: string | null; symbol?: string | null }>(
+    '/api/method/dms.crm_api.common.get_company_currency',
+    {
+      method: 'POST',
+      body: JSON.stringify({ company: company || null }),
+    },
+  );
+}
+
 export async function listOpportunities(options?: {
   status?: string;
   stage?: string;
@@ -95,10 +205,300 @@ export async function listOpportunities(options?: {
   });
 }
 
+export async function getOpportunity(name: string) {
+  return apiRequest(`/api/method/${OPP}.get_opportunity`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function createOpportunity(data: Record<string, unknown>) {
   return apiRequest(`/api/method/${OPP}.create_opportunity`, {
     method: 'POST',
     body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateOpportunity(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${OPP}.update_opportunity`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function createQuotationFromOpportunity(name: string, markWon = false) {
+  return apiRequest<{
+    quotation: string;
+    opportunity?: Record<string, unknown>;
+    already_exists?: boolean;
+  }>(`/api/method/${OPP}.create_quotation_from_opportunity`, {
+    method: 'POST',
+    body: JSON.stringify({ name, mark_won: markWon ? 1 : 0 }),
+  });
+}
+
+export async function updateQuotationTracking(
+  name: string,
+  status: 'Sent' | 'Viewed' | 'Accepted' | 'Rejected' | 'Expired',
+  rejectionReason = ''
+) {
+  return apiRequest(`/api/method/${OPP}.update_quotation_tracking`, {
+    method: 'POST',
+    body: JSON.stringify({ name, status, rejection_reason: rejectionReason }),
+  });
+}
+
+export async function reissueQuotation(name: string, validTill?: string) {
+  return apiRequest(`/api/method/${OPP}.reissue_quotation`, {
+    method: 'POST',
+    body: JSON.stringify({ name, valid_till: validTill || null }),
+  });
+}
+
+export async function createSalesAppointment(
+  name: string,
+  data: Record<string, unknown>
+) {
+  return apiRequest(`/api/method/${OPP}.create_sales_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function updateSalesAppointment(
+  name: string,
+  data: Record<string, unknown>
+) {
+  return apiRequest(`/api/method/${OPP}.update_sales_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function createSalesOrderFromOpportunity(
+  name: string,
+  bookingData: Record<string, unknown> = {}
+) {
+  return apiRequest(`/api/method/${OPP}.create_sales_order_from_opportunity`, {
+    method: 'POST',
+    body: JSON.stringify({ name, booking_data: bookingData }),
+  });
+}
+
+export async function createSalesInvoiceFromOpportunity(name: string) {
+  return apiRequest(`/api/method/${OPP}.create_sales_invoice_from_opportunity`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function markOpportunityWon(name: string) {
+  return apiRequest(`/api/method/${OPP}.mark_opportunity_won`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+const ALLOCATION = 'dms.crm_api.allocation';
+
+export async function searchAllocatableVins(options?: {
+  search?: string;
+  company?: string;
+  model?: string;
+  preferred_color?: string;
+}) {
+  return apiRequest(`/api/method/${ALLOCATION}.search_allocatable_vins`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      company: options?.company || null,
+      model: options?.model || null,
+      preferred_color: options?.preferred_color || null,
+      limit: 50,
+    }),
+  });
+}
+
+export async function getAllocationSnapshot(booking: string) {
+  return apiRequest(`/api/method/${ALLOCATION}.get_allocation_snapshot`, {
+    method: 'POST',
+    body: JSON.stringify({ booking }),
+  });
+}
+
+export async function allocateVin(
+  booking: string,
+  data: { vehicle_vin?: string; factory_order_reference?: string; notes?: string }
+) {
+  return apiRequest(`/api/method/${ALLOCATION}.allocate_vin`, {
+    method: 'POST',
+    body: JSON.stringify({ booking, ...data }),
+  });
+}
+
+export async function requestAllocationSwitch(
+  booking: string,
+  reason: string,
+  newVin?: string
+) {
+  return apiRequest(`/api/method/${ALLOCATION}.request_allocation_switch`, {
+    method: 'POST',
+    body: JSON.stringify({ booking, reason, new_vin: newVin || null }),
+  });
+}
+
+export async function approveAllocationSwitch(
+  booking: string,
+  approve = true,
+  newVin?: string,
+  notes?: string
+) {
+  return apiRequest(`/api/method/${ALLOCATION}.approve_allocation_switch`, {
+    method: 'POST',
+    body: JSON.stringify({
+      booking,
+      approve: approve ? 1 : 0,
+      new_vin: newVin || null,
+      notes: notes || null,
+    }),
+  });
+}
+
+export async function releaseVin(booking: string, reason?: string) {
+  return apiRequest(`/api/method/${ALLOCATION}.release_vin`, {
+    method: 'POST',
+    body: JSON.stringify({ booking, reason: reason || null }),
+  });
+}
+
+const DELIVERY = 'dms.crm_api.delivery_readiness';
+
+export async function listDeliveryReadiness(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${DELIVERY}.get_delivery_readiness_list`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getDeliveryReadiness(name: string) {
+  return apiRequest(`/api/method/${DELIVERY}.get_delivery_readiness`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createDeliveryReadiness(opportunity: string) {
+  return apiRequest(`/api/method/${DELIVERY}.create_delivery_readiness`, {
+    method: 'POST',
+    body: JSON.stringify({ opportunity }),
+  });
+}
+
+export async function updateDeliveryReadiness(
+  name: string,
+  data: Record<string, unknown>
+) {
+  return apiRequest(`/api/method/${DELIVERY}.update_delivery_readiness`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function markDeliveryReady(name: string) {
+  return apiRequest(`/api/method/${DELIVERY}.mark_delivery_ready`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+const TEST_DRIVES = 'dms.crm_api.test_drives';
+
+export async function fetchTestVehicleOptions(search = '', company?: string) {
+  return apiRequest(`/api/method/${TEST_DRIVES}.get_test_vehicle_options`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, company: company || null, limit: 50 }),
+  });
+}
+
+export async function listTestDrives(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${TEST_DRIVES}.get_test_drives`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getTestDrive(name: string) {
+  return apiRequest(`/api/method/${TEST_DRIVES}.get_test_drive`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createTestDrive(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${TEST_DRIVES}.create_test_drive`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateTestDrive(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${TEST_DRIVES}.update_test_drive`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export interface OpportunityFormOptions {
+  stages: string[];
+  statuses: string[];
+  opportunity_types: string[];
+  companies: string[];
+  default_company?: string | null;
+  branches: string[];
+  currency?: string | null;
+  currency_symbol?: string | null;
+  users: Array<{ value: string; label: string }>;
+}
+
+export async function fetchOpportunityFormOptions(): Promise<OpportunityFormOptions> {
+  return apiRequest(`/api/method/${OPP}.get_opportunity_form_options`);
+}
+
+export async function fetchCrmItems(search?: string) {
+  return apiRequest<
+    Array<{
+      name: string;
+      item_code?: string;
+      item_name?: string;
+      uom?: string;
+      brand?: string;
+      description?: string;
+      rate?: number;
+      label?: string;
+    }>
+  >('/api/method/dms.crm_api.common.get_items', {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null, limit: 30 }),
   });
 }
 
@@ -313,4 +713,118 @@ export async function createCustomer(
     method: 'POST',
     body: JSON.stringify({ data, force: force ? 1 : 0 }),
   });
+}
+
+const CALL_LOGS = 'dms.crm_api.call_logs';
+
+export type CallLogRow = {
+  name: string;
+  id?: string;
+  from?: string;
+  to?: string;
+  type?: string;
+  status?: string;
+  status_label?: string;
+  status_color?: string;
+  duration?: number;
+  _duration?: string;
+  telephony_medium?: string;
+  start_time?: string;
+  end_time?: string;
+  caller?: string;
+  receiver?: string;
+  caller_name?: string;
+  receiver_name?: string;
+  recording_url?: string;
+  recording_url_path?: string;
+  note?: string;
+  reference_doctype?: string;
+  reference_docname?: string;
+  creation?: string;
+  _caller?: { label?: string; image?: string };
+  _receiver?: { label?: string; image?: string };
+  _lead?: string;
+  _deal?: string;
+  _notes?: Array<Record<string, unknown>>;
+  _tasks?: Array<Record<string, unknown>>;
+};
+
+export async function listCallLogs(options?: {
+  status?: string;
+  type?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${CALL_LOGS}.get_call_logs`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      type: options?.type || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getCallLog(name: string): Promise<CallLogRow> {
+  return apiRequest(`/api/method/${CALL_LOGS}.get_call_log`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createCallLog(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CALL_LOGS}.create_call_log`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateCallLog(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CALL_LOGS}.update_call_log`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function createLeadFromCallLog(
+  callLog: string | Record<string, unknown>,
+  leadDetails?: Record<string, unknown>
+) {
+  return apiRequest(`/api/method/${CALL_LOGS}.create_lead_from_call_log`, {
+    method: 'POST',
+    body: JSON.stringify({ call_log: callLog, lead_details: leadDetails || {} }),
+  });
+}
+
+export async function addNoteToCallLog(
+  callLog: string,
+  note: { name?: string; title?: string; content?: string }
+) {
+  return apiRequest(`/api/method/${CALL_LOGS}.add_note_to_call_log`, {
+    method: 'POST',
+    body: JSON.stringify({ call_log: callLog, note }),
+  });
+}
+
+export async function addTaskToCallLog(
+  callLog: string,
+  task: Record<string, unknown>
+) {
+  return apiRequest(`/api/method/${CALL_LOGS}.add_task_to_call_log`, {
+    method: 'POST',
+    body: JSON.stringify({ call_log: callLog, task }),
+  });
+}
+
+export async function fetchCallLogFormOptions(): Promise<{
+  statuses: string[];
+  types: string[];
+  telephony_mediums: string[];
+  users: Array<{ value: string; label: string }>;
+  reference_doctypes: string[];
+}> {
+  return apiRequest(`/api/method/${CALL_LOGS}.get_call_log_form_options`);
 }

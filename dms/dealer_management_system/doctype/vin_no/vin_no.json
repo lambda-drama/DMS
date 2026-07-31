@@ -638,7 +638,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Vehicle Status",
-   "options": "In Stock\nDelivered to Customer\nIn Service\nIn Transit\nTotal Loss\nScrapped"
+   "options": "In Stock\nAllocated\nDelivered to Customer\nIn Service\nIn Transit\nTotal Loss\nScrapped"
   },
   {
    "fieldname": "column_break_eote",

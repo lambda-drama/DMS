@@ -1,0 +1,388 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-31 16:55:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "opportunity",
+  "customer",
+  "scheduled_datetime",
+  "status",
+  "accepted_on",
+  "accepted_by",
+  "column_break_main",
+  "company",
+  "branch",
+  "assigned_to",
+  "vehicle_vin",
+  "vehicle_item",
+  "checklist_template",
+  "section_verification",
+  "id_verified",
+  "driver_id_reference",
+  "customer_consent",
+  "consent_on",
+  "consent_notes",
+  "section_drive",
+  "driver_name",
+  "driver_license",
+  "route",
+  "start_odometer",
+  "pre_drive_condition",
+  "fuel_charge_level",
+  "column_break_drive",
+  "end_odometer",
+  "started_on",
+  "completed_on",
+  "section_checklist",
+  "checklist",
+  "section_outcome",
+  "customer_feedback",
+  "customer_preferences",
+  "outcome",
+  "model_changed_to",
+  "failure_reason",
+  "follow_up_activity",
+  "quotation",
+  "section_incident",
+  "incident_reported",
+  "incident_details",
+  "damage_reported",
+  "damage_details",
+  "incident_attachment",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-TD-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "options": "CRM-TD-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Deal",
+   "options": "DMS CRM Opportunity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scheduled_datetime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Scheduled Date & Time",
+   "reqd": 1
+  },
+  {
+   "default": "Scheduled",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Scheduled\nConfirmed\nAccepted\nIn Progress\nCompleted\nFailed\nNo-Show\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "accepted_on",
+   "fieldtype": "Datetime",
+   "label": "Accepted On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "accepted_by",
+   "fieldtype": "Link",
+   "label": "Accepted By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Salesperson / Host",
+   "options": "User"
+  },
+  {
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "label": "Test Vehicle VIN",
+   "options": "VIN No"
+  },
+  {
+   "fieldname": "vehicle_item",
+   "fieldtype": "Link",
+   "label": "Vehicle Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "checklist_template",
+   "fieldtype": "Link",
+   "label": "Checklist Template",
+   "options": "DMS CRM Test Drive Checklist Template",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_verification",
+   "fieldtype": "Section Break",
+   "label": "Identity, Licence & Consent"
+  },
+  {
+   "default": "0",
+   "fieldname": "id_verified",
+   "fieldtype": "Check",
+   "label": "Driver Licence / ID Verified"
+  },
+  {
+   "fieldname": "driver_id_reference",
+   "fieldtype": "Data",
+   "label": "ID / Licence Reference"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_consent",
+   "fieldtype": "Check",
+   "label": "Customer Test-drive Consent"
+  },
+  {
+   "fieldname": "consent_on",
+   "fieldtype": "Datetime",
+   "label": "Consent Captured On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "consent_notes",
+   "fieldtype": "Small Text",
+   "label": "Consent Notes"
+  },
+  {
+   "fieldname": "section_drive",
+   "fieldtype": "Section Break",
+   "label": "Drive Details"
+  },
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name"
+  },
+  {
+   "fieldname": "driver_license",
+   "fieldtype": "Data",
+   "label": "Driver Licence"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Small Text",
+   "label": "Approved Route"
+  },
+  {
+   "fieldname": "start_odometer",
+   "fieldtype": "Int",
+   "label": "Start Odometer (km)"
+  },
+  {
+   "fieldname": "pre_drive_condition",
+   "fieldtype": "Select",
+   "label": "Pre-drive Vehicle Condition",
+   "options": "\nExcellent\nGood\nFair\nDamage Noted"
+  },
+  {
+   "fieldname": "fuel_charge_level",
+   "fieldtype": "Percent",
+   "label": "Fuel / Charge Level (%)"
+  },
+  {
+   "fieldname": "column_break_drive",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "end_odometer",
+   "fieldtype": "Int",
+   "label": "End Odometer (km)"
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On"
+  },
+  {
+   "fieldname": "completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_checklist",
+   "fieldtype": "Section Break",
+   "label": "Test Drive Checklist"
+  },
+  {
+   "fieldname": "checklist",
+   "fieldtype": "Table",
+   "label": "Checklist",
+   "options": "DMS CRM Test Drive Checklist Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_outcome",
+   "fieldtype": "Section Break",
+   "label": "Outcome"
+  },
+  {
+   "fieldname": "customer_feedback",
+   "fieldtype": "Small Text",
+   "label": "Customer Feedback"
+  },
+  {
+   "fieldname": "customer_preferences",
+   "fieldtype": "Small Text",
+   "label": "Customer Preferences / Evaluation"
+  },
+  {
+   "fieldname": "outcome",
+   "fieldtype": "Select",
+   "label": "Outcome",
+   "options": "\nInterested\nFollow-up Required\nQuotation Requested\nModel Changed\nNot Interested\nIssue Reported"
+  },
+  {
+   "fieldname": "model_changed_to",
+   "fieldtype": "Link",
+   "label": "Changed To Model",
+   "options": "Vehicle Model"
+  },
+  {
+   "fieldname": "failure_reason",
+   "fieldtype": "Small Text",
+   "label": "Failure / No-show Reason"
+  },
+  {
+   "fieldname": "follow_up_activity",
+   "fieldtype": "Link",
+   "label": "Automatic Follow-up Task",
+   "options": "DMS CRM Activity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation",
+   "options": "Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_incident",
+   "fieldtype": "Section Break",
+   "label": "Incident & Damage Report"
+  },
+  {
+   "default": "0",
+   "fieldname": "incident_reported",
+   "fieldtype": "Check",
+   "label": "Incident Reported"
+  },
+  {
+   "fieldname": "incident_details",
+   "fieldtype": "Text Editor",
+   "label": "Incident Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "damage_reported",
+   "fieldtype": "Check",
+   "label": "Vehicle Damage Reported"
+  },
+  {
+   "fieldname": "damage_details",
+   "fieldtype": "Text Editor",
+   "label": "Damage Details"
+  },
+  {
+   "fieldname": "incident_attachment",
+   "fieldtype": "Attach",
+   "label": "Incident / Damage Attachment"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Internal Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "no_copy": 1,
+   "options": "DMS CRM Test Drive",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-31 16:55:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Test Drive",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "write": 1
+  }
+ ],
+ "search_fields": "opportunity,customer,vehicle_vin,driver_name,status",
+ "sort_field": "scheduled_datetime",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "opportunity",
+ "track_changes": 1
+}
