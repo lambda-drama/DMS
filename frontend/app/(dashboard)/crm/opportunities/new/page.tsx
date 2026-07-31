@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
 
 const FALLBACK_STAGES = [
@@ -33,7 +34,7 @@ const FALLBACK_STAGES = [
 export default function CrmOpportunityNewPage() {
   const { navigate } = useNavigation();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const { error, success, showError, clear } = useCrmFeedback();
   const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
   const [colorSearch, setColorSearch] = useState('');
@@ -91,17 +92,17 @@ export default function CrmOpportunityNewPage() {
   const set = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const onSave = async () => {
-    setError('');
+    clear();
     if (!form.title.trim()) {
-      setError('Title is required.');
+      showError('Title is required.');
       return;
     }
     if (!form.customer) {
-      setError('Select a customer.');
+      showError('Select a customer.');
       return;
     }
     if (!form.company) {
-      setError('Company is required.');
+      showError('Company is required.');
       return;
     }
     setSaving(true);
@@ -126,7 +127,7 @@ export default function CrmOpportunityNewPage() {
         navigate('crm-opportunities');
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create deal');
+      showError(e, 'Failed to create deal');
     } finally {
       setSaving(false);
     }
@@ -134,6 +135,7 @@ export default function CrmOpportunityNewPage() {
 
   return (
     <div className="dms-form-page space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Opportunity</CardTitle>
@@ -266,7 +268,6 @@ export default function CrmOpportunityNewPage() {
             </label>
             <Input value={form.next_action} onChange={(e) => set('next_action', e.target.value)} />
           </div>
-          {error ? <p className="sm:col-span-2 text-sm text-destructive">{error}</p> : null}
         </CardContent>
       </Card>
       <FormActionsBar>

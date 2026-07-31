@@ -12,13 +12,14 @@ import {
   leadPayload,
   type LeadFormState,
 } from '@/components/crm/lead-form';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
 
 export default function CrmLeadNewPage() {
   const { navigate } = useNavigation();
   const { data: options } = useSWR('crm-lead-form-options', fetchLeadFormOptions);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const { error, success, showError, clear } = useCrmFeedback();
   const [form, setForm] = useState<LeadFormState>(emptyLeadForm);
 
   useEffect(() => {
@@ -31,13 +32,13 @@ export default function CrmLeadNewPage() {
   }, [options]);
 
   const onSave = async () => {
-    setError('');
+    clear();
     if (!form.lead_name.trim() && !form.first_name.trim() && !form.mobile_no.trim()) {
-      setError('Enter a lead name, first name, or mobile number.');
+      showError('Enter a lead name, first name, or mobile number.');
       return;
     }
     if (!form.source) {
-      setError('Lead source is required.');
+      showError('Lead source is required.');
       return;
     }
     setSaving(true);
@@ -49,7 +50,7 @@ export default function CrmLeadNewPage() {
         navigate('crm-leads');
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create lead');
+      showError(e, 'Failed to create lead');
     } finally {
       setSaving(false);
     }
@@ -57,8 +58,8 @@ export default function CrmLeadNewPage() {
 
   return (
     <div className="dms-form-page space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <LeadFormSections form={form} setForm={setForm} options={options} />
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <FormActionsBar>
         <Button variant="outline" onClick={() => navigate('crm-leads')} disabled={saving}>
           Cancel

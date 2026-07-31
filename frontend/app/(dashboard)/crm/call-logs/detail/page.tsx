@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect } from '@/components/searchable-select';
 import { NoteDialog, TaskDialog } from '@/components/crm/note-task-dialogs';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import {
   ArrowLeft,
   ArrowRight,
@@ -29,13 +30,13 @@ import {
 export default function CrmCallLogDetailPage() {
   const { navigate, viewParams } = useNavigation();
   const id = viewParams.get('id') || '';
-  const { data, isLoading, mutate, error } = useSWR(
+  const { data, isLoading, mutate, error: loadError } = useSWR(
     id ? ['crm-call-log', id] : null,
     () => getCallLog(id)
   );
   const { data: options } = useSWR('crm-call-log-options', fetchCallLogFormOptions);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const { error, success, showError, showSuccess, clear } = useCrmFeedback();
   const [editing, setEditing] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
@@ -82,7 +83,7 @@ export default function CrmCallLogDetailPage() {
   async function saveEdit() {
     if (!id) return;
     setBusy(true);
-    setMessage('');
+    clear();
     try {
       await updateCallLog(id, {
         ...form,
@@ -92,9 +93,9 @@ export default function CrmCallLogDetailPage() {
       });
       setEditing(false);
       await mutate();
-      setMessage('Call log updated.');
+      showSuccess('Call log updated.');
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : 'Failed to update call log.');
+      showError(e, 'Failed to update call log.');
     } finally {
       setBusy(false);
     }
@@ -103,7 +104,7 @@ export default function CrmCallLogDetailPage() {
   async function saveNote() {
     if (!id) return;
     setBusy(true);
-    setMessage('');
+    clear();
     try {
       const existing = notes[0] as { name?: string } | undefined;
       await addNoteToCallLog(id, {
@@ -115,8 +116,9 @@ export default function CrmCallLogDetailPage() {
       setNoteTitle('');
       setNoteContent('');
       await mutate();
+      showSuccess('Note saved.');
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : 'Failed to save note.');
+      showError(e, 'Failed to save note.');
     } finally {
       setBusy(false);
     }
@@ -124,11 +126,11 @@ export default function CrmCallLogDetailPage() {
 
   async function saveTask() {
     if (!id || !taskSubject.trim()) {
-      setMessage('Task subject is required.');
+      showError('Task subject is required.');
       return;
     }
     setBusy(true);
-    setMessage('');
+    clear();
     try {
       await addTaskToCallLog(id, {
         subject: taskSubject,
@@ -141,8 +143,9 @@ export default function CrmCallLogDetailPage() {
       setTaskNotes('');
       setTaskDue('');
       await mutate();
+      showSuccess('Task created.');
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : 'Failed to save task.');
+      showError(e, 'Failed to save task.');
     } finally {
       setBusy(false);
     }
@@ -151,7 +154,7 @@ export default function CrmCallLogDetailPage() {
   async function onCreateLead() {
     if (!id) return;
     setBusy(true);
-    setMessage('');
+    clear();
     try {
       const res = await createLeadFromCallLog(id);
       await mutate();
@@ -160,9 +163,9 @@ export default function CrmCallLogDetailPage() {
         navigate('crm-lead-detail', { id: lead });
         return;
       }
-      setMessage('Lead created from call.');
+      showSuccess('Lead created from call.');
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : 'Failed to create lead.');
+      showError(e, 'Failed to create lead.');
     } finally {
       setBusy(false);
     }
@@ -176,7 +179,7 @@ export default function CrmCallLogDetailPage() {
     return <Skeleton className="h-64" />;
   }
 
-  if (error || !call) {
+  if (loadError || !call) {
     return (
       <div className="space-y-3">
         <Button variant="outline" onClick={() => navigate('crm-call-logs')}>
@@ -184,7 +187,7 @@ export default function CrmCallLogDetailPage() {
           Back
         </Button>
         <p className="text-sm text-destructive">
-          {error instanceof Error ? error.message : 'Call log not found.'}
+          {loadError instanceof Error ? loadError.message : 'Call log not found.'}
         </p>
       </div>
     );
@@ -194,6 +197,7 @@ export default function CrmCallLogDetailPage() {
 
   return (
     <div className="space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button variant="outline" onClick={() => navigate('crm-call-logs')} disabled={busy}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -246,8 +250,6 @@ export default function CrmCallLogDetailPage() {
           ) : null}
         </div>
       </div>
-
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-3">

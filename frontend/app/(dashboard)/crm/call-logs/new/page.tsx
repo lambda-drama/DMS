@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { SearchableSelect } from '@/components/searchable-select';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft } from 'lucide-react';
 
 export default function CrmCallLogNewPage() {
   const { navigate } = useNavigation();
   const { data: options } = useSWR('crm-call-log-options', fetchCallLogFormOptions);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const { error, success, showError, clear } = useCrmFeedback();
   const [form, setForm] = useState({
     from: '',
     to: '',
@@ -46,9 +47,9 @@ export default function CrmCallLogNewPage() {
   }
 
   async function onSave() {
-    setError('');
+    clear();
     if (!form.from.trim() || !form.to.trim()) {
-      setError('From and To numbers are required.');
+      showError('From and To numbers are required.');
       return;
     }
     setSaving(true);
@@ -75,7 +76,7 @@ export default function CrmCallLogNewPage() {
         navigate('crm-call-logs');
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create call log.');
+      showError(e, 'Failed to create call log.');
     } finally {
       setSaving(false);
     }
@@ -83,6 +84,7 @@ export default function CrmCallLogNewPage() {
 
   return (
     <div className="space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <div className="flex items-center justify-between gap-2">
         <Button variant="outline" onClick={() => navigate('crm-call-logs')} disabled={saving}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -92,8 +94,6 @@ export default function CrmCallLogNewPage() {
           {saving ? 'Saving…' : 'Save Call Log'}
         </Button>
       </div>
-
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-3">

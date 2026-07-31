@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SearchableSelect } from '@/components/searchable-select';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
 type ChecklistRow = {
@@ -35,7 +36,7 @@ export default function CrmTestDriveDetailPage() {
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [saving, setSaving] = useState(false);
   const [creatingQuotation, setCreatingQuotation] = useState(false);
-  const [error, setError] = useState('');
+  const { error, success, showError, showSuccess, clear } = useCrmFeedback();
   const [vehicleSearch, setVehicleSearch] = useState('');
   const { data: vehicles, isLoading: vehiclesLoading } = useSWR(
     ['crm-test-drive-vins', vehicleSearch, form.company],
@@ -57,7 +58,7 @@ export default function CrmTestDriveDetailPage() {
 
   const onSave = async () => {
     setSaving(true);
-    setError('');
+    clear();
     try {
       await updateTestDrive(id, {
         scheduled_datetime: form.scheduled_datetime,
@@ -87,8 +88,9 @@ export default function CrmTestDriveDetailPage() {
         checklist,
       });
       await mutate();
+      showSuccess('Test Drive saved.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to update Test Drive');
+      showError(e, 'Failed to update Test Drive');
     } finally {
       setSaving(false);
     }
@@ -104,14 +106,14 @@ export default function CrmTestDriveDetailPage() {
       return;
     }
     setCreatingQuotation(true);
-    setError('');
+    clear();
     try {
       const result = await createQuotationFromOpportunity(String(form.opportunity));
       await mutate();
       navigate('crm-opportunity-detail', { id: String(form.opportunity) });
       return result;
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create Quotation');
+      showError(e, 'Failed to create Quotation');
     } finally {
       setCreatingQuotation(false);
     }
@@ -121,6 +123,7 @@ export default function CrmTestDriveDetailPage() {
 
   return (
     <div className="space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <div className="flex flex-wrap justify-between gap-2">
         <Button variant="outline" onClick={() => navigate('crm-test-drives')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -140,7 +143,6 @@ export default function CrmTestDriveDetailPage() {
           </Button>
         </div>
       </div>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <Card>
         <CardHeader>

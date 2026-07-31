@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
 
 export default function CrmCustomerNewPage() {
@@ -18,7 +19,7 @@ export default function CrmCustomerNewPage() {
     fetchCustomerCreateOptions
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const { error, success, showError, clear } = useCrmFeedback();
   const [duplicates, setDuplicates] = useState<Record<string, unknown>[]>([]);
   const [form, setForm] = useState({
     customer_name: '',
@@ -56,13 +57,13 @@ export default function CrmCustomerNewPage() {
   const set = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const onSave = async (force = false) => {
-    setError('');
+    clear();
     if (!form.customer_name.trim()) {
-      setError('Customer name is required.');
+      showError('Customer name is required.');
       return;
     }
     if (!form.customer_group) {
-      setError('Select a DMS customer group.');
+      showError('Select a DMS customer group.');
       return;
     }
     setSaving(true);
@@ -83,7 +84,7 @@ export default function CrmCustomerNewPage() {
 
       if (result?.error === 'possible_duplicates') {
         setDuplicates(result.duplicates || []);
-        setError(result.message || 'Possible duplicate customers found.');
+        showError(result.message, 'Possible duplicate customers found.');
         return;
       }
 
@@ -94,7 +95,7 @@ export default function CrmCustomerNewPage() {
         navigate('crm-customers');
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create customer');
+      showError(e, 'Failed to create customer');
     } finally {
       setSaving(false);
     }
@@ -102,6 +103,7 @@ export default function CrmCustomerNewPage() {
 
   return (
     <div className="dms-form-page space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Customer details</CardTitle>
@@ -172,8 +174,6 @@ export default function CrmCustomerNewPage() {
           </div>
         </CardContent>
       </Card>
-
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       {duplicates.length > 0 ? (
         <Card className="border-amber-500/40 shadow-sm">

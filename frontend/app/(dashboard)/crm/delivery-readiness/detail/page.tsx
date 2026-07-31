@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
 type ChecklistRow = {
@@ -32,7 +33,7 @@ export default function CrmDeliveryReadinessDetailPage() {
   );
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const { error, success, showError, showSuccess, clear } = useCrmFeedback();
 
   useEffect(() => {
     if (data) setForm(data as Record<string, unknown>);
@@ -48,7 +49,7 @@ export default function CrmDeliveryReadinessDetailPage() {
 
   const onSave = async (markReady = false) => {
     setSaving(true);
-    setError('');
+    clear();
     try {
       await updateDeliveryReadiness(id, {
         status: markReady ? 'Ready' : form.status,
@@ -65,8 +66,9 @@ export default function CrmDeliveryReadinessDetailPage() {
       });
       if (markReady) await markDeliveryReady(id);
       await mutate();
+      showSuccess(markReady ? 'Delivery marked ready.' : 'Delivery readiness saved.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to update delivery readiness');
+      showError(e, 'Failed to update delivery readiness');
     } finally {
       setSaving(false);
     }
@@ -78,6 +80,7 @@ export default function CrmDeliveryReadinessDetailPage() {
 
   return (
     <div className="space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <div className="flex flex-wrap justify-between gap-2">
         <Button variant="outline" onClick={() => navigate('crm-delivery-readiness')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -93,7 +96,6 @@ export default function CrmDeliveryReadinessDetailPage() {
           </Button>
         </div>
       </div>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <Card>
         <CardHeader>

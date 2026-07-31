@@ -18,6 +18,7 @@ import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { PipelinePath } from '@/components/crm/pipeline-path';
 import { NoteDialog } from '@/components/crm/note-task-dialogs';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import {
   LeadFormSections,
   emptyLeadForm,
@@ -44,7 +45,7 @@ export default function CrmLeadDetailPage() {
   const [showConvert, setShowConvert] = useState(false);
   const [conversionCustomer, setConversionCustomer] = useState('');
   const [createCustomer, setCreateCustomer] = useState(true);
-  const [error, setError] = useState('');
+  const { error, success, showError, showSuccess, clear } = useCrmFeedback();
 
   useEffect(() => {
     if (data) {
@@ -59,13 +60,14 @@ export default function CrmLeadDetailPage() {
 
   const onSave = async () => {
     if (!id) return;
-    setError('');
+    clear();
     setSaving(true);
     try {
       await updateLead(id, leadPayload(form));
       await mutate();
+      showSuccess('Lead saved.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to update lead');
+      showError(e, 'Failed to update lead');
     } finally {
       setSaving(false);
     }
@@ -73,13 +75,14 @@ export default function CrmLeadDetailPage() {
 
   const onAccept = async () => {
     if (!id) return;
-    setError('');
+    clear();
     setAccepting(true);
     try {
       await acceptLead(id);
       await mutate();
+      showSuccess('Lead accepted.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to accept lead');
+      showError(e, 'Failed to accept lead');
     } finally {
       setAccepting(false);
     }
@@ -87,7 +90,7 @@ export default function CrmLeadDetailPage() {
 
   const onConvert = async () => {
     if (!id) return;
-    setError('');
+    clear();
     setConverting(true);
     try {
       const result = (await convertLeadToOpportunity(id, {
@@ -101,7 +104,7 @@ export default function CrmLeadDetailPage() {
         navigate('crm-opportunity-detail', { id: result.opportunity });
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to convert lead');
+      showError(e, 'Failed to convert lead');
     } finally {
       setConverting(false);
     }
@@ -109,15 +112,16 @@ export default function CrmLeadDetailPage() {
 
   const onAddNote = async () => {
     if (!id || !note.trim()) return;
-    setError('');
+    clear();
     setAddingNote(true);
     try {
       await addLeadNote(id, note.trim());
       setNote('');
       setNoteOpen(false);
       await mutate();
+      showSuccess('Note added.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to add note');
+      showError(e, 'Failed to add note');
     } finally {
       setAddingNote(false);
     }
@@ -151,6 +155,7 @@ export default function CrmLeadDetailPage() {
 
   return (
     <div className="dms-form-page space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
@@ -260,7 +265,6 @@ export default function CrmLeadDetailPage() {
         onSave={() => void onAddNote()}
         saving={addingNote}
       />
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <FormActionsBar>
         <Button variant="outline" onClick={() => navigate('crm-leads')} disabled={busy}>

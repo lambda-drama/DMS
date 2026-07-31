@@ -29,10 +29,12 @@ import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { PipelinePath } from '@/components/crm/pipeline-path';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 const DEAL_PATH = [
@@ -176,7 +178,7 @@ export default function CrmOpportunityDetailPage() {
   const [allocateVinValue, setAllocateVinValue] = useState('');
   const [allocateSearch, setAllocateSearch] = useState('');
   const [allocating, setAllocating] = useState(false);
-  const [error, setError] = useState('');
+  const { error, success, showError, showSuccess, clear } = useCrmFeedback();
   const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
   const [colorSearch, setColorSearch] = useState('');
@@ -283,17 +285,18 @@ export default function CrmOpportunityDetailPage() {
 
   const onSave = async () => {
     if (!id) return;
-    setError('');
+    clear();
     if (!form.title.trim()) {
-      setError('Title is required.');
+      showError('Title is required.');
       return;
     }
     setSaving(true);
     try {
       await updateOpportunity(id, payload());
       await mutate();
+      showSuccess('Deal saved.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to update deal');
+      showError(e, 'Failed to update deal');
     } finally {
       setSaving(false);
     }
@@ -373,7 +376,7 @@ export default function CrmOpportunityDetailPage() {
     action: '' | 'appointment' | 'test-drive' | 'quotation' | 'negotiation' | 'booking' | 'invoice' | 'won'
   ) => {
     if (!action) return;
-    setError('');
+    clear();
     setPipelineBusy(true);
     try {
       if (action === 'appointment') {
@@ -402,7 +405,7 @@ export default function CrmOpportunityDetailPage() {
       } else if (action === 'invoice') {
         const result = await createSalesInvoiceFromOpportunity(id);
         if (!(result as Record<string, unknown>)?.update_stock) {
-          setError(
+          showError(
             'Invoice created as draft. Open it, set warehouse/serial or VIN details, enable Update Stock, then submit it before Won.'
           );
         }
@@ -412,7 +415,7 @@ export default function CrmOpportunityDetailPage() {
       setPipelinePanel('');
       await mutate();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Pipeline action failed');
+      showError(e, 'Pipeline action failed');
     } finally {
       setPipelineBusy(false);
     }
@@ -427,12 +430,13 @@ export default function CrmOpportunityDetailPage() {
         : '';
     if (status === 'Rejected' && !reason) return;
     setPipelineBusy(true);
-    setError('');
+    clear();
     try {
       await updateQuotationTracking(id, status, reason);
       await mutate();
+      showSuccess(`Quotation marked ${status.toLowerCase()}.`);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to update quotation status');
+      showError(e, 'Failed to update quotation status');
     } finally {
       setPipelineBusy(false);
     }
@@ -440,12 +444,13 @@ export default function CrmOpportunityDetailPage() {
 
   const onReissueQuotation = async () => {
     setPipelineBusy(true);
-    setError('');
+    clear();
     try {
       await reissueQuotation(id, form.quotation_validity);
       await mutate();
+      showSuccess('New quotation version created.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to reissue quotation');
+      showError(e, 'Failed to reissue quotation');
     } finally {
       setPipelineBusy(false);
     }
@@ -454,13 +459,14 @@ export default function CrmOpportunityDetailPage() {
   const onAllocateVin = async () => {
     if (!linked.booking || !allocateVinValue) return;
     setAllocating(true);
-    setError('');
+    clear();
     try {
       await allocateVin(linked.booking, { vehicle_vin: allocateVinValue });
       setAllocateVinValue('');
       await mutate();
+      showSuccess('VIN allocated to this booking.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to allocate VIN');
+      showError(e, 'Failed to allocate VIN');
     } finally {
       setAllocating(false);
     }
@@ -468,7 +474,7 @@ export default function CrmOpportunityDetailPage() {
 
   const onStartDeliveryReadiness = async () => {
     setPipelineBusy(true);
-    setError('');
+    clear();
     try {
       const readiness = (await createDeliveryReadiness(id)) as Record<string, unknown>;
       await mutate();
@@ -476,7 +482,7 @@ export default function CrmOpportunityDetailPage() {
         navigate('crm-delivery-readiness-detail', { id: String(readiness.name) });
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create delivery readiness');
+      showError(e, 'Failed to create delivery readiness');
     } finally {
       setPipelineBusy(false);
     }
@@ -520,6 +526,7 @@ export default function CrmOpportunityDetailPage() {
 
   return (
     <div className="dms-form-page space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
@@ -1183,7 +1190,6 @@ export default function CrmOpportunityDetailPage() {
         </CardContent>
       </Card>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <FormActionsBar>
         <Button variant="outline" onClick={() => navigate('crm-opportunities')} disabled={busy}>

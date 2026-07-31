@@ -162,19 +162,72 @@ function isCSRFErrorPayload(resData: Record<string, unknown>): boolean {
   return exc.includes('CSRFTokenError');
 }
 
+/** Frappe messages are HTML fragments; render them as plain text for our UI surfaces. */
+function htmlToText(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li)>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function serverMessages(raw: unknown): string {
+  try {
+    const msgs = JSON.parse(String(raw)) as unknown[];
+    if (!Array.isArray(msgs)) return htmlToText(String(raw));
+    const texts = msgs
+      .map((entry) => {
+        try {
+          const parsed = JSON.parse(String(entry)) as { message?: string; title?: string };
+          return parsed.message ?? String(entry);
+        } catch {
+          return String(entry);
+        }
+      })
+      .map(htmlToText)
+      .filter(Boolean);
+    return texts.join('\n');
+  } catch {
+    return htmlToText(String(raw));
+  }
+}
+
+/** Last resort: turn "frappe.exceptions.ValidationError: Enter details" into "Enter details". */
+function excMessage(exc: unknown): string {
+  let raw = String(exc ?? '');
+  // frappe.local.response.exc is a JSON-encoded list of traceback strings.
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) raw = parsed.map((entry) => String(entry)).join('\n');
+    else if (typeof parsed === 'string') raw = parsed;
+  } catch {
+    /* plain string */
+  }
+  const text = htmlToText(raw);
+  if (!text) return '';
+  const lines = text.split('\n').filter(Boolean);
+  const lastLine = lines[lines.length - 1] || '';
+  const match = lastLine.match(/^[\w.]*(?:Error|Exception|DoesNotExistError):\s*(.+)$/);
+  return match ? match[1].trim() : lastLine.trim();
+}
+
 function parseError(resData: Record<string, unknown>): string {
   if (resData._server_messages) {
-    try {
-      const msgs = JSON.parse(resData._server_messages as string);
-      if (Array.isArray(msgs) && msgs.length > 0) {
-        const first = JSON.parse(msgs[0]);
-        return first.message || msgs[0];
-      }
-      return String(resData._server_messages);
-    } catch {
-      return String(resData._server_messages);
-    }
+    const text = serverMessages(resData._server_messages);
+    if (text) return text;
   }
+  if (typeof resData.message === 'string' && resData.message.trim()) {
+    return htmlToText(resData.message);
+  }
+  const fromExc = excMessage(resData.exception || resData.exc);
+  if (fromExc) return fromExc;
   if (resData.exc_type) return String(resData.exc_type);
   if (resData.message) return String(resData.message);
   return 'Request failed';

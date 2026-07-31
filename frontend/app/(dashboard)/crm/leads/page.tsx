@@ -14,12 +14,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { MoreHorizontal, Plus, Search } from 'lucide-react';
 
 export default function CrmLeadsPage() {
   const { navigate } = useNavigation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  const { error, success, showError, showSuccess, clear } = useCrmFeedback();
   const { data, isLoading, mutate } = useSWR(
     ['crm-leads', search, status],
     () => listLeads({ search: search || undefined, status, limit: 50 })
@@ -27,8 +29,20 @@ export default function CrmLeadsPage() {
 
   const rows = data?.data || [];
 
+  const onAcceptLead = async (lead: string) => {
+    clear();
+    try {
+      await acceptLead(lead);
+      await mutate();
+      showSuccess(`Lead ${lead} accepted.`);
+    } catch (e: unknown) {
+      showError(e, 'Failed to accept lead');
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
       <div className="flex justify-end">
         <Button onClick={() => navigate('crm-lead-new')}>
           <Plus className="mr-2 h-4 w-4" />
@@ -141,10 +155,7 @@ export default function CrmLeadsPage() {
                               {!row.accepted_on &&
                               ['New', 'Assigned'].includes(String(row.status || '')) ? (
                                 <DropdownMenuItem
-                                  onClick={async () => {
-                                    await acceptLead(String(row.name));
-                                    await mutate();
-                                  }}
+                                  onClick={() => void onAcceptLead(String(row.name))}
                                 >
                                   Accept Lead
                                 </DropdownMenuItem>
