@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "creation": "2026-07-31 17:20:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["category", "check_item", "is_mandatory"],
+ "fields": [
+  {
+   "columns": 3,
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "Identity & Consent\nVehicle & Safety\nPre-drive Condition\nDuring Drive\nPost-drive Condition\nCustomer Evaluation"
+  },
+  {
+   "columns": 7,
+   "fieldname": "check_item",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Check Item",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "1",
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Mandatory"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-31 17:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Test Drive Checklist Template Item",
+ "owner": "Administrator",
+ "permissions": []
+}

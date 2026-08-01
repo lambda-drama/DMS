@@ -1,0 +1,274 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2026-07-31 17:35:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series", "opportunity", "customer", "status", "booking_date", "booking_expiry",
+  "column_break_main", "company", "branch", "sales_order", "currency",
+  "vehicle_section", "vehicle_model", "preferred_color", "vehicle_vin", "factory_order_reference",
+  "deposit_section", "deposit_amount", "receipt_reference", "payment_entry", "cancellation_terms",
+  "allocation_section", "allocated_on", "allocated_by", "allocation_switch_requested",
+  "allocation_switch_reason", "allocation_switch_approved", "allocation_switch_approved_by",
+  "allocation_history",
+  "cancellation_section", "cancellation_reason", "refund_required", "refund_reference",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-BKG-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "options": "CRM-BKG-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Deal",
+   "options": "DMS CRM Opportunity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "default": "Provisional",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Booking Status",
+   "options": "Provisional\nDeposit Pending\nConfirmed\nAllocation Pending\nAllocated\nCancelled\nExpired\nConverted to Sale",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "booking_date",
+   "fieldtype": "Date",
+   "label": "Booking Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "booking_expiry",
+   "fieldtype": "Date",
+   "label": "Booking Expiry",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vehicle_section",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Specification & Reservation"
+  },
+  {
+   "fieldname": "vehicle_model",
+   "fieldtype": "Link",
+   "label": "Vehicle Model",
+   "options": "Vehicle Model"
+  },
+  {
+   "fieldname": "preferred_color",
+   "fieldtype": "Link",
+   "label": "Preferred Color",
+   "options": "Color"
+  },
+  {
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "label": "Reserved VIN / Stock Unit",
+   "options": "VIN No"
+  },
+  {
+   "fieldname": "factory_order_reference",
+   "fieldtype": "Data",
+   "label": "Factory Order Reference"
+  },
+  {
+   "fieldname": "deposit_section",
+   "fieldtype": "Section Break",
+   "label": "Deposit & Finance"
+  },
+  {
+   "default": "0",
+   "fieldname": "deposit_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Deposit Amount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "receipt_reference",
+   "fieldtype": "Data",
+   "label": "Deposit Receipt Reference"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry"
+  },
+  {
+   "fieldname": "cancellation_terms",
+   "fieldtype": "Text Editor",
+   "label": "Booking Expiry / Cancellation Terms"
+  },
+  {
+   "fieldname": "allocation_section",
+   "fieldtype": "Section Break",
+   "label": "Allocation & History"
+  },
+  {
+   "fieldname": "allocated_on",
+   "fieldtype": "Datetime",
+   "label": "Allocated On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_by",
+   "fieldtype": "Link",
+   "label": "Allocated By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "allocation_switch_requested",
+   "fieldtype": "Check",
+   "label": "Allocation Switch Requested"
+  },
+  {
+   "fieldname": "allocation_switch_reason",
+   "fieldtype": "Small Text",
+   "label": "Switch Reason"
+  },
+  {
+   "default": "0",
+   "fieldname": "allocation_switch_approved",
+   "fieldtype": "Check",
+   "label": "Manager Approved"
+  },
+  {
+   "fieldname": "allocation_switch_approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocation_history",
+   "fieldtype": "Table",
+   "label": "Allocation History",
+   "options": "DMS CRM Allocation History"
+  },
+  {
+   "fieldname": "cancellation_section",
+   "fieldtype": "Section Break",
+   "label": "Cancellation & Refund"
+  },
+  {
+   "fieldname": "cancellation_reason",
+   "fieldtype": "Small Text",
+   "label": "Cancellation / Expiry Reason"
+  },
+  {
+   "default": "0",
+   "fieldname": "refund_required",
+   "fieldtype": "Check",
+   "label": "Refund Required"
+  },
+  {
+   "fieldname": "refund_reference",
+   "fieldtype": "Link",
+   "label": "Refund Payment Entry",
+   "options": "Payment Entry"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "no_copy": 1,
+   "options": "DMS CRM Booking",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-31 17:35:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Booking",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "write": 1
+  }
+ ],
+ "search_fields": "opportunity,customer,sales_order,vehicle_vin,receipt_reference",
+ "sort_field": "booking_date",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "customer",
+ "track_changes": 1
+}

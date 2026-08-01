@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mania and contributors
-"""CRM calendar events — activities + DMS service appointments (direct queries)."""
+"""CRM calendar events — activities, service/sales appointments and test drives."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ from dms.crm_api.common import ensure_crm_read
 
 ACTIVITY = "DMS CRM Activity"
 APPOINTMENT = "Service Appointment"
+SALES_APPOINTMENT = "DMS CRM Sales Appointment"
+TEST_DRIVE = "DMS CRM Test Drive"
 LEAD = "DMS CRM Lead"
 OPP = "DMS CRM Opportunity"
 
@@ -94,6 +96,86 @@ def get_calendar_events(from_date=None, to_date=None):
 					"ref_doctype": APPOINTMENT,
 					"ref_name": r.name,
 					"customer": r.customer,
+				}
+			)
+
+	# CRM sales appointments linked to deals
+	if frappe.db.exists("DocType", SALES_APPOINTMENT):
+		rows = frappe.get_all(
+			SALES_APPOINTMENT,
+			filters={
+				"appointment_datetime": ["between", [str(start), str(end) + " 23:59:59"]],
+			},
+			fields=[
+				"name",
+				"customer",
+				"appointment_datetime",
+				"status",
+				"appointment_type",
+				"opportunity",
+			],
+			limit=500,
+		)
+		for r in rows:
+			customer_name = None
+			if r.get("customer"):
+				customer_name = (
+					frappe.db.get_value("Customer", r.customer, "customer_name") or r.customer
+				)
+			events.append(
+				{
+					"id": r.name,
+					"title": customer_name or r.opportunity or r.name,
+					"start": str(r.appointment_datetime) if r.appointment_datetime else None,
+					"type": "sales_appointment",
+					"subtype": r.appointment_type or "Sales Appointment",
+					"status": r.status,
+					"ref_doctype": SALES_APPOINTMENT,
+					"ref_name": r.name,
+					"customer": r.customer,
+					"opportunity": r.opportunity,
+				}
+			)
+
+	# CRM test drives
+	if frappe.db.exists("DocType", TEST_DRIVE):
+		rows = frappe.get_all(
+			TEST_DRIVE,
+			filters={
+				"scheduled_datetime": ["between", [str(start), str(end) + " 23:59:59"]],
+			},
+			fields=[
+				"name",
+				"customer",
+				"scheduled_datetime",
+				"status",
+				"opportunity",
+				"vehicle_vin",
+				"outcome",
+			],
+			limit=500,
+		)
+		for r in rows:
+			customer_name = None
+			if r.get("customer"):
+				customer_name = (
+					frappe.db.get_value("Customer", r.customer, "customer_name") or r.customer
+				)
+			title = customer_name or r.opportunity or r.name
+			if r.vehicle_vin:
+				title = f"{title} · {r.vehicle_vin}"
+			events.append(
+				{
+					"id": r.name,
+					"title": title,
+					"start": str(r.scheduled_datetime) if r.scheduled_datetime else None,
+					"type": "test_drive",
+					"subtype": "Test Drive",
+					"status": r.status,
+					"ref_doctype": TEST_DRIVE,
+					"ref_name": r.name,
+					"customer": r.customer,
+					"opportunity": r.opportunity,
 				}
 			)
 

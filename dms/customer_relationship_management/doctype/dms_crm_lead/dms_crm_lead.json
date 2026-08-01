@@ -7,6 +7,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "overview_tab",
   "section_identity",
   "naming_series",
   "lead_name",
@@ -15,8 +16,14 @@
   "column_break_id",
   "source",
   "campaign",
-  "lead_owner",
+  "country",
   "branch",
+  "assigned_team",
+  "lead_owner",
+  "assignment_method",
+  "assignment_pool",
+  "assigned_on",
+  "accepted_on",
   "company",
   "section_prospect",
   "salutation",
@@ -30,6 +37,7 @@
   "email",
   "preferred_contact_method",
   "language",
+  "interest_tab",
   "section_interest",
   "brand",
   "model",
@@ -41,26 +49,69 @@
   "preferred_color",
   "intended_use",
   "timeframe",
+  "section_trade_in",
+  "trade_in_required",
+  "trade_in_vehicle",
+  "trade_in_year",
+  "column_break_trade",
+  "trade_in_mileage",
+  "trade_in_expected_value",
+  "currency",
+  "section_finance",
+  "finance_method",
+  "finance_notes",
   "section_qualification",
   "lead_score",
+  "urgency",
   "need",
   "authority",
   "budget_confirmed",
+  "timing_confirmed",
   "column_break_qual",
+  "competitor",
+  "qualification_notes",
+  "products_tab",
+  "items",
+  "products_totals_section",
+  "total",
+  "column_break_products_total",
+  "net_total",
+  "follow_up_tab",
+  "section_follow_up",
   "next_action",
   "next_action_due",
+  "preferred_appointment",
+  "column_break_follow",
+  "contact_notes",
+  "section_consent",
+  "consent_marketing",
+  "consent_channel",
+  "column_break_consent",
+  "consent_source",
+  "consent_timestamp",
   "section_links",
   "customer",
   "opportunity",
-  "consent_marketing",
   "notes",
+  "sla_tab",
+  "section_sla",
+  "sla_status",
+  "response_by",
+  "first_responded_on",
+  "column_break_sla",
+  "sla_creation",
   "amended_from"
  ],
  "fields": [
   {
+   "fieldname": "overview_tab",
+   "fieldtype": "Tab Break",
+   "label": "Lead"
+  },
+  {
    "fieldname": "section_identity",
    "fieldtype": "Section Break",
-   "label": "Lead"
+   "label": "Identification"
   },
   {
    "default": "CRM-LEAD-.YYYY.-",
@@ -93,7 +144,9 @@
    "default": "Standard",
    "fieldname": "priority",
    "fieldtype": "Select",
-   "label": "Priority",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Priority / SLA",
    "options": "Hot\nWarm\nStandard\nFleet / Tender"
   },
   {
@@ -106,12 +159,31 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Source",
-   "options": "\nShowroom Walk-in\nWebsite Form\nWhatsApp\nPhone Call\nEmail\nFacebook\nInstagram\nTikTok\nLinkedIn\nAuto Marketplace\nRoadshow\nOwner Event\nReferral\nCorporate Tender\nGovernment Inquiry\nFleet Prospecting\nService Upgrade\nCampaign Upload\nOther"
+   "options": "\nShowroom Walk-in\nWebsite Form\nWhatsApp\nPhone Call\nEmail\nFacebook\nInstagram\nTikTok\nLinkedIn\nAuto Marketplace\nRoadshow\nOwner Event\nReferral\nCorporate Tender\nGovernment Inquiry\nFleet Prospecting\nService Upgrade\nCampaign Upload\nOther",
+   "reqd": 1
   },
   {
    "fieldname": "campaign",
    "fieldtype": "Data",
    "label": "Campaign"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "assigned_team",
+   "fieldtype": "Select",
+   "label": "Assigned Team",
+   "options": "\nShowroom Sales\nDigital Sales\nKey Accounts\nFleet / Tender\nGovernment Accounts\nAftersales Upgrade\nRelationship Owner"
   },
   {
    "fieldname": "lead_owner",
@@ -121,9 +193,30 @@
    "options": "User"
   },
   {
-   "fieldname": "branch",
-   "fieldtype": "Data",
-   "label": "Branch"
+   "fieldname": "assignment_method",
+   "fieldtype": "Select",
+   "label": "Assignment Method",
+   "options": "\nManual\nRound Robin",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assignment_pool",
+   "fieldtype": "Link",
+   "label": "Assignment Pool",
+   "options": "DMS CRM Lead Assignment Pool",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assigned_on",
+   "fieldtype": "Datetime",
+   "label": "Assigned On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "accepted_on",
+   "fieldtype": "Datetime",
+   "label": "Accepted On",
+   "read_only": 1
   },
   {
    "fieldname": "company",
@@ -200,21 +293,30 @@
    "label": "Language"
   },
   {
+   "fieldname": "interest_tab",
+   "fieldtype": "Tab Break",
+   "label": "Interest & Qualification"
+  },
+  {
    "fieldname": "section_interest",
    "fieldtype": "Section Break",
    "label": "Interest"
   },
   {
    "fieldname": "brand",
-   "fieldtype": "Data",
-   "label": "Brand"
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
   },
   {
    "fieldname": "model",
-   "fieldtype": "Data",
-   "label": "Model"
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Vehicle Model"
   },
   {
+   "fetch_from": "model.variant",
+   "fetch_if_empty": 1,
    "fieldname": "variant",
    "fieldtype": "Data",
    "label": "Variant"
@@ -243,8 +345,9 @@
   },
   {
    "fieldname": "preferred_color",
-   "fieldtype": "Data",
-   "label": "Preferred Color"
+   "fieldtype": "Link",
+   "label": "Preferred Color",
+   "options": "Color"
   },
   {
    "fieldname": "intended_use",
@@ -258,6 +361,74 @@
    "options": "\nImmediate\n1-3 Months\n3-6 Months\n6-12 Months\nUnknown"
   },
   {
+   "collapsible": 1,
+   "fieldname": "section_trade_in",
+   "fieldtype": "Section Break",
+   "label": "Trade-in"
+  },
+  {
+   "default": "0",
+   "fieldname": "trade_in_required",
+   "fieldtype": "Check",
+   "label": "Trade-in Required"
+  },
+  {
+   "depends_on": "eval:doc.trade_in_required",
+   "fieldname": "trade_in_vehicle",
+   "fieldtype": "Data",
+   "label": "Current Vehicle"
+  },
+  {
+   "depends_on": "eval:doc.trade_in_required",
+   "fieldname": "trade_in_year",
+   "fieldtype": "Int",
+   "label": "Year"
+  },
+  {
+   "fieldname": "column_break_trade",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.trade_in_required",
+   "fieldname": "trade_in_mileage",
+   "fieldtype": "Float",
+   "label": "Mileage"
+  },
+  {
+   "depends_on": "eval:doc.trade_in_required",
+   "description": "Currency follows the selected Company default currency",
+   "fieldname": "trade_in_expected_value",
+   "fieldtype": "Currency",
+   "label": "Expected Value",
+   "options": "currency"
+  },
+  {
+   "fetch_from": "company.default_currency",
+   "fetch_if_empty": 1,
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_finance",
+   "fieldtype": "Section Break",
+   "label": "Finance"
+  },
+  {
+   "fieldname": "finance_method",
+   "fieldtype": "Select",
+   "label": "Finance Method",
+   "options": "\nCash\nBank Finance\nLease\nLC\nCompany Purchase\nOther"
+  },
+  {
+   "fieldname": "finance_notes",
+   "fieldtype": "Small Text",
+   "label": "Finance Notes"
+  },
+  {
+   "collapsible": 1,
    "fieldname": "section_qualification",
    "fieldtype": "Section Break",
    "label": "Qualification"
@@ -267,6 +438,12 @@
    "fieldname": "lead_score",
    "fieldtype": "Int",
    "label": "Lead Score"
+  },
+  {
+   "fieldname": "urgency",
+   "fieldtype": "Select",
+   "label": "Urgency",
+   "options": "\nLow\nMedium\nHigh\nCritical"
   },
   {
    "default": "0",
@@ -287,8 +464,66 @@
    "label": "Budget Confirmed"
   },
   {
+   "default": "0",
+   "fieldname": "timing_confirmed",
+   "fieldtype": "Check",
+   "label": "Timing Confirmed"
+  },
+  {
    "fieldname": "column_break_qual",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "competitor",
+   "fieldtype": "Data",
+   "label": "Competitor"
+  },
+  {
+   "fieldname": "qualification_notes",
+   "fieldtype": "Small Text",
+   "label": "Qualification Notes"
+  },
+  {
+   "fieldname": "products_tab",
+   "fieldtype": "Tab Break",
+   "label": "Products"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "DMS CRM Lead Item"
+  },
+  {
+   "fieldname": "products_totals_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "label": "Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_products_total",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Total after item discounts",
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "follow_up_tab",
+   "fieldtype": "Tab Break",
+   "label": "Follow-up & Consent"
+  },
+  {
+   "fieldname": "section_follow_up",
+   "fieldtype": "Section Break",
+   "label": "Follow-up"
   },
   {
    "fieldname": "next_action",
@@ -302,9 +537,91 @@
    "label": "Next Action Due"
   },
   {
+   "fieldname": "preferred_appointment",
+   "fieldtype": "Datetime",
+   "label": "Preferred Appointment"
+  },
+  {
+   "fieldname": "column_break_follow",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contact_notes",
+   "fieldtype": "Small Text",
+   "label": "Contact Notes"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_sla",
+   "fieldtype": "Section Break",
+   "label": "Response SLA"
+  },
+  {
+   "fieldname": "sla_status",
+   "fieldtype": "Select",
+   "label": "SLA Status",
+   "options": "\nFirst Response Due\nFirst Response Exceeded\nFirst Response Completed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_by",
+   "fieldtype": "Datetime",
+   "label": "Respond By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_responded_on",
+   "fieldtype": "Datetime",
+   "label": "First Responded On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sla",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sla_creation",
+   "fieldtype": "Datetime",
+   "label": "SLA Started",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_consent",
+   "fieldtype": "Section Break",
+   "label": "Consent"
+  },
+  {
+   "default": "0",
+   "fieldname": "consent_marketing",
+   "fieldtype": "Check",
+   "label": "Marketing Consent"
+  },
+  {
+   "default": "0",
+   "fieldname": "consent_channel",
+   "fieldtype": "Check",
+   "label": "Channel Consent"
+  },
+  {
+   "fieldname": "column_break_consent",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "consent_source",
+   "fieldtype": "Data",
+   "label": "Consent Source"
+  },
+  {
+   "fieldname": "consent_timestamp",
+   "fieldtype": "Datetime",
+   "label": "Consent Timestamp",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_links",
    "fieldtype": "Section Break",
-   "label": "Links & Consent"
+   "label": "Links & Notes"
   },
   {
    "fieldname": "customer",
@@ -320,15 +637,15 @@
    "read_only": 1
   },
   {
-   "default": "0",
-   "fieldname": "consent_marketing",
-   "fieldtype": "Check",
-   "label": "Marketing Consent"
-  },
-  {
    "fieldname": "notes",
    "fieldtype": "Text Editor",
    "label": "Notes"
+  },
+  {
+   "fieldname": "sla_tab",
+   "fieldtype": "Tab Break",
+   "label": "SLA",
+   "read_only": 1
   },
   {
    "fieldname": "amended_from",
@@ -342,7 +659,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-27 22:00:00.000000",
+ "modified": "2026-07-31 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Lead",
@@ -384,7 +701,7 @@
    "write": 1
   }
  ],
- "search_fields": "lead_name,mobile_no,email,organization_name,status",
+ "search_fields": "lead_name,mobile_no,email,organization_name,status,source,model",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

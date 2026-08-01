@@ -117,8 +117,9 @@
   },
   {
    "fieldname": "branch",
-   "fieldtype": "Data",
-   "label": "Branch"
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
   },
   {
    "fieldname": "section_detail",

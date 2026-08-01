@@ -1,54 +1,56 @@
 'use client';
 
-import { useState } from 'react';
-import { createLead } from '@/services/crm';
+import { useEffect, useState } from 'react';
+import useSWR from 'swr';
+import { createLead, fetchLeadFormOptions } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
-import { SearchableSelect } from '@/components/searchable-select';
+import {
+  LeadFormSections,
+  emptyLeadForm,
+  leadPayload,
+  type LeadFormState,
+} from '@/components/crm/lead-form';
+import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
 
 export default function CrmLeadNewPage() {
   const { navigate } = useNavigation();
+  const { data: options } = useSWR('crm-lead-form-options', fetchLeadFormOptions);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [form, setForm] = useState({
-    lead_name: '',
-    first_name: '',
-    last_name: '',
-    mobile_no: '',
-    email: '',
-    organization_name: '',
-    source: 'Showroom Walk-in',
-    priority: 'Standard',
-    model: '',
-    brand: '',
-    next_action: 'First contact call',
-    notes: '',
-  });
+  const { error, success, showError, clear } = useCrmFeedback();
+  const [form, setForm] = useState<LeadFormState>(emptyLeadForm);
 
-  const set = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    if (!options) return;
+    setForm((prev) => ({
+      ...prev,
+      company: prev.company || options.default_company || '',
+      source: prev.source || options.sources?.[0] || 'Showroom Walk-in',
+    }));
+  }, [options]);
 
   const onSave = async () => {
-    setError('');
+    clear();
     if (!form.lead_name.trim() && !form.first_name.trim() && !form.mobile_no.trim()) {
-      setError('Enter a lead name or mobile number.');
+      showError('Enter a lead name, first name, or mobile number.');
+      return;
+    }
+    if (!form.source) {
+      showError('Lead source is required.');
       return;
     }
     setSaving(true);
     try {
-      const leadName =
-        form.lead_name.trim() ||
-        [form.first_name, form.last_name].filter(Boolean).join(' ') ||
-        form.organization_name ||
-        form.mobile_no;
-      await createLead({ ...form, lead_name: leadName });
-      navigate('crm-leads');
+      const created = (await createLead(leadPayload(form))) as { name?: string };
+      if (created?.name) {
+        navigate('crm-lead-detail', { id: created.name });
+      } else {
+        navigate('crm-leads');
+      }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create lead');
+      showError(e, 'Failed to create lead');
     } finally {
       setSaving(false);
     }
@@ -56,87 +58,8 @@ export default function CrmLeadNewPage() {
 
   return (
     <div className="dms-form-page space-y-4">
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">Prospect</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Lead Name</label>
-            <Input value={form.lead_name} onChange={(e) => set('lead_name', e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">First Name</label>
-            <Input value={form.first_name} onChange={(e) => set('first_name', e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Last Name</label>
-            <Input value={form.last_name} onChange={(e) => set('last_name', e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Mobile</label>
-            <Input value={form.mobile_no} onChange={(e) => set('mobile_no', e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
-            <Input value={form.email} onChange={(e) => set('email', e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Organization</label>
-            <Input
-              value={form.organization_name}
-              onChange={(e) => set('organization_name', e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Source</label>
-            <SearchableSelect
-              options={[
-                'Showroom Walk-in',
-                'Website Form',
-                'WhatsApp',
-                'Phone Call',
-                'Referral',
-                'Facebook',
-                'Other',
-              ].map((s) => ({ value: s, label: s }))}
-              value={form.source}
-              onValueChange={(v) => set('source', v || 'Showroom Walk-in')}
-              placeholder="Select source…"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Priority</label>
-            <SearchableSelect
-              options={['Hot', 'Warm', 'Standard', 'Fleet / Tender'].map((s) => ({
-                value: s,
-                label: s,
-              }))}
-              value={form.priority}
-              onValueChange={(v) => set('priority', v || 'Standard')}
-              placeholder="Select priority…"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Brand</label>
-            <Input value={form.brand} onChange={(e) => set('brand', e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Model</label>
-            <Input value={form.model} onChange={(e) => set('model', e.target.value)} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Next Action</label>
-            <Input value={form.next_action} onChange={(e) => set('next_action', e.target.value)} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Notes</label>
-            <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={3} />
-          </div>
-          {error ? <p className="sm:col-span-2 text-sm text-destructive">{error}</p> : null}
-        </CardContent>
-      </Card>
-
+      <CrmFeedback error={error} success={success} onDismiss={clear} />
+      <LeadFormSections form={form} setForm={setForm} options={options} />
       <FormActionsBar>
         <Button variant="outline" onClick={() => navigate('crm-leads')} disabled={saving}>
           Cancel

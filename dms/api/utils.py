@@ -1,18 +1,11 @@
 import frappe
+from dms.dealer_management_system.utils.company_permissions import (
+	assert_dms_company_access,
+	get_dms_companies,
+)
 
 # Default sort for DMS list views: newest record first.
 LIST_ORDER_LATEST_CREATED = "creation desc"
-
-
-def get_dms_companies():
-	"""Return list of company names from DMS Settings Table MultiSelect."""
-	rows = frappe.get_all(
-		"Company TB",
-		filters={"parent": "DMS Settings", "parenttype": "DMS Settings"},
-		fields=["company"],
-		order_by="idx asc",
-	)
-	return [r.company for r in rows if r.company]
 
 
 def get_dms_sales_print_formats():

@@ -1,0 +1,259 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2026-07-31 18:40:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "opportunity",
+  "booking",
+  "customer",
+  "status",
+  "column_break_main",
+  "company",
+  "branch",
+  "vehicle_vin",
+  "factory_order_reference",
+  "checklist_template",
+  "section_status",
+  "payment_status",
+  "documentation_status",
+  "pdi_status",
+  "vehicle_location",
+  "column_break_status",
+  "delivery_appointment",
+  "handover_on",
+  "ready_on",
+  "blocked_reason",
+  "section_checklist",
+  "checklist",
+  "section_crm",
+  "satisfaction_score",
+  "handover_photos",
+  "welcome_activity",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-DR-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "options": "CRM-DR-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Deal",
+   "options": "DMS CRM Opportunity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "booking",
+   "fieldtype": "Link",
+   "label": "Booking",
+   "options": "DMS CRM Booking"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nIn Progress\nReady\nBlocked\nDelivered",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "vehicle_vin",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Allocated VIN",
+   "options": "VIN No"
+  },
+  {
+   "fieldname": "factory_order_reference",
+   "fieldtype": "Data",
+   "label": "Factory Order Reference"
+  },
+  {
+   "fieldname": "checklist_template",
+   "fieldtype": "Link",
+   "label": "Checklist Template",
+   "options": "DMS CRM Delivery Readiness Template",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Readiness Snapshot"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "Pending\nDeposit Received\nFully Paid\nCredit Approved"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "documentation_status",
+   "fieldtype": "Select",
+   "label": "Documentation Status",
+   "options": "Pending\nIn Progress\nComplete"
+  },
+  {
+   "default": "Not Started",
+   "fieldname": "pdi_status",
+   "fieldtype": "Select",
+   "label": "PDI Status",
+   "options": "Not Started\nIn Progress\nPassed\nFailed\nWaived"
+  },
+  {
+   "fieldname": "vehicle_location",
+   "fieldtype": "Data",
+   "label": "Vehicle Location"
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivery_appointment",
+   "fieldtype": "Datetime",
+   "label": "Delivery Appointment"
+  },
+  {
+   "fieldname": "handover_on",
+   "fieldtype": "Datetime",
+   "label": "Actual Handover Time"
+  },
+  {
+   "fieldname": "ready_on",
+   "fieldtype": "Datetime",
+   "label": "Marked Ready On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "blocked_reason",
+   "fieldtype": "Small Text",
+   "label": "Blocked Reason"
+  },
+  {
+   "fieldname": "section_checklist",
+   "fieldtype": "Section Break",
+   "label": "Delivery Readiness Checklist"
+  },
+  {
+   "fieldname": "checklist",
+   "fieldtype": "Table",
+   "label": "Checklist",
+   "options": "DMS CRM Delivery Readiness Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_crm",
+   "fieldtype": "Section Break",
+   "label": "CRM Handover"
+  },
+  {
+   "fieldname": "satisfaction_score",
+   "fieldtype": "Int",
+   "label": "Delivery Satisfaction (1-5)"
+  },
+  {
+   "fieldname": "handover_photos",
+   "fieldtype": "Attach",
+   "label": "Handover Photos"
+  },
+  {
+   "fieldname": "welcome_activity",
+   "fieldtype": "Link",
+   "label": "Welcome Call Task",
+   "options": "DMS CRM Activity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Internal Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "no_copy": 1,
+   "options": "DMS CRM Delivery Readiness",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-31 18:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Delivery Readiness",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "write": 1
+  }
+ ],
+ "search_fields": "opportunity,customer,vehicle_vin,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "opportunity",
+ "track_changes": 1
+}

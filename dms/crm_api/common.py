@@ -54,6 +54,159 @@ def user_display_name(user: str | None) -> str:
 
 
 @frappe.whitelist()
+def get_branches(search=None, company=None, limit=50):
+	"""CRM-local endpoint backed by the canonical DMS branch lookup."""
+	from dms.dealer_management_system.utils.branch_permissions import get_dms_branches
+
+	return get_dms_branches(search=search, company=company, limit=limit)
+
+
+@frappe.whitelist()
+def get_brands(search=None, limit=40):
+	"""ERPNext Brand master for CRM link fields."""
+	filters = {}
+	or_filters = None
+	search = (search or "").strip()
+	if search:
+		q = f"%{search}%"
+		or_filters = {"name": ["like", q], "brand": ["like", q]}
+
+	rows = frappe.get_all(
+		"Brand",
+		filters=filters or None,
+		or_filters=or_filters,
+		fields=["name", "brand"],
+		limit=cint(limit) or 40,
+		order_by="name asc",
+	)
+	return [
+		{"name": row.name, "label": row.brand or row.name}
+		for row in rows
+	]
+
+
+@frappe.whitelist()
+def get_vehicle_models(search=None, brand=None, limit=30):
+	"""Vehicle Model master — same shape as DMS vehicle model dropdown."""
+	from dms.api.common import get_vehicle_models as _get_vehicle_models
+
+	return _get_vehicle_models(search=search, brand=brand, limit=limit)
+
+
+@frappe.whitelist()
+def get_colors(search=None, limit=40):
+	"""Color master — same shape as DMS color dropdown."""
+	from dms.api.common import get_colors as _get_colors
+
+	return _get_colors(search=search, limit=limit)
+
+
+@frappe.whitelist()
+def get_items(search=None, limit=30):
+	"""Sellable Item lookup for CRM opportunity / quotation lines."""
+	ensure_crm_read("Item")
+	search = (search or "").strip()
+	filters = {"disabled": 0, "is_sales_item": 1}
+	or_filters = None
+	if search:
+		q = f"%{search}%"
+		or_filters = {
+			"name": ["like", q],
+			"item_name": ["like", q],
+			"item_code": ["like", q],
+		}
+	rows = frappe.get_all(
+		"Item",
+		filters=filters,
+		or_filters=or_filters,
+		fields=["name", "item_code", "item_name", "stock_uom", "brand", "description", "standard_rate"],
+		limit=cint(limit) or 30,
+		order_by="item_name asc",
+	)
+	return [
+		{
+			"name": row.name,
+			"item_code": row.item_code or row.name,
+			"item_name": row.item_name or row.name,
+			"uom": row.stock_uom,
+			"brand": row.brand,
+			"description": row.description,
+			"rate": row.standard_rate,
+			"label": f"{row.item_code or row.name} — {row.item_name or ''}".strip(" —"),
+		}
+		for row in rows
+	]
+
+
+@frappe.whitelist()
+def get_company_currency(company=None):
+	"""Default currency code + symbol for a DMS company (amount field labels)."""
+	company = (company or "").strip()
+	if not company:
+		from dms.dealer_management_system.utils.company_permissions import get_dms_companies
+
+		companies = get_dms_companies()
+		company = companies[0] if companies else ""
+	if not company or not frappe.db.exists("Company", company):
+		return {"company": None, "currency": None, "symbol": None}
+
+	currency = frappe.db.get_value("Company", company, "default_currency")
+	symbol = None
+	if currency:
+		symbol = frappe.db.get_value("Currency", currency, "symbol") or currency
+	return {"company": company, "currency": currency, "symbol": symbol}
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def branch_link_query(doctype, txt, searchfield, start, page_len, filters):
+	"""Desk Link query using the same company/user branch scope as DMS."""
+	from dms.dealer_management_system.utils.branch_permissions import get_dms_branches
+
+	filters = parse_json(filters)
+	company = filters.get("company")
+	rows = get_dms_branches(
+		search=txt,
+		company=company,
+		limit=page_len,
+	)
+	return [[row["name"], row.get("branch") or row["name"]] for row in rows]
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def company_link_query(doctype, txt, searchfield, start, page_len, filters):
+	"""Desk Company Link query restricted to companies selected in DMS Settings."""
+	from dms.dealer_management_system.utils.company_permissions import get_dms_companies
+
+	allowed = get_dms_companies()
+	if not allowed:
+		return []
+
+	txt = (txt or "").strip().lower()
+	rows = frappe.get_all(
+		"Company",
+		filters={"name": ["in", allowed]},
+		fields=["name", "company_name"],
+		order_by="name asc",
+		limit_page_length=500,
+	)
+	if txt:
+		rows = [
+			row
+			for row in rows
+			if txt in (row.name or "").lower()
+			or txt in (row.company_name or "").lower()
+		]
+	start = max(cint(start), 0)
+	page_len = max(cint(page_len) or 20, 1)
+	return [
+		[row.name, row.company_name or row.name]
+		for row in rows[start : start + page_len]
+	]
+
+
+@frappe.whitelist()
 def get_csrf_token():
 	"""CRM-local CSRF helper so the CRM UI never depends on dms.api.common."""
 	return frappe.sessions.get_csrf_token()

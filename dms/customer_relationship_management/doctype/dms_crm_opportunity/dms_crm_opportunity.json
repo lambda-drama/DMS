@@ -7,40 +7,93 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "overview_tab",
   "section_main",
   "naming_series",
   "title",
   "stage",
   "status",
   "column_break_main",
+  "opportunity_type",
+  "opportunity_owner",
+  "transaction_date",
+  "probability",
+  "expected_close_date",
+  "section_party",
   "lead",
   "customer",
-  "opportunity_owner",
+  "organization_name",
+  "column_break_party",
   "company",
   "branch",
+  "source",
+  "campaign",
   "section_value",
   "expected_value",
   "currency",
-  "probability",
-  "expected_close_date",
   "column_break_value",
+  "quotation",
+  "quotation_validity",
+  "quotation_version",
+  "quotation_customer_status",
+  "quotation_sent_on",
+  "quotation_viewed_on",
+  "quotation_response_on",
+  "quotation_rejection_reason",
+  "quotation_approval_status",
+  "quotation_special_terms",
+  "sales_appointment",
+  "test_drive",
+  "booking",
+  "allocated_vin",
+  "delivery_readiness",
+  "sales_order",
+  "sales_invoice",
+  "section_product",
   "brand",
   "model",
   "variant",
+  "column_break_product",
+  "preferred_color",
   "quantity",
+  "products_tab",
+  "items",
+  "products_totals_section",
+  "total",
+  "column_break_items_total",
+  "net_total",
+  "contact_tab",
+  "section_contact",
+  "contact_person",
+  "contact_email",
+  "contact_mobile",
+  "column_break_contact",
+  "phone",
+  "whatsapp",
+  "followup_tab",
   "section_followup",
   "next_action",
   "next_action_due",
+  "notes",
+  "lost_tab",
+  "section_lost",
   "lost_reason",
   "competitor",
-  "notes",
+  "column_break_lost",
+  "lost_value",
+  "nurture_eligible",
   "amended_from"
  ],
  "fields": [
   {
+   "fieldname": "overview_tab",
+   "fieldtype": "Tab Break",
+   "label": "Opportunity"
+  },
+  {
    "fieldname": "section_main",
    "fieldtype": "Section Break",
-   "label": "Opportunity"
+   "label": "Pipeline"
   },
   {
    "default": "CRM-OPP-.YYYY.-",
@@ -48,12 +101,14 @@
    "fieldtype": "Select",
    "label": "Series",
    "options": "CRM-OPP-.YYYY.-",
-   "reqd": 1
+   "reqd": 1,
+   "set_only_once": 1
   },
   {
    "bold": 1,
    "fieldname": "title",
    "fieldtype": "Data",
+   "in_global_search": 1,
    "in_list_view": 1,
    "label": "Title",
    "reqd": 1
@@ -64,7 +119,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Stage",
+   "label": "Sales Stage",
    "options": "New\nContact Attempted\nContacted\nQualified\nAppointment Scheduled\nTest Drive\nQuotation Submitted\nNegotiation\nBooking / Deposit\nOrder Confirmed\nWon\nLost\nNurture",
    "reqd": 1
   },
@@ -83,6 +138,45 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "Sales",
+   "fieldname": "opportunity_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Opportunity Type",
+   "options": "\nSales\nMaintenance\nFleet\nTender\nTrade-In\nOther"
+  },
+  {
+   "fieldname": "opportunity_owner",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Opportunity Owner",
+   "options": "User"
+  },
+  {
+   "default": "Today",
+   "fieldname": "transaction_date",
+   "fieldtype": "Date",
+   "label": "Opportunity Date",
+   "reqd": 1
+  },
+  {
+   "default": "10",
+   "fieldname": "probability",
+   "fieldtype": "Percent",
+   "label": "Probability (%)"
+  },
+  {
+   "fieldname": "expected_close_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expected Closing"
+  },
+  {
+   "fieldname": "section_party",
+   "fieldtype": "Section Break",
+   "label": "Party"
+  },
+  {
    "fieldname": "lead",
    "fieldtype": "Link",
    "label": "Lead",
@@ -92,15 +186,18 @@
    "fieldname": "customer",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer"
   },
   {
-   "fieldname": "opportunity_owner",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Owner",
-   "options": "User"
+   "fieldname": "organization_name",
+   "fieldtype": "Data",
+   "label": "Organization"
+  },
+  {
+   "fieldname": "column_break_party",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "company",
@@ -110,20 +207,32 @@
   },
   {
    "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "\nShowroom Walk-in\nWebsite Form\nWhatsApp\nPhone Call\nEmail\nFacebook\nInstagram\nTikTok\nLinkedIn\nAuto Marketplace\nRoadshow\nOwner Event\nReferral\nCorporate Tender\nGovernment Inquiry\nFleet Prospecting\nService Upgrade\nCampaign Upload\nOther"
+  },
+  {
+   "fieldname": "campaign",
    "fieldtype": "Data",
-   "label": "Branch"
+   "label": "Campaign"
   },
   {
    "fieldname": "section_value",
    "fieldtype": "Section Break",
-   "label": "Value & Product"
+   "label": "Opportunity Value"
   },
   {
    "default": "0",
    "fieldname": "expected_value",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Expected Value",
+   "label": "Opportunity Amount",
    "options": "currency"
   },
   {
@@ -133,35 +242,154 @@
    "options": "Currency"
   },
   {
-   "default": "10",
-   "fieldname": "probability",
-   "fieldtype": "Percent",
-   "label": "Probability"
-  },
-  {
-   "fieldname": "expected_close_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Expected Close"
-  },
-  {
    "fieldname": "column_break_value",
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation",
+   "options": "Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation_validity",
+   "fieldtype": "Date",
+   "label": "Quotation Validity"
+  },
+  {
+   "default": "0",
+   "fieldname": "quotation_version",
+   "fieldtype": "Int",
+   "label": "Quotation Version",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "quotation_customer_status",
+   "fieldtype": "Select",
+   "label": "Customer Quotation Status",
+   "options": "Draft\nSent\nViewed\nAccepted\nRejected\nExpired\nReissued",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation_sent_on",
+   "fieldtype": "Datetime",
+   "label": "Quotation Sent On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation_viewed_on",
+   "fieldtype": "Datetime",
+   "label": "Quotation Viewed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation_response_on",
+   "fieldtype": "Datetime",
+   "label": "Quotation Response On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation_rejection_reason",
+   "fieldtype": "Small Text",
+   "label": "Quotation Rejection Reason",
+   "read_only": 1
+  },
+  {
+   "default": "Not Required",
+   "fieldname": "quotation_approval_status",
+   "fieldtype": "Select",
+   "label": "Commercial Approval",
+   "options": "Not Required\nPending\nApproved\nRejected"
+  },
+  {
+   "fieldname": "quotation_special_terms",
+   "fieldtype": "Text Editor",
+   "label": "Special Commercial Terms"
+  },
+  {
+   "fieldname": "sales_appointment",
+   "fieldtype": "Link",
+   "label": "Sales Appointment",
+   "options": "DMS CRM Sales Appointment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "test_drive",
+   "fieldtype": "Link",
+   "label": "Test Drive",
+   "options": "DMS CRM Test Drive",
+   "read_only": 1
+  },
+  {
+   "fieldname": "booking",
+   "fieldtype": "Link",
+   "label": "Booking / Deposit",
+   "options": "DMS CRM Booking",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_vin",
+   "fieldtype": "Link",
+   "label": "Allocated VIN",
+   "options": "VIN No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delivery_readiness",
+   "fieldtype": "Link",
+   "label": "Delivery Readiness",
+   "options": "DMS CRM Delivery Readiness",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order / Booking",
+   "options": "Sales Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_product",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Interest"
+  },
+  {
    "fieldname": "brand",
-   "fieldtype": "Data",
-   "label": "Brand"
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
   },
   {
    "fieldname": "model",
-   "fieldtype": "Data",
-   "label": "Model"
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Vehicle Model"
   },
   {
+   "fetch_from": "model.variant",
+   "fetch_if_empty": 1,
    "fieldname": "variant",
    "fieldtype": "Data",
    "label": "Variant"
+  },
+  {
+   "fieldname": "column_break_product",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "preferred_color",
+   "fieldtype": "Link",
+   "label": "Preferred Color",
+   "options": "Color"
   },
   {
    "default": "1",
@@ -170,9 +398,91 @@
    "label": "Quantity"
   },
   {
+   "fieldname": "products_tab",
+   "fieldtype": "Tab Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "DMS CRM Opportunity Item"
+  },
+  {
+   "fieldname": "products_totals_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "label": "Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_items_total",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_tab",
+   "fieldtype": "Tab Break",
+   "label": "Contact"
+  },
+  {
+   "fieldname": "section_contact",
+   "fieldtype": "Section Break",
+   "label": "Primary Contact"
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Contact Person",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "contact_email",
+   "fieldtype": "Data",
+   "label": "Contact Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "contact_mobile",
+   "fieldtype": "Data",
+   "label": "Contact Mobile",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "column_break_contact",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "whatsapp",
+   "fieldtype": "Data",
+   "label": "WhatsApp",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "followup_tab",
+   "fieldtype": "Tab Break",
+   "label": "Follow-up"
+  },
+  {
    "fieldname": "section_followup",
    "fieldtype": "Section Break",
-   "label": "Follow-up"
+   "label": "Next Action"
   },
   {
    "fieldname": "next_action",
@@ -185,9 +495,26 @@
    "label": "Next Action Due"
   },
   {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Lost\" || doc.stage==\"Lost\"",
+   "fieldname": "lost_tab",
+   "fieldtype": "Tab Break",
+   "label": "Lost"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Lost\" || doc.stage==\"Lost\"",
+   "fieldname": "section_lost",
+   "fieldtype": "Section Break",
+   "label": "Lost Details"
+  },
+  {
    "depends_on": "eval:doc.status==\"Lost\" || doc.stage==\"Lost\"",
    "fieldname": "lost_reason",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "Lost Reason"
   },
   {
@@ -197,9 +524,22 @@
    "label": "Competitor"
   },
   {
-   "fieldname": "notes",
-   "fieldtype": "Text Editor",
-   "label": "Notes"
+   "fieldname": "column_break_lost",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Lost\" || doc.stage==\"Lost\"",
+   "fieldname": "lost_value",
+   "fieldtype": "Currency",
+   "label": "Lost Value",
+   "options": "currency"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.status==\"Lost\" || doc.stage==\"Lost\"",
+   "fieldname": "nurture_eligible",
+   "fieldtype": "Check",
+   "label": "Eligible for Nurture"
   },
   {
    "fieldname": "amended_from",
@@ -213,10 +553,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-27 22:00:00.000000",
+ "modified": "2026-07-31 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Opportunity",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
@@ -255,10 +596,11 @@
    "write": 1
   }
  ],
- "search_fields": "title,customer,stage,status",
+ "search_fields": "title,customer,stage,status,brand,model",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
  "title_field": "title",
- "track_changes": 1
+ "track_changes": 1,
+ "track_seen": 1
 }

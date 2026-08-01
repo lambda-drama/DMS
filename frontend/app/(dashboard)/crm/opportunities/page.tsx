@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { listOpportunities } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
@@ -10,15 +10,44 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Search } from 'lucide-react';
 
+const PIPELINE_FILTERS = [
+  { value: 'all', label: 'All stages' },
+  { value: 'Negotiation', label: 'Negotiation' },
+  { value: 'Booking / Deposit', label: 'Booking' },
+  { value: 'Won', label: 'Won' },
+  { value: 'Lost', label: 'Lost' },
+  { value: 'Quotation Submitted', label: 'Quotation' },
+  { value: 'Qualified', label: 'Qualified' },
+  { value: 'Test Drive', label: 'Test Drive' },
+];
+
+function stageTone(stage: string) {
+  if (stage === 'Won') return 'bg-emerald-500/10 text-emerald-700';
+  if (stage === 'Lost') return 'bg-destructive/10 text-destructive';
+  if (stage === 'Negotiation' || stage === 'Booking / Deposit') {
+    return 'bg-orange-500/10 text-orange-800';
+  }
+  if (stage === 'Quotation Submitted') return 'bg-sky-500/10 text-sky-800';
+  return 'bg-muted text-foreground';
+}
+
 export default function CrmOpportunitiesPage() {
   const { navigate } = useNavigation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('Open');
+  const [stage, setStage] = useState('all');
   const { data, isLoading } = useSWR(
-    ['crm-opportunities', search, status],
-    () => listOpportunities({ search: search || undefined, status, limit: 50 })
+    ['crm-opportunities', search, status, stage],
+    () =>
+      listOpportunities({
+        search: search || undefined,
+        status,
+        stage: stage === 'all' ? undefined : stage,
+        limit: 50,
+      })
   );
   const rows = data?.data || [];
+  const stageOptions = useMemo(() => PIPELINE_FILTERS, []);
 
   return (
     <div className="space-y-4">
@@ -31,7 +60,7 @@ export default function CrmOpportunitiesPage() {
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-3">
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 lg:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -46,10 +75,23 @@ export default function CrmOpportunitiesPage() {
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
-              <option value="all">All</option>
+              <option value="all">All statuses</option>
               <option value="Open">Open</option>
+              <option value="On Hold">On Hold</option>
               <option value="Won">Won</option>
               <option value="Lost">Lost</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+            <select
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              value={stage}
+              onChange={(e) => setStage(e.target.value)}
+            >
+              {stageOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
         </CardHeader>
@@ -78,13 +120,21 @@ export default function CrmOpportunitiesPage() {
                     </tr>
                   ) : (
                     rows.map((row: Record<string, unknown>) => (
-                      <tr key={String(row.name)} className="border-b border-border/60 last:border-0">
+                      <tr
+                        key={String(row.name)}
+                        className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40"
+                        onClick={() =>
+                          navigate('crm-opportunity-detail', { id: String(row.name) })
+                        }
+                      >
                         <td className="py-3 font-medium">{String(row.title || '')}</td>
                         <td className="py-3 text-muted-foreground">
                           {String(row.customer_name || row.customer || '—')}
                         </td>
                         <td className="py-3">
-                          <span className="inline-flex rounded-full bg-orange-500/10 px-2.5 py-0.5 text-xs font-medium text-foreground">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${stageTone(String(row.stage || ''))}`}
+                          >
                             {String(row.stage || '')}
                           </span>
                         </td>

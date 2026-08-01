@@ -54,13 +54,24 @@ const SettingsPage = dynamic(() => import('./(dashboard)/dashboard/settings/page
 const CrmDashboardPage = dynamic(() => import('./(dashboard)/crm/dashboard/page'));
 const CrmLeadsPage = dynamic(() => import('./(dashboard)/crm/leads/page'));
 const CrmLeadNewPage = dynamic(() => import('./(dashboard)/crm/leads/new/page'));
+const CrmLeadDetailPage = dynamic(() => import('./(dashboard)/crm/leads/detail/page'));
 const CrmOpportunitiesPage = dynamic(() => import('./(dashboard)/crm/opportunities/page'));
 const CrmOpportunityNewPage = dynamic(() => import('./(dashboard)/crm/opportunities/new/page'));
+const CrmOpportunityDetailPage = dynamic(() => import('./(dashboard)/crm/opportunities/detail/page'));
 const CrmContactsPage = dynamic(() => import('./(dashboard)/crm/contacts/page'));
 const CrmCustomersPage = dynamic(() => import('./(dashboard)/crm/customers/page'));
 const CrmCustomerNewPage = dynamic(() => import('./(dashboard)/crm/customers/new/page'));
 const CrmCustomerDetailPage = dynamic(() => import('./(dashboard)/crm/customers/detail/page'));
 const CrmActivitiesPage = dynamic(() => import('./(dashboard)/crm/activities/page'));
+const CrmCallLogsPage = dynamic(() => import('./(dashboard)/crm/call-logs/page'));
+const CrmCallLogNewPage = dynamic(() => import('./(dashboard)/crm/call-logs/new/page'));
+const CrmCallLogDetailPage = dynamic(() => import('./(dashboard)/crm/call-logs/detail/page'));
+const CrmTestDrivesPage = dynamic(() => import('./(dashboard)/crm/test-drives/page'));
+const CrmTestDriveDetailPage = dynamic(() => import('./(dashboard)/crm/test-drives/detail/page'));
+const CrmDeliveryReadinessPage = dynamic(() => import('./(dashboard)/crm/delivery-readiness/page'));
+const CrmDeliveryReadinessDetailPage = dynamic(
+  () => import('./(dashboard)/crm/delivery-readiness/detail/page')
+);
 const CrmCalendarPage = dynamic(() => import('./(dashboard)/crm/calendar/page'));
 const CrmCasesPage = dynamic(() => import('./(dashboard)/crm/cases/page'));
 
@@ -169,13 +180,22 @@ function AppContent() {
       case 'crm-dashboard':      return <CrmDashboardPage />;
       case 'crm-leads':          return <CrmLeadsPage />;
       case 'crm-lead-new':       return <CrmLeadNewPage />;
+      case 'crm-lead-detail':    return <CrmLeadDetailPage />;
       case 'crm-opportunities':  return <CrmOpportunitiesPage />;
       case 'crm-opportunity-new': return <CrmOpportunityNewPage />;
+      case 'crm-opportunity-detail': return <CrmOpportunityDetailPage />;
       case 'crm-contacts':       return <CrmContactsPage />;
       case 'crm-customers':      return <CrmCustomersPage />;
       case 'crm-customer-new':   return <CrmCustomerNewPage />;
       case 'crm-customer-detail': return <CrmCustomerDetailPage />;
       case 'crm-activities':     return <CrmActivitiesPage />;
+      case 'crm-call-logs':      return <CrmCallLogsPage />;
+      case 'crm-call-log-new':   return <CrmCallLogNewPage />;
+      case 'crm-call-log-detail': return <CrmCallLogDetailPage />;
+      case 'crm-test-drives':     return <CrmTestDrivesPage />;
+      case 'crm-test-drive-detail': return <CrmTestDriveDetailPage />;
+      case 'crm-delivery-readiness': return <CrmDeliveryReadinessPage />;
+      case 'crm-delivery-readiness-detail': return <CrmDeliveryReadinessDetailPage />;
       case 'crm-calendar':       return <CrmCalendarPage />;
       case 'crm-cases':          return <CrmCasesPage />;
       default:                   return <DashboardMain />;

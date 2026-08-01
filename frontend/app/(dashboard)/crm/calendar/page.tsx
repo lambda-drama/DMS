@@ -26,11 +26,12 @@ type CalendarEvent = {
   id: string;
   title: string;
   start?: string | null;
-  type: 'activity' | 'appointment' | 'lead' | 'opportunity' | string;
+  type: 'activity' | 'appointment' | 'sales_appointment' | 'test_drive' | 'lead' | 'opportunity' | string;
   subtype?: string;
   status?: string;
   ref_doctype?: string;
   ref_name?: string;
+  opportunity?: string;
 };
 
 async function fetchCalendarEvents(fromDate: string, toDate: string) {
@@ -45,6 +46,8 @@ async function fetchCalendarEvents(fromDate: string, toDate: string) {
 
 const TYPE_STYLE: Record<string, string> = {
   appointment: 'bg-sky-500/15 text-foreground border-l-2 border-sky-500',
+  sales_appointment: 'bg-cyan-500/15 text-foreground border-l-2 border-cyan-500',
+  test_drive: 'bg-emerald-500/15 text-foreground border-l-2 border-emerald-500',
   activity: 'bg-primary/15 text-foreground border-l-2 border-primary',
   lead: 'bg-secondary/15 text-foreground border-l-2 border-secondary',
   opportunity: 'bg-amber-500/15 text-foreground border-l-2 border-amber-500',
@@ -89,12 +92,21 @@ export default function CrmCalendarPage() {
       navigate('appointment-detail', { id: ev.ref_name || ev.id });
       return;
     }
+    if (ev.type === 'sales_appointment') {
+      if (ev.opportunity) navigate('crm-opportunity-detail', { id: String(ev.opportunity) });
+      else navigate('crm-opportunities');
+      return;
+    }
+    if (ev.type === 'test_drive') {
+      navigate('crm-test-drive-detail', { id: ev.ref_name || ev.id });
+      return;
+    }
     if (ev.type === 'lead') {
-      navigate('crm-leads');
+      navigate('crm-lead-detail', { id: ev.ref_name || '' });
       return;
     }
     if (ev.type === 'opportunity') {
-      navigate('crm-opportunities');
+      navigate('crm-opportunity-detail', { id: ev.ref_name || '' });
       return;
     }
     navigate('crm-activities');
@@ -119,7 +131,13 @@ export default function CrmCalendarPage() {
         </div>
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-sky-500" /> Appointment
+            <span className="h-2 w-2 rounded-full bg-sky-500" /> Service
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-cyan-500" /> Sales Appt
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Test Drive
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-primary" /> Activity

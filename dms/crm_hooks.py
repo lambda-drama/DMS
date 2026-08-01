@@ -13,8 +13,13 @@ crm_fixtures: list = []
 
 crm_doc_events: dict = {}
 
+# "all" runs every few minutes — used for unaccepted lead reassignment (§5.3)
 crm_scheduler_events: dict = {
-	# "daily": ["dms.crm_api.tasks.daily"],
+	"all": ["dms.crm_api.tasks.reassign_unaccepted_leads"],
+	"daily": [
+		"dms.crm_api.tasks.expire_quotations",
+		"dms.crm_api.tasks.ownership_journey_reminders",
+	],
 }
 
 
@@ -29,7 +34,6 @@ def apply_crm_hooks(hooks_globals: dict) -> None:
 		merged = dict(existing_doc_events)
 		for doctype, events in crm_doc_events.items():
 			if doctype in merged:
-				# Preserve DMS handlers; append CRM ones when both exist
 				base = merged[doctype]
 				if isinstance(base, dict) and isinstance(events, dict):
 					combined = dict(base)
@@ -56,6 +60,16 @@ def apply_crm_hooks(hooks_globals: dict) -> None:
 	if isinstance(existing_scheduler, dict):
 		sched = dict(existing_scheduler)
 		for freq, jobs in crm_scheduler_events.items():
+			# cron is a nested dict: {"*/5 * * * *": [jobs]}
+			if freq == "cron" and isinstance(jobs, dict):
+				cron = dict(sched.get("cron") or {})
+				for expression, cron_jobs in jobs.items():
+					prev = cron.get(expression) or []
+					extra = cron_jobs if isinstance(cron_jobs, list) else [cron_jobs]
+					cron[expression] = list(prev) + list(extra)
+				sched["cron"] = cron
+				continue
+
 			prev = sched.get(freq) or []
 			extra = jobs if isinstance(jobs, list) else [jobs]
 			sched[freq] = list(prev) + list(extra)

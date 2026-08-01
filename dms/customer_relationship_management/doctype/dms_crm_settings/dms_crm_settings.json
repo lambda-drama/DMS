@@ -11,6 +11,10 @@
   "hot_response_minutes",
   "warm_response_minutes",
   "standard_response_hours",
+  "fleet_response_minutes",
+  "section_assignment",
+  "activate_round_robin_assignment",
+  "unaccepted_reassign_minutes",
   "section_flags",
   "require_next_action_on_lead",
   "require_close_date_on_opportunity"
@@ -40,21 +44,50 @@
   },
   {
    "default": "10",
+   "description": "Blueprint §5.4 — Hot: within 10 minutes",
    "fieldname": "hot_response_minutes",
    "fieldtype": "Int",
    "label": "Hot Lead Response (minutes)"
   },
   {
    "default": "30",
+   "description": "Blueprint §5.4 — Warm: within 30 minutes",
    "fieldname": "warm_response_minutes",
    "fieldtype": "Int",
    "label": "Warm Lead Response (minutes)"
   },
   {
    "default": "2",
+   "description": "Blueprint §5.4 — Standard: within 2 business hours",
    "fieldname": "standard_response_hours",
    "fieldtype": "Int",
    "label": "Standard Lead Response (hours)"
+  },
+  {
+   "default": "30",
+   "description": "Blueprint §5.4 — Fleet / Tender: within 30 minutes",
+   "fieldname": "fleet_response_minutes",
+   "fieldtype": "Int",
+   "label": "Fleet / Tender Response (minutes)"
+  },
+  {
+   "fieldname": "section_assignment",
+   "fieldtype": "Section Break",
+   "label": "Lead Assignment"
+  },
+  {
+   "default": "0",
+   "description": "Assign new leads round-robin from DMS CRM Lead Assignment Pool (by branch + team)",
+   "fieldname": "activate_round_robin_assignment",
+   "fieldtype": "Check",
+   "label": "Activate Round Robin Assignment"
+  },
+  {
+   "default": "30",
+   "description": "Blueprint §5.3 — unaccepted leads reassigned after N minutes",
+   "fieldname": "unaccepted_reassign_minutes",
+   "fieldtype": "Int",
+   "label": "Unaccepted Lead Reassign (minutes)"
   },
   {
    "fieldname": "section_flags",
@@ -76,7 +109,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-27 22:00:00.000000",
+ "modified": "2026-07-31 14:30:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Settings",

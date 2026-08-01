@@ -16,6 +16,16 @@ PRIORITY_SLA_HOURS = {
 
 class DMSCRMCase(Document):
 	def validate(self):
+		from dms.dealer_management_system.utils.branch_permissions import (
+			assert_dms_branch_access,
+		)
+		from dms.dealer_management_system.utils.company_permissions import (
+			assert_dms_company_access,
+		)
+
+		assert_dms_company_access(self.company)
+		assert_dms_branch_access(self.branch, company=self.company)
+
 		if not self.case_owner:
 			self.case_owner = frappe.session.user
 		self._set_sla_defaults()

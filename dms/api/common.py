@@ -671,62 +671,9 @@ def get_companies(search=None, limit=20):
 @frappe.whitelist()
 def get_branches(search=None, company=None, limit=50):
 	"""Branches for the operating DMS company (Branch.company), with user permission scoping."""
-	from dms.dealer_management_system.utils.branch_permissions import get_allowed_branches
-	from dms.dealer_management_system.utils.stock_operations import get_default_dms_company
+	from dms.dealer_management_system.utils.branch_permissions import get_dms_branches
 
-	company = (company or "").strip() or get_default_dms_company()
-	if not company:
-		return []
-
-	branch_meta = frappe.get_meta("Branch")
-	company_field = None
-	for fieldname in ("company", "custom_company"):
-		if branch_meta.has_field(fieldname):
-			company_field = fieldname
-			break
-
-	filters = {}
-	if company_field:
-		filters[company_field] = company
-	else:
-		# Fallback when Branch has no company field: use DMS Company Defaults mapping
-		defaults = frappe.get_all(
-			"DMS Company Defaults",
-			filters={"parent": "DMS Settings", "parenttype": "DMS Settings", "company": company},
-			pluck="branch",
-		)
-		names = [b for b in defaults if b]
-		if not names:
-			return []
-		filters["name"] = ["in", names]
-
-	allowed = get_allowed_branches()
-	if allowed is not None:
-		if filters.get("name"):
-			names = [n for n in filters["name"][1] if n in allowed]
-			if not names:
-				return []
-			filters["name"] = ["in", names]
-		else:
-			filters["name"] = ["in", allowed]
-
-	or_filters = None
-	if search and str(search).strip():
-		q = f"%{search.strip()}%"
-		or_filters = {"name": ["like", q], "branch": ["like", q]}
-
-	fields = ["name", "branch"]
-	if company_field:
-		fields.append(company_field)
-
-	return frappe.get_all(
-		"Branch",
-		filters=filters,
-		or_filters=or_filters,
-		fields=fields,
-		limit=int(limit),
-		order_by="name asc",
-	)
+	return get_dms_branches(search=search, company=company, limit=limit)
 
 
 @frappe.whitelist()
