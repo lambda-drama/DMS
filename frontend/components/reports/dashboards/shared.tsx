@@ -65,7 +65,25 @@ export const CHART_COLORS = [
 
 export function chartFromBreakdown(summary: Record<string, unknown>, key: string) {
   const raw = summary[key];
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  if (!raw) return [];
+  // Array form: [{label, value}] from some CRM summaries
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const obj = item as Record<string, unknown>;
+        const name = String(obj.label ?? obj.name ?? '—');
+        const n = typeof obj.value === 'number' ? obj.value : Number(obj.value) || 0;
+        return {
+          name: name.length > 14 ? `${name.slice(0, 12)}…` : name,
+          fullName: name,
+          value: n,
+        };
+      })
+      .filter((d): d is { name: string; fullName: string; value: number } => !!d && d.value !== 0)
+      .slice(0, 8);
+  }
+  if (typeof raw !== 'object') return [];
   return Object.entries(raw as Record<string, unknown>)
     .map(([name, value]) => {
       let n = 0;
@@ -76,6 +94,7 @@ export function chartFromBreakdown(summary: Record<string, unknown>, key: string
         else if (typeof obj.net === 'number') n = obj.net;
         else if (typeof obj.count === 'number') n = obj.count;
         else if (typeof obj.actual === 'number') n = obj.actual;
+        else if (typeof obj.value === 'number') n = obj.value;
       }
       return { name: name.length > 14 ? `${name.slice(0, 12)}…` : name, fullName: name, value: n };
     })

@@ -1,0 +1,268 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "account",
+  "customer",
+  "issuing_body",
+  "tender_category",
+  "status",
+  "column_break_main",
+  "company",
+  "branch",
+  "account_owner",
+  "open_date",
+  "close_date",
+  "bid_deadline",
+  "section_value",
+  "estimated_value",
+  "currency",
+  "opportunity",
+  "framework_agreement",
+  "section_requirements",
+  "requirements",
+  "technical_requirements",
+  "commercial_requirements",
+  "financing_method",
+  "delivery_schedule_notes",
+  "aftersales_commitments",
+  "bid_version",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-TND-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-TND-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Account",
+   "options": "DMS CRM Account"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "issuing_body",
+   "fieldtype": "Data",
+   "label": "Issuing Body"
+  },
+  {
+   "default": "Corporate",
+   "fieldname": "tender_category",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Tender Category",
+   "options": "Government\nCorporate\nFleet\nOther"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nOpen\nPreparing Bid\nSubmitted\nShortlisted\nWon\nLost\nCancelled"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "account_owner",
+   "fieldtype": "Link",
+   "label": "Account Owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "open_date",
+   "fieldtype": "Date",
+   "label": "Open Date"
+  },
+  {
+   "fieldname": "close_date",
+   "fieldtype": "Date",
+   "label": "Close Date"
+  },
+  {
+   "fieldname": "bid_deadline",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Bid Deadline"
+  },
+  {
+   "fieldname": "section_value",
+   "fieldtype": "Section Break",
+   "label": "Value & Links"
+  },
+  {
+   "fieldname": "estimated_value",
+   "fieldtype": "Currency",
+   "label": "Estimated Value",
+   "options": "currency"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "label": "Opportunity",
+   "options": "DMS CRM Opportunity"
+  },
+  {
+   "fieldname": "framework_agreement",
+   "fieldtype": "Link",
+   "label": "Framework Agreement",
+   "options": "DMS CRM Framework Agreement"
+  },
+  {
+   "fieldname": "section_requirements",
+   "fieldtype": "Section Break",
+   "label": "Requirements"
+  },
+  {
+   "fieldname": "requirements",
+   "fieldtype": "Table",
+   "label": "Requirements",
+   "options": "DMS CRM Tender Line"
+  },
+  {
+   "fieldname": "technical_requirements",
+   "fieldtype": "Text Editor",
+   "label": "Technical Requirements"
+  },
+  {
+   "fieldname": "commercial_requirements",
+   "fieldtype": "Text Editor",
+   "label": "Commercial Requirements"
+  },
+  {
+   "fieldname": "financing_method",
+   "fieldtype": "Select",
+   "label": "Financing Method",
+   "options": "Cash\nBank Finance\nLease\nLC\nCompany Purchase\nOther"
+  },
+  {
+   "fieldname": "delivery_schedule_notes",
+   "fieldtype": "Text Editor",
+   "label": "Delivery Schedule Notes"
+  },
+  {
+   "fieldname": "aftersales_commitments",
+   "fieldtype": "Text Editor",
+   "label": "Aftersales Commitments"
+  },
+  {
+   "default": "1",
+   "fieldname": "bid_version",
+   "fieldtype": "Int",
+   "label": "Bid Version"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Tender",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Tender",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "title,customer,tender_category,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

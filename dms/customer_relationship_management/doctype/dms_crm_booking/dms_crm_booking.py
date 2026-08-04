@@ -15,7 +15,7 @@ class DMSCRMBooking(Document):
 			frappe.throw("Deposit amount cannot be negative.")
 		if self.booking_expiry and getdate(self.booking_expiry) < getdate(today()):
 			frappe.throw("Booking expiry cannot be before today.")
-		if self.status in ("Confirmed", "Allocated") and flt(self.deposit_amount) <= 0:
+		if self.status == "Confirmed" and flt(self.deposit_amount) <= 0:
 			frappe.throw("A deposit amount is required before confirming the booking.")
 		if self.status == "Confirmed" and not (self.receipt_reference or self.payment_entry):
 			frappe.throw("Add the deposit receipt reference or Payment Entry before confirming.")

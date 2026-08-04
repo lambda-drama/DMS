@@ -24,6 +24,8 @@
   "vehicle_location",
   "column_break_status",
   "delivery_appointment",
+  "nominated_driver",
+  "special_requests",
   "handover_on",
   "ready_on",
   "blocked_reason",
@@ -154,6 +156,16 @@
    "label": "Delivery Appointment"
   },
   {
+   "fieldname": "nominated_driver",
+   "fieldtype": "Data",
+   "label": "Nominated Driver"
+  },
+  {
+   "fieldname": "special_requests",
+   "fieldtype": "Small Text",
+   "label": "Special Requests"
+  },
+  {
    "fieldname": "handover_on",
    "fieldtype": "Datetime",
    "label": "Actual Handover Time"
@@ -219,7 +231,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-31 18:40:00.000000",
+ "modified": "2026-08-04 23:50:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Delivery Readiness",

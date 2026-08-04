@@ -1,0 +1,129 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "call_log",
+  "scored_by",
+  "scored_on",
+  "score",
+  "column_break_main",
+  "compliance_passed",
+  "section_notes",
+  "coaching_notes",
+  "compliance_notes"
+ ],
+ "fields": [
+  {
+   "default": "CRM-CQS-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-CQS-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "call_log",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Call Log",
+   "options": "DMS CRM Call Log",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scored_by",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Scored By",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scored_on",
+   "fieldtype": "Datetime",
+   "label": "Scored On"
+  },
+  {
+   "fieldname": "score",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Score (1-100)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "compliance_passed",
+   "fieldtype": "Check",
+   "label": "Compliance Passed"
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Coaching"
+  },
+  {
+   "fieldname": "coaching_notes",
+   "fieldtype": "Text Editor",
+   "label": "Coaching Notes"
+  },
+  {
+   "fieldname": "compliance_notes",
+   "fieldtype": "Small Text",
+   "label": "Compliance Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Call Quality Score",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "role": "DMS CRM User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

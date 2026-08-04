@@ -1,0 +1,234 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "customer",
+  "vin",
+  "category",
+  "urgency",
+  "status",
+  "column_break_main",
+  "company",
+  "estimated_value",
+  "expiry_date",
+  "next_follow_up",
+  "recovered_value",
+  "section_source",
+  "job_card",
+  "service_estimate",
+  "additional_work_request",
+  "inspection",
+  "section_detail",
+  "description",
+  "evidence_notes",
+  "closed_reason",
+  "closed_on",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-DFW-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-DFW-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "vin",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "VIN",
+   "options": "VIN No"
+  },
+  {
+   "default": "Maintenance",
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Category",
+   "options": "Safety-Critical\nMaintenance\nComfort\nCosmetic\nOther"
+  },
+  {
+   "default": "Medium",
+   "fieldname": "urgency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Urgency",
+   "options": "Low\nMedium\nHigh\nCritical"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nFollow-Up\nCompleted\nDeclined\nNo Longer Applicable\nVehicle Sold"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "estimated_value",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Estimated Value"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "next_follow_up",
+   "fieldtype": "Date",
+   "label": "Next Follow-Up"
+  },
+  {
+   "fieldname": "recovered_value",
+   "fieldtype": "Currency",
+   "label": "Recovered Value"
+  },
+  {
+   "fieldname": "section_source",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Job Card",
+   "options": "DMS Job Card"
+  },
+  {
+   "fieldname": "service_estimate",
+   "fieldtype": "Link",
+   "label": "Service Estimate",
+   "options": "DMS Service Estimate"
+  },
+  {
+   "fieldname": "additional_work_request",
+   "fieldtype": "Link",
+   "label": "Additional Work Request",
+   "options": "DMS Additional Work Request"
+  },
+  {
+   "fieldname": "inspection",
+   "fieldtype": "Link",
+   "label": "Vehicle Inspection",
+   "options": "Vehicle Inspection"
+  },
+  {
+   "fieldname": "section_detail",
+   "fieldtype": "Section Break",
+   "label": "Detail"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "evidence_notes",
+   "fieldtype": "Small Text",
+   "label": "Inspection Evidence"
+  },
+  {
+   "fieldname": "closed_reason",
+   "fieldtype": "Small Text",
+   "label": "Closed Reason"
+  },
+  {
+   "fieldname": "closed_on",
+   "fieldtype": "Datetime",
+   "label": "Closed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Deferred Work",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Deferred Work",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

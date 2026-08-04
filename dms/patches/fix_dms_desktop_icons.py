@@ -1,4 +1,10 @@
-"""Restore DMS parent desktop folder with Aftersales + CRM children (workspaces)."""
+"""Put exactly two icons in the DMS folder popup: Dealer Management + DMS CRM.
+
+Frappe folder modals list Desktop Icons whose parent_icon is the folder label.
+Desktop Icon label must equal a Workspace Sidebar title for routing to work.
+The sidebar's first Link must point at an existing Workspace (or DocType) or the
+desktop shows: "Icon is not correctly configured…".
+"""
 
 from __future__ import annotations
 
@@ -9,33 +15,96 @@ from frappe.desk.doctype.desktop_icon.desktop_icon import clear_desktop_icons_ca
 from frappe.modules.import_file import import_file_by_path
 
 
-def _ensure_workspace_sidebar(title: str, workspace: str, module: str | None = None):
+def _import_workspace(rel_parts: tuple[str, ...]) -> bool:
+	path = frappe.get_app_path("dms", *rel_parts)
+	if not os.path.exists(path):
+		return False
+	import_file_by_path(path, force=True, reset_permissions=True)
+	return True
+
+
+def _ensure_workspace_doc(label: str, module: str, icon: str):
+	"""Create a minimal public Workspace when fixture import failed / was deleted."""
+	if frappe.db.exists("Workspace", label):
+		return
+	doc = frappe.new_doc("Workspace")
+	doc.label = label
+	doc.title = label
+	doc.module = module
+	doc.app = "dms"
+	doc.public = 1
+	doc.is_hidden = 0
+	doc.icon = icon
+	doc.content = (
+		'[{"id":"hdr","type":"header","data":{"text":"<span class=\\"h4\\"><b>'
+		+ frappe.as_unicode(label)
+		+ '</b></span>","col":12}}]'
+	)
+	doc.insert(ignore_permissions=True)
+
+
+def _ensure_workspaces():
+	_import_workspace(
+		(
+			"dealer_management_system",
+			"workspace",
+			"dealer_management",
+			"dealer_management.json",
+		)
+	)
+	_import_workspace(
+		(
+			"customer_relationship_management",
+			"workspace",
+			"dms_crm",
+			"dms_crm.json",
+		)
+	)
+	_ensure_workspace_doc("Dealer Management", "Dealer Management System", "tool")
+	_ensure_workspace_doc("DMS CRM", "Customer Relationship Management", "users")
+	missing = [
+		name
+		for name in ("Dealer Management", "DMS CRM")
+		if not frappe.db.exists("Workspace", name)
+	]
+	if missing:
+		frappe.throw(f"Missing DMS workspaces: {', '.join(missing)}")
+
+
+def _ensure_sidebar(title: str, workspace: str, module: str, header_icon: str, extra_links: tuple):
 	if frappe.db.exists("Workspace Sidebar", title):
 		doc = frappe.get_doc("Workspace Sidebar", title)
 	else:
 		doc = frappe.new_doc("Workspace Sidebar")
 		doc.title = title
-	doc.header_icon = doc.header_icon or "users"
-	if module:
-		doc.module = module
-	# Ensure home link to workspace
-	has_home = any(
-		(row.link_type == "Workspace" and row.link_to == workspace) for row in (doc.items or [])
+	doc.header_icon = header_icon
+	doc.module = module
+	doc.set("items", [])
+	doc.append(
+		"items",
+		{
+			"label": "Home",
+			"type": "Link",
+			"link_type": "Workspace",
+			"link_to": workspace,
+		},
 	)
-	if not has_home:
+	for row in extra_links:
+		if row["link_type"] == "DocType" and not frappe.db.exists("DocType", row["link_to"]):
+			continue
 		doc.append(
 			"items",
 			{
-				"label": "Home",
+				"label": row["label"],
 				"type": "Link",
-				"link_type": "Workspace",
-				"link_to": workspace,
+				"link_type": row["link_type"],
+				"link_to": row["link_to"],
 			},
 		)
 	doc.save(ignore_permissions=True)
 
 
-def _upsert_desktop_icon(**fields):
+def _upsert_icon(**fields):
 	label = fields["label"]
 	if frappe.db.exists("Desktop Icon", label):
 		doc = frappe.get_doc("Desktop Icon", label)
@@ -49,33 +118,47 @@ def _upsert_desktop_icon(**fields):
 
 
 def execute():
-	# Import CRM workspace definition
-	crm_ws_path = frappe.get_app_path(
-		"dms",
-		"customer_relationship_management",
-		"workspace",
-		"dms_crm",
-		"dms_crm.json",
+	_ensure_workspaces()
+
+	_ensure_sidebar(
+		"Dealer Management",
+		"Dealer Management",
+		"Dealer Management System",
+		"tool",
+		(
+			{"label": "DMS Job Card", "link_type": "DocType", "link_to": "DMS Job Card"},
+			{"label": "Service Appointment", "link_type": "DocType", "link_to": "Service Appointment"},
+			{"label": "Vehicle Inspection", "link_type": "DocType", "link_to": "Vehicle Inspection"},
+			{"label": "Vehicle Delivery Note", "link_type": "DocType", "link_to": "Vehicle Delivery Note"},
+		),
 	)
-	if os.path.exists(crm_ws_path):
-		import_file_by_path(crm_ws_path, force=True, reset_permissions=True)
-
-	# Refresh Dealer Management workspace (Open UI link)
-	dms_ws_path = frappe.get_app_path(
-		"dms",
-		"dealer_management_system",
-		"workspace",
-		"dealer_management",
-		"dealer_management.json",
+	_ensure_sidebar(
+		"DMS CRM",
+		"DMS CRM",
+		"Customer Relationship Management",
+		"users",
+		(
+			{"label": "DMS CRM Lead", "link_type": "DocType", "link_to": "DMS CRM Lead"},
+			{"label": "DMS CRM Opportunity", "link_type": "DocType", "link_to": "DMS CRM Opportunity"},
+			{"label": "DMS CRM Case", "link_type": "DocType", "link_to": "DMS CRM Case"},
+		),
 	)
-	if os.path.exists(dms_ws_path):
-		import_file_by_path(dms_ws_path, force=True, reset_permissions=True)
+	# Keep Aftersales sidebar for any leftover icon links, but Home still works.
+	_ensure_sidebar(
+		"DMS Aftersales",
+		"Dealer Management",
+		"Dealer Management System",
+		"tool",
+		(
+			{"label": "DMS Job Card", "link_type": "DocType", "link_to": "DMS Job Card"},
+			{"label": "Service Appointment", "link_type": "DocType", "link_to": "Service Appointment"},
+			{"label": "Vehicle Inspection", "link_type": "DocType", "link_to": "Vehicle Inspection"},
+			{"label": "Vehicle Delivery Note", "link_type": "DocType", "link_to": "Vehicle Delivery Note"},
+		),
+	)
 
-	_ensure_workspace_sidebar("Dealer Management", "Dealer Management", "Dealer Management System")
-	_ensure_workspace_sidebar("DMS CRM", "DMS CRM", "Customer Relationship Management")
-
-	# Parent folder — click opens chooser (DMS + DMS CRM), not a direct UI jump
-	_upsert_desktop_icon(
+	# Parent folder
+	_upsert_icon(
 		label="DMS",
 		icon_type="Folder",
 		link_type="Workspace Sidebar",
@@ -89,10 +172,9 @@ def execute():
 		idx=0,
 	)
 
-	# Child labels must differ from parent (Desktop Icon label is unique).
-	# Shown inside the DMS folder modal → each opens a workspace with an Open UI link.
-	_upsert_desktop_icon(
-		label="DMS Aftersales",
+	# Exactly two children in the DMS sub-popup
+	_upsert_icon(
+		label="Dealer Management",
 		icon_type="Link",
 		link_type="Workspace Sidebar",
 		link_to="Dealer Management",
@@ -105,7 +187,7 @@ def execute():
 		idx=1,
 	)
 
-	_upsert_desktop_icon(
+	_upsert_icon(
 		label="DMS CRM",
 		icon_type="Link",
 		link_type="Workspace Sidebar",
@@ -120,33 +202,21 @@ def execute():
 		idx=2,
 	)
 
-	# Avoid duplicate / orphaned icons from earlier sync
-	if frappe.db.exists("Desktop Icon", "Dealer Management"):
+	# Hide the intermediate Aftersales icon so the popup stays at two entries.
+	if frappe.db.exists("Desktop Icon", "DMS Aftersales"):
 		frappe.db.set_value(
 			"Desktop Icon",
-			"Dealer Management",
-			{
-				"parent_icon": "DMS",
-				"hidden": 1,
-			},
+			"DMS Aftersales",
+			{"hidden": 1, "parent_icon": "", "app": "dms"},
 		)
 
-	# Clear any App-type DMS CRM that jumped straight into the UI
-	frappe.db.sql(
-		"""
-		UPDATE `tabDesktop Icon`
-		SET icon_type='Link', parent_icon='DMS', link=NULL,
-			link_type='Workspace Sidebar', link_to='DMS CRM', hidden=0
-		WHERE name='DMS CRM'
-		"""
-	)
-
 	clear_desktop_icons_cache()
-	# Drop cached icons for all users so the folder chooser appears immediately
 	try:
 		frappe.cache.delete_keys("desktop_icons")
+		frappe.cache.delete_keys("bootinfo")
 	except Exception:
 		pass
 	frappe.clear_cache(doctype="Desktop Icon")
 	frappe.clear_cache(doctype="Workspace")
 	frappe.clear_cache(doctype="Workspace Sidebar")
+	frappe.clear_cache()

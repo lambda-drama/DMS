@@ -1,0 +1,391 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "campaign_name",
+  "campaign_type",
+  "status",
+  "column_break_main",
+  "campaign_owner",
+  "company",
+  "branch",
+  "approved_by",
+  "approved_on",
+  "section_schedule",
+  "start_date",
+  "end_date",
+  "channel",
+  "budget",
+  "column_break_sched",
+  "segment",
+  "suppression_list",
+  "control_group_pct",
+  "offer",
+  "section_message",
+  "message_template",
+  "language_version",
+  "section_metrics",
+  "members_count",
+  "control_group_count",
+  "delivered_count",
+  "opened_count",
+  "response_count",
+  "column_break_metrics",
+  "appointment_count",
+  "test_drive_count",
+  "quotation_count",
+  "booking_count",
+  "sale_count",
+  "workshop_visit_count",
+  "section_roi",
+  "campaign_revenue",
+  "cost_per_lead",
+  "cost_per_appointment",
+  "cost_per_sale",
+  "roi_pct",
+  "metrics_refreshed_on",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-CMP-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-CMP-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "campaign_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Campaign Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "campaign_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Campaign Type",
+   "options": "\nNew Model Launch\nRetail Promotion\nFleet Prospecting\nTest-Drive Campaign\nOwner Event\nService Due\nLapsed Customer Recovery\nDeferred Repair Recovery\nWarranty / Technical\nSeasonal Maintenance\nAccessories / Parts\nTrade-In / Upgrade\nReferral Program\nCustomer Satisfaction Survey",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nPending Approval\nApproved\nActive\nPaused\nCompleted\nCancelled"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "campaign_owner",
+   "fieldtype": "Link",
+   "label": "Campaign Owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_schedule",
+   "fieldtype": "Section Break",
+   "label": "Schedule & Audience"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "label": "Primary Channel",
+   "options": "\nPhone\nWhatsApp\nSMS\nEmail\nSocial\nIn Person\nMulti-Channel"
+  },
+  {
+   "fieldname": "budget",
+   "fieldtype": "Currency",
+   "label": "Budget"
+  },
+  {
+   "fieldname": "column_break_sched",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "segment",
+   "fieldtype": "Link",
+   "label": "Target Segment",
+   "options": "DMS CRM Segment"
+  },
+  {
+   "fieldname": "suppression_list",
+   "fieldtype": "Link",
+   "label": "Suppression List",
+   "options": "DMS CRM Suppression List"
+  },
+  {
+   "default": "0",
+   "description": "Percent held out as control group for advanced analysis",
+   "fieldname": "control_group_pct",
+   "fieldtype": "Float",
+   "label": "Control Group %"
+  },
+  {
+   "fieldname": "offer",
+   "fieldtype": "Small Text",
+   "label": "Offer"
+  },
+  {
+   "fieldname": "section_message",
+   "fieldtype": "Section Break",
+   "label": "Message"
+  },
+  {
+   "fieldname": "message_template",
+   "fieldtype": "Text Editor",
+   "label": "Message Template"
+  },
+  {
+   "fieldname": "language_version",
+   "fieldtype": "Data",
+   "label": "Language Version"
+  },
+  {
+   "fieldname": "section_metrics",
+   "fieldtype": "Section Break",
+   "label": "Funnel Metrics (§13.3)"
+  },
+  {
+   "default": "0",
+   "fieldname": "members_count",
+   "fieldtype": "Int",
+   "label": "Members",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "control_group_count",
+   "fieldtype": "Int",
+   "label": "Control Group",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "delivered_count",
+   "fieldtype": "Int",
+   "label": "Delivered",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "opened_count",
+   "fieldtype": "Int",
+   "label": "Opened",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "response_count",
+   "fieldtype": "Int",
+   "label": "Responses",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_metrics",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "appointment_count",
+   "fieldtype": "Int",
+   "label": "Appointments",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "test_drive_count",
+   "fieldtype": "Int",
+   "label": "Test Drives",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "quotation_count",
+   "fieldtype": "Int",
+   "label": "Quotations",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "booking_count",
+   "fieldtype": "Int",
+   "label": "Bookings",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "sale_count",
+   "fieldtype": "Int",
+   "label": "Sales",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "workshop_visit_count",
+   "fieldtype": "Int",
+   "label": "Workshop Visits",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_roi",
+   "fieldtype": "Section Break",
+   "label": "Cost & ROI"
+  },
+  {
+   "default": "0",
+   "fieldname": "campaign_revenue",
+   "fieldtype": "Currency",
+   "label": "Attributed Revenue",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cost_per_lead",
+   "fieldtype": "Currency",
+   "label": "Cost Per Lead",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cost_per_appointment",
+   "fieldtype": "Currency",
+   "label": "Cost Per Appointment",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cost_per_sale",
+   "fieldtype": "Currency",
+   "label": "Cost Per Sale",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "roi_pct",
+   "fieldtype": "Percent",
+   "label": "ROI %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metrics_refreshed_on",
+   "fieldtype": "Datetime",
+   "label": "Metrics Refreshed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Campaign",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Campaign",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "campaign_name",
+ "track_changes": 1
+}

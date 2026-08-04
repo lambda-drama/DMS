@@ -100,8 +100,9 @@ def _apply_payload(doc, payload: dict, *, allow_readonly=False):
 		if df.fieldtype not in ("Section Break", "Column Break", "Tab Break", "HTML", "Table")
 		and (allow_readonly or not df.read_only)
 	}
+	table_keys = {"items", "fleet_requirements"}
 	for key, value in (payload or {}).items():
-		if key == "items":
+		if key in table_keys:
 			continue
 		if key in allowed:
 			doc.set(key, value)
@@ -123,6 +124,28 @@ def _apply_payload(doc, payload: dict, *, allow_readonly=False):
 					"uom": row.get("uom"),
 					"rate": flt(row.get("rate") or 0),
 					"discount_percentage": flt(row.get("discount_percentage") or 0),
+				},
+			)
+
+	if "fleet_requirements" in (payload or {}):
+		doc.set("fleet_requirements", [])
+		for row in payload.get("fleet_requirements") or []:
+			if not isinstance(row, dict):
+				continue
+			if not (row.get("model") or row.get("specification") or row.get("quantity")):
+				continue
+			doc.append(
+				"fleet_requirements",
+				{
+					"model": row.get("model"),
+					"specification": row.get("specification"),
+					"quantity": cint(row.get("quantity") or 1),
+					"preferred_color": row.get("preferred_color"),
+					"unit_price": flt(row.get("unit_price") or 0),
+					"body_building_notes": row.get("body_building_notes"),
+					"delivery_location": row.get("delivery_location"),
+					"delivery_batch": row.get("delivery_batch"),
+					"delivery_date": row.get("delivery_date"),
 				},
 			)
 
@@ -195,6 +218,16 @@ def get_opportunity(name):
 	data = doc.as_dict()
 	data["owner_name"] = user_display_name(doc.opportunity_owner)
 	data["customer_name"] = customer_display_name(doc.customer)
+	if doc.get("account"):
+		data["account_name"] = frappe.db.get_value(
+			"DMS CRM Account", doc.account, "account_name"
+		)
+	if doc.get("tender"):
+		data["tender_title"] = frappe.db.get_value("DMS CRM Tender", doc.tender, "title")
+	if doc.get("framework_agreement"):
+		data["framework_agreement_title"] = frappe.db.get_value(
+			"DMS CRM Framework Agreement", doc.framework_agreement, "agreement_title"
+		)
 	for fieldname, doctype in (
 		("sales_appointment", "DMS CRM Sales Appointment"),
 		("test_drive", "DMS CRM Test Drive"),
@@ -708,7 +741,6 @@ def create_sales_order_from_opportunity(name, booking_data=None):
 			"currency": order.currency,
 			"vehicle_model": doc.model,
 			"preferred_color": doc.preferred_color,
-			"vehicle_vin": vehicle_vin,
 			"factory_order_reference": booking_data.get("factory_order_reference"),
 			"deposit_amount": deposit_amount,
 			"receipt_reference": receipt_reference,
@@ -719,6 +751,16 @@ def create_sales_order_from_opportunity(name, booking_data=None):
 	doc.booking = booking.name
 	doc.stage = "Booking / Deposit"
 	doc.save()
+	# §8.1 — full allocation path stamps VIN status, history and notifications.
+	if vehicle_vin or booking_data.get("factory_order_reference"):
+		from dms.crm_api.allocation import allocate_vin
+
+		allocate_vin(
+			booking.name,
+			vehicle_vin=vehicle_vin,
+			factory_order_reference=booking_data.get("factory_order_reference"),
+			notes="Allocated during booking / deposit creation",
+		)
 	frappe.db.commit()
 	return {
 		"sales_order": order.name,

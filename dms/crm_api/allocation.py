@@ -74,9 +74,10 @@ def search_allocatable_vins(search=None, company=None, model=None, preferred_col
 			{
 				**row,
 				"location": location,
-				"payment_status": None,
-				"documentation_status": None,
-				"pdi_status": None,
+				"readiness": "Available",
+				"payment_status": "N/A",
+				"documentation_status": "Pending allocation",
+				"pdi_status": "Not Started",
 			}
 		)
 	return result
@@ -132,10 +133,32 @@ def get_allocation_snapshot(booking):
 				],
 				as_dict=True,
 			)
+	history = []
+	if hasattr(doc, "allocation_history"):
+		history = [
+			{
+				"action": row.action,
+				"from_vin": row.from_vin,
+				"to_vin": row.to_vin,
+				"notes": row.notes,
+				"approved_by": row.approved_by,
+				"action_by": row.action_by,
+				"action_on": row.action_on,
+			}
+			for row in (doc.allocation_history or [])
+		]
 	return {
 		"booking": doc.as_dict(),
 		"vin": vin,
 		"readiness": readiness,
+		"history": history,
+		"status_summary": {
+			"vehicle_location": (readiness or {}).get("vehicle_location") or vin.get("location"),
+			"payment_status": (readiness or {}).get("payment_status") or "Pending",
+			"documentation_status": (readiness or {}).get("documentation_status") or "Pending",
+			"pdi_status": (readiness or {}).get("pdi_status") or "Not Started",
+			"readiness_status": (readiness or {}).get("status") or "Not Started",
+		},
 	}
 
 
@@ -313,6 +336,23 @@ def _release_vin_status(vin):
 		frappe.db.set_value("VIN No", vin, "vehicle_status", "In Stock")
 
 
+# Blueprint §8.1 — notify sales, logistics, PDI and customer care on assignment.
+ALLOCATION_NOTIFY_ROLES = (
+	"DMS CRM Manager",
+	"Sales Manager",
+	"Sales User",
+	"Stock Manager",
+	"Stock User",
+	"Purchase Manager",
+	"Purchase User",
+	"Fleet Manager",
+	"Service Advisor",
+	"Customer Care",
+	"Support Team",
+	"System Manager",
+)
+
+
 def _notify_allocation(doc):
 	recipients = set()
 	if doc.allocated_by:
@@ -320,21 +360,25 @@ def _notify_allocation(doc):
 	opp_owner = frappe.db.get_value("DMS CRM Opportunity", doc.opportunity, "opportunity_owner")
 	if opp_owner:
 		recipients.add(opp_owner)
-	for role in ("DMS CRM Manager", "System Manager"):
+	for role in ALLOCATION_NOTIFY_ROLES:
+		if not frappe.db.exists("Role", role):
+			continue
 		for user in frappe.get_all(
 			"Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent"
 		):
 			if user not in ("Administrator", "Guest"):
 				recipients.add(user)
+	unit = doc.vehicle_vin or doc.factory_order_reference or doc.name
 	message = _(
-		"Vehicle {0} allocated to booking {1} for customer {2}."
-	).format(doc.vehicle_vin or doc.factory_order_reference, doc.name, doc.customer)
+		"Vehicle {0} allocated to booking {1} for customer {2}. "
+		"Sales, logistics, PDI and customer care should prepare delivery readiness."
+	).format(unit, doc.name, doc.customer)
 	for user in recipients:
 		try:
 			frappe.get_doc(
 				{
 					"doctype": "Notification Log",
-					"subject": _("VIN allocated: {0}").format(doc.vehicle_vin or doc.name),
+					"subject": _("VIN allocated: {0}").format(unit),
 					"email_content": message,
 					"for_user": user,
 					"type": "Alert",

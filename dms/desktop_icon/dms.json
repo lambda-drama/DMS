@@ -1,7 +1,7 @@
 {
  "app": "dms",
  "bg_color": "gray",
- "creation": "2026-07-29 03:29:13.784268",
+ "creation": "2026-08-05 01:22:07.555063",
  "docstatus": 0,
  "doctype": "Desktop Icon",
  "hidden": 0,
@@ -12,7 +12,7 @@
  "link_to": "",
  "link_type": "Workspace Sidebar",
  "logo_url": "/assets/dms/image/suwey_logo.png",
- "modified": "2026-07-29 03:30:13.203846",
+ "modified": "2026-08-05 01:24:42.143993",
  "modified_by": "Administrator",
  "name": "DMS",
  "owner": "Administrator",

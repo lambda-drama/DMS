@@ -679,6 +679,7 @@ def create_sales_invoice_from_dms_job_card(
 	apply_company_letter_head(si, jc.company)
 
 	_apply_job_card_discounts_to_si(si, jc, warranty_type)
+	_apply_loyalty_service_discount_to_si(si, jc.customer)
 
 	_allow_zero_valuation_rate_when_missing(si)
 
@@ -1011,6 +1012,32 @@ def _apply_job_card_discounts_to_si(si, jc, warranty_type: str) -> None:
 			_apply_group_discount_dict_to_si_items(parts_items, parts_disc)
 	elif flt(jc.discount_amount) > 0:
 		_apply_distributed_amount_discount_to_si_items(si, jc.discount_amount)
+
+
+def _apply_loyalty_service_discount_to_si(si, customer: str | None) -> None:
+	"""Apply CRM loyalty tier service % as SI additional discount.
+
+	Job-card invoices set ignore_pricing_rule (rates come from the JC), so ERPNext
+	Pricing Rules do not run here — apply the linked tier discount explicitly.
+	"""
+	if not customer:
+		return
+	if flt(getattr(si, "additional_discount_percentage", 0) or 0) > 0:
+		return
+	if flt(getattr(si, "discount_amount", 0) or 0) > 0:
+		return
+	try:
+		from dms.crm_api.loyalty import get_service_discount_pct
+
+		pct = flt(get_service_discount_pct(customer))
+	except Exception:
+		return
+	if pct <= 0:
+		return
+	if hasattr(si, "additional_discount_percentage"):
+		si.additional_discount_percentage = pct
+		if hasattr(si, "apply_discount_on"):
+			si.apply_discount_on = si.apply_discount_on or "Grand Total"
 
 
 def _distribute_discount_on_preview_lines(lines: list[dict], discount_amount: float) -> None:

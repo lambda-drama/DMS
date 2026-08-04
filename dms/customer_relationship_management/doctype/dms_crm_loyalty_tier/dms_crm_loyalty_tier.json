@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "creation": "2026-08-05 01:30:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tier_name",
+  "min_lifetime_value",
+  "min_service_visits",
+  "min_tenure_months",
+  "program_scope",
+  "service_discount_pct",
+  "priority_booking",
+  "event_access",
+  "referral_bonus_points",
+  "pricing_rule",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "tier_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tier",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "min_lifetime_value",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Min Lifetime Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "min_service_visits",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Min Service Visits"
+  },
+  {
+   "default": "0",
+   "fieldname": "min_tenure_months",
+   "fieldtype": "Int",
+   "label": "Min Tenure (months)"
+  },
+  {
+   "default": "Retail",
+   "fieldname": "program_scope",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Scope",
+   "options": "Retail\nFleet\nBoth"
+  },
+  {
+   "default": "0",
+   "fieldname": "service_discount_pct",
+   "fieldtype": "Percent",
+   "label": "Service Discount %"
+  },
+  {
+   "default": "0",
+   "fieldname": "priority_booking",
+   "fieldtype": "Check",
+   "label": "Priority Booking"
+  },
+  {
+   "default": "0",
+   "fieldname": "event_access",
+   "fieldtype": "Check",
+   "label": "Event Access"
+  },
+  {
+   "default": "0",
+   "fieldname": "referral_bonus_points",
+   "fieldtype": "Int",
+   "label": "Referral Bonus Points"
+  },
+  {
+   "description": "Optional ERPNext Pricing Rule for this tier's discount",
+   "fieldname": "pricing_rule",
+   "fieldtype": "Link",
+   "label": "Pricing Rule",
+   "options": "Pricing Rule"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-05 01:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Loyalty Tier",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": []
+}

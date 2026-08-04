@@ -19,6 +19,9 @@ crm_scheduler_events: dict = {
 	"daily": [
 		"dms.crm_api.tasks.expire_quotations",
 		"dms.crm_api.tasks.ownership_journey_reminders",
+		"dms.crm_api.tasks.service_retention_daily",
+		"dms.crm_api.tasks.case_sla_daily",
+		"dms.crm_api.tasks.activity_engine_daily",
 	],
 }
 

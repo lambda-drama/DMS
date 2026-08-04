@@ -13,6 +13,13 @@ dms.patches.seed_delivery_checklist_template
 dms.patches.set_dms_template_defaults
 dms.patches.backfill_customer_rating_score
 dms.patches.fix_dms_desktop_icons
+dms.patches.fix_dms_desktop_home_route
+dms.patches.restore_dms_workspaces_and_icons
+dms.patches.fix_dms_folder_two_icons
+dms.patches.repair_dms_folder_icons
+dms.patches.seed_service_retention_settings
+dms.patches.add_call_center_fields
 dms.patches.add_quotation_dms_opportunity_link
 dms.patches.add_test_drive_checklist_template
 dms.patches.add_delivery_readiness_template
+dms.patches.setup_crm_loyalty_programs

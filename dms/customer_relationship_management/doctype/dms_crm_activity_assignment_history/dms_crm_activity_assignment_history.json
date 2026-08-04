@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "creation": "2026-08-05 01:20:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "from_user",
+  "to_user",
+  "reassigned_by",
+  "reassigned_on",
+  "reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "from_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "From",
+   "options": "User"
+  },
+  {
+   "fieldname": "to_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "To",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reassigned_by",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "By",
+   "options": "User"
+  },
+  {
+   "fieldname": "reassigned_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "On"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Data",
+   "label": "Reason"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-05 01:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Activity Assignment History",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

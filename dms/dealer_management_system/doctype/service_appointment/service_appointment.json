@@ -10,13 +10,18 @@
   "naming_series",
   "booking_source",
   "booking_reference",
+  "appointment_type",
   "appointment_date_time",
+  "slot_duration_minutes",
   "company",
   "branch",
   "column_break_appointment",
   "promised_delivery_date_time",
   "estimated_duration_hours",
   "priority",
+  "booking_agent",
+  "campaign",
+  "rescheduled_from",
   "section_customer_vehicle",
   "customer",
   "customer_name",
@@ -66,6 +71,9 @@
   "status_history",
   "no_show_reason",
   "no_show_notes",
+  "section_pre_visit",
+  "pre_visit_checklist",
+  "required_documents",
   "section_assignment",
   "lead_technician",
   "technicians",
@@ -112,6 +120,14 @@
    "label": "Booking Reference"
   },
   {
+   "default": "Service",
+   "fieldname": "appointment_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Appointment Type",
+   "options": "Service\nMobile Service\nDelivery\nComplaint Review\nFleet Visit"
+  },
+  {
    "default": "Now",
    "fieldname": "appointment_date_time",
    "fieldtype": "Datetime",
@@ -121,17 +137,35 @@
    "reqd": 1
   },
   {
+   "default": "60",
+   "description": "Slot length for capacity / calendar (minutes)",
+   "fieldname": "slot_duration_minutes",
+   "fieldtype": "Int",
+   "label": "Slot Duration (minutes)"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
    "fieldname": "column_break_appointment",
    "fieldtype": "Column Break"
   },
   {
-   "description": "When customer expects vehicle back",
    "fieldname": "promised_delivery_date_time",
    "fieldtype": "Datetime",
    "label": "Promised Delivery Date & Time"
   },
   {
-   "default": "2.0",
    "description": "Based on service type and workload",
    "fieldname": "estimated_duration_hours",
    "fieldtype": "Float",
@@ -147,6 +181,25 @@
    "label": "Priority Level",
    "options": "Normal\nVIP\nComeback/Repeat Repair\nSafety Critical\nImmobilized\nFleet Priority\nEmergency\nUrgent",
    "reqd": 1
+  },
+  {
+   "fieldname": "booking_agent",
+   "fieldtype": "Link",
+   "label": "Booking Agent",
+   "options": "User"
+  },
+  {
+   "fieldname": "campaign",
+   "fieldtype": "Link",
+   "label": "Campaign",
+   "options": "Campaign"
+  },
+  {
+   "fieldname": "rescheduled_from",
+   "fieldtype": "Link",
+   "label": "Rescheduled From",
+   "options": "Service Appointment",
+   "read_only": 1
   },
   {
    "fieldname": "section_customer_vehicle",
@@ -438,17 +491,35 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.appointment_status == 'No-Show' || doc.appointment_status == 'Cancelled'",
+   "depends_on": "eval:doc.status == 'No-Show' || doc.status == 'Cancelled'",
    "fieldname": "no_show_reason",
    "fieldtype": "Select",
    "label": "No-Show / Cancellation Reason",
    "options": "\nCustomer Not Reachable\nCustomer Cancelled\nVehicle Sold\nWrong Contact Info\nDuplicate Booking\nOther"
   },
   {
-   "depends_on": "eval:doc.appointment_status == 'No-Show' || doc.appointment_status == 'Cancelled'",
+   "depends_on": "eval:doc.status == 'No-Show' || doc.status == 'Cancelled'",
    "fieldname": "no_show_notes",
    "fieldtype": "Small Text",
    "label": "No-Show / Cancellation Notes"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_pre_visit",
+   "fieldtype": "Section Break",
+   "label": "Pre-Visit Checklist & Documents"
+  },
+  {
+   "fieldname": "pre_visit_checklist",
+   "fieldtype": "Table",
+   "label": "Pre-Visit Checklist",
+   "options": "Service Appointment Checklist Item"
+  },
+  {
+   "fieldname": "required_documents",
+   "fieldtype": "Table",
+   "label": "Required Documents",
+   "options": "Service Appointment Document"
   },
   {
    "collapsible": 1,
@@ -548,19 +619,6 @@
    "fieldname": "mobile_no",
    "fieldtype": "Data",
    "label": "Mobile No 2"
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company"
-  },
-  {
-   "fieldname": "branch",
-   "fieldtype": "Link",
-   "in_standard_filter": 1,
-   "label": "Branch",
-   "options": "Branch"
   }
  ],
  "grid_page_length": 50,

@@ -82,6 +82,16 @@
   "column_break_lost",
   "lost_value",
   "nurture_eligible",
+  "section_fleet",
+  "account",
+  "tender",
+  "framework_agreement",
+  "bid_deadline",
+  "financing_method",
+  "fleet_requirements",
+  "delivery_schedule_notes",
+  "aftersales_package_notes",
+  "special_conversion_notes",
   "amended_from"
  ],
  "fields": [
@@ -542,6 +552,71 @@
    "label": "Eligible for Nurture"
   },
   {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "section_fleet",
+   "fieldtype": "Section Break",
+   "label": "Fleet / Tender"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Account",
+   "options": "DMS CRM Account"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "tender",
+   "fieldtype": "Link",
+   "label": "Tender",
+   "options": "DMS CRM Tender"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "framework_agreement",
+   "fieldtype": "Link",
+   "label": "Framework Agreement",
+   "options": "DMS CRM Framework Agreement"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "bid_deadline",
+   "fieldtype": "Datetime",
+   "label": "Bid Deadline"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "financing_method",
+   "fieldtype": "Select",
+   "label": "Financing Method",
+   "options": "Cash\nBank Finance\nLease\nLC\nCompany Purchase\nOther"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "fleet_requirements",
+   "fieldtype": "Table",
+   "label": "Fleet Requirements",
+   "options": "DMS CRM Fleet Requirement"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "delivery_schedule_notes",
+   "fieldtype": "Small Text",
+   "label": "Delivery Schedule Notes"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "aftersales_package_notes",
+   "fieldtype": "Small Text",
+   "label": "Aftersales Package Notes"
+  },
+  {
+   "depends_on": "eval:doc.opportunity_type=='Fleet' || doc.opportunity_type=='Tender'",
+   "fieldname": "special_conversion_notes",
+   "fieldtype": "Small Text",
+   "label": "Special Conversion Notes"
+  },
+  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -553,7 +628,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-31 14:00:00.000000",
+ "modified": "2026-08-05 00:10:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Opportunity",

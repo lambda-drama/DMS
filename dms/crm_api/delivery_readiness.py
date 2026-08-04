@@ -128,6 +128,8 @@ def update_delivery_readiness(name, data=None):
 		"pdi_status",
 		"vehicle_location",
 		"delivery_appointment",
+		"nominated_driver",
+		"special_requests",
 		"handover_on",
 		"blocked_reason",
 		"satisfaction_score",
@@ -163,6 +165,75 @@ def mark_delivery_ready(name):
 	ensure_crm_write(DOCTYPE)
 	doc = frappe.get_doc(DOCTYPE, name)
 	doc.status = "Ready"
+	if not doc.ready_on:
+		doc.ready_on = now_datetime()
 	doc.save()
+	_spawn_crm_handover_tasks(doc)
 	frappe.db.commit()
 	return get_delivery_readiness(doc.name)
+
+
+def _spawn_crm_handover_tasks(doc):
+	"""Blueprint §8.2 CRM area — satisfaction callback + next contact on Ready."""
+	if not doc.opportunity and not doc.customer:
+		return
+	owner = (
+		frappe.db.get_value("DMS CRM Opportunity", doc.opportunity, "opportunity_owner")
+		if doc.opportunity
+		else None
+	) or frappe.session.user
+	tasks = (
+		{
+			"subject": f"Satisfaction callback after delivery {doc.name}",
+			"activity_type": "Survey",
+			"days": 1,
+			"priority": "High",
+		},
+		{
+			"subject": f"Next contact after delivery {doc.name}",
+			"activity_type": "Call",
+			"days": 3,
+			"priority": "Medium",
+		},
+	)
+	from frappe.utils import add_to_date
+
+	for task in tasks:
+		if frappe.db.exists(
+			"DMS CRM Activity",
+			{"reference_doctype": DOCTYPE, "reference_name": doc.name, "subject": task["subject"]},
+		):
+			continue
+		frappe.get_doc(
+			{
+				"doctype": "DMS CRM Activity",
+				"activity_type": task["activity_type"],
+				"subject": task["subject"],
+				"status": "Open",
+				"due_datetime": add_to_date(now_datetime(), days=task["days"]),
+				"assigned_to": owner,
+				"priority": task["priority"],
+				"opportunity": doc.opportunity,
+				"customer": doc.customer,
+				"reference_doctype": DOCTYPE,
+				"reference_name": doc.name,
+				"outcome_notes": "Auto-created from delivery readiness Mark Ready (§8.2 CRM).",
+			}
+		).insert(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def complete_handover(name, satisfaction_score=None, handover_on=None, handover_photos=None, notes=None):
+	"""Record actual handover time/photos and mark Delivered."""
+	ensure_crm_write(DOCTYPE)
+	payload = {
+		"status": "Delivered",
+		"handover_on": handover_on or now_datetime(),
+	}
+	if satisfaction_score is not None:
+		payload["satisfaction_score"] = cint(satisfaction_score)
+	if handover_photos is not None:
+		payload["handover_photos"] = handover_photos
+	if notes is not None:
+		payload["notes"] = notes
+	return update_delivery_readiness(name, payload)

@@ -1,0 +1,313 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "vin",
+  "customer",
+  "lifecycle_stage",
+  "classification",
+  "status",
+  "column_break_main",
+  "company",
+  "branch",
+  "model",
+  "is_fleet",
+  "section_due",
+  "due_date",
+  "due_km",
+  "trigger_basis",
+  "effective_due_date",
+  "column_break_due",
+  "current_odometer",
+  "estimated_odometer",
+  "average_daily_km",
+  "interval_km",
+  "interval_months",
+  "section_adjustment",
+  "adjusted_due_date",
+  "adjusted_due_km",
+  "adjustment_reason",
+  "column_break_adj",
+  "adjustment_by",
+  "adjustment_on",
+  "section_links",
+  "service_appointment",
+  "job_card",
+  "last_reminder_step",
+  "last_reminder_on",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-SVD-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-SVD-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vin",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "VIN",
+   "options": "VIN No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "default": "Periodic Maintenance",
+   "fieldname": "lifecycle_stage",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Lifecycle Stage",
+   "options": "Owner Onboarding\nFirst Service\nPeriodic Maintenance\nRepair / Warranty\nFollow-Up\nRetention\nRepurchase"
+  },
+  {
+   "default": "Upcoming",
+   "fieldname": "classification",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Classification",
+   "options": "Upcoming\nDue\nOverdue\nSeverely Overdue\nLapsed\nInactive"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nBooked\nIn Service\nCompleted\nDismissed\nExcluded"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Vehicle Model"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_fleet",
+   "fieldtype": "Check",
+   "label": "Fleet Vehicle"
+  },
+  {
+   "fieldname": "section_due",
+   "fieldtype": "Section Break",
+   "label": "Service Due"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "due_km",
+   "fieldtype": "Float",
+   "label": "Due Mileage (km)"
+  },
+  {
+   "default": "Whichever First",
+   "fieldname": "trigger_basis",
+   "fieldtype": "Select",
+   "label": "Trigger Basis",
+   "options": "Date\nMileage\nWhichever First"
+  },
+  {
+   "description": "Date used for reminder sequencing (adjusted date wins when set)",
+   "fieldname": "effective_due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Effective Due Date"
+  },
+  {
+   "fieldname": "column_break_due",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "current_odometer",
+   "fieldtype": "Float",
+   "label": "Current Odometer"
+  },
+  {
+   "description": "Projected odometer from average daily usage",
+   "fieldname": "estimated_odometer",
+   "fieldtype": "Float",
+   "label": "Estimated Odometer"
+  },
+  {
+   "fieldname": "average_daily_km",
+   "fieldtype": "Float",
+   "label": "Average Daily km"
+  },
+  {
+   "fieldname": "interval_km",
+   "fieldtype": "Float",
+   "label": "Interval km"
+  },
+  {
+   "fieldname": "interval_months",
+   "fieldtype": "Int",
+   "label": "Interval Months"
+  },
+  {
+   "fieldname": "section_adjustment",
+   "fieldtype": "Section Break",
+   "label": "Manual Adjustment"
+  },
+  {
+   "fieldname": "adjusted_due_date",
+   "fieldtype": "Date",
+   "label": "Adjusted Due Date"
+  },
+  {
+   "fieldname": "adjusted_due_km",
+   "fieldtype": "Float",
+   "label": "Adjusted Due km"
+  },
+  {
+   "fieldname": "adjustment_reason",
+   "fieldtype": "Small Text",
+   "label": "Adjustment Reason"
+  },
+  {
+   "fieldname": "column_break_adj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "adjustment_by",
+   "fieldtype": "Link",
+   "label": "Adjusted By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "adjustment_on",
+   "fieldtype": "Datetime",
+   "label": "Adjusted On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_links",
+   "fieldtype": "Section Break",
+   "label": "Workshop Links"
+  },
+  {
+   "fieldname": "service_appointment",
+   "fieldtype": "Link",
+   "label": "Service Appointment",
+   "options": "Service Appointment"
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Job Card",
+   "options": "DMS Job Card"
+  },
+  {
+   "fieldname": "last_reminder_step",
+   "fieldtype": "Data",
+   "label": "Last Reminder Step"
+  },
+  {
+   "fieldname": "last_reminder_on",
+   "fieldtype": "Datetime",
+   "label": "Last Reminder On"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Service Due",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Service Due",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "write": 1
+  }
+ ],
+ "sort_field": "effective_due_date",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

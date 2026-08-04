@@ -39,6 +39,23 @@ LIST_FIELDS = [
 	"modified",
 ]
 
+CUSTOM_LIST_FIELDS = (
+	"custom_queue",
+	"custom_disposition",
+	"custom_customer",
+	"custom_callback_datetime",
+	"custom_callback_owner",
+)
+
+
+def _list_fields():
+	meta = frappe.get_meta(DOCTYPE)
+	fields = list(LIST_FIELDS)
+	for fieldname in CUSTOM_LIST_FIELDS:
+		if meta.has_field(fieldname):
+			fields.append(fieldname)
+	return fields
+
 WRITABLE = {
 	"from",
 	"to",
@@ -55,6 +72,14 @@ WRITABLE = {
 	"note",
 	"reference_doctype",
 	"reference_docname",
+	"custom_queue",
+	"custom_disposition",
+	"custom_customer",
+	"custom_callback_datetime",
+	"custom_callback_owner",
+	"custom_call_script",
+	"custom_campaign",
+	"custom_activity",
 }
 
 

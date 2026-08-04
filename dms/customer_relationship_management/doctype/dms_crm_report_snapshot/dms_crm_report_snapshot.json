@@ -1,0 +1,126 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "section_id",
+  "snapshot_on",
+  "column_break_main",
+  "from_date",
+  "to_date",
+  "open_pipeline_value",
+  "weighted_forecast",
+  "section_json",
+  "summary_json"
+ ],
+ "fields": [
+  {
+   "default": "CRM-RSNAP-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-RSNAP-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Section",
+   "reqd": 1
+  },
+  {
+   "fieldname": "snapshot_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Snapshot On",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "open_pipeline_value",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Open Pipeline Value"
+  },
+  {
+   "fieldname": "weighted_forecast",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Weighted Forecast"
+  },
+  {
+   "fieldname": "section_json",
+   "fieldtype": "Section Break",
+   "label": "Summary"
+  },
+  {
+   "fieldname": "summary_json",
+   "fieldtype": "Long Text",
+   "label": "Summary JSON"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-08-05 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Report Snapshot",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

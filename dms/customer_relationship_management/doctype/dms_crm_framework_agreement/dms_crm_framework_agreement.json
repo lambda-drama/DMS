@@ -1,0 +1,229 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "agreement_title",
+  "agreement_number",
+  "account",
+  "customer",
+  "status",
+  "column_break_main",
+  "company",
+  "branch",
+  "valid_from",
+  "valid_to",
+  "section_limits",
+  "max_units",
+  "max_value",
+  "currency",
+  "column_break_utilization",
+  "utilization_units",
+  "utilization_value",
+  "renewal_alert_days",
+  "section_sla",
+  "sla_terms",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-FA-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-FA-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "agreement_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Agreement Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "agreement_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Agreement Number"
+  },
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Account",
+   "options": "DMS CRM Account"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nActive\nExpired\nTerminated"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Valid From"
+  },
+  {
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Valid To"
+  },
+  {
+   "fieldname": "section_limits",
+   "fieldtype": "Section Break",
+   "label": "Limits & Utilization"
+  },
+  {
+   "fieldname": "max_units",
+   "fieldtype": "Int",
+   "label": "Max Units"
+  },
+  {
+   "fieldname": "max_value",
+   "fieldtype": "Currency",
+   "label": "Max Value",
+   "options": "currency"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "column_break_utilization",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "utilization_units",
+   "fieldtype": "Int",
+   "label": "Utilization Units",
+   "read_only": 1
+  },
+  {
+   "fieldname": "utilization_value",
+   "fieldtype": "Currency",
+   "label": "Utilization Value",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "default": "60",
+   "fieldname": "renewal_alert_days",
+   "fieldtype": "Int",
+   "label": "Renewal Alert Days"
+  },
+  {
+   "fieldname": "section_sla",
+   "fieldtype": "Section Break",
+   "label": "SLA"
+  },
+  {
+   "fieldname": "sla_terms",
+   "fieldtype": "Text Editor",
+   "label": "SLA Terms"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Framework Agreement",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Framework Agreement",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "agreement_title,agreement_number,customer,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "agreement_title",
+ "track_changes": 1
+}

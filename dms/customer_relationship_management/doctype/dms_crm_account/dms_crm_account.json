@@ -1,0 +1,308 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "account_name",
+  "customer",
+  "account_type",
+  "status",
+  "column_break_main",
+  "company",
+  "branch",
+  "territory",
+  "industry",
+  "account_owner",
+  "parent_account",
+  "section_legal",
+  "legal_name",
+  "tax_id",
+  "registration_number",
+  "section_stakeholders",
+  "stakeholders",
+  "section_fleet",
+  "fleet_units",
+  "fleet_size",
+  "replacement_notes",
+  "section_commercial",
+  "credit_terms",
+  "payment_behavior",
+  "outstanding_balance",
+  "section_contracts",
+  "contracts_summary",
+  "section_plan",
+  "account_plan",
+  "competitor_presence",
+  "growth_potential",
+  "relationship_health",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "CRM-ACC-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-ACC-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "account_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Account Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "account_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Account Type",
+   "options": "Corporate\nGovernment\nFleet Operator\nEmbassy\nNGO\nLeasing/Rental\nTaxi/Mobility\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Prospect\nActive\nStrategic\nAt Risk\nInactive"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "label": "Territory",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "industry",
+   "fieldtype": "Data",
+   "label": "Industry"
+  },
+  {
+   "fieldname": "account_owner",
+   "fieldtype": "Link",
+   "label": "Account Owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "parent_account",
+   "fieldtype": "Link",
+   "label": "Parent Account",
+   "options": "DMS CRM Account"
+  },
+  {
+   "fieldname": "section_legal",
+   "fieldtype": "Section Break",
+   "label": "Legal"
+  },
+  {
+   "fieldname": "legal_name",
+   "fieldtype": "Data",
+   "label": "Legal Name"
+  },
+  {
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax ID"
+  },
+  {
+   "fieldname": "registration_number",
+   "fieldtype": "Data",
+   "label": "Registration Number"
+  },
+  {
+   "fieldname": "section_stakeholders",
+   "fieldtype": "Section Break",
+   "label": "Stakeholders"
+  },
+  {
+   "fieldname": "stakeholders",
+   "fieldtype": "Table",
+   "label": "Stakeholders",
+   "options": "DMS CRM Account Stakeholder"
+  },
+  {
+   "fieldname": "section_fleet",
+   "fieldtype": "Section Break",
+   "label": "Fleet"
+  },
+  {
+   "fieldname": "fleet_units",
+   "fieldtype": "Table",
+   "label": "Fleet Units",
+   "options": "DMS CRM Account Fleet Unit"
+  },
+  {
+   "default": "0",
+   "fieldname": "fleet_size",
+   "fieldtype": "Int",
+   "label": "Fleet Size",
+   "read_only": 1
+  },
+  {
+   "fieldname": "replacement_notes",
+   "fieldtype": "Small Text",
+   "label": "Replacement Notes"
+  },
+  {
+   "fieldname": "section_commercial",
+   "fieldtype": "Section Break",
+   "label": "Commercial"
+  },
+  {
+   "fieldname": "credit_terms",
+   "fieldtype": "Small Text",
+   "label": "Credit Terms"
+  },
+  {
+   "default": "Unknown",
+   "fieldname": "payment_behavior",
+   "fieldtype": "Select",
+   "label": "Payment Behavior",
+   "options": "Excellent\nGood\nAverage\nPoor\nUnknown"
+  },
+  {
+   "fieldname": "outstanding_balance",
+   "fieldtype": "Currency",
+   "label": "Outstanding Balance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_contracts",
+   "fieldtype": "Section Break",
+   "label": "Contracts"
+  },
+  {
+   "fieldname": "contracts_summary",
+   "fieldtype": "Text Editor",
+   "label": "Contracts Summary"
+  },
+  {
+   "fieldname": "section_plan",
+   "fieldtype": "Section Break",
+   "label": "Plan"
+  },
+  {
+   "fieldname": "account_plan",
+   "fieldtype": "Text Editor",
+   "label": "Account Plan"
+  },
+  {
+   "fieldname": "competitor_presence",
+   "fieldtype": "Small Text",
+   "label": "Competitor Presence"
+  },
+  {
+   "fieldname": "growth_potential",
+   "fieldtype": "Select",
+   "label": "Growth Potential",
+   "options": "High\nMedium\nLow\nUnknown"
+  },
+  {
+   "default": "Unknown",
+   "fieldname": "relationship_health",
+   "fieldtype": "Select",
+   "label": "Relationship Health",
+   "options": "Strong\nStable\nWeak\nCritical\nUnknown"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "DMS CRM Account",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Account",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "account_name,customer,account_type,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "account_name",
+ "track_changes": 1
+}

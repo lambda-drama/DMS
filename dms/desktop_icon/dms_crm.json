@@ -1,6 +1,6 @@
 {
  "app": "dms",
- "creation": "2026-07-29 03:25:04.322871",
+ "creation": "2026-08-05 01:22:07.575626",
  "docstatus": 0,
  "doctype": "Desktop Icon",
  "hidden": 0,
@@ -12,7 +12,7 @@
  "link_to": "DMS CRM",
  "link_type": "Workspace Sidebar",
  "logo_url": "/assets/dms/image/dms_crm_icon.svg",
- "modified": "2026-07-29 03:30:13.214847",
+ "modified": "2026-08-05 01:24:42.151807",
  "modified_by": "Administrator",
  "name": "DMS CRM",
  "owner": "Administrator",
