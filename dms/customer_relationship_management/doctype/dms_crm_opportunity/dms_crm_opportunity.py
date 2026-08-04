@@ -164,17 +164,30 @@ class DMSCRMOpportunity(Document):
 			self.expected_value = flt(net_total)
 
 	def _enforce_open_controls(self):
+		from frappe import _
+		from frappe.utils import cint
+
 		if self.status not in OPEN_STATUSES:
 			return
-		if not self.expected_close_date:
-			frappe.msgprint(
-				"Open opportunities should have an Expected Closing date.",
-				indicator="orange",
-				alert=True,
-			)
-		if not self.next_action_due:
-			frappe.msgprint(
-				"Open opportunities should have a Next Action Due date.",
-				indicator="orange",
-				alert=True,
-			)
+		# Nurture stage is formally parked — skip next-action hard rule
+		if self.stage == "Nurture":
+			return
+		settings = None
+		try:
+			settings = frappe.get_cached_doc("DMS CRM Settings")
+		except Exception:
+			pass
+		hard = cint(getattr(settings, "hard_enforce_next_action", None) or 0) if settings else 0
+		require_close = (
+			cint(getattr(settings, "require_close_date_on_opportunity", None) or 1) if settings else 1
+		)
+		if require_close and not self.expected_close_date:
+			msg = _("Open opportunities require an Expected Closing date.")
+			if hard:
+				frappe.throw(msg)
+			frappe.msgprint(msg, indicator="orange", alert=True)
+		if not self.next_action_due or not self.next_action:
+			msg = _("Open opportunities require a Next Action and Due date (unless Nurture).")
+			if hard:
+				frappe.throw(msg)
+			frappe.msgprint(msg, indicator="orange", alert=True)

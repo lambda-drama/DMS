@@ -1,0 +1,164 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "campaign",
+  "customer",
+  "status",
+  "column_break_main",
+  "in_control_group",
+  "response",
+  "converted",
+  "opted_out",
+  "attribution",
+  "section_activity",
+  "last_activity_on",
+  "activity_notes",
+  "attributed_revenue"
+ ],
+ "fields": [
+  {
+   "default": "CRM-CMEM-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-CMEM-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "campaign",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Campaign",
+   "options": "DMS CRM Campaign",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "default": "Queued",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Queued\nDelivered\nOpened\nResponded\nAppointment\nTest Drive\nQuoted\nBooked\nSold\nWorkshop Visit\nSuppressed\nUnsubscribed\nBounced\nNo Response"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "in_control_group",
+   "fieldtype": "Check",
+   "label": "Control Group"
+  },
+  {
+   "fieldname": "response",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Response"
+  },
+  {
+   "default": "0",
+   "fieldname": "converted",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Converted"
+  },
+  {
+   "default": "0",
+   "fieldname": "opted_out",
+   "fieldtype": "Check",
+   "label": "Opted Out"
+  },
+  {
+   "fieldname": "attribution",
+   "fieldtype": "Data",
+   "label": "Attribution"
+  },
+  {
+   "fieldname": "section_activity",
+   "fieldtype": "Section Break",
+   "label": "Activity"
+  },
+  {
+   "fieldname": "last_activity_on",
+   "fieldtype": "Datetime",
+   "label": "Last Activity On"
+  },
+  {
+   "fieldname": "activity_notes",
+   "fieldtype": "Small Text",
+   "label": "Activity Notes"
+  },
+  {
+   "default": "0",
+   "fieldname": "attributed_revenue",
+   "fieldtype": "Currency",
+   "label": "Attributed Revenue"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Campaign Member",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

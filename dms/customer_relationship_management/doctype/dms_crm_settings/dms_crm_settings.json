@@ -17,7 +17,39 @@
   "unaccepted_reassign_minutes",
   "section_flags",
   "require_next_action_on_lead",
-  "require_close_date_on_opportunity"
+  "hard_enforce_next_action",
+  "require_close_date_on_opportunity",
+  "create_campaign_member_tasks",
+  "campaign_task_due_days",
+  "section_service_retention",
+  "enable_service_retention",
+  "default_average_daily_km",
+  "column_break_retention",
+  "upcoming_days",
+  "severely_overdue_days",
+  "lapsed_days",
+  "section_reminder_sequence",
+  "service_reminder_sequence",
+  "section_workshop_events",
+  "enable_workshop_journey_events",
+  "post_service_followup_hours_min",
+  "post_service_followup_hours_max",
+  "section_case_sla",
+  "critical_case_response_minutes",
+  "high_case_response_minutes",
+  "medium_case_response_hours",
+  "low_case_response_hours",
+  "column_break_case_sla",
+  "critical_case_resolution_hours",
+  "high_case_resolution_hours",
+  "medium_case_resolution_hours",
+  "low_case_resolution_hours",
+  "section_appointments",
+  "default_slot_duration_minutes",
+  "max_appointments_per_slot",
+  "section_call_center",
+  "enable_click_to_call",
+  "call_center_queues"
  ],
  "fields": [
   {
@@ -101,15 +133,210 @@
    "label": "Require Next Action on Open Leads"
   },
   {
+   "default": "0",
+   "description": "When enabled, save is blocked (not just warned) if next action due is missing. Enable for §15.2 mandatory rules.",
+   "fieldname": "hard_enforce_next_action",
+   "fieldtype": "Check",
+   "label": "Hard Enforce Next Action (§15.2)"
+  },
+  {
    "default": "1",
    "fieldname": "require_close_date_on_opportunity",
    "fieldtype": "Check",
    "label": "Require Expected Close on Open Opportunities"
+  },
+  {
+   "default": "1",
+   "fieldname": "create_campaign_member_tasks",
+   "fieldtype": "Check",
+   "label": "Create Activity Tasks for Campaign Members"
+  },
+  {
+   "default": "2",
+   "description": "Days until due for campaign member follow-up tasks",
+   "fieldname": "campaign_task_due_days",
+   "fieldtype": "Int",
+   "label": "Campaign Task Due (days)"
+  },
+  {
+   "fieldname": "section_service_retention",
+   "fieldtype": "Section Break",
+   "label": "Service Retention (§10)"
+  },
+  {
+   "default": "1",
+   "description": "Enable CRM service-due engine and reminder sequence (uses VIN / Vehicle Model intervals; date or mileage whichever first)",
+   "fieldname": "enable_service_retention",
+   "fieldtype": "Check",
+   "label": "Enable Service Retention CRM"
+  },
+  {
+   "default": "40",
+   "description": "Used to estimate current mileage when telematics is unavailable (km/day)",
+   "fieldname": "default_average_daily_km",
+   "fieldtype": "Float",
+   "label": "Default Average Daily km"
+  },
+  {
+   "fieldname": "column_break_retention",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "30",
+   "description": "Vehicles due within this many days are Upcoming",
+   "fieldname": "upcoming_days",
+   "fieldtype": "Int",
+   "label": "Upcoming Horizon (days)"
+  },
+  {
+   "default": "30",
+   "description": "Overdue beyond this becomes Severely Overdue",
+   "fieldname": "severely_overdue_days",
+   "fieldtype": "Int",
+   "label": "Severely Overdue After (days)"
+  },
+  {
+   "default": "90",
+   "description": "Overdue beyond this becomes Lapsed",
+   "fieldname": "lapsed_days",
+   "fieldtype": "Int",
+   "label": "Lapsed After (days)"
+  },
+  {
+   "fieldname": "section_reminder_sequence",
+   "fieldtype": "Section Break",
+   "label": "Service Reminder Sequence"
+  },
+  {
+   "description": "Blueprint §10.3 — edit offsets/channels freely. Negative days_offset = before due.",
+   "fieldname": "service_reminder_sequence",
+   "fieldtype": "Table",
+   "label": "Reminder Sequence",
+   "options": "DMS CRM Reminder Sequence Step"
+  },
+  {
+   "fieldname": "section_workshop_events",
+   "fieldtype": "Section Break",
+   "label": "Workshop Journey CRM Events"
+  },
+  {
+   "default": "1",
+   "description": "Create CRM activities for appointment / job-card / estimate / delivery events",
+   "fieldname": "enable_workshop_journey_events",
+   "fieldtype": "Check",
+   "label": "Enable Workshop Journey Events"
+  },
+  {
+   "default": "24",
+   "fieldname": "post_service_followup_hours_min",
+   "fieldtype": "Int",
+   "label": "Post-Service Follow-Up Min (hours)"
+  },
+  {
+   "default": "72",
+   "fieldname": "post_service_followup_hours_max",
+   "fieldtype": "Int",
+   "label": "Post-Service Follow-Up Max (hours)"
+  },
+  {
+   "fieldname": "section_case_sla",
+   "fieldtype": "Section Break",
+   "label": "Case SLA (§12)"
+  },
+  {
+   "default": "15",
+   "description": "Blueprint §12.3 — Critical first response",
+   "fieldname": "critical_case_response_minutes",
+   "fieldtype": "Int",
+   "label": "Critical Response (minutes)"
+  },
+  {
+   "default": "60",
+   "fieldname": "high_case_response_minutes",
+   "fieldtype": "Int",
+   "label": "High Response (minutes)"
+  },
+  {
+   "default": "4",
+   "fieldname": "medium_case_response_hours",
+   "fieldtype": "Float",
+   "label": "Medium Response (hours)"
+  },
+  {
+   "default": "24",
+   "fieldname": "low_case_response_hours",
+   "fieldtype": "Float",
+   "label": "Low Response (hours)"
+  },
+  {
+   "fieldname": "column_break_case_sla",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "4",
+   "fieldname": "critical_case_resolution_hours",
+   "fieldtype": "Float",
+   "label": "Critical Resolution (hours)"
+  },
+  {
+   "default": "24",
+   "fieldname": "high_case_resolution_hours",
+   "fieldtype": "Float",
+   "label": "High Resolution (hours)"
+  },
+  {
+   "default": "72",
+   "fieldname": "medium_case_resolution_hours",
+   "fieldtype": "Float",
+   "label": "Medium Resolution (hours)"
+  },
+  {
+   "default": "120",
+   "fieldname": "low_case_resolution_hours",
+   "fieldtype": "Float",
+   "label": "Low Resolution (hours)"
+  },
+  {
+   "fieldname": "section_appointments",
+   "fieldtype": "Section Break",
+   "label": "Appointments (§11)"
+  },
+  {
+   "default": "60",
+   "description": "Default Service Appointment slot length when booking",
+   "fieldname": "default_slot_duration_minutes",
+   "fieldtype": "Int",
+   "label": "Default Slot Duration (minutes)"
+  },
+  {
+   "default": "4",
+   "description": "Soft capacity rule per branch / slot window",
+   "fieldname": "max_appointments_per_slot",
+   "fieldtype": "Int",
+   "label": "Max Appointments Per Slot"
+  },
+  {
+   "fieldname": "section_call_center",
+   "fieldtype": "Section Break",
+   "label": "Call Center (§11)"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_click_to_call",
+   "fieldtype": "Check",
+   "label": "Enable Click-to-Call"
+  },
+  {
+   "default": "Inbound\nNew Leads\nCallbacks\nService Reminders\nLapsed Customers\nSurveys\nComplaints",
+   "description": "One queue name per line — used by Call Center workspace filters",
+   "fieldname": "call_center_queues",
+   "fieldtype": "Small Text",
+   "label": "Call Center Queues"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-31 14:30:00.000000",
+ "modified": "2026-08-05 01:00:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Settings",

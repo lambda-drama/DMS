@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-05 01:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "step_key",
+  "label",
+  "days_offset",
+  "channel",
+  "priority",
+  "create_activity",
+  "activity_type",
+  "human_action",
+  "notes"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "description": "Stable id e.g. t-30, t-14, due, overdue-7",
+   "fieldname": "step_key",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Step Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "reqd": 1
+  },
+  {
+   "description": "Negative = days before due, 0 = due date, positive = days after due",
+   "fieldname": "days_offset",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Days Offset",
+   "reqd": 1
+  },
+  {
+   "default": "Activity",
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Channel",
+   "options": "WhatsApp\nSMS\nEmail\nCall\nActivity",
+   "reqd": 1
+  },
+  {
+   "default": "Medium",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nMedium\nHigh\nUrgent"
+  },
+  {
+   "default": "1",
+   "fieldname": "create_activity",
+   "fieldtype": "Check",
+   "label": "Create CRM Activity"
+  },
+  {
+   "default": "Service Reminder",
+   "fieldname": "activity_type",
+   "fieldtype": "Select",
+   "label": "Activity Type",
+   "options": "Call\nEmail\nWhatsApp\nSMS\nService Reminder\nSurvey\nTask\nOther"
+  },
+  {
+   "fieldname": "human_action",
+   "fieldtype": "Small Text",
+   "label": "Human Action"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-05 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Reminder Sequence Step",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": []
+}

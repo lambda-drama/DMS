@@ -21,6 +21,10 @@ const SECTION_TITLES: Record<string, string> = {
   crm: 'Customer & CRM Reports',
   finance: 'Finance Reports',
   compliance: 'Compliance Reports',
+  crm_executive: 'Executive CRM Reports',
+  crm_sales: 'Sales CRM Reports',
+  crm_aftersales: 'Aftersales CRM Reports',
+  crm_call_campaign: 'Call Center & Campaign Reports',
 };
 
 const viewTitles: Record<string, string> = {
@@ -72,13 +76,38 @@ const viewTitles: Record<string, string> = {
   'crm-customer-new': 'New Customer',
   'crm-customer-detail': 'Customer 360',
   'crm-activities': 'Activities',
+  'crm-activity-new': 'New Activity',
+  'crm-activity-detail': 'Activity',
+  'crm-approvals': 'Approvals',
   'crm-call-logs': 'Call Logs',
   'crm-call-log-new': 'Log Call',
   'crm-call-log-detail': 'Call Details',
+  'crm-call-center': 'Call Center',
   'crm-test-drives': 'Test Drives',
   'crm-test-drive-detail': 'Test Drive',
+  'crm-delivery-readiness': 'Delivery Readiness',
+  'crm-delivery-readiness-detail': 'Delivery Readiness',
+  'crm-accounts': 'Accounts',
+  'crm-account-new': 'New Account',
+  'crm-account-detail': 'Account',
+  'crm-tenders': 'Tenders',
+  'crm-tender-new': 'New Tender',
+  'crm-tender-detail': 'Tender',
+  'crm-fleet-aftersales': 'Fleet Aftersales',
+  'crm-service-retention': 'Service Retention',
   'crm-calendar': 'Calendar',
   'crm-cases': 'Cases',
+  'crm-case-new': 'New Case',
+  'crm-case-detail': 'Case',
+  'crm-campaigns': 'Campaigns',
+  'crm-campaign-new': 'New Campaign',
+  'crm-campaign-detail': 'Campaign',
+  'crm-segment-new': 'New Segment',
+  'crm-segment-detail': 'Segment',
+  'crm-loyalty': 'Loyalty',
+  'crm-referrals': 'Referrals',
+  'crm-referral-detail': 'Referral',
+  'crm-reports': 'CRM Reports',
 };
 
 interface HeaderProps {
@@ -89,7 +118,9 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { activeView, viewParams } = useNavigation();
   const section = viewParams.get('section') || '';
   const title =
-    activeView === 'reports' && section && SECTION_TITLES[section]
+    (activeView === 'reports' || activeView === 'crm-reports') &&
+    section &&
+    SECTION_TITLES[section]
       ? SECTION_TITLES[section]
       : viewTitles[activeView] || 'Dashboard';
 

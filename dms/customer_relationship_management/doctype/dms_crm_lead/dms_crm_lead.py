@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, cint, flt, get_datetime, now_datetime
 
@@ -204,9 +205,12 @@ class DMSCRMLead(Document):
 			return
 		settings = _get_settings()
 		require = cint(getattr(settings, "require_next_action_on_lead", None) or 1)
-		if require and not self.next_action_due:
-			frappe.msgprint(
-				"Open leads should have a Next Action Due date.",
-				indicator="orange",
-				alert=True,
-			)
+		if not require:
+			return
+		if self.next_action_due and self.next_action:
+			return
+		hard = cint(getattr(settings, "hard_enforce_next_action", None) or 0)
+		msg = _("Open leads require a Next Action and Due date (unless New / closed).")
+		if hard:
+			frappe.throw(msg)
+		frappe.msgprint(msg, indicator="orange", alert=True)

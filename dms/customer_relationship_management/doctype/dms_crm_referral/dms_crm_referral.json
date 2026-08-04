@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 01:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "referrer_customer",
+  "referred_name",
+  "status",
+  "column_break_main",
+  "referred_lead",
+  "referred_opportunity",
+  "referred_customer",
+  "reward_event",
+  "reward_points",
+  "reward_paid",
+  "rewarded_on",
+  "section_detail",
+  "source_channel",
+  "notes",
+  "company",
+  "branch"
+ ],
+ "fields": [
+  {
+   "default": "CRM-REF-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-REF-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "referrer_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Referrer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "referred_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Referred Prospect Name",
+   "reqd": 1
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nLead Created\nIn Opportunity\nWon\nDelivered\nRewarded\nDisqualified\nDuplicate"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "referred_lead",
+   "fieldtype": "Link",
+   "label": "Referred Lead",
+   "options": "DMS CRM Lead"
+  },
+  {
+   "fieldname": "referred_opportunity",
+   "fieldtype": "Link",
+   "label": "Referred Opportunity",
+   "options": "DMS CRM Opportunity"
+  },
+  {
+   "fieldname": "referred_customer",
+   "fieldtype": "Link",
+   "label": "Referred Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "reward_event",
+   "fieldtype": "Select",
+   "label": "Reward Event",
+   "options": "\nLead Converted\nBooking\nFull Payment\nDelivery"
+  },
+  {
+   "default": "0",
+   "fieldname": "reward_points",
+   "fieldtype": "Int",
+   "label": "Reward Points"
+  },
+  {
+   "default": "0",
+   "fieldname": "reward_paid",
+   "fieldtype": "Check",
+   "label": "Reward Paid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rewarded_on",
+   "fieldtype": "Datetime",
+   "label": "Rewarded On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_detail",
+   "fieldtype": "Section Break",
+   "label": "Detail"
+  },
+  {
+   "fieldname": "source_channel",
+   "fieldtype": "Select",
+   "label": "Channel",
+   "options": "\nIn Person\nPhone\nWhatsApp\nEmail\nCampaign\nOther"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 01:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Referral",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "referred_name",
+ "track_changes": 1
+}

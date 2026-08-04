@@ -10,7 +10,12 @@ import {
   createQuotationFromOpportunity,
   createDeliveryReadiness,
   allocateVin,
+  approveAllocationSwitch,
+  getAllocationSnapshot,
+  releaseVin,
+  requestAllocationSwitch,
   searchAllocatableVins,
+  recordExperienceScore,
   fetchCrmBrands,
   fetchCrmBranches,
   fetchCrmColors,
@@ -19,6 +24,8 @@ import {
   fetchOpportunityFormOptions,
   fetchTestVehicleOptions,
   getOpportunity,
+  listAccounts,
+  listTenders,
   markOpportunityWon,
   reissueQuotation,
   updateOpportunity,
@@ -59,6 +66,18 @@ type OppItem = {
   net_amount?: number;
 };
 
+type FleetReq = {
+  model: string;
+  specification: string;
+  quantity: number;
+  preferred_color: string;
+  unit_price: string;
+  body_building_notes: string;
+  delivery_location: string;
+  delivery_batch: string;
+  delivery_date: string;
+};
+
 type OppForm = {
   title: string;
   customer: string;
@@ -79,6 +98,15 @@ type OppForm = {
   opportunity_type: string;
   quotation_validity: string;
   notes: string;
+  account: string;
+  tender: string;
+  framework_agreement: string;
+  bid_deadline: string;
+  financing_method: string;
+  delivery_schedule_notes: string;
+  aftersales_package_notes: string;
+  special_conversion_notes: string;
+  fleet_requirements: FleetReq[];
   items: OppItem[];
 };
 
@@ -102,6 +130,15 @@ const emptyForm: OppForm = {
   opportunity_type: '',
   quotation_validity: '',
   notes: '',
+  account: '',
+  tender: '',
+  framework_agreement: '',
+  bid_deadline: '',
+  financing_method: '',
+  delivery_schedule_notes: '',
+  aftersales_package_notes: '',
+  special_conversion_notes: '',
+  fleet_requirements: [],
   items: [],
 };
 
@@ -116,6 +153,19 @@ function formFromDoc(doc: Record<string, unknown>): OppForm {
         discount_percentage: Number(row.discount_percentage || 0),
         amount: Number(row.amount || 0),
         net_amount: Number(row.net_amount || 0),
+      }))
+    : [];
+  const fleet_requirements = Array.isArray(doc.fleet_requirements)
+    ? (doc.fleet_requirements as Record<string, unknown>[]).map((row) => ({
+        model: String(row.model || ''),
+        specification: String(row.specification || ''),
+        quantity: Number(row.quantity || 1),
+        preferred_color: String(row.preferred_color || ''),
+        unit_price: row.unit_price != null ? String(row.unit_price) : '',
+        body_building_notes: String(row.body_building_notes || ''),
+        delivery_location: String(row.delivery_location || ''),
+        delivery_batch: String(row.delivery_batch || ''),
+        delivery_date: String(row.delivery_date || ''),
       }))
     : [];
   return {
@@ -138,6 +188,15 @@ function formFromDoc(doc: Record<string, unknown>): OppForm {
     opportunity_type: String(doc.opportunity_type || ''),
     quotation_validity: String(doc.quotation_validity || ''),
     notes: String(doc.notes || '').replace(/<[^>]+>/g, ''),
+    account: String(doc.account || ''),
+    tender: String(doc.tender || ''),
+    framework_agreement: String(doc.framework_agreement || ''),
+    bid_deadline: String(doc.bid_deadline || '').slice(0, 16),
+    financing_method: String(doc.financing_method || ''),
+    delivery_schedule_notes: String(doc.delivery_schedule_notes || ''),
+    aftersales_package_notes: String(doc.aftersales_package_notes || ''),
+    special_conversion_notes: String(doc.special_conversion_notes || ''),
+    fleet_requirements,
     items,
   };
 }
@@ -152,6 +211,18 @@ export default function CrmOpportunityDetailPage() {
   const [form, setForm] = useState<OppForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [pipelineBusy, setPipelineBusy] = useState(false);
+  const [accountSearch, setAccountSearch] = useState('');
+  const [tenderSearch, setTenderSearch] = useState('');
+  const isFleetDeal =
+    form.opportunity_type === 'Fleet' || form.opportunity_type === 'Tender';
+  const { data: accountPick } = useSWR(
+    isFleetDeal ? ['crm-opp-accounts', accountSearch] : null,
+    () => listAccounts({ search: accountSearch || undefined, limit: 30 })
+  );
+  const { data: tenderPick } = useSWR(
+    isFleetDeal ? ['crm-opp-tenders', tenderSearch] : null,
+    () => listTenders({ search: tenderSearch || undefined, limit: 30 })
+  );
   const [pipelinePanel, setPipelinePanel] = useState<
     '' | 'appointment' | 'test-drive' | 'quotation' | 'booking' | 'invoice'
   >('');
@@ -178,6 +249,9 @@ export default function CrmOpportunityDetailPage() {
   const [allocateVinValue, setAllocateVinValue] = useState('');
   const [allocateSearch, setAllocateSearch] = useState('');
   const [allocating, setAllocating] = useState(false);
+  const [switchReason, setSwitchReason] = useState('');
+  const [switchVin, setSwitchVin] = useState('');
+  const [experienceScore, setExperienceScore] = useState('');
   const { error, success, showError, showSuccess, clear } = useCrmFeedback();
   const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
@@ -244,6 +318,12 @@ export default function CrmOpportunityDetailPage() {
     { keepPreviousData: true }
   );
 
+  const bookingId = String((data as Record<string, unknown> | undefined)?.booking || '');
+  const { data: allocationSnapshot, mutate: mutateAllocation } = useSWR(
+    bookingId ? ['crm-allocation-snapshot', bookingId] : null,
+    () => getAllocationSnapshot(bookingId)
+  );
+
   const set = (key: keyof OppForm, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -280,6 +360,27 @@ export default function CrmOpportunityDetailPage() {
     opportunity_type: form.opportunity_type || null,
     quotation_validity: form.quotation_validity || null,
     notes: form.notes || null,
+    account: form.account || null,
+    tender: form.tender || null,
+    framework_agreement: form.framework_agreement || null,
+    bid_deadline: form.bid_deadline || null,
+    financing_method: form.financing_method || null,
+    delivery_schedule_notes: form.delivery_schedule_notes || null,
+    aftersales_package_notes: form.aftersales_package_notes || null,
+    special_conversion_notes: form.special_conversion_notes || null,
+    fleet_requirements: form.fleet_requirements
+      .filter((r) => r.model || r.specification || r.quantity)
+      .map((r) => ({
+        model: r.model || null,
+        specification: r.specification || null,
+        quantity: r.quantity || 1,
+        preferred_color: r.preferred_color || null,
+        unit_price: r.unit_price ? Number(r.unit_price) : 0,
+        body_building_notes: r.body_building_notes || null,
+        delivery_location: r.delivery_location || null,
+        delivery_batch: r.delivery_batch || null,
+        delivery_date: r.delivery_date || null,
+      })),
     items: form.items.filter((r) => r.item_code),
   });
 
@@ -463,12 +564,92 @@ export default function CrmOpportunityDetailPage() {
     try {
       await allocateVin(linked.booking, { vehicle_vin: allocateVinValue });
       setAllocateVinValue('');
-      await mutate();
+      await Promise.all([mutate(), mutateAllocation()]);
       showSuccess('VIN allocated to this booking.');
     } catch (e: unknown) {
       showError(e, 'Failed to allocate VIN');
     } finally {
       setAllocating(false);
+    }
+  };
+
+  const onRequestSwitch = async () => {
+    if (!linked.booking || !switchReason.trim()) {
+      showError('Enter a reason for the allocation switch.');
+      return;
+    }
+    setAllocating(true);
+    clear();
+    try {
+      await requestAllocationSwitch(linked.booking, switchReason.trim(), switchVin || undefined);
+      setSwitchReason('');
+      await Promise.all([mutate(), mutateAllocation()]);
+      showSuccess('Allocation switch requested — awaiting manager approval.');
+    } catch (e: unknown) {
+      showError(e, 'Failed to request allocation switch');
+    } finally {
+      setAllocating(false);
+    }
+  };
+
+  const onApproveSwitch = async (approve: boolean) => {
+    if (!linked.booking) return;
+    setAllocating(true);
+    clear();
+    try {
+      await approveAllocationSwitch(
+        linked.booking,
+        approve,
+        switchVin || undefined,
+        switchReason || undefined
+      );
+      setSwitchVin('');
+      setSwitchReason('');
+      await Promise.all([mutate(), mutateAllocation()]);
+      showSuccess(approve ? 'Allocation switch approved.' : 'Allocation switch rejected.');
+    } catch (e: unknown) {
+      showError(e, 'Failed to update allocation switch');
+    } finally {
+      setAllocating(false);
+    }
+  };
+
+  const onReleaseVin = async () => {
+    if (!linked.booking) return;
+    const reason = window.prompt('Reason for releasing this VIN?')?.trim();
+    if (!reason) return;
+    setAllocating(true);
+    clear();
+    try {
+      await releaseVin(linked.booking, reason);
+      await Promise.all([mutate(), mutateAllocation()]);
+      showSuccess('VIN released from booking.');
+    } catch (e: unknown) {
+      showError(e, 'Failed to release VIN');
+    } finally {
+      setAllocating(false);
+    }
+  };
+
+  const onRecordExperience = async () => {
+    const score = Number(experienceScore);
+    if (!score || score < 1 || score > 5) {
+      showError('Enter a satisfaction score from 1 to 5.');
+      return;
+    }
+    clear();
+    try {
+      const result = (await recordExperienceScore(id, score)) as {
+        referral_created?: boolean;
+      };
+      await mutate();
+      showSuccess(
+        result?.referral_created
+          ? 'Experience recorded. Referral task created (score ≥ 4).'
+          : 'Experience score recorded.'
+      );
+    } catch (e: unknown) {
+      showError(e, 'Failed to record experience score');
     }
   };
 
@@ -630,6 +811,71 @@ export default function CrmOpportunityDetailPage() {
                 </Button>
               ) : null}
             </div>
+
+            {(() => {
+              const snap = allocationSnapshot as Record<string, unknown> | undefined;
+              const summary = (snap?.status_summary || {}) as Record<string, unknown>;
+              const history = (snap?.history || []) as Record<string, unknown>[];
+              const bookingDoc = (snap?.booking || {}) as Record<string, unknown>;
+              if (!linked.allocatedVin && !Object.keys(summary).length) return null;
+              return (
+                <div className="grid gap-2 rounded-xl border border-border/70 p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    <p>{String(summary.vehicle_location || '—')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Payment</p>
+                    <p>{String(summary.payment_status || '—')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Documentation</p>
+                    <p>{String(summary.documentation_status || '—')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">PDI</p>
+                    <p>{String(summary.pdi_status || '—')}</p>
+                  </div>
+                  {history.length ? (
+                    <div className="sm:col-span-2 lg:col-span-4">
+                      <p className="mb-1 text-xs text-muted-foreground">Allocation history</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {history.slice(-5).reverse().map((row, index) => (
+                          <li key={`${row.action}-${index}`}>
+                            {String(row.action_on || '')} · {String(row.action)} ·{' '}
+                            {String(row.from_vin || '—')} → {String(row.to_vin || '—')}
+                            {row.approved_by ? ` · approved by ${String(row.approved_by)}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {bookingDoc.allocation_switch_requested ? (
+                    <div className="sm:col-span-2 lg:col-span-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-amber-800">
+                      Switch requested: {String(bookingDoc.allocation_switch_reason || '—')}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          disabled={allocating}
+                          onClick={() => void onApproveSwitch(true)}
+                        >
+                          Approve switch
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={allocating}
+                          onClick={() => void onApproveSwitch(false)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()}
+
             {!linked.allocatedVin ? (
               <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
                 <SearchableSelect
@@ -653,7 +899,81 @@ export default function CrmOpportunityDetailPage() {
                   Allocate
                 </Button>
               </div>
-            ) : null}
+            ) : (
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    placeholder="Switch reason (required)"
+                    value={switchReason}
+                    onChange={(event) => setSwitchReason(event.target.value)}
+                  />
+                  <SearchableSelect
+                    options={((allocatableVins as Record<string, unknown>[] | undefined) || []).map(
+                      (vehicle) => ({
+                        value: String(vehicle.name),
+                        label: String(vehicle.vin_number || vehicle.name),
+                        description: [vehicle.linked_item, vehicle.location]
+                          .filter(Boolean)
+                          .join(' · '),
+                      })
+                    )}
+                    value={switchVin}
+                    onValueChange={(value) => setSwitchVin(value || '')}
+                    onSearchChange={setAllocateSearch}
+                    isLoading={allocatableLoading}
+                    placeholder="New VIN (optional until approve)…"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={allocating}
+                    onClick={() => void onRequestSwitch()}
+                  >
+                    Request switch
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={allocating}
+                    onClick={() => void onReleaseVin()}
+                  >
+                    Release VIN
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {form.stage === 'Won' || form.status === 'Won' ? (
+        <Card className="border-border/70 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Ownership journey</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Welcome call, experience check, first-service, retention and anniversary tasks are
+              created automatically. Record the 7-day experience score to unlock a referral request
+              (only when score ≥ 4).
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Experience score (1–5)</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={5}
+                  className="w-28"
+                  value={experienceScore}
+                  onChange={(event) => setExperienceScore(event.target.value)}
+                />
+              </div>
+              <Button onClick={() => void onRecordExperience()}>Record experience</Button>
+              <Button variant="outline" onClick={() => navigate('crm-activities')}>
+                Open activities
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -1190,6 +1510,277 @@ export default function CrmOpportunityDetailPage() {
         </CardContent>
       </Card>
 
+      {isFleetDeal ? (
+        <Card className="border-border/70 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Fleet / Tender</CardTitle>
+            {form.account ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate('crm-account-detail', { id: form.account })}
+              >
+                Open account
+              </Button>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Account
+                </label>
+                <SearchableSelect
+                  options={((accountPick?.data as Record<string, unknown>[]) || []).map(
+                    (a) => ({
+                      value: String(a.name),
+                      label: String(a.account_name || a.name),
+                      description: String(a.customer_name || a.customer || ''),
+                    })
+                  )}
+                  value={form.account}
+                  onValueChange={(v) => set('account', v || '')}
+                  onSearchChange={setAccountSearch}
+                  placeholder="Corporate account…"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Tender
+                </label>
+                <SearchableSelect
+                  options={((tenderPick?.data as Record<string, unknown>[]) || []).map(
+                    (t) => ({
+                      value: String(t.name),
+                      label: String(t.title || t.name),
+                      description: String(t.customer_name || t.status || ''),
+                    })
+                  )}
+                  value={form.tender}
+                  onValueChange={(v) => set('tender', v || '')}
+                  onSearchChange={setTenderSearch}
+                  placeholder="Linked tender…"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Framework agreement
+                </label>
+                <Input
+                  value={form.framework_agreement}
+                  onChange={(e) => set('framework_agreement', e.target.value)}
+                  placeholder="CRM-FA-…"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Bid deadline
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={form.bid_deadline}
+                  onChange={(e) => set('bid_deadline', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Financing / LC
+                </label>
+                <SearchableSelect
+                  options={[
+                    'Cash',
+                    'Bank Finance',
+                    'Lease',
+                    'LC',
+                    'Company Purchase',
+                    'Other',
+                  ].map((v) => ({ value: v, label: v }))}
+                  value={form.financing_method}
+                  onValueChange={(v) => set('financing_method', v || '')}
+                  placeholder="Financing…"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Delivery schedule (batch / location)
+                </label>
+                <Textarea
+                  rows={2}
+                  value={form.delivery_schedule_notes}
+                  onChange={(e) => set('delivery_schedule_notes', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Aftersales package
+                </label>
+                <Textarea
+                  rows={2}
+                  value={form.aftersales_package_notes}
+                  onChange={(e) => set('aftersales_package_notes', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Body-building / conversion
+                </label>
+                <Textarea
+                  rows={2}
+                  value={form.special_conversion_notes}
+                  onChange={(e) => set('special_conversion_notes', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Fleet requirements</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    fleet_requirements: [
+                      ...prev.fleet_requirements,
+                      {
+                        model: '',
+                        specification: '',
+                        quantity: 1,
+                        preferred_color: '',
+                        unit_price: '',
+                        body_building_notes: '',
+                        delivery_location: '',
+                        delivery_batch: '',
+                        delivery_date: '',
+                      },
+                    ],
+                  }))
+                }
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add line
+              </Button>
+            </div>
+            {form.fleet_requirements.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Requested quantity by model, specification, batch and delivery location.
+              </p>
+            ) : (
+              form.fleet_requirements.map((row, idx) => (
+                <div
+                  key={idx}
+                  className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
+                >
+                  <Input
+                    className="sm:col-span-2"
+                    placeholder="Model (Vehicle Model name)"
+                    value={row.model}
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = { ...next[idx], model: e.target.value };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                  />
+                  <Input
+                    className="sm:col-span-2"
+                    placeholder="Specification"
+                    value={row.specification}
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = { ...next[idx], specification: e.target.value };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Qty"
+                    value={row.quantity}
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = {
+                          ...next[idx],
+                          quantity: Number(e.target.value || 1),
+                        };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        fleet_requirements: prev.fleet_requirements.filter(
+                          (_, i) => i !== idx
+                        ),
+                      }))
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    placeholder="Delivery location"
+                    value={row.delivery_location}
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = {
+                          ...next[idx],
+                          delivery_location: e.target.value,
+                        };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                  />
+                  <Input
+                    placeholder="Batch"
+                    value={row.delivery_batch}
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = { ...next[idx], delivery_batch: e.target.value };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                  />
+                  <Input
+                    type="date"
+                    value={row.delivery_date}
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = { ...next[idx], delivery_date: e.target.value };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                  />
+                  <Input
+                    className="sm:col-span-3"
+                    placeholder="Body-building notes"
+                    value={row.body_building_notes}
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = {
+                          ...next[idx],
+                          body_building_notes: e.target.value,
+                        };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                  />
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <FormActionsBar>
         <Button variant="outline" onClick={() => navigate('crm-opportunities')} disabled={busy}>

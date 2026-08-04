@@ -18,6 +18,7 @@ import { apiRequest } from '@/services/apiClient';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -34,12 +35,30 @@ type CalendarEvent = {
   opportunity?: string;
 };
 
-async function fetchCalendarEvents(fromDate: string, toDate: string) {
+async function fetchCalendarEvents(
+  fromDate: string,
+  toDate: string,
+  filters?: {
+    branch?: string;
+    advisor?: string;
+    bay?: string;
+    appointment_type?: string;
+    event_types?: string;
+  }
+) {
   return apiRequest<{ events: CalendarEvent[]; from_date: string; to_date: string }>(
     '/api/method/dms.crm_api.calendar.get_calendar_events',
     {
       method: 'POST',
-      body: JSON.stringify({ from_date: fromDate, to_date: toDate }),
+      body: JSON.stringify({
+        from_date: fromDate,
+        to_date: toDate,
+        branch: filters?.branch || null,
+        advisor: filters?.advisor || null,
+        bay: filters?.bay || null,
+        appointment_type: filters?.appointment_type || null,
+        event_types: filters?.event_types || null,
+      }),
     }
   );
 }
@@ -56,14 +75,36 @@ const TYPE_STYLE: Record<string, string> = {
 export default function CrmCalendarPage() {
   const { navigate } = useNavigation();
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
+  const [branch, setBranch] = useState('');
+  const [advisor, setAdvisor] = useState('');
+  const [bay, setBay] = useState('');
+  const [appointmentType, setAppointmentType] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const rangeStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
   const rangeEnd = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 });
   const fromDate = format(rangeStart, 'yyyy-MM-dd');
   const toDate = format(rangeEnd, 'yyyy-MM-dd');
 
-  const { data, isLoading } = useSWR(['crm-calendar', fromDate, toDate], () =>
-    fetchCalendarEvents(fromDate, toDate)
+  const eventTypes =
+    typeFilter === 'all'
+      ? undefined
+      : typeFilter === 'service'
+        ? 'appointment'
+        : typeFilter === 'sales'
+          ? 'sales_appointment,test_drive'
+          : typeFilter;
+
+  const { data, isLoading } = useSWR(
+    ['crm-calendar', fromDate, toDate, branch, advisor, bay, appointmentType, typeFilter],
+    () =>
+      fetchCalendarEvents(fromDate, toDate, {
+        branch: branch || undefined,
+        advisor: advisor || undefined,
+        bay: bay || undefined,
+        appointment_type: appointmentType || undefined,
+        event_types: eventTypes,
+      })
   );
 
   const days = useMemo(
@@ -150,6 +191,45 @@ export default function CrmCalendarPage() {
           </span>
         </div>
       </div>
+
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Input
+            placeholder="Branch…"
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+          />
+          <Input
+            placeholder="Advisor / assignee…"
+            value={advisor}
+            onChange={(e) => setAdvisor(e.target.value)}
+          />
+          <Input placeholder="Bay…" value={bay} onChange={(e) => setBay(e.target.value)} />
+          <select
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            value={appointmentType}
+            onChange={(e) => setAppointmentType(e.target.value)}
+          >
+            <option value="">All appointment types</option>
+            <option value="Service">Service</option>
+            <option value="Mobile Service">Mobile Service</option>
+            <option value="Delivery">Delivery</option>
+            <option value="Complaint Review">Complaint Review</option>
+            <option value="Fleet Visit">Fleet Visit</option>
+          </select>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          >
+            <option value="all">All event kinds</option>
+            <option value="service">Service appointments</option>
+            <option value="sales">Sales + test drives</option>
+            <option value="activity">Activities</option>
+            <option value="lead,opportunity">Lead / deal follow-ups</option>
+          </select>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <Card className="border-border/70 shadow-sm">

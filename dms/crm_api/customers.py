@@ -458,7 +458,65 @@ def _loyalty_value(
 	follow_ups: list[dict],
 	deliveries: list[dict],
 ) -> dict:
-	"""Computed loyalty & value until dedicated loyalty doctypes ship."""
+	"""§16 — prefer dedicated loyalty engine; fall back to heuristics."""
+	if frappe.db.exists("DocType", "DMS CRM Loyalty Settings"):
+		try:
+			from dms.crm_api.loyalty import compute_customer_value
+
+			value = compute_customer_value(customer)
+			referrals = []
+			if frappe.db.exists("DocType", "DMS CRM Referral"):
+				referrals = _safe_all(
+					"DMS CRM Referral",
+					filters={"referrer_customer": customer},
+					fields=_fields_present(
+						"DMS CRM Referral",
+						[
+							"name",
+							"referred_name",
+							"referred_customer",
+							"status",
+							"reward_points",
+							"reward_paid",
+							"modified",
+						],
+					),
+					limit=20,
+				)
+			ratings = [
+				flt(f.get("nps_score"))
+				for f in follow_ups
+				if f.get("nps_score") is not None and str(f.get("nps_score")).strip() != ""
+			]
+			avg_nps = (sum(ratings) / len(ratings)) if ratings else None
+			return {
+				"lifetime_value": value.get("lifetime_revenue"),
+				"sales_revenue": value.get("sales_revenue"),
+				"aftersales_revenue": value.get("aftersales_revenue"),
+				"gross_contribution": value.get("gross_contribution"),
+				"loyalty_tier": value.get("loyalty_tier"),
+				"points": value.get("points") or 0,
+				"points_source": value.get("points_source"),
+				"tier_benefits": value.get("tier_benefits") or {},
+				"retention_status": value.get("retention_status"),
+				"relationship_health": value.get("relationship_health"),
+				"churn_risk": value.get("churn_risk"),
+				"referrals": referrals,
+				"referral_count": len(referrals),
+				"won_deals": sum(
+					1
+					for o in opportunities
+					if (o.get("status") or "") == "Won" or (o.get("stage") or "") == "Won"
+				),
+				"service_visits": value.get("service_visits") or len(job_cards),
+				"avg_nps": avg_nps,
+				"repurchase_potential": value.get("repurchase_propensity"),
+				"source": "loyalty_engine",
+			}
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "loyalty_value")
+
+	# Legacy heuristic fallback
 	sales_revenue = flt(finance.get("invoiced_total"))
 	aftersales_revenue = sum(flt(j.get("total_amount")) for j in job_cards)
 	ltv = sales_revenue + aftersales_revenue
@@ -474,7 +532,6 @@ def _loyalty_value(
 	]
 	avg_nps = (sum(ratings) / len(ratings)) if ratings else None
 
-	# Simple tier heuristic (Phase 3 placeholder until points engine)
 	if ltv >= 50000 or service_visits >= 10:
 		tier = "Platinum"
 	elif ltv >= 20000 or service_visits >= 5:
@@ -497,40 +554,24 @@ def _loyalty_value(
 			filters={"referrer_customer": customer},
 			fields=_fields_present(
 				"DMS CRM Referral",
-				["name", "referred_customer", "status", "reward_points", "modified"],
+				["name", "referred_customer", "referred_name", "status", "reward_points", "modified"],
 			),
 			limit=20,
 		)
-
-	points = 0
-	if frappe.db.exists("DocType", "DMS CRM Loyalty Ledger"):
-		try:
-			points = flt(
-				frappe.db.sql(
-					"""
-					SELECT COALESCE(SUM(points), 0)
-					FROM `tabDMS CRM Loyalty Ledger`
-					WHERE customer = %s
-					""",
-					customer,
-				)[0][0]
-			)
-		except Exception:
-			points = 0
 
 	return {
 		"lifetime_value": ltv,
 		"sales_revenue": sales_revenue,
 		"aftersales_revenue": aftersales_revenue,
 		"loyalty_tier": tier,
-		"points": points,
+		"points": 0,
 		"referrals": referrals,
 		"referral_count": len(referrals),
 		"won_deals": won_deals,
 		"service_visits": service_visits,
 		"avg_nps": avg_nps,
 		"repurchase_potential": repurchase,
-		"source": "computed" if not points and not referrals else "mixed",
+		"source": "computed",
 	}
 
 

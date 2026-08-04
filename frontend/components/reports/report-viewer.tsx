@@ -14,6 +14,7 @@ import {
   ReportStatusChip,
   isReportStatusField,
 } from '@/components/reports/report-status-chip';
+import { useNavigation } from '@/contexts/navigation-context';
 
 function formatCell(value: unknown): string {
   if (value == null || value === '') return '—';
@@ -28,8 +29,14 @@ function formatCell(value: unknown): string {
 
 /** Report tabs: table only. KPIs / charts live on Overview. */
 export function ReportViewer({ data }: { data: ReportResult }) {
+  const { navigate } = useNavigation();
   const columns = data.columns || [];
   const rows = data.rows || [];
+
+  const drill = (row: Record<string, unknown>) => {
+    const d = row._drill as { view?: string; params?: Record<string, string> } | undefined;
+    if (d?.view) navigate(d.view, d.params);
+  };
 
   return (
     <div className="overflow-hidden rounded-lg border border-border/80">
@@ -62,13 +69,21 @@ export function ReportViewer({ data }: { data: ReportResult }) {
               </TableRow>
             ) : (
               rows.map((row, idx) => (
-                <TableRow key={idx}>
+                <TableRow
+                  key={idx}
+                  className={row._drill ? 'cursor-pointer hover:bg-muted/40' : undefined}
+                  onClick={() => drill(row)}
+                >
                   {columns.map((col) => (
                     <TableCell key={col.key} className="text-[13px]">
                       {isStarRatingField(col.key) ? (
                         <StarRating value={row[col.key] ?? row.rating_stars} size="sm" />
                       ) : isReportStatusField(col.key) ? (
                         <ReportStatusChip fieldKey={col.key} value={row[col.key]} />
+                      ) : col.key === 'name' && row._drill ? (
+                        <span className="font-medium text-primary underline-offset-2 hover:underline">
+                          {formatCell(row[col.key])}
+                        </span>
                       ) : (
                         formatCell(row[col.key])
                       )}

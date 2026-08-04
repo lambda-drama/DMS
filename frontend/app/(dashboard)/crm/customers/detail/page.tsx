@@ -952,7 +952,7 @@ function CampaignsTab({ data }: { data: Customer360Data }) {
       </CardHeader>
       <CardContent>
         {campaigns.length === 0 ? (
-          <EmptyState label="No campaign membership yet. Membership will appear when CRM campaigns are configured." />
+          <EmptyState label="No campaign membership yet." />
         ) : (
           <DataTable
             empty="No campaign membership."
@@ -1121,6 +1121,23 @@ function LoyaltyTab({ data }: { data: Customer360Data }) {
         />
         <StatCard label="Points" value={loyalty.points} />
         <StatCard label="Repurchase potential" value={loyalty.repurchase_potential} />
+        <StatCard
+          label="Relationship health"
+          value={
+            (loyalty as { relationship_health?: number }).relationship_health != null
+              ? String((loyalty as { relationship_health?: number }).relationship_health)
+              : '—'
+          }
+        />
+        <StatCard
+          label="Retention"
+          value={String((loyalty as { retention_status?: string }).retention_status || '—')}
+        />
+        <StatCard
+          label="Churn risk"
+          value={String((loyalty as { churn_risk?: string }).churn_risk || '—')}
+        />
+        <StatCard label="Referrals" value={loyalty.referral_count} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -1145,8 +1162,9 @@ function LoyaltyTab({ data }: { data: Customer360Data }) {
               ))}
             </dl>
             <p className="mt-4 text-xs text-muted-foreground">
-              Tier and LTV are computed from invoices, job cards and deals until a dedicated
-              loyalty ledger is configured.
+              Points from ERPNext Loyalty Program when enrolled. Tier benefits and health from
+              DMS CRM Loyalty Settings. Use Pricing Rule only for discount delivery, not as the
+              points engine.
             </p>
           </CardContent>
         </Card>

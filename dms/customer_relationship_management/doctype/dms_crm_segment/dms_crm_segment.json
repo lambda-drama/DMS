@@ -1,0 +1,347 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-05 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "segment_name",
+  "status",
+  "column_break_main",
+  "company",
+  "branch",
+  "owner_user",
+  "audience_count",
+  "section_customer",
+  "customer_type",
+  "customer_group",
+  "territory",
+  "city",
+  "preferred_language",
+  "column_break_cust",
+  "include_do_not_contact",
+  "require_marketing_consent",
+  "loyalty_tier",
+  "section_vehicle",
+  "brand",
+  "vehicle_model",
+  "model_year_from",
+  "model_year_to",
+  "fuel_type",
+  "column_break_veh",
+  "warranty_status",
+  "mileage_min",
+  "mileage_max",
+  "vehicle_age_max_years",
+  "section_sales",
+  "sales_status",
+  "lost_reason",
+  "last_enquiry_days",
+  "purchase_timeframe",
+  "section_service",
+  "retention_category",
+  "service_overdue_days_min",
+  "has_deferred_work",
+  "section_engagement",
+  "channel_preference",
+  "has_complaint_history",
+  "notes",
+  "last_refreshed_on"
+ ],
+ "fields": [
+  {
+   "default": "CRM-SEG-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CRM-SEG-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "segment_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Segment Name",
+   "reqd": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nActive\nArchived"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "owner_user",
+   "fieldtype": "Link",
+   "label": "Owner",
+   "options": "User"
+  },
+  {
+   "default": "0",
+   "fieldname": "audience_count",
+   "fieldtype": "Int",
+   "label": "Audience Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_customer",
+   "fieldtype": "Section Break",
+   "label": "Customer Filters (§13.2)"
+  },
+  {
+   "fieldname": "customer_type",
+   "fieldtype": "Select",
+   "label": "Customer Type",
+   "options": "\nIndividual\nCompany"
+  },
+  {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "label": "Customer Group",
+   "options": "Customer Group"
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "label": "Territory / Country",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "preferred_language",
+   "fieldtype": "Data",
+   "label": "Preferred Language"
+  },
+  {
+   "fieldname": "column_break_cust",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "If unchecked, DNC customers are excluded",
+   "fieldname": "include_do_not_contact",
+   "fieldtype": "Check",
+   "label": "Include Do-Not-Contact"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_marketing_consent",
+   "fieldtype": "Check",
+   "label": "Require Marketing Consent"
+  },
+  {
+   "fieldname": "loyalty_tier",
+   "fieldtype": "Select",
+   "label": "Loyalty Tier",
+   "options": "\nStandard\nSilver\nGold\nPlatinum"
+  },
+  {
+   "fieldname": "section_vehicle",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Filters"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "vehicle_model",
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Vehicle Model"
+  },
+  {
+   "fieldname": "model_year_from",
+   "fieldtype": "Int",
+   "label": "Model Year From"
+  },
+  {
+   "fieldname": "model_year_to",
+   "fieldtype": "Int",
+   "label": "Model Year To"
+  },
+  {
+   "fieldname": "fuel_type",
+   "fieldtype": "Data",
+   "label": "Fuel Type"
+  },
+  {
+   "fieldname": "column_break_veh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "warranty_status",
+   "fieldtype": "Select",
+   "label": "Warranty Status",
+   "options": "\nActive\nExpired\nNot Started"
+  },
+  {
+   "fieldname": "mileage_min",
+   "fieldtype": "Int",
+   "label": "Mileage Min (km)"
+  },
+  {
+   "fieldname": "mileage_max",
+   "fieldtype": "Int",
+   "label": "Mileage Max (km)"
+  },
+  {
+   "fieldname": "vehicle_age_max_years",
+   "fieldtype": "Int",
+   "label": "Max Vehicle Age (years)"
+  },
+  {
+   "fieldname": "section_sales",
+   "fieldtype": "Section Break",
+   "label": "Sales Filters"
+  },
+  {
+   "fieldname": "sales_status",
+   "fieldtype": "Select",
+   "label": "Opportunity Status",
+   "options": "\nOpen\nWon\nLost"
+  },
+  {
+   "fieldname": "lost_reason",
+   "fieldtype": "Data",
+   "label": "Lost Reason Contains"
+  },
+  {
+   "fieldname": "last_enquiry_days",
+   "fieldtype": "Int",
+   "label": "Last Enquiry Within (days)"
+  },
+  {
+   "fieldname": "purchase_timeframe",
+   "fieldtype": "Data",
+   "label": "Purchase Timeframe"
+  },
+  {
+   "fieldname": "section_service",
+   "fieldtype": "Section Break",
+   "label": "Service / Retention Filters"
+  },
+  {
+   "fieldname": "retention_category",
+   "fieldtype": "Select",
+   "label": "Retention Category",
+   "options": "\nUpcoming\nDue\nOverdue\nLapsed\nDeferred"
+  },
+  {
+   "fieldname": "service_overdue_days_min",
+   "fieldtype": "Int",
+   "label": "Min Overdue Days"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_deferred_work",
+   "fieldtype": "Check",
+   "label": "Has Deferred Work"
+  },
+  {
+   "fieldname": "section_engagement",
+   "fieldtype": "Section Break",
+   "label": "Engagement / Consent"
+  },
+  {
+   "fieldname": "channel_preference",
+   "fieldtype": "Select",
+   "label": "Channel Preference",
+   "options": "\nPhone\nWhatsApp\nSMS\nEmail\nIn Person"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_complaint_history",
+   "fieldtype": "Check",
+   "label": "Has Complaint / Case History"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "last_refreshed_on",
+   "fieldtype": "Datetime",
+   "label": "Last Refreshed On",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Segment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "DMS CRM User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "segment_name",
+ "track_changes": 1
+}

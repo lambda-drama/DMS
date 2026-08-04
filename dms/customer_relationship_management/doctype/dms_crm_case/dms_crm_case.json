@@ -12,30 +12,73 @@
   "category",
   "priority",
   "status",
+  "opened_on",
   "column_break_main",
   "customer",
   "vehicle_vin",
+  "brand",
   "source",
   "case_owner",
   "company",
   "branch",
+  "next_action",
+  "next_action_due",
+  "parked_in_nurture",
+  "section_severity",
+  "safety_impact",
+  "accident_related",
+  "legal_allegation",
+  "public_media_risk",
+  "vehicle_off_road",
+  "vip_fleet",
+  "reputational_risk",
+  "protected_escalation",
+  "column_break_severity",
+  "responsible_department",
+  "manager",
+  "escalation_level",
+  "escalated_on",
   "section_detail",
   "customer_statement",
   "requested_outcome",
+  "evidence_notes",
+  "column_break_related",
+  "job_card",
+  "related_doctype",
+  "related_name",
   "section_sla",
   "response_deadline",
   "resolution_target",
+  "response_breached",
+  "resolution_breached",
   "sla_breached",
   "column_break_sla",
+  "section_investigation",
+  "findings",
+  "responsible_process",
+  "root_cause",
+  "corrective_action",
+  "preventive_action",
+  "section_resolution",
+  "action_taken",
   "resolution_summary",
+  "goodwill_compensation",
+  "resolution_approved_by",
+  "customer_accepted",
+  "customer_acceptance_on",
   "closure_code",
+  "section_followup",
+  "post_resolution_satisfaction",
+  "lessons_learned",
+  "reopened_on",
+  "reopen_reason",
   "amended_from"
  ],
  "fields": [
   {
    "fieldname": "section_main",
    "fieldtype": "Section Break",
-   "label": "Case"
+   "label": "Identification"
   },
   {
    "default": "CRM-CASE-.YYYY.-",
@@ -66,7 +109,8 @@
    "fieldname": "priority",
    "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Priority",
+   "in_standard_filter": 1,
+   "label": "Severity / Priority",
    "options": "Critical\nHigh\nMedium\nLow",
    "reqd": 1
   },
@@ -79,6 +123,12 @@
    "label": "Status",
    "options": "New\nAcknowledged\nAssigned\nInvestigation\nAwaiting Customer\nAwaiting Internal Action\nResolution Proposed\nResolved\nClosed\nReopened",
    "reqd": 1
+  },
+  {
+   "fieldname": "opened_on",
+   "fieldtype": "Datetime",
+   "label": "Opened On",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_main",
@@ -98,10 +148,16 @@
    "options": "VIN No"
   },
   {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
    "fieldname": "source",
    "fieldtype": "Select",
    "label": "Source",
-   "options": "\nPhone\nWhatsApp\nEmail\nWalk-in\nSurvey\nSocial Media\nInternal"
+   "options": "\nPhone\nWhatsApp\nEmail\nWalk-in\nSurvey\nSocial Media\nInternal\nCall Center"
   },
   {
    "fieldname": "case_owner",
@@ -122,9 +178,112 @@
    "options": "Branch"
   },
   {
+   "fieldname": "next_action",
+   "fieldtype": "Data",
+   "label": "Next Action"
+  },
+  {
+   "fieldname": "next_action_due",
+   "fieldtype": "Datetime",
+   "label": "Next Action Due"
+  },
+  {
+   "default": "0",
+   "description": "Parked cases are exempt from mandatory next-action (§15.2)",
+   "fieldname": "parked_in_nurture",
+   "fieldtype": "Check",
+   "label": "Parked in Nurture"
+  },
+  {
+   "fieldname": "section_severity",
+   "fieldtype": "Section Break",
+   "label": "Severity & Ownership"
+  },
+  {
+   "default": "0",
+   "fieldname": "safety_impact",
+   "fieldtype": "Check",
+   "label": "Safety Impact"
+  },
+  {
+   "default": "0",
+   "fieldname": "accident_related",
+   "fieldtype": "Check",
+   "label": "Accident Related"
+  },
+  {
+   "default": "0",
+   "fieldname": "legal_allegation",
+   "fieldtype": "Check",
+   "label": "Legal Allegation"
+  },
+  {
+   "default": "0",
+   "fieldname": "public_media_risk",
+   "fieldtype": "Check",
+   "label": "Public / Media Risk"
+  },
+  {
+   "default": "0",
+   "fieldname": "vehicle_off_road",
+   "fieldtype": "Check",
+   "label": "Vehicle Off-Road / Immobilized"
+  },
+  {
+   "default": "0",
+   "fieldname": "vip_fleet",
+   "fieldtype": "Check",
+   "label": "VIP / Fleet / Government"
+  },
+  {
+   "default": "None",
+   "fieldname": "reputational_risk",
+   "fieldtype": "Select",
+   "label": "Reputational Risk",
+   "options": "None\nLow\nMedium\nHigh"
+  },
+  {
+   "default": "0",
+   "description": "Auto-set for safety, accident, legal or public-media risk. Closure restricted to managers.",
+   "fieldname": "protected_escalation",
+   "fieldtype": "Check",
+   "label": "Protected Escalation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_severity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "responsible_department",
+   "fieldtype": "Select",
+   "label": "Responsible Department",
+   "options": "\nSales\nAftersales\nParts\nWarranty\nFinance\nRegistration\nCustomer Care\nIT / Digital\nLegal\nOther"
+  },
+  {
+   "fieldname": "manager",
+   "fieldtype": "Link",
+   "label": "Manager",
+   "options": "User"
+  },
+  {
+   "default": "None",
+   "fieldname": "escalation_level",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Escalation Level",
+   "options": "None\nTeam Leader\nDepartment Manager\nDirector\nExecutive"
+  },
+  {
+   "fieldname": "escalated_on",
+   "fieldtype": "Datetime",
+   "label": "Escalated On",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_detail",
    "fieldtype": "Section Break",
-   "label": "Details"
+   "label": "Description & Evidence"
   },
   {
    "fieldname": "customer_statement",
@@ -137,19 +296,61 @@
    "label": "Requested Outcome"
   },
   {
+   "fieldname": "evidence_notes",
+   "fieldtype": "Small Text",
+   "label": "Evidence Notes"
+  },
+  {
+   "fieldname": "column_break_related",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Related Job Card",
+   "options": "DMS Job Card"
+  },
+  {
+   "fieldname": "related_doctype",
+   "fieldtype": "Link",
+   "label": "Related DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "related_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Related Document",
+   "options": "related_doctype"
+  },
+  {
    "fieldname": "section_sla",
    "fieldtype": "Section Break",
-   "label": "SLA & Resolution"
+   "label": "SLA"
   },
   {
    "fieldname": "response_deadline",
    "fieldtype": "Datetime",
+   "in_list_view": 1,
    "label": "Response Deadline"
   },
   {
    "fieldname": "resolution_target",
    "fieldtype": "Datetime",
    "label": "Resolution Target"
+  },
+  {
+   "default": "0",
+   "fieldname": "response_breached",
+   "fieldtype": "Check",
+   "label": "Response Breached",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "resolution_breached",
+   "fieldtype": "Check",
+   "label": "Resolution Breached",
+   "read_only": 1
   },
   {
    "default": "0",
@@ -163,14 +364,104 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "section_investigation",
+   "fieldtype": "Section Break",
+   "label": "Investigation"
+  },
+  {
+   "fieldname": "findings",
+   "fieldtype": "Text Editor",
+   "label": "Findings"
+  },
+  {
+   "fieldname": "responsible_process",
+   "fieldtype": "Data",
+   "label": "Responsible Process"
+  },
+  {
+   "fieldname": "root_cause",
+   "fieldtype": "Small Text",
+   "label": "Root Cause"
+  },
+  {
+   "fieldname": "corrective_action",
+   "fieldtype": "Small Text",
+   "label": "Corrective Action"
+  },
+  {
+   "fieldname": "preventive_action",
+   "fieldtype": "Small Text",
+   "label": "Preventive Action"
+  },
+  {
+   "fieldname": "section_resolution",
+   "fieldtype": "Section Break",
+   "label": "Resolution"
+  },
+  {
+   "fieldname": "action_taken",
+   "fieldtype": "Small Text",
+   "label": "Action Taken"
+  },
+  {
    "fieldname": "resolution_summary",
    "fieldtype": "Small Text",
    "label": "Resolution Summary"
   },
   {
+   "fieldname": "goodwill_compensation",
+   "fieldtype": "Currency",
+   "label": "Goodwill / Compensation"
+  },
+  {
+   "fieldname": "resolution_approved_by",
+   "fieldtype": "Link",
+   "label": "Resolution Approved By",
+   "options": "User"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_accepted",
+   "fieldtype": "Check",
+   "label": "Customer Accepted"
+  },
+  {
+   "fieldname": "customer_acceptance_on",
+   "fieldtype": "Datetime",
+   "label": "Customer Acceptance On"
+  },
+  {
    "fieldname": "closure_code",
-   "fieldtype": "Data",
-   "label": "Closure Code"
+   "fieldtype": "Select",
+   "label": "Closure Code",
+   "options": "\nResolved – Customer Accepted\nResolved – Goodwill\nResolved – Technical Fix\nNot Upheld\nWithdrawn\nDuplicate\nOther"
+  },
+  {
+   "fieldname": "section_followup",
+   "fieldtype": "Section Break",
+   "label": "Follow-Up"
+  },
+  {
+   "fieldname": "post_resolution_satisfaction",
+   "fieldtype": "Select",
+   "label": "Post-Resolution Satisfaction",
+   "options": "\nSatisfied\nNeutral\nDissatisfied"
+  },
+  {
+   "fieldname": "lessons_learned",
+   "fieldtype": "Small Text",
+   "label": "Lessons Learned"
+  },
+  {
+   "fieldname": "reopened_on",
+   "fieldtype": "Datetime",
+   "label": "Reopened On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reopen_reason",
+   "fieldtype": "Small Text",
+   "label": "Reopen Reason"
   },
   {
    "fieldname": "amended_from",
@@ -184,10 +475,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-27 22:00:00.000000",
+ "modified": "2026-08-05 02:30:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Case",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

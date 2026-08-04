@@ -9,6 +9,7 @@ const LEADS = 'dms.crm_api.leads';
 const OPP = 'dms.crm_api.opportunities';
 const ACT = 'dms.crm_api.activities';
 const CASES = 'dms.crm_api.cases';
+const CAMPAIGNS = 'dms.crm_api.campaigns';
 const CONTACTS = 'dms.crm_api.contacts';
 const CUSTOMERS = 'dms.crm_api.customers';
 
@@ -371,7 +372,33 @@ export async function releaseVin(booking: string, reason?: string) {
   });
 }
 
+export async function recordExperienceScore(
+  opportunity: string,
+  score: number,
+  notes?: string
+) {
+  return apiRequest(`/api/method/dms.crm_api.ownership_journey.record_experience_score`, {
+    method: 'POST',
+    body: JSON.stringify({ opportunity, score, notes: notes || null }),
+  });
+}
+
 const DELIVERY = 'dms.crm_api.delivery_readiness';
+
+export async function completeHandover(
+  name: string,
+  data?: {
+    satisfaction_score?: number;
+    handover_on?: string;
+    handover_photos?: string;
+    notes?: string;
+  }
+) {
+  return apiRequest(`/api/method/${DELIVERY}.complete_handover`, {
+    method: 'POST',
+    body: JSON.stringify({ name, ...(data || {}) }),
+  });
+}
 
 export async function listDeliveryReadiness(options?: {
   status?: string;
@@ -505,10 +532,439 @@ export async function fetchCrmItems(search?: string) {
 export async function listActivities(options?: {
   status?: string;
   search?: string;
+  assigned_to?: string;
+  activity_type?: string;
+  overdue_only?: boolean;
+  mine?: boolean;
+  campaign?: string;
   limit?: number;
   offset?: number;
 }) {
   return apiRequest(`/api/method/${ACT}.get_activities`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      assigned_to: options?.assigned_to || null,
+      activity_type: options?.activity_type || null,
+      overdue_only: options?.overdue_only ? 1 : 0,
+      mine: options?.mine ? 1 : 0,
+      campaign: options?.campaign || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getActivity(name: string) {
+  return apiRequest(`/api/method/${ACT}.get_activity`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createActivity(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${ACT}.create_activity`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateActivity(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${ACT}.update_activity`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function completeActivity(
+  name: string,
+  disposition?: string,
+  outcome_notes?: string
+) {
+  return apiRequest(`/api/method/${ACT}.complete_activity`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      disposition: disposition || null,
+      outcome_notes: outcome_notes || null,
+    }),
+  });
+}
+
+export async function reassignActivity(name: string, assigned_to: string, reason?: string) {
+  return apiRequest(`/api/method/${ACT}.reassign_activity`, {
+    method: 'POST',
+    body: JSON.stringify({ name, assigned_to, reason: reason || null }),
+  });
+}
+
+export async function fetchActivityFormOptions(): Promise<{
+  activity_types: string[];
+  statuses: string[];
+  priorities: string[];
+  dispositions: string[];
+  recurrence_frequencies: string[];
+}> {
+  return apiRequest(`/api/method/${ACT}.get_activity_form_options`);
+}
+
+export async function getOverdueBoard(scope: 'mine' | 'team' = 'mine') {
+  return apiRequest(`/api/method/${ACT}.get_overdue_board`, {
+    method: 'POST',
+    body: JSON.stringify({ scope }),
+  });
+}
+
+const APPROVALS = 'dms.crm_api.approvals';
+
+export async function listApprovals(options?: {
+  status?: string;
+  approval_type?: string;
+  search?: string;
+  limit?: number;
+}) {
+  return apiRequest(`/api/method/${APPROVALS}.get_approvals`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      approval_type: options?.approval_type || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+    }),
+  });
+}
+
+export async function createApproval(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${APPROVALS}.create_approval`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function decideApproval(
+  name: string,
+  decision: 'Approved' | 'Rejected',
+  decision_notes?: string
+) {
+  return apiRequest(`/api/method/${APPROVALS}.decide_approval`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      decision,
+      decision_notes: decision_notes || null,
+    }),
+  });
+}
+
+export async function fetchApprovalFormOptions(): Promise<{
+  approval_types: string[];
+  statuses: string[];
+  can_approve: boolean;
+}> {
+  return apiRequest(`/api/method/${APPROVALS}.get_approval_form_options`);
+}
+
+const LOYALTY = 'dms.crm_api.loyalty';
+
+export async function getCustomerLoyalty(customer: string) {
+  return apiRequest(`/api/method/${LOYALTY}.get_customer_loyalty`, {
+    method: 'POST',
+    body: JSON.stringify({ customer }),
+  });
+}
+
+export async function getLoyaltySettings() {
+  return apiRequest(`/api/method/${LOYALTY}.get_loyalty_settings`);
+}
+
+export async function updateLoyaltySettings(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${LOYALTY}.update_loyalty_settings`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function createLoyaltyAdjustment(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${LOYALTY}.create_loyalty_adjustment`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function decideLoyaltyAdjustment(
+  name: string,
+  decision: 'Approved' | 'Rejected'
+) {
+  return apiRequest(`/api/method/${LOYALTY}.decide_loyalty_adjustment`, {
+    method: 'POST',
+    body: JSON.stringify({ name, decision }),
+  });
+}
+
+export async function getLoyaltyAdjustments(options?: {
+  status?: string;
+  customer?: string;
+  limit?: number;
+}) {
+  return apiRequest(`/api/method/${LOYALTY}.get_loyalty_adjustments`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      customer: options?.customer || null,
+      limit: options?.limit ?? 50,
+    }),
+  });
+}
+
+export async function getLoyaltySetupStatus() {
+  return apiRequest(`/api/method/${LOYALTY}.get_loyalty_setup_status`);
+}
+
+export async function setupLoyaltyPrograms(options?: {
+  company?: string;
+  create_pricing_rules?: number;
+}) {
+  return apiRequest(`/api/method/${LOYALTY}.setup_loyalty_programs`, {
+    method: 'POST',
+    body: JSON.stringify({
+      company: options?.company || null,
+      create_pricing_rules: options?.create_pricing_rules ?? 1,
+    }),
+  });
+}
+
+export async function enrollCustomerInLoyalty(
+  customer: string,
+  options?: { program?: string; sync_tier?: number }
+) {
+  return apiRequest(`/api/method/${LOYALTY}.enroll_customer_in_loyalty`, {
+    method: 'POST',
+    body: JSON.stringify({
+      customer,
+      program: options?.program || null,
+      sync_tier: options?.sync_tier ?? 1,
+    }),
+  });
+}
+
+export async function enrollCustomersBulk(options?: {
+  limit?: number;
+  only_unenrolled?: number;
+}) {
+  return apiRequest(`/api/method/${LOYALTY}.enroll_customers_bulk`, {
+    method: 'POST',
+    body: JSON.stringify({
+      limit: options?.limit ?? 200,
+      only_unenrolled: options?.only_unenrolled ?? 1,
+    }),
+  });
+}
+
+export async function syncLoyaltyTiers(options?: {
+  limit?: number;
+  customer?: string;
+}) {
+  return apiRequest(`/api/method/${LOYALTY}.sync_loyalty_tiers`, {
+    method: 'POST',
+    body: JSON.stringify({
+      limit: options?.limit ?? 200,
+      customer: options?.customer || null,
+    }),
+  });
+}
+
+export async function listReferrals(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+}) {
+  return apiRequest(`/api/method/${LOYALTY}.get_referrals`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+    }),
+  });
+}
+
+export async function getReferral(name: string) {
+  return apiRequest(`/api/method/${LOYALTY}.get_referral`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createReferral(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${LOYALTY}.create_referral`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateReferral(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${LOYALTY}.update_referral`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function markReferralEvent(name: string, event: string) {
+  return apiRequest(`/api/method/${LOYALTY}.mark_referral_event`, {
+    method: 'POST',
+    body: JSON.stringify({ name, event }),
+  });
+}
+
+export async function listCases(options?: {
+  status?: string;
+  priority?: string;
+  category?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${CASES}.get_cases`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      priority: options?.priority || null,
+      category: options?.category || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getCase(name: string) {
+  return apiRequest(`/api/method/${CASES}.get_case`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createCase(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CASES}.create_case`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateCase(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CASES}.update_case`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function escalateCase(name: string, level?: string, notes?: string) {
+  return apiRequest(`/api/method/${CASES}.escalate_case`, {
+    method: 'POST',
+    body: JSON.stringify({ name, level: level || null, notes: notes || null }),
+  });
+}
+
+export async function fetchCaseFormOptions(): Promise<{
+  categories: string[];
+  priorities: string[];
+  statuses: string[];
+  sources: string[];
+  departments: string[];
+  escalation_levels: string[];
+  closure_codes: string[];
+  satisfaction: string[];
+}> {
+  return apiRequest(`/api/method/${CASES}.get_case_form_options`);
+}
+
+// ─── Campaigns & Segments (§13) ─────────────────────────────────────────────
+
+export async function listCampaigns(options?: {
+  status?: string;
+  campaign_type?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.get_campaigns`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      campaign_type: options?.campaign_type || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getCampaign(name: string) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.get_campaign`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createCampaign(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.create_campaign`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateCampaign(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.update_campaign`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function approveCampaign(name: string) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.approve_campaign`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function buildCampaignAudience(name: string, replaceExisting = false) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.build_campaign_audience`, {
+    method: 'POST',
+    body: JSON.stringify({ name, replace_existing: replaceExisting ? 1 : 0 }),
+  });
+}
+
+export async function refreshCampaignMetrics(name: string) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.refresh_metrics`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateCampaignMember(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.update_campaign_member`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function fetchCampaignFormOptions(): Promise<{
+  campaign_types: string[];
+  statuses: string[];
+  channels: string[];
+  member_statuses: string[];
+}> {
+  return apiRequest(`/api/method/${CAMPAIGNS}.get_campaign_form_options`);
+}
+
+export async function listSegments(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.get_segments`, {
     method: 'POST',
     body: JSON.stringify({
       status: options?.status || null,
@@ -519,22 +975,63 @@ export async function listActivities(options?: {
   });
 }
 
-export async function listCases(options?: {
-  status?: string;
-  priority?: string;
-  search?: string;
-  limit?: number;
-  offset?: number;
-}) {
-  return apiRequest(`/api/method/${CASES}.get_cases`, {
+export async function getSegment(name: string) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.get_segment`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createSegment(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.create_segment`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateSegment(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.update_segment`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function previewSegment(options: { name?: string; data?: Record<string, unknown> }) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.preview_segment`, {
     method: 'POST',
     body: JSON.stringify({
-      status: options?.status || null,
-      priority: options?.priority || null,
-      search: options?.search || null,
+      name: options.name || null,
+      data: options.data || null,
+    }),
+  });
+}
+
+export async function fetchSegmentFormOptions(): Promise<{
+  statuses: string[];
+  customer_types: string[];
+  loyalty_tiers: string[];
+  warranty_statuses: string[];
+  sales_statuses: string[];
+  retention_categories: string[];
+  channels: string[];
+}> {
+  return apiRequest(`/api/method/${CAMPAIGNS}.get_segment_form_options`);
+}
+
+export async function listSuppressionLists(options?: { limit?: number; offset?: number }) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.get_suppression_lists`, {
+    method: 'POST',
+    body: JSON.stringify({
       limit: options?.limit ?? 50,
       offset: options?.offset ?? 0,
     }),
+  });
+}
+
+export async function createSuppressionList(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CAMPAIGNS}.create_suppression_list`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
   });
 }
 
@@ -827,4 +1324,368 @@ export async function fetchCallLogFormOptions(): Promise<{
   reference_doctypes: string[];
 }> {
   return apiRequest(`/api/method/${CALL_LOGS}.get_call_log_form_options`);
+}
+
+/* ── Fleet / Corporate Accounts (§9) ─────────────────────────────── */
+
+const ACCOUNTS = 'dms.crm_api.accounts';
+const TENDERS = 'dms.crm_api.tenders';
+const FLEET = 'dms.crm_api.fleet';
+
+export async function listAccounts(options?: {
+  account_type?: string;
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${ACCOUNTS}.get_accounts`, {
+    method: 'POST',
+    body: JSON.stringify({
+      account_type: options?.account_type || null,
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getAccount(name: string) {
+  return apiRequest(`/api/method/${ACCOUNTS}.get_account`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createAccount(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${ACCOUNTS}.create_account`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateAccount(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${ACCOUNTS}.update_account`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function fetchAccountFormOptions(): Promise<{
+  account_types: string[];
+  statuses: string[];
+  payment_behaviors: string[];
+  growth_potentials: string[];
+  relationship_health: string[];
+  stakeholder_roles: string[];
+}> {
+  return apiRequest(`/api/method/${ACCOUNTS}.get_account_form_options`);
+}
+
+export async function listTenders(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${TENDERS}.get_tenders`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getTender(name: string) {
+  return apiRequest(`/api/method/${TENDERS}.get_tender`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createTender(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${TENDERS}.create_tender`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateTender(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${TENDERS}.update_tender`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function listFrameworkAgreements(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${TENDERS}.get_framework_agreements`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getFrameworkAgreement(name: string) {
+  return apiRequest(`/api/method/${TENDERS}.get_framework_agreement`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createFrameworkAgreement(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${TENDERS}.create_framework_agreement`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateFrameworkAgreement(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${TENDERS}.update_framework_agreement`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function fetchTenderFormOptions(): Promise<{
+  categories: string[];
+  statuses: string[];
+  financing_methods: string[];
+  agreement_statuses: string[];
+}> {
+  return apiRequest(`/api/method/${TENDERS}.get_tender_form_options`);
+}
+
+export async function getFleetAftersales(options: {
+  customer?: string;
+  account?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${FLEET}.get_fleet_aftersales`, {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: options.customer || null,
+      account: options.account || null,
+      search: options.search || null,
+      limit: options.limit ?? 100,
+      offset: options.offset ?? 0,
+    }),
+  });
+}
+
+export async function getFleetHealthReport(options: {
+  customer?: string;
+  account?: string;
+}) {
+  return apiRequest(`/api/method/${FLEET}.get_fleet_health_report`, {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: options.customer || null,
+      account: options.account || null,
+    }),
+  });
+}
+
+/* ── Service Retention (§10) ─────────────────────────────────────── */
+
+const RETENTION = 'dms.crm_api.service_retention';
+
+export async function listServiceDue(options?: {
+  classification?: string;
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${RETENTION}.get_service_due_list`, {
+    method: 'POST',
+    body: JSON.stringify({
+      classification: options?.classification || null,
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getServiceDue(name: string) {
+  return apiRequest(`/api/method/${RETENTION}.get_service_due`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function syncServiceDue(limit = 200) {
+  return apiRequest(`/api/method/${RETENTION}.sync_service_due`, {
+    method: 'POST',
+    body: JSON.stringify({ limit }),
+  });
+}
+
+export async function adjustServiceDue(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${RETENTION}.adjust_service_due`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function runReminderSequence(limit = 200) {
+  return apiRequest(`/api/method/${RETENTION}.run_reminder_sequence`, {
+    method: 'POST',
+    body: JSON.stringify({ limit }),
+  });
+}
+
+export async function listDeferredWork(options?: {
+  status?: string;
+  category?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${RETENTION}.get_deferred_work`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      category: options?.category || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function createDeferredWork(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${RETENTION}.create_deferred_work`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateDeferredWork(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${RETENTION}.update_deferred_work`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function fetchRetentionSettings() {
+  return apiRequest(`/api/method/${RETENTION}.get_retention_settings`);
+}
+
+export async function listReminderLogs(options?: {
+  service_due?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${RETENTION}.get_reminder_logs`, {
+    method: 'POST',
+    body: JSON.stringify({
+      service_due: options?.service_due || null,
+      status: options?.status || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+/* ── Call Center (§11) ───────────────────────────────────────────── */
+
+const CALL_CENTER = 'dms.crm_api.call_center';
+
+export async function getCallCenterQueues() {
+  return apiRequest(`/api/method/${CALL_CENTER}.get_call_center_queues`);
+}
+
+export async function getQueueCalls(options?: {
+  queue?: string;
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${CALL_CENTER}.get_queue_calls`, {
+    method: 'POST',
+    body: JSON.stringify({
+      queue: options?.queue || null,
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function lookupCustomerByPhone(phone: string) {
+  return apiRequest(`/api/method/${CALL_CENTER}.lookup_customer_by_phone`, {
+    method: 'POST',
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export async function setCallDisposition(name: string, data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CALL_CENTER}.set_call_disposition`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function listCallScripts(options?: {
+  purpose?: string;
+  language?: string;
+  queue?: string;
+}) {
+  return apiRequest(`/api/method/${CALL_CENTER}.get_call_scripts`, {
+    method: 'POST',
+    body: JSON.stringify({
+      purpose: options?.purpose || null,
+      language: options?.language || null,
+      queue: options?.queue || null,
+    }),
+  });
+}
+
+export async function getCallScript(name: string) {
+  return apiRequest(`/api/method/${CALL_CENTER}.get_call_script`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createQualityScore(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${CALL_CENTER}.create_quality_score`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function clickToCall(options: {
+  phone: string;
+  customer?: string;
+  queue?: string;
+}) {
+  return apiRequest(`/api/method/${CALL_CENTER}.click_to_call`, {
+    method: 'POST',
+    body: JSON.stringify({
+      phone: options.phone,
+      customer: options.customer || null,
+      queue: options.queue || null,
+    }),
+  });
 }

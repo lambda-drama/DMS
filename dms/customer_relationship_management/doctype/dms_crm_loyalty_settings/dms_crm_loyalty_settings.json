@@ -1,0 +1,152 @@
+{
+ "actions": [],
+ "creation": "2026-08-05 01:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enable_loyalty",
+  "use_erpnext_loyalty_program",
+  "column_break_main",
+  "retail_loyalty_program",
+  "fleet_loyalty_program",
+  "section_referral",
+  "referral_reward_event",
+  "referral_reward_points",
+  "prevent_self_referral",
+  "section_tiers",
+  "tiers",
+  "section_health",
+  "at_risk_inactive_days",
+  "lapsed_inactive_days",
+  "churn_missed_services"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enable_loyalty",
+   "fieldtype": "Check",
+   "label": "Enable Loyalty CRM"
+  },
+  {
+   "default": "1",
+   "description": "Use ERPNext Loyalty Program / Loyalty Point Entry for points balance. Pricing Rule can deliver tier discounts — do not duplicate a points ledger.",
+   "fieldname": "use_erpnext_loyalty_program",
+   "fieldtype": "Check",
+   "label": "Use ERPNext Loyalty Program for Points"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "retail_loyalty_program",
+   "fieldtype": "Link",
+   "label": "Retail Loyalty Program",
+   "options": "Loyalty Program"
+  },
+  {
+   "fieldname": "fleet_loyalty_program",
+   "fieldtype": "Link",
+   "label": "Fleet / Corporate Loyalty Program",
+   "options": "Loyalty Program"
+  },
+  {
+   "fieldname": "section_referral",
+   "fieldtype": "Section Break",
+   "label": "Referral Rewards (§16.2)"
+  },
+  {
+   "default": "Delivery",
+   "fieldname": "referral_reward_event",
+   "fieldtype": "Select",
+   "label": "Reward Eligible After",
+   "options": "Lead Converted\nBooking\nFull Payment\nDelivery"
+  },
+  {
+   "default": "100",
+   "fieldname": "referral_reward_points",
+   "fieldtype": "Int",
+   "label": "Default Referral Reward Points"
+  },
+  {
+   "default": "1",
+   "fieldname": "prevent_self_referral",
+   "fieldtype": "Check",
+   "label": "Prevent Self-Referral"
+  },
+  {
+   "fieldname": "section_tiers",
+   "fieldtype": "Section Break",
+   "label": "CRM Tier Benefits (beyond Pricing Rule)"
+  },
+  {
+   "fieldname": "tiers",
+   "fieldtype": "Table",
+   "label": "Tiers",
+   "options": "DMS CRM Loyalty Tier"
+  },
+  {
+   "fieldname": "section_health",
+   "fieldtype": "Section Break",
+   "label": "Customer Health Thresholds (§16.3)"
+  },
+  {
+   "default": "90",
+   "fieldname": "at_risk_inactive_days",
+   "fieldtype": "Int",
+   "label": "At-Risk After Inactive (days)"
+  },
+  {
+   "default": "180",
+   "fieldname": "lapsed_inactive_days",
+   "fieldtype": "Int",
+   "label": "Lapsed After Inactive (days)"
+  },
+  {
+   "default": "2",
+   "fieldname": "churn_missed_services",
+   "fieldtype": "Int",
+   "label": "Churn Risk After Missed Services"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-05 01:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Customer Relationship Management",
+ "name": "DMS CRM Loyalty Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "DMS CRM Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "DMS CRM User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -9,7 +9,29 @@ REMINDER_MARKER_PREFIX = "[service-reminder:"
 def daily():
 	"""Daily scheduler entrypoint for DMS background tasks."""
 	send_service_due_reminders()
+	_crm_daily()
 
+
+def _crm_daily():
+	"""CRM retention / activity / report snapshot jobs (best-effort)."""
+	try:
+		from dms.crm_api.activities import activity_engine_daily
+
+		activity_engine_daily()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "CRM activity_engine_daily")
+	try:
+		from dms.crm_api.ownership_journey import create_anniversary_and_service_reminders
+
+		create_anniversary_and_service_reminders()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "CRM ownership journey daily")
+	try:
+		from dms.crm_api.reports import daily_pipeline_snapshot
+
+		daily_pipeline_snapshot()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "CRM daily_pipeline_snapshot")
 
 def send_service_due_reminders():
 	"""Send periodic service reminders based on Vehicle Model interval-month rules."""

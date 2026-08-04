@@ -63,17 +63,48 @@ const CrmCustomersPage = dynamic(() => import('./(dashboard)/crm/customers/page'
 const CrmCustomerNewPage = dynamic(() => import('./(dashboard)/crm/customers/new/page'));
 const CrmCustomerDetailPage = dynamic(() => import('./(dashboard)/crm/customers/detail/page'));
 const CrmActivitiesPage = dynamic(() => import('./(dashboard)/crm/activities/page'));
+const CrmActivityNewPage = dynamic(() => import('./(dashboard)/crm/activities/new/page'));
+const CrmActivityDetailPage = dynamic(
+  () => import('./(dashboard)/crm/activities/detail/page')
+);
+const CrmApprovalsPage = dynamic(() => import('./(dashboard)/crm/approvals/page'));
 const CrmCallLogsPage = dynamic(() => import('./(dashboard)/crm/call-logs/page'));
 const CrmCallLogNewPage = dynamic(() => import('./(dashboard)/crm/call-logs/new/page'));
 const CrmCallLogDetailPage = dynamic(() => import('./(dashboard)/crm/call-logs/detail/page'));
+const CrmCallCenterPage = dynamic(() => import('./(dashboard)/crm/call-center/page'));
 const CrmTestDrivesPage = dynamic(() => import('./(dashboard)/crm/test-drives/page'));
 const CrmTestDriveDetailPage = dynamic(() => import('./(dashboard)/crm/test-drives/detail/page'));
 const CrmDeliveryReadinessPage = dynamic(() => import('./(dashboard)/crm/delivery-readiness/page'));
 const CrmDeliveryReadinessDetailPage = dynamic(
   () => import('./(dashboard)/crm/delivery-readiness/detail/page')
 );
+const CrmAccountsPage = dynamic(() => import('./(dashboard)/crm/accounts/page'));
+const CrmAccountNewPage = dynamic(() => import('./(dashboard)/crm/accounts/new/page'));
+const CrmAccountDetailPage = dynamic(() => import('./(dashboard)/crm/accounts/detail/page'));
+const CrmTendersPage = dynamic(() => import('./(dashboard)/crm/tenders/page'));
+const CrmTenderNewPage = dynamic(() => import('./(dashboard)/crm/tenders/new/page'));
+const CrmTenderDetailPage = dynamic(() => import('./(dashboard)/crm/tenders/detail/page'));
+const CrmFleetAftersalesPage = dynamic(() => import('./(dashboard)/crm/fleet-aftersales/page'));
+const CrmServiceRetentionPage = dynamic(
+  () => import('./(dashboard)/crm/service-retention/page')
+);
 const CrmCalendarPage = dynamic(() => import('./(dashboard)/crm/calendar/page'));
 const CrmCasesPage = dynamic(() => import('./(dashboard)/crm/cases/page'));
+const CrmCaseNewPage = dynamic(() => import('./(dashboard)/crm/cases/new/page'));
+const CrmCaseDetailPage = dynamic(() => import('./(dashboard)/crm/cases/detail/page'));
+const CrmCampaignsPage = dynamic(() => import('./(dashboard)/crm/campaigns/page'));
+const CrmCampaignNewPage = dynamic(() => import('./(dashboard)/crm/campaigns/new/page'));
+const CrmCampaignDetailPage = dynamic(
+  () => import('./(dashboard)/crm/campaigns/detail/page')
+);
+const CrmSegmentNewPage = dynamic(() => import('./(dashboard)/crm/segments/new/page'));
+const CrmSegmentDetailPage = dynamic(() => import('./(dashboard)/crm/segments/detail/page'));
+const CrmLoyaltyPage = dynamic(() => import('./(dashboard)/crm/loyalty/page'));
+const CrmReferralsPage = dynamic(() => import('./(dashboard)/crm/referrals/page'));
+const CrmReferralDetailPage = dynamic(
+  () => import('./(dashboard)/crm/referrals/detail/page')
+);
+const CrmReportsPage = dynamic(() => import('./(dashboard)/crm/reports/page'));
 
 function LoadingScreen() {
   return (
@@ -189,15 +220,38 @@ function AppContent() {
       case 'crm-customer-new':   return <CrmCustomerNewPage />;
       case 'crm-customer-detail': return <CrmCustomerDetailPage />;
       case 'crm-activities':     return <CrmActivitiesPage />;
+      case 'crm-activity-new':   return <CrmActivityNewPage />;
+      case 'crm-activity-detail': return <CrmActivityDetailPage />;
+      case 'crm-approvals':      return <CrmApprovalsPage />;
       case 'crm-call-logs':      return <CrmCallLogsPage />;
       case 'crm-call-log-new':   return <CrmCallLogNewPage />;
       case 'crm-call-log-detail': return <CrmCallLogDetailPage />;
+      case 'crm-call-center':    return <CrmCallCenterPage />;
       case 'crm-test-drives':     return <CrmTestDrivesPage />;
       case 'crm-test-drive-detail': return <CrmTestDriveDetailPage />;
       case 'crm-delivery-readiness': return <CrmDeliveryReadinessPage />;
       case 'crm-delivery-readiness-detail': return <CrmDeliveryReadinessDetailPage />;
+      case 'crm-accounts':       return <CrmAccountsPage />;
+      case 'crm-account-new':    return <CrmAccountNewPage />;
+      case 'crm-account-detail': return <CrmAccountDetailPage />;
+      case 'crm-tenders':        return <CrmTendersPage />;
+      case 'crm-tender-new':     return <CrmTenderNewPage />;
+      case 'crm-tender-detail':  return <CrmTenderDetailPage />;
+      case 'crm-fleet-aftersales': return <CrmFleetAftersalesPage />;
+      case 'crm-service-retention': return <CrmServiceRetentionPage />;
       case 'crm-calendar':       return <CrmCalendarPage />;
       case 'crm-cases':          return <CrmCasesPage />;
+      case 'crm-case-new':       return <CrmCaseNewPage />;
+      case 'crm-case-detail':    return <CrmCaseDetailPage />;
+      case 'crm-campaigns':      return <CrmCampaignsPage />;
+      case 'crm-campaign-new':   return <CrmCampaignNewPage />;
+      case 'crm-campaign-detail': return <CrmCampaignDetailPage />;
+      case 'crm-segment-new':    return <CrmSegmentNewPage />;
+      case 'crm-segment-detail': return <CrmSegmentDetailPage />;
+      case 'crm-loyalty':        return <CrmLoyaltyPage />;
+      case 'crm-referrals':      return <CrmReferralsPage />;
+      case 'crm-referral-detail': return <CrmReferralDetailPage />;
+      case 'crm-reports':        return <CrmReportsPage />;
       default:                   return <DashboardMain />;
     }
   };

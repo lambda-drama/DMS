@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import {
+  completeHandover,
   getDeliveryReadiness,
   markDeliveryReady,
   updateDeliveryReadiness,
@@ -58,7 +59,10 @@ export default function CrmDeliveryReadinessDetailPage() {
         pdi_status: form.pdi_status,
         vehicle_location: form.vehicle_location,
         delivery_appointment: form.delivery_appointment,
+        nominated_driver: form.nominated_driver,
+        special_requests: form.special_requests,
         handover_on: form.handover_on,
+        handover_photos: form.handover_photos,
         blocked_reason: form.blocked_reason,
         satisfaction_score: Number(form.satisfaction_score || 0),
         notes: form.notes,
@@ -69,6 +73,25 @@ export default function CrmDeliveryReadinessDetailPage() {
       showSuccess(markReady ? 'Delivery marked ready.' : 'Delivery readiness saved.');
     } catch (e: unknown) {
       showError(e, 'Failed to update delivery readiness');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onCompleteHandover = async () => {
+    setSaving(true);
+    clear();
+    try {
+      await completeHandover(id, {
+        satisfaction_score: Number(form.satisfaction_score || 0) || undefined,
+        handover_on: String(form.handover_on || '') || undefined,
+        handover_photos: String(form.handover_photos || '') || undefined,
+        notes: String(form.notes || '') || undefined,
+      });
+      await mutate();
+      showSuccess('Handover completed — delivery marked Delivered.');
+    } catch (e: unknown) {
+      showError(e, 'Failed to complete handover');
     } finally {
       setSaving(false);
     }
@@ -91,8 +114,11 @@ export default function CrmDeliveryReadinessDetailPage() {
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save
           </Button>
-          <Button onClick={() => void onSave(true)} disabled={saving}>
+          <Button variant="outline" onClick={() => void onSave(true)} disabled={saving}>
             Mark Ready
+          </Button>
+          <Button onClick={() => void onCompleteHandover()} disabled={saving}>
+            Complete Handover
           </Button>
         </div>
       </div>
@@ -162,6 +188,18 @@ export default function CrmDeliveryReadinessDetailPage() {
               onChange={(event) => set('delivery_appointment', event.target.value)}
             />
           </Field>
+          <Field label="Nominated Driver">
+            <Input
+              value={String(form.nominated_driver || '')}
+              onChange={(event) => set('nominated_driver', event.target.value)}
+            />
+          </Field>
+          <Field label="Special Requests">
+            <Textarea
+              value={String(form.special_requests || '')}
+              onChange={(event) => set('special_requests', event.target.value)}
+            />
+          </Field>
         </CardContent>
       </Card>
 
@@ -217,9 +255,16 @@ export default function CrmDeliveryReadinessDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Handover notes</CardTitle>
+          <CardTitle className="text-base">Handover & CRM</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label="Actual Handover Time">
+            <Input
+              type="datetime-local"
+              value={String(form.handover_on || '').slice(0, 16)}
+              onChange={(event) => set('handover_on', event.target.value)}
+            />
+          </Field>
           <Field label="Satisfaction (1-5)">
             <Input
               type="number"
@@ -227,6 +272,13 @@ export default function CrmDeliveryReadinessDetailPage() {
               max={5}
               value={String(form.satisfaction_score || '')}
               onChange={(event) => set('satisfaction_score', event.target.value)}
+            />
+          </Field>
+          <Field label="Handover Photos (URL / attachment path)">
+            <Input
+              value={String(form.handover_photos || '')}
+              onChange={(event) => set('handover_photos', event.target.value)}
+              placeholder="/files/handover-…"
             />
           </Field>
           <Field label="Blocked Reason">

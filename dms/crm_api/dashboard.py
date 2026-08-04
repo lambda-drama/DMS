@@ -49,6 +49,7 @@ def get_dashboard():
 		"pipeline_value": 0.0,
 		"activities_open": _count(ACT, {"status": "Open"}),
 		"activities_overdue": 0,
+		"approvals_pending": 0,
 		"cases_open": _count(
 			CASE,
 			{"status": ["not in", ["Resolved", "Closed"]]},
@@ -84,12 +85,22 @@ def get_dashboard():
 		)
 
 	if frappe.db.exists("DocType", ACT):
+		from frappe.utils import now_datetime
+
+		stats["activities_open"] = _count(
+			ACT, {"status": ["in", ["Open", "In Progress"]]}
+		)
 		stats["activities_overdue"] = frappe.db.count(
 			ACT,
 			{
-				"status": "Open",
-				"due_datetime": ["<", today_str],
+				"status": ["in", ["Open", "In Progress"]],
+				"due_datetime": ["<", now_datetime()],
 			},
+		)
+		stats["approvals_pending"] = (
+			frappe.db.count("DMS CRM Approval Request", {"status": "Pending"})
+			if frappe.db.exists("DocType", "DMS CRM Approval Request")
+			else 0
 		)
 
 	# Lead target gauge (simple monthly target placeholder)
