@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
-from frappe.utils import cint, now_datetime
+from frappe.utils import add_days, cint, now_datetime, today
 
 from dms.crm_api.common import (
 	ensure_crm_create,
@@ -390,6 +390,8 @@ def convert_lead_to_opportunity(name, data=None):
 	opp.status = "Open"
 	opp.next_action = payload.get("next_action") or "Follow up"
 	opp.next_action_due = payload.get("next_action_due") or now_datetime()
+	# Blueprint §6.2 / §22.4 — open opportunities require expected close date
+	opp.expected_close_date = payload.get("expected_close_date") or add_days(today(), 14)
 	for row in lead.get("items") or []:
 		opp.append(
 			"items",

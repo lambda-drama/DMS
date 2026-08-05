@@ -21,6 +21,15 @@
   "require_close_date_on_opportunity",
   "create_campaign_member_tasks",
   "campaign_task_due_days",
+  "section_lead_scoring",
+  "score_hot_threshold",
+  "score_warm_threshold",
+  "column_break_scoring",
+  "score_weight_engagement",
+  "score_weight_readiness",
+  "score_weight_fit",
+  "score_weight_relationship",
+  "score_weight_risk",
   "section_service_retention",
   "enable_service_retention",
   "default_average_daily_km",
@@ -133,8 +142,8 @@
    "label": "Require Next Action on Open Leads"
   },
   {
-   "default": "0",
-   "description": "When enabled, save is blocked (not just warned) if next action due is missing. Enable for §15.2 mandatory rules.",
+   "default": "1",
+   "description": "When enabled, save is blocked (not just warned) if next action due is missing. Required for BRD §15.2 / §22.4 pipeline discipline.",
    "fieldname": "hard_enforce_next_action",
    "fieldtype": "Check",
    "label": "Hard Enforce Next Action (§15.2)"
@@ -157,6 +166,59 @@
    "fieldname": "campaign_task_due_days",
    "fieldtype": "Int",
    "label": "Campaign Task Due (days)"
+  },
+  {
+   "fieldname": "section_lead_scoring",
+   "fieldtype": "Section Break",
+   "label": "Lead Scoring (§6.3)"
+  },
+  {
+   "default": "70",
+   "description": "Score at or above this band is Hot",
+   "fieldname": "score_hot_threshold",
+   "fieldtype": "Int",
+   "label": "Hot Score Threshold"
+  },
+  {
+   "default": "40",
+   "description": "Score at or above this (below Hot) is Warm; below is Cold",
+   "fieldname": "score_warm_threshold",
+   "fieldtype": "Int",
+   "label": "Warm Score Threshold"
+  },
+  {
+   "fieldname": "column_break_scoring",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "25",
+   "fieldname": "score_weight_engagement",
+   "fieldtype": "Int",
+   "label": "Weight: Engagement"
+  },
+  {
+   "default": "30",
+   "fieldname": "score_weight_readiness",
+   "fieldtype": "Int",
+   "label": "Weight: Purchase Readiness"
+  },
+  {
+   "default": "20",
+   "fieldname": "score_weight_fit",
+   "fieldtype": "Int",
+   "label": "Weight: Fit"
+  },
+  {
+   "default": "15",
+   "fieldname": "score_weight_relationship",
+   "fieldtype": "Int",
+   "label": "Weight: Relationship"
+  },
+  {
+   "default": "10",
+   "fieldname": "score_weight_risk",
+   "fieldtype": "Int",
+   "label": "Weight: Risk (penalty)"
   },
   {
    "fieldname": "section_service_retention",

@@ -1,13 +1,16 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import useSWR from 'swr';
+import { useState } from 'react';
+import useSWR, { mutate as globalMutate } from 'swr';
 import {
   fetchCustomer360,
   findCustomerDuplicates,
+  mergeCustomers,
   type Customer360Data,
 } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
+import { useCrmFeedback } from '@/components/crm/form-feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1206,11 +1209,44 @@ function LoyaltyTab({ data }: { data: Customer360Data }) {
 function AuditTab({
   data,
   duplicates,
+  masterId,
 }: {
   data: Customer360Data;
   duplicates: Record<string, unknown>[];
+  masterId: string;
 }) {
   const { audit, customer } = data;
+  const { showError, showSuccess } = useCrmFeedback();
+  const [merging, setMerging] = useState<string | null>(null);
+
+  const handleMerge = async (duplicateName: string) => {
+    if (
+      !window.confirm(
+        `Merge "${duplicateName}" into this customer (${masterId})?\n\n` +
+          'Linked leads, deals, cases and communications will move to this record. ' +
+          'The duplicate will be disabled (not deleted).'
+      )
+    ) {
+      return;
+    }
+    setMerging(duplicateName);
+    try {
+      const result = await mergeCustomers(masterId, duplicateName, {
+        confirmDifferentVehicles: true,
+      });
+      showSuccess(
+        result.message ||
+          `Merged ${duplicateName}. Moved ${result.moved_count ?? 0} linked records.`
+      );
+      await globalMutate(['crm-customer-360', masterId]);
+      await globalMutate(['crm-customer-duplicates', masterId]);
+    } catch (e) {
+      showError(e, 'Merge failed. Managers only — review vehicle ownership first.');
+    } finally {
+      setMerging(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {duplicates.length > 0 ? (
@@ -1239,11 +1275,25 @@ function AuditTab({
                 { key: 'mobile_no', label: 'Mobile' },
                 { key: 'email_id', label: 'Email' },
                 { key: 'reason', label: 'Match' },
+                {
+                  key: 'actions',
+                  label: '',
+                  render: (d) => (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={merging === String(d.name)}
+                      onClick={() => handleMerge(String(d.name))}
+                    >
+                      {merging === String(d.name) ? 'Merging…' : 'Merge into this'}
+                    </Button>
+                  ),
+                },
               ]}
             />
             <p className="mt-3 text-xs text-muted-foreground">
-              Merge requires human review — do not merge different vehicle owners only because
-              they share a phone number.
+              Merge requires CRM Manager review — do not merge different vehicle owners only
+              because they share a phone number. The surviving record is this Customer 360.
             </p>
           </CardContent>
         </Card>
@@ -1463,7 +1513,7 @@ export default function CrmCustomerDetailPage() {
           <LoyaltyTab data={data} />
         </TabsContent>
         <TabsContent value="audit">
-          <AuditTab data={data} duplicates={duplicates} />
+          <AuditTab data={data} duplicates={duplicates} masterId={customerId} />
         </TabsContent>
       </Tabs>
     </div>

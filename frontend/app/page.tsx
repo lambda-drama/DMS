@@ -78,6 +78,7 @@ const CrmDeliveryReadinessPage = dynamic(() => import('./(dashboard)/crm/deliver
 const CrmDeliveryReadinessDetailPage = dynamic(
   () => import('./(dashboard)/crm/delivery-readiness/detail/page')
 );
+const CrmBookingsPage = dynamic(() => import('./(dashboard)/crm/bookings/page'));
 const CrmAccountsPage = dynamic(() => import('./(dashboard)/crm/accounts/page'));
 const CrmAccountNewPage = dynamic(() => import('./(dashboard)/crm/accounts/new/page'));
 const CrmAccountDetailPage = dynamic(() => import('./(dashboard)/crm/accounts/detail/page'));
@@ -231,6 +232,7 @@ function AppContent() {
       case 'crm-test-drive-detail': return <CrmTestDriveDetailPage />;
       case 'crm-delivery-readiness': return <CrmDeliveryReadinessPage />;
       case 'crm-delivery-readiness-detail': return <CrmDeliveryReadinessDetailPage />;
+      case 'crm-bookings': return <CrmBookingsPage />;
       case 'crm-accounts':       return <CrmAccountsPage />;
       case 'crm-account-new':    return <CrmAccountNewPage />;
       case 'crm-account-detail': return <CrmAccountDetailPage />;

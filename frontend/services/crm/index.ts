@@ -1185,11 +1185,57 @@ export async function findCustomerDuplicates(customer: string): Promise<{
   });
 }
 
+export async function mergeCustomers(
+  master: string,
+  duplicate: string,
+  opts?: { fieldOverrides?: Record<string, unknown>; confirmDifferentVehicles?: boolean }
+): Promise<{
+  master: string;
+  duplicate: string;
+  moved_count: number;
+  copied_fields: string[];
+  message: string;
+}> {
+  return apiRequest(`/api/method/${CUSTOMERS}.merge_customers`, {
+    method: 'POST',
+    body: JSON.stringify({
+      master,
+      duplicate,
+      field_overrides: opts?.fieldOverrides || {},
+      confirm_different_vehicles: opts?.confirmDifferentVehicles ? 1 : 0,
+    }),
+  });
+}
+
+const BOOKINGS = 'dms.crm_api.bookings';
+
+export async function listBookings(params?: {
+  search?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${BOOKINGS}.get_bookings`, {
+    method: 'POST',
+    body: JSON.stringify(params || {}),
+  });
+}
+
+export async function getBooking(name: string) {
+  return apiRequest(`/api/method/${BOOKINGS}.get_booking`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function fetchCustomerCreateOptions(): Promise<{
   customer_groups: string[];
   territories: string[];
   customer_types: string[];
   default_customer_group?: string | null;
+  countries?: string[];
+  default_country?: string | null;
+  address_types?: string[];
 }> {
   return apiRequest(`/api/method/${CUSTOMERS}.get_customer_create_options`);
 }

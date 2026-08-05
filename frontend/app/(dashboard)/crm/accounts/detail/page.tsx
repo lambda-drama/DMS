@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
   fetchAccountFormOptions,
+  fetchCrmVehicleModels,
   getAccount,
   getFleetAftersales,
   updateAccount,
@@ -40,6 +41,60 @@ type FleetUnit = {
   replacement_cycle_years: string;
   notes: string;
 };
+
+function FleetModelSelect({
+  value,
+  modelName,
+  onChange,
+}: {
+  value: string;
+  modelName?: string;
+  onChange: (model: string, modelName: string) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const { data: models, isLoading } = useSWR(
+    ['crm-account-fleet-models', search],
+    () => fetchCrmVehicleModels(search || undefined),
+    { dedupingInterval: 4000 }
+  );
+
+  const options = useMemo(() => {
+    const rows = (models || []).map((vm) => ({
+      value: vm.name,
+      label: vm.model_name || vm.model_code || vm.name,
+      description: [vm.brand_label || vm.brand, vm.variant, vm.model_code]
+        .filter(Boolean)
+        .join(' · '),
+    }));
+    // Keep current selection visible even if not in the latest search page
+    if (value && !rows.some((r) => r.value === value)) {
+      rows.unshift({
+        value,
+        label: modelName || value,
+        description: 'Current selection',
+      });
+    }
+    return rows;
+  }, [models, value, modelName]);
+
+  return (
+    <div className="sm:col-span-2">
+      <SearchableSelect
+        options={options}
+        value={value}
+        valueLabel={modelName || undefined}
+        onValueChange={(v) => {
+          const hit = options.find((o) => o.value === v);
+          onChange(v || '', hit?.label || modelName || '');
+        }}
+        onSearchChange={setSearch}
+        placeholder="Search vehicle models…"
+        emptyMessage="No vehicle models found"
+        isLoading={isLoading}
+      />
+    </div>
+  );
+}
 
 export default function CrmAccountDetailPage() {
   const { navigate, viewParams } = useNavigation();
@@ -534,14 +589,13 @@ export default function CrmAccountDetailPage() {
                 key={idx}
                 className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
               >
-                <Input
-                  className="sm:col-span-2"
-                  placeholder="Model name"
-                  value={row.model_name}
-                  onChange={(e) =>
+                <FleetModelSelect
+                  value={row.model}
+                  modelName={row.model_name}
+                  onChange={(model, modelName) =>
                     setFleetUnits((prev) => {
                       const next = [...prev];
-                      next[idx] = { ...next[idx], model_name: e.target.value };
+                      next[idx] = { ...next[idx], model, model_name: modelName };
                       return next;
                     })
                   }

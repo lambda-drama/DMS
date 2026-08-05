@@ -96,6 +96,7 @@ class DMSCRMLead(Document):
 		self._mark_first_response()
 		self._set_sla()
 		self._calculate_item_totals()
+		self._apply_lead_score()
 		self._enforce_next_action()
 
 	def _assign_owner_on_create(self):
@@ -200,6 +201,12 @@ class DMSCRMLead(Document):
 		self.total = flt(total)
 		self.net_total = flt(net_total)
 
+	def _apply_lead_score(self):
+		"""Blueprint §6.3 — configurable scoring + history."""
+		from dms.crm_api.scoring import apply_lead_score
+
+		apply_lead_score(self)
+
 	def _enforce_next_action(self):
 		if self.status in CLOSED_STATUSES or self.status == "New":
 			return
@@ -209,7 +216,7 @@ class DMSCRMLead(Document):
 			return
 		if self.next_action_due and self.next_action:
 			return
-		hard = cint(getattr(settings, "hard_enforce_next_action", None) or 0)
+		hard = cint(getattr(settings, "hard_enforce_next_action", None) or 1)
 		msg = _("Open leads require a Next Action and Due date (unless New / closed).")
 		if hard:
 			frappe.throw(msg)

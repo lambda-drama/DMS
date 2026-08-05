@@ -126,6 +126,7 @@ export default function CrmDashboardPage() {
       icon: Users,
       tone: 'bg-primary/10 text-foreground',
       iconTone: 'text-primary',
+      view: 'crm-contacts',
     },
     {
       label: 'Deals',
@@ -133,6 +134,7 @@ export default function CrmDashboardPage() {
       icon: Handshake,
       tone: 'bg-secondary/15 text-foreground',
       iconTone: 'text-secondary',
+      view: 'crm-opportunities',
     },
     {
       label: 'Open Leads',
@@ -140,6 +142,7 @@ export default function CrmDashboardPage() {
       icon: Target,
       tone: 'bg-sky-500/10 text-foreground',
       iconTone: 'text-sky-600 dark:text-sky-400',
+      view: 'crm-leads',
     },
     {
       label: 'Customers',
@@ -147,6 +150,34 @@ export default function CrmDashboardPage() {
       icon: Building2,
       tone: 'bg-muted text-foreground',
       iconTone: 'text-foreground',
+      view: 'crm-customers',
+    },
+  ];
+
+  const quickStats = [
+    {
+      label: 'Hot leads',
+      value: stats?.leads_hot ?? 0,
+      icon: Target,
+      tone: 'bg-primary/10',
+      iconTone: 'text-primary',
+      view: 'crm-leads',
+    },
+    {
+      label: 'Open activities',
+      value: stats?.activities_open ?? 0,
+      icon: Megaphone,
+      tone: 'bg-secondary/15',
+      iconTone: 'text-secondary',
+      view: 'crm-activities',
+    },
+    {
+      label: 'Open cases',
+      value: stats?.cases_open ?? 0,
+      icon: Handshake,
+      tone: 'bg-sky-500/10',
+      iconTone: 'text-sky-600',
+      view: 'crm-cases',
     },
   ];
 
@@ -163,7 +194,18 @@ export default function CrmDashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="overflow-hidden border-border/70 shadow-sm">
+        <Card
+          className="cursor-pointer overflow-hidden border-border/70 shadow-sm transition-colors hover:bg-muted/30"
+          role="link"
+          tabIndex={0}
+          onClick={() => navigate('crm-leads')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('crm-leads');
+            }
+          }}
+        >
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium">Lead Target</CardTitle>
           </CardHeader>
@@ -181,7 +223,18 @@ export default function CrmDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 shadow-sm">
+        <Card
+          className="cursor-pointer border-border/70 shadow-sm transition-colors hover:bg-muted/30"
+          role="link"
+          tabIndex={0}
+          onClick={() => navigate('crm-opportunities')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('crm-opportunities');
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium">Pipeline by Stage</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -202,7 +255,19 @@ export default function CrmDashboardPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {summary.map((item) => (
-          <Card key={item.label} className="border-border/70 shadow-sm">
+          <Card
+            key={item.label}
+            className="cursor-pointer border-border/70 shadow-sm transition-colors hover:bg-muted/30"
+            role="link"
+            tabIndex={0}
+            onClick={() => navigate(item.view)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate(item.view);
+              }
+            }}
+          >
             <CardContent className="flex items-center gap-3 py-4">
               <div className={cn('rounded-xl p-2.5', item.tone)}>
                 <item.icon className={cn('h-5 w-5', item.iconTone)} />
@@ -254,7 +319,7 @@ export default function CrmDashboardPage() {
                     <tr
                       key={lead.name}
                       className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40"
-                      onClick={() => navigate('crm-leads')}
+                      onClick={() => navigate('crm-lead-detail', { id: String(lead.name) })}
                     >
                       <td className="py-3 font-medium">{lead.lead_name}</td>
                       <td className="py-3 text-muted-foreground">{lead.owner_name || '—'}</td>
@@ -277,39 +342,31 @@ export default function CrmDashboardPage() {
       </Card>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="border-border shadow-sm">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Hot leads</p>
-              <p className="text-2xl font-semibold">{stats?.leads_hot ?? 0}</p>
-            </div>
-            <div className="rounded-xl bg-primary/10 p-2.5">
-              <Target className="h-5 w-5 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border shadow-sm">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Open activities</p>
-              <p className="text-2xl font-semibold">{stats?.activities_open ?? 0}</p>
-            </div>
-            <div className="rounded-xl bg-secondary/15 p-2.5">
-              <Megaphone className="h-5 w-5 text-secondary" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border shadow-sm">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Open cases</p>
-              <p className="text-2xl font-semibold">{stats?.cases_open ?? 0}</p>
-            </div>
-            <div className="rounded-xl bg-sky-500/10 p-2.5">
-              <Handshake className="h-5 w-5 text-sky-600" />
-            </div>
-          </CardContent>
-        </Card>
+        {quickStats.map((item) => (
+          <Card
+            key={item.label}
+            className="cursor-pointer border-border shadow-sm transition-colors hover:bg-muted/30"
+            role="link"
+            tabIndex={0}
+            onClick={() => navigate(item.view)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate(item.view);
+              }
+            }}
+          >
+            <CardContent className="flex items-center justify-between py-4">
+              <div>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="text-2xl font-semibold">{item.value}</p>
+              </div>
+              <div className={cn('rounded-xl p-2.5', item.tone)}>
+                <item.icon className={cn('h-5 w-5', item.iconTone)} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

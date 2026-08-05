@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Building2,
-  Calendar,
   CalendarDays,
   ChevronDown,
   CircleHelp,
@@ -65,6 +64,7 @@ const navigation: NavSection[] = [
     items: [
       { name: 'Leads', view: 'crm-leads', icon: Target },
       { name: 'Deals', view: 'crm-opportunities', icon: Handshake },
+      { name: 'Bookings', view: 'crm-bookings', icon: FileText },
       { name: 'Test Drives', view: 'crm-test-drives', icon: Gauge },
       { name: 'Delivery Readiness', view: 'crm-delivery-readiness', icon: ClipboardCheck },
       { name: 'Approvals', view: 'crm-approvals', icon: ClipboardCheck },
@@ -75,7 +75,6 @@ const navigation: NavSection[] = [
     title: 'Activities',
     items: [
       { name: 'Activities', view: 'crm-activities', icon: PhoneCall },
-      { name: 'Appointments', view: 'appointments', icon: Calendar },
       { name: 'Calendar', view: 'crm-calendar', icon: CalendarDays },
     ],
   },
