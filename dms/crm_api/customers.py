@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt, getdate, today
 
-from dms.crm_api.common import ensure_crm_create, ensure_crm_read, parse_json
+from dms.crm_api.common import ensure_crm_create, ensure_crm_read, ensure_crm_write, parse_json
 from dms.crm_api.contacts import _dms_customer_groups
 
 GATE = "DMS CRM Lead"
@@ -766,11 +766,38 @@ def get_customer_create_options():
 			limit_page_length=200,
 			pluck="name",
 		)
+	countries = []
+	default_country = None
+	if frappe.db.exists("DocType", "Country"):
+		countries = frappe.get_all(
+			"Country",
+			fields=["name"],
+			order_by="name asc",
+			limit_page_length=300,
+			pluck="name",
+		)
+		default_country = (
+			frappe.db.get_default("country")
+			or frappe.db.get_single_value("System Settings", "country")
+			or None
+		)
+	address_types = [
+		"Billing",
+		"Shipping",
+		"Office",
+		"Personal",
+		"Current",
+		"Permanent",
+		"Other",
+	]
 	return {
 		"customer_groups": groups,
 		"territories": territories,
 		"customer_types": ["Individual", "Company"],
 		"default_customer_group": groups[0] if groups else None,
+		"countries": countries,
+		"default_country": default_country,
+		"address_types": address_types,
 	}
 
 
@@ -849,12 +876,62 @@ def create_customer(data=None, force=0):
 		doc.website = payload.get("website")
 
 	doc.insert()
+
+	address_name = None
+	raw_address = payload.get("address")
+	if isinstance(raw_address, str):
+		raw_address = parse_json(raw_address)
+	address = raw_address if isinstance(raw_address, dict) else {}
+	# Flat address_* keys also accepted for convenience
+	if not address:
+		address = {
+			"address_line1": payload.get("address_line1"),
+			"address_line2": payload.get("address_line2"),
+			"city": payload.get("city"),
+			"state": payload.get("state"),
+			"pincode": payload.get("pincode"),
+			"country": payload.get("country"),
+			"address_type": payload.get("address_type"),
+			"phone": payload.get("address_phone") or mobile_no,
+		}
+
+	line1 = (address.get("address_line1") or "").strip()
+	city = (address.get("city") or "").strip()
+	country = (address.get("country") or "").strip()
+	if line1 and city and country:
+		frappe.has_permission("Address", "create", throw=True)
+		addr = frappe.get_doc(
+			{
+				"doctype": "Address",
+				"address_title": customer_name,
+				"address_type": (address.get("address_type") or "Billing").strip() or "Billing",
+				"address_line1": line1,
+				"address_line2": (address.get("address_line2") or "").strip() or None,
+				"city": city,
+				"state": (address.get("state") or "").strip() or None,
+				"pincode": (address.get("pincode") or "").strip() or None,
+				"country": country,
+				"phone": (address.get("phone") or mobile_no or "").strip() or None,
+				"email_id": email_id,
+				"is_primary_address": 1,
+				"is_shipping_address": 1,
+				"links": [{"link_doctype": "Customer", "link_name": doc.name}],
+			}
+		)
+		addr.insert()
+		address_name = addr.name
+		from frappe.contacts.doctype.address.address import get_address_display
+
+		doc.db_set("customer_primary_address", addr.name)
+		doc.db_set("primary_address", get_address_display(addr.name))
+
 	frappe.db.commit()
 	return {
 		"ok": True,
 		"name": doc.name,
 		"customer_name": doc.customer_name,
 		"customer_group": doc.customer_group,
+		"address": address_name,
 	}
 
 
@@ -1148,3 +1225,182 @@ def find_customer_duplicates(customer: str):
 		)
 
 	return {"customer": customer, "duplicates": matches, "count": len(matches)}
+
+
+# DocTypes whose customer Link field should move from duplicate → master on merge
+_MERGE_CUSTOMER_LINK_MAP = (
+	("DMS CRM Lead", "customer"),
+	("DMS CRM Opportunity", "customer"),
+	("DMS CRM Activity", "customer"),
+	("DMS CRM Case", "customer"),
+	("DMS CRM Booking", "customer"),
+	("DMS CRM Test Drive", "customer"),
+	("DMS CRM Delivery Readiness", "customer"),
+	("DMS CRM Sales Appointment", "customer"),
+	("DMS CRM Campaign Member", "customer"),
+	("DMS CRM Referral", "referrer_customer"),
+	("DMS CRM Referral", "referred_customer"),
+	("DMS CRM Account", "customer"),
+	("DMS CRM Customer Preference", "customer"),
+	("DMS CRM Service Due", "customer"),
+	("DMS CRM Deferred Work", "customer"),
+	("DMS CRM Loyalty Adjustment", "customer"),
+	("Quotation", "party_name"),
+	("Sales Order", "customer"),
+	("Sales Invoice", "customer"),
+	("Payment Entry", "party"),
+	("Contact", "customer"),  # may not exist — skip if no field
+	("Address", "link_name"),  # handled specially via Dynamic Link
+)
+
+
+def _can_merge_customers() -> bool:
+	roles = set(frappe.get_roles())
+	return bool(roles & {"System Manager", "DMS CRM Manager", "Sales Manager"})
+
+
+@frappe.whitelist()
+def merge_customers(master: str, duplicate: str, field_overrides=None, confirm_different_vehicles=0):
+	"""Blueprint §4.3 — audited customer merge with surviving master.
+
+	Moves CRM / sales links from ``duplicate`` onto ``master``, optionally
+	copies blank master fields from the duplicate, then deactivates the
+	duplicate (never hard-deletes). Requires DMS CRM Manager (or System Manager).
+	"""
+	ensure_crm_write(GATE)
+	if not _can_merge_customers():
+		frappe.throw(_("Only CRM Managers may merge customers."), frappe.PermissionError)
+
+	master = (master or "").strip()
+	duplicate = (duplicate or "").strip()
+	if not master or not duplicate:
+		frappe.throw(_("Master and duplicate customers are required."))
+	if master == duplicate:
+		frappe.throw(_("Master and duplicate must be different customers."))
+	if not frappe.db.exists("Customer", master) or not frappe.db.exists("Customer", duplicate):
+		frappe.throw(_("Both customers must exist."))
+
+	overrides = parse_json(field_overrides) or {}
+	master_doc = frappe.get_doc("Customer", master)
+	dup_doc = frappe.get_doc("Customer", duplicate)
+
+	# Never silently merge two different vehicle owners (Blueprint §4.3)
+	master_vins = set()
+	dup_vins = set()
+	if frappe.db.exists("DocType", "VIN No"):
+		vin_filters_m = {"customer": master}
+		vin_filters_d = {"customer": duplicate}
+		# field may be customer or owner depending on schema
+		meta = frappe.get_meta("VIN No")
+		cust_field = "customer" if meta.has_field("customer") else (
+			"customer_name" if meta.has_field("customer_name") else None
+		)
+		if cust_field:
+			master_vins = set(
+				frappe.get_all("VIN No", filters={cust_field: master}, pluck="name")
+			)
+			dup_vins = set(
+				frappe.get_all("VIN No", filters={cust_field: duplicate}, pluck="name")
+			)
+	if master_vins and dup_vins and master_vins != dup_vins and not cint(confirm_different_vehicles):
+		frappe.throw(
+			_(
+				"These customers own different vehicles. Confirm merge only after human review "
+				"(pass confirm_different_vehicles=1)."
+			)
+		)
+
+	moved = []
+	for doctype, fieldname in _MERGE_CUSTOMER_LINK_MAP:
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		meta = frappe.get_meta(doctype)
+		if not meta.has_field(fieldname):
+			continue
+		# Payment Entry party must be Customer type
+		filters = {fieldname: duplicate}
+		if doctype == "Payment Entry" and meta.has_field("party_type"):
+			filters["party_type"] = "Customer"
+		if doctype == "Quotation" and meta.has_field("quotation_to"):
+			filters["quotation_to"] = "Customer"
+		names = frappe.get_all(doctype, filters=filters, pluck="name")
+		for name in names:
+			frappe.db.set_value(doctype, name, fieldname, master, update_modified=False)
+			moved.append({"doctype": doctype, "name": name, "field": fieldname})
+
+	# Dynamic Link: Address / Contact links
+	for dl_dt in ("Address", "Contact"):
+		if not frappe.db.exists("DocType", "Dynamic Link"):
+			break
+		links = frappe.get_all(
+			"Dynamic Link",
+			filters={"link_doctype": "Customer", "link_name": duplicate, "parenttype": dl_dt},
+			fields=["name", "parent"],
+		)
+		for link in links:
+			frappe.db.set_value("Dynamic Link", link.name, "link_name", master, update_modified=False)
+			moved.append({"doctype": dl_dt, "name": link.parent, "field": "Dynamic Link"})
+
+	# Field-by-field: fill blank master fields from duplicate, or apply overrides
+	copyable = [
+		"mobile_no",
+		"email_id",
+		"customer_type",
+		"customer_group",
+		"territory",
+		"tax_id",
+		"customer_primary_contact",
+		"customer_primary_address",
+		"default_currency",
+		"language",
+	]
+	copied_fields = []
+	for fieldname in copyable:
+		if not master_doc.meta.has_field(fieldname):
+			continue
+		override = overrides.get(fieldname)
+		if override is not None and override != "":
+			master_doc.set(fieldname, override)
+			copied_fields.append(fieldname)
+			continue
+		if not master_doc.get(fieldname) and dup_doc.get(fieldname):
+			master_doc.set(fieldname, dup_doc.get(fieldname))
+			copied_fields.append(fieldname)
+
+	master_doc.flags.ignore_permissions = True
+	master_doc.save()
+
+	# Deactivate duplicate — never hard-delete (Blueprint §20.3)
+	dup_doc.disabled = 1
+	if dup_doc.meta.has_field("customer_name"):
+		# Keep searchable but mark merged
+		if " [MERGED]" not in (dup_doc.customer_name or ""):
+			dup_doc.customer_name = f"{dup_doc.customer_name} [MERGED → {master}]"
+	dup_doc.flags.ignore_permissions = True
+	dup_doc.save()
+
+	# Immutable merge log on both records
+	summary = (
+		f"Merged customer {duplicate} into {master}. "
+		f"Moved {len(moved)} linked records. Copied fields: {', '.join(copied_fields) or 'none'}."
+	)
+	for target in (master, duplicate):
+		frappe.get_doc(
+			{
+				"doctype": "Comment",
+				"comment_type": "Info",
+				"reference_doctype": "Customer",
+				"reference_name": target,
+				"content": summary,
+			}
+		).insert(ignore_permissions=True)
+
+	frappe.db.commit()
+	return {
+		"master": master,
+		"duplicate": duplicate,
+		"moved": moved,
+		"moved_count": len(moved),
+		"copied_fields": copied_fields,
+		"message": summary,
+	}

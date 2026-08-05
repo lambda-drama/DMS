@@ -87,6 +87,7 @@ const viewTitles: Record<string, string> = {
   'crm-test-drive-detail': 'Test Drive',
   'crm-delivery-readiness': 'Delivery Readiness',
   'crm-delivery-readiness-detail': 'Delivery Readiness',
+  'crm-bookings': 'Bookings',
   'crm-accounts': 'Accounts',
   'crm-account-new': 'New Account',
   'crm-account-detail': 'Account',

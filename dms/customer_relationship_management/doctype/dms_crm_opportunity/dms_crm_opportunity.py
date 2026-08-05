@@ -177,7 +177,7 @@ class DMSCRMOpportunity(Document):
 			settings = frappe.get_cached_doc("DMS CRM Settings")
 		except Exception:
 			pass
-		hard = cint(getattr(settings, "hard_enforce_next_action", None) or 0) if settings else 0
+		hard = cint(getattr(settings, "hard_enforce_next_action", None) or 1) if settings else 1
 		require_close = (
 			cint(getattr(settings, "require_close_date_on_opportunity", None) or 1) if settings else 1
 		)

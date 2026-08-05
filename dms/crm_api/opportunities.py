@@ -287,6 +287,14 @@ def create_opportunity(data=None):
 		frappe.throw(_("Company is required."))
 	if not doc.currency and doc.company:
 		doc.currency = frappe.db.get_value("Company", doc.company, "default_currency")
+	# Blueprint §6.2 / §22.4 — pipeline discipline defaults
+	if doc.status in ("Open", "On Hold", None, "") and doc.stage != "Nurture":
+		if not doc.next_action:
+			doc.next_action = "Follow up"
+		if not doc.next_action_due:
+			doc.next_action_due = now_datetime()
+		if not doc.expected_close_date:
+			doc.expected_close_date = add_days(today(), 14)
 	doc.insert()
 	frappe.db.commit()
 	return get_opportunity(doc.name)

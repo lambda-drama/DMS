@@ -62,6 +62,7 @@
   "finance_notes",
   "section_qualification",
   "lead_score",
+  "score_band",
   "urgency",
   "need",
   "authority",
@@ -70,6 +71,8 @@
   "column_break_qual",
   "competitor",
   "qualification_notes",
+  "score_breakdown",
+  "score_history",
   "products_tab",
   "items",
   "products_totals_section",
@@ -435,9 +438,20 @@
   },
   {
    "default": "0",
+   "description": "Blueprint §6.3 — auto-calculated from engagement, readiness, fit, relationship and risk",
    "fieldname": "lead_score",
    "fieldtype": "Int",
-   "label": "Lead Score"
+   "in_list_view": 1,
+   "label": "Lead Score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "score_band",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Score Band",
+   "options": "\nHot\nWarm\nCold",
+   "read_only": 1
   },
   {
    "fieldname": "urgency",
@@ -482,6 +496,21 @@
    "fieldname": "qualification_notes",
    "fieldtype": "Small Text",
    "label": "Qualification Notes"
+  },
+  {
+   "fieldname": "score_breakdown",
+   "fieldtype": "Code",
+   "label": "Score Breakdown (JSON)",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "description": "Blueprint §6.3 — retained scoring history (last 50 changes)",
+   "fieldname": "score_history",
+   "fieldtype": "Code",
+   "label": "Score History (JSON)",
+   "options": "JSON",
+   "read_only": 1
   },
   {
    "fieldname": "products_tab",
