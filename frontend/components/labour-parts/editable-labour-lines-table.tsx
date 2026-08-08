@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/ui/decimal-input';
 import { Trash2 } from 'lucide-react';
 
 export type EditableLabourLine = {
@@ -68,16 +68,12 @@ export function EditableLabourLinesTable<T extends EditableLabourLine>({
                 ) : null}
                 <td className="p-3 text-right">
                   {editable ? (
-                    <Input
-                      type="number"
-                      step="0.5"
+                    <DecimalInput
                       min={0}
                       className="ml-auto h-8 w-24 text-right"
-                      value={row.estimated_hours || ''}
-                      onChange={(e) =>
-                        onUpdateRow(idx, {
-                          estimated_hours: parseFloat(e.target.value) || 0,
-                        } as Partial<T>)
+                      value={row.estimated_hours}
+                      onValueChange={(estimated_hours) =>
+                        onUpdateRow(idx, { estimated_hours } as Partial<T>)
                       }
                     />
                   ) : (
@@ -86,16 +82,12 @@ export function EditableLabourLinesTable<T extends EditableLabourLine>({
                 </td>
                 <td className="p-3 text-right">
                   {editable ? (
-                    <Input
-                      type="number"
+                    <DecimalInput
                       min={0}
-                      step="0.01"
                       className="ml-auto h-8 w-28 text-right"
-                      value={row.rate_per_hour || ''}
-                      onChange={(e) =>
-                        onUpdateRow(idx, {
-                          rate_per_hour: parseFloat(e.target.value) || 0,
-                        } as Partial<T>)
+                      value={row.rate_per_hour}
+                      onValueChange={(rate_per_hour) =>
+                        onUpdateRow(idx, { rate_per_hour } as Partial<T>)
                       }
                     />
                   ) : (
@@ -123,11 +115,12 @@ export function EditableLabourLinesTable<T extends EditableLabourLine>({
         {subtotal != null ? (
           <tfoot>
             <tr className="border-t bg-muted/40">
-              <td colSpan={labelColSpan} className="p-3 text-right font-medium">
+              <td className="p-3 text-right font-medium" colSpan={labelColSpan}>
                 {subtotalLabel}
               </td>
-              <td className="p-3 text-right font-semibold">{formatAmount(subtotal)}</td>
-              {editable ? <td /> : null}
+              <td className="p-3 text-right font-semibold" colSpan={editable ? 3 : 2}>
+                {formatAmount(subtotal)}
+              </td>
             </tr>
           </tfoot>
         ) : null}

@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/ui/decimal-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -498,13 +499,13 @@ export default function NewAppointmentPage() {
 
             <div className="space-y-2">
               <Label htmlFor="estimated_duration">Estimated Duration (Hours)</Label>
-              <Input
+              <DecimalInput
                 id="estimated_duration"
-                type="number"
-                step="0.5"
-                min="0.5"
+                min={0}
                 value={form.estimated_duration_hours}
-                onChange={(e) => setForm((prev) => ({ ...prev, estimated_duration_hours: parseFloat(e.target.value) || 0 }))}
+                onValueChange={(estimated_duration_hours) =>
+                  setForm((prev) => ({ ...prev, estimated_duration_hours }))
+                }
               />
             </div>
 

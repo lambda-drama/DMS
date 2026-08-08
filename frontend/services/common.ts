@@ -92,11 +92,11 @@ export function vehicleServiceItemEstimatedHours(
   item?: Pick<VehicleServiceItem, 'custom_estimated_timehours' | 'estimated_hours'>
 ): number {
   if (item?.estimated_hours != null && Number(item.estimated_hours) > 0) {
-    return Math.round(Number(item.estimated_hours) * 10) / 10;
+    return Number(item.estimated_hours);
   }
   const hours = parseFloat(String(item?.custom_estimated_timehours ?? ''));
   if (Number.isFinite(hours) && hours > 0) {
-    return Math.round(hours * 10) / 10;
+    return hours;
   }
   return 0;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/ui/decimal-input';
 import { Trash2 } from 'lucide-react';
 
 export type EditablePartLine = {
@@ -79,15 +79,13 @@ export function EditablePartsLinesTable<T extends EditablePartLine>({
                 </td>
                 <td className="p-3 text-right">
                   {editable ? (
-                    <Input
-                      type="number"
-                      min={1}
-                      step="1"
+                    <DecimalInput
+                      min={0}
                       className="ml-auto h-8 w-20 text-right"
-                      value={qty || ''}
-                      onChange={(e) =>
+                      value={qty}
+                      onValueChange={(nextQty) =>
                         onUpdateRow(idx, {
-                          [quantityField]: parseInt(e.target.value, 10) || 1,
+                          [quantityField]: nextQty,
                         } as Partial<T>)
                       }
                     />
@@ -97,16 +95,12 @@ export function EditablePartsLinesTable<T extends EditablePartLine>({
                 </td>
                 <td className="p-3 text-right">
                   {editable ? (
-                    <Input
-                      type="number"
+                    <DecimalInput
                       min={0}
-                      step="0.01"
                       className="ml-auto h-8 w-28 text-right"
-                      value={row.unit_price || ''}
-                      onChange={(e) =>
-                        onUpdateRow(idx, {
-                          unit_price: parseFloat(e.target.value) || 0,
-                        } as Partial<T>)
+                      value={row.unit_price}
+                      onValueChange={(unit_price) =>
+                        onUpdateRow(idx, { unit_price } as Partial<T>)
                       }
                     />
                   ) : (

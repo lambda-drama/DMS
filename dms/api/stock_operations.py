@@ -20,6 +20,7 @@ from dms.dealer_management_system.utils.stock_operations import (
 	get_dms_pending_material_requests,
 	get_dms_purchase_receipts_list,
 	get_dms_purchase_receipt_detail,
+	get_item_price_list_rate,
 	get_item_uoms_for_ui,
 	get_material_request_defaults,
 	get_purchase_receipt_defaults,
@@ -189,6 +190,12 @@ def create_purchase_receipt_from_material_request(name=None, supplier=None, subm
 def get_purchase_receipt_defaults_api(company=None):
 	frappe.has_permission("Purchase Receipt", "read", throw=True)
 	return get_purchase_receipt_defaults(company)
+
+
+@frappe.whitelist()
+def get_item_price_list_rate_api(item_code=None, price_list=None):
+	frappe.has_permission("Purchase Receipt", "read", throw=True)
+	return {"rate": get_item_price_list_rate(item_code, price_list)}
 
 
 @frappe.whitelist()

@@ -166,11 +166,17 @@ export async function cancelSalesInvoice(salesInvoice: string): Promise<{
 
 export async function collectPayment(params: {
   salesInvoice: string;
-  modeOfPayment: string;
+  modeOfPayment?: string;
   paidAmount?: number;
   referenceNo?: string;
+  payments?: Array<{
+    mode_of_payment: string;
+    amount: number;
+    reference_no?: string;
+  }>;
 }): Promise<{
   payment_entry: string;
+  payment_entries?: string[];
   paid_amount: number;
   outstanding_amount: number;
   status: string;
@@ -179,9 +185,10 @@ export async function collectPayment(params: {
     method: 'POST',
     body: JSON.stringify({
       sales_invoice: params.salesInvoice,
-      mode_of_payment: params.modeOfPayment,
+      mode_of_payment: params.modeOfPayment || null,
       paid_amount: params.paidAmount ?? null,
       reference_no: params.referenceNo || null,
+      payments: params.payments || null,
     }),
   });
 }

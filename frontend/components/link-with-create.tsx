@@ -425,7 +425,7 @@ export function LinkWithCreate({
                 <Label>Default hours</Label>
                 <Input
                   type="number"
-                  step="0.5"
+                  step="any"
                   min={0}
                   value={svcHours}
                   onChange={(e) => setSvcHours(e.target.value)}

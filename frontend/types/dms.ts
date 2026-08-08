@@ -1352,6 +1352,8 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
 export interface ModeOfPayment {
   name: string;
   type?: string;
+  account?: string | null;
+  account_name?: string | null;
 }
 
 // ============ API RESPONSE TYPES ============

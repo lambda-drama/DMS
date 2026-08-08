@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -367,23 +367,19 @@ export function CreateRepeatJobDialog({
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Hours</Label>
-                <Input
-                  type="number"
-                  min={0.1}
-                  step="0.1"
-                  value={draftHours || ""}
-                  onChange={(e) => setDraftHours(parseFloat(e.target.value) || 0)}
+                <DecimalInput
+                  min={0}
+                  value={draftHours}
+                  onValueChange={setDraftHours}
                   disabled={busy}
                 />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Rate/hr</Label>
-                <Input
-                  type="number"
+                <DecimalInput
                   min={0}
-                  step="any"
-                  value={draftRate || ""}
-                  onChange={(e) => setDraftRate(parseFloat(e.target.value) || 0)}
+                  value={draftRate}
+                  onValueChange={setDraftRate}
                   disabled={busy}
                 />
               </div>
@@ -462,23 +458,19 @@ export function CreateRepeatJobDialog({
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Qty</Label>
-                <Input
-                  type="number"
-                  min={0.01}
-                  step="any"
-                  value={draftQty || ""}
-                  onChange={(e) => setDraftQty(parseFloat(e.target.value) || 0)}
+                <DecimalInput
+                  min={0}
+                  value={draftQty}
+                  onValueChange={setDraftQty}
                   disabled={busy}
                 />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Unit price</Label>
-                <Input
-                  type="number"
+                <DecimalInput
                   min={0}
-                  step="any"
-                  value={draftUnitPrice || ""}
-                  onChange={(e) => setDraftUnitPrice(parseFloat(e.target.value) || 0)}
+                  value={draftUnitPrice}
+                  onValueChange={setDraftUnitPrice}
                   disabled={busy}
                 />
               </div>

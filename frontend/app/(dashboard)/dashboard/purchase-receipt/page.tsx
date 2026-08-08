@@ -11,6 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -23,6 +30,7 @@ import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
 import { ListRowActions } from '@/components/list-row-actions';
 import { PrintFormatDropdown } from '@/components/print-format-dropdown';
+import { useCurrencies } from '@/hooks/use-dms';
 import * as stockSvc from '@/services/stockOperations';
 import { formatDmsWarehouseLabel } from '@/services/stockOperations';
 import { Loader2, PackageCheck, Plus, Trash2 } from 'lucide-react';
@@ -49,11 +57,14 @@ function emptyLine(): LineRow {
 
 export default function PurchaseReceiptPage() {
   const { canCreate } = usePermissions();
+  const { data: currencies } = useCurrencies();
   const [company, setCompany] = useState('');
   const [defaults, setDefaults] = useState<stockSvc.PurchaseReceiptDefaults | null>(null);
   const [defaultsLoading, setDefaultsLoading] = useState(true);
   const [supplier, setSupplier] = useState('');
   const [warehouse, setWarehouse] = useState('');
+  const [currency, setCurrency] = useState('ETB');
+  const [priceList, setPriceList] = useState('');
   const [postingDate, setPostingDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [remarks, setRemarks] = useState('');
   const [lines, setLines] = useState<LineRow[]>([emptyLine()]);
@@ -77,6 +88,12 @@ export default function PurchaseReceiptPage() {
       setDefaults(result);
       if (!company && result.company) setCompany(result.company);
       if (!warehouse && result.default_warehouse) setWarehouse(result.default_warehouse);
+      if (result.default_currency) setCurrency(result.default_currency);
+      if (result.default_price_list) {
+        setPriceList(result.default_price_list);
+      } else {
+        setPriceList('');
+      }
       if (result.default_supplier) {
         setSupplier(result.default_supplier);
         setSupplierOptions((prev) => {
@@ -219,6 +236,29 @@ export default function PurchaseReceiptPage() {
     [defaults?.warehouses]
   );
 
+  const priceListOptions = useMemo(() => {
+    const rows = defaults?.price_lists ?? [];
+    if (priceList && !rows.some((r) => r.name === priceList)) {
+      return [{ name: priceList, currency: currency || null }, ...rows];
+    }
+    return rows;
+  }, [defaults?.price_lists, priceList, currency]);
+
+  const resolveItemRate = useCallback(
+    async (itemCode: string, fallbackRate?: string) => {
+      if (priceList) {
+        try {
+          const rate = await stockSvc.fetchItemPriceListRate(itemCode, priceList);
+          if (rate > 0) return String(rate);
+        } catch {
+          // fall through to std rate
+        }
+      }
+      return fallbackRate || '';
+    },
+    [priceList]
+  );
+
   const handleSubmit = async () => {
     if (!canCreate('purchase-receipt')) return;
     const payloadLines = lines
@@ -242,6 +282,9 @@ export default function PurchaseReceiptPage() {
         company: company || defaults?.company || undefined,
         supplier: supplier || undefined,
         warehouse: warehouse || defaults?.default_warehouse || undefined,
+        currency: currency || undefined,
+        buying_price_list: priceList || undefined,
+        price_list: priceList || undefined,
         posting_date: postingDate,
         remarks: remarks || undefined,
         submit: true,
@@ -272,7 +315,7 @@ export default function PurchaseReceiptPage() {
           <CardTitle>New purchase receipt</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
               <Label>Company</Label>
               <SearchableSelect
@@ -319,6 +362,52 @@ export default function PurchaseReceiptPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label>Currency *</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(currencies?.length ? currencies : [currency || 'ETB']).map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Price List</Label>
+              <Select
+                value={priceList || undefined}
+                onValueChange={(value) => {
+                  setPriceList(value);
+                  const match = priceListOptions.find((p) => p.name === value);
+                  if (match?.currency) setCurrency(match.currency);
+                }}
+                disabled={defaultsLoading || priceListOptions.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      defaultsLoading
+                        ? 'Loading…'
+                        : defaults?.default_price_list
+                          ? `Default: ${defaults.default_price_list}`
+                          : 'Select price list'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {priceListOptions.map((pl) => (
+                    <SelectItem key={pl.name} value={pl.name}>
+                      {pl.currency ? `${pl.name} (${pl.currency})` : pl.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Posting date</Label>
               <Input type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} />
             </div>
@@ -342,35 +431,42 @@ export default function PurchaseReceiptPage() {
                     onValueChange={(value) => {
                       const opt = itemOptions.find((o) => o.value === value);
                       const stdRate = opt?.description?.match(/Std rate: ([\d.]+)/)?.[1];
-                      setLines((prev) =>
-                        prev.map((row, i) =>
-                          i === idx
-                            ? {
-                                ...row,
-                                item_code: value,
-                                item_name: opt?.label || value,
-                                rate: row.rate || stdRate || '',
-                              }
-                            : row
-                        )
-                      );
+                      void (async () => {
+                        const rate = await resolveItemRate(value, stdRate);
+                        setLines((prev) =>
+                          prev.map((row, i) =>
+                            i === idx
+                              ? {
+                                  ...row,
+                                  item_code: value,
+                                  item_name: opt?.label || value,
+                                  rate: row.rate || rate || '',
+                                }
+                              : row
+                          )
+                        );
+                      })();
                     }}
                     onItemCreated={(item) => {
-                      setLines((prev) =>
-                        prev.map((row, i) =>
-                          i === idx
-                            ? {
-                                ...row,
-                                item_code: item.item_code,
-                                item_name: item.item_name,
-                                rate:
-                                  item.standard_rate != null && item.standard_rate > 0
-                                    ? String(item.standard_rate)
-                                    : row.rate,
-                              }
-                            : row
-                        )
-                      );
+                      void (async () => {
+                        const fallback =
+                          item.standard_rate != null && item.standard_rate > 0
+                            ? String(item.standard_rate)
+                            : '';
+                        const rate = await resolveItemRate(item.item_code, fallback);
+                        setLines((prev) =>
+                          prev.map((row, i) =>
+                            i === idx
+                              ? {
+                                  ...row,
+                                  item_code: item.item_code,
+                                  item_name: item.item_name,
+                                  rate: row.rate || rate || fallback || '',
+                                }
+                              : row
+                          )
+                        );
+                      })();
                       setItemOptions((prev) => {
                         if (prev.some((o) => o.value === item.item_code)) return prev;
                         return [
@@ -529,19 +625,21 @@ export default function PurchaseReceiptPage() {
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => window.open(`/app/purchase-receipt/${selectedReceiptId}`, '_blank')}
+                onClick={() => setSelectedReceiptId(null)}
               >
-                Open in ERPNext
+                Close
               </Button>
             </div>
-          ) : undefined
+          ) : null
         }
       >
         {receiptDetail && (
-          <div className="space-y-6 py-4">
-            <DetailSection title="Receipt Info">
+          <>
+            <DetailSection title="Receipt">
               <DetailRow label="Supplier" value={receiptDetail.supplier} />
               <DetailRow label="Company" value={receiptDetail.company} />
+              <DetailRow label="Currency" value={receiptDetail.currency} />
+              <DetailRow label="Price List" value={receiptDetail.buying_price_list} />
               <DetailRow label="Posting date" value={receiptDetail.posting_date} />
               <DetailRow
                 label="Grand total"
@@ -558,56 +656,42 @@ export default function PurchaseReceiptPage() {
                 <DetailRow label="Remarks" value={receiptDetail.remarks} />
               ) : null}
             </DetailSection>
-
             <DetailSection title="Items">
               {receiptDetail.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No items on this receipt.</p>
+                <p className="text-sm text-muted-foreground">No items.</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Rate</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Warehouse</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {receiptDetail.items.map((item) => (
-                      <TableRow key={`${item.item_code}-${item.warehouse}`}>
-                        <TableCell>
-                          <div className="font-medium">{item.item_name || item.item_code}</div>
-                          <div className="text-xs text-muted-foreground">{item.item_code}</div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.qty != null ? item.qty.toLocaleString() : '—'}
-                          {item.uom ? ` ${item.uom}` : ''}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.rate != null
-                            ? item.rate.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
-                            : '—'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.amount != null
-                            ? item.amount.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
-                            : '—'}
-                        </TableCell>
-                        <TableCell>{item.warehouse || '—'}</TableCell>
+                <div className="space-y-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Rate</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {receiptDetail.items.map((item) => (
+                        <TableRow key={`${item.item_code}-${item.warehouse || ''}-${item.qty}`}>
+                          <TableCell>
+                            <div className="font-medium">{item.item_name || item.item_code}</div>
+                            <div className="text-xs text-muted-foreground">{item.item_code}</div>
+                          </TableCell>
+                          <TableCell className="text-right">{item.qty}</TableCell>
+                          <TableCell className="text-right">
+                            {item.rate != null ? item.rate.toLocaleString() : '—'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.amount != null ? item.amount.toLocaleString() : '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </DetailSection>
-          </div>
+          </>
         )}
       </DetailSheet>
     </div>

@@ -257,16 +257,23 @@ def cancel_sales_invoice(sales_invoice):
 def list_modes_of_payment(company=None):
 	_ensure_erpnext()
 
+	company = (company or "").strip() or None
 	filters = {"enabled": 1}
+	account_by_mode: dict[str, str] = {}
+
 	if company:
-		modes = frappe.get_all(
+		account_rows = frappe.get_all(
 			"Mode of Payment Account",
 			filters={"parenttype": "Mode of Payment", "company": company},
-			pluck="parent",
-			distinct=True,
+			fields=["parent", "default_account"],
 		)
-		if modes:
-			filters["name"] = ["in", modes]
+		for row in account_rows:
+			parent = (row.parent or "").strip()
+			account = (row.default_account or "").strip()
+			if parent and account and parent not in account_by_mode:
+				account_by_mode[parent] = account
+		if account_by_mode:
+			filters["name"] = ["in", list(account_by_mode.keys())]
 
 	modes = frappe.get_all(
 		"Mode of Payment",
@@ -281,24 +288,88 @@ def list_modes_of_payment(company=None):
 			fields=["name", "type"],
 			order_by="name asc",
 		)
-	return modes
+
+	account_names: dict[str, str] = {}
+	account_codes = list({a for a in account_by_mode.values() if a})
+	if account_codes:
+		for row in frappe.get_all(
+			"Account",
+			filters={"name": ["in", account_codes]},
+			fields=["name", "account_name"],
+		):
+			account_names[row.name] = row.account_name or row.name
+
+	out = []
+	for mode in modes:
+		account = account_by_mode.get(mode.name)
+		out.append(
+			{
+				"name": mode.name,
+				"type": mode.type,
+				"account": account,
+				"account_name": account_names.get(account) if account else None,
+			}
+		)
+	return out
 
 
 @frappe.whitelist()
 def collect_payment(
 	sales_invoice,
-	mode_of_payment,
+	mode_of_payment=None,
 	paid_amount=None,
 	reference_no=None,
+	payments=None,
 ):
+	"""Record one or more Payment Entries against a Sales Invoice.
+
+	``payments`` may be a list of:
+	  ``{mode_of_payment, amount, reference_no?}``
+
+	Legacy single-mode args (``mode_of_payment`` / ``paid_amount`` / ``reference_no``)
+	remain supported.
+	"""
 	_ensure_erpnext()
+	import json
 
 	invoice_name = (sales_invoice or "").strip()
 	if not invoice_name:
 		frappe.throw(_("Sales Invoice name is required."))
 
-	if not mode_of_payment:
-		frappe.throw(_("Mode of payment is required."))
+	if isinstance(payments, str):
+		payments = json.loads(payments) if payments else None
+
+	rows: list[dict] = []
+	if payments:
+		if not isinstance(payments, (list, tuple)):
+			frappe.throw(_("Payments must be a list of mode/amount rows."))
+		for raw in payments:
+			if not isinstance(raw, dict):
+				continue
+			mode = (raw.get("mode_of_payment") or "").strip()
+			amount = flt(raw.get("amount"))
+			if not mode:
+				frappe.throw(_("Each payment row needs a mode of payment."))
+			if amount <= 0:
+				frappe.throw(_("Each payment amount must be greater than zero."))
+			rows.append(
+				{
+					"mode_of_payment": mode,
+					"amount": amount,
+					"reference_no": (raw.get("reference_no") or "").strip() or None,
+				}
+			)
+	elif mode_of_payment:
+		rows.append(
+			{
+				"mode_of_payment": (mode_of_payment or "").strip(),
+				"amount": flt(paid_amount) if paid_amount not in (None, "") else None,
+				"reference_no": (reference_no or "").strip() or None,
+			}
+		)
+
+	if not rows:
+		frappe.throw(_("Add at least one mode of payment."))
 
 	frappe.has_permission("Payment Entry", "create", throw=True)
 	frappe.has_permission("Sales Invoice", "read", invoice_name, throw=True)
@@ -311,39 +382,80 @@ def collect_payment(
 	if outstanding <= 0:
 		frappe.throw(_("This invoice has no outstanding amount to collect."))
 
-	amount = flt(paid_amount) if paid_amount not in (None, "") else outstanding
-	if amount <= 0:
+	# Fill omitted single-row amount with full outstanding.
+	for row in rows:
+		if row["amount"] is None:
+			row["amount"] = outstanding
+
+	total = sum(flt(row["amount"]) for row in rows)
+	if total <= 0:
 		frappe.throw(_("Payment amount must be greater than zero."))
-	if amount > outstanding + 0.01:
+	if total > outstanding + 0.01:
 		frappe.throw(
-			_("Payment amount cannot exceed outstanding amount ({0}).").format(outstanding)
+			_("Payment total ({0}) cannot exceed outstanding amount ({1}).").format(
+				total, outstanding
+			)
 		)
 
-	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+	from erpnext.accounts.doctype.payment_entry.payment_entry import (
+		get_bank_cash_account,
+		get_payment_entry,
+	)
 
-	pe = get_payment_entry("Sales Invoice", invoice_name)
-	if isinstance(pe, dict):
-		pe = frappe.get_doc(pe)
+	created: list[str] = []
+	paid_total = 0.0
 
-	pe.mode_of_payment = mode_of_payment
-	if reference_no:
-		pe.reference_no = reference_no
-
-	if amount < outstanding - 0.01:
-		pe.paid_amount = amount
-		pe.received_amount = amount
-		for ref in pe.get("references") or []:
-			ref.allocated_amount = amount
+	for row in rows:
+		si.reload()
+		current_outstanding = flt(si.outstanding_amount)
+		if current_outstanding <= 0:
 			break
 
-	pe.insert()
-	pe.submit()
+		amount = min(flt(row["amount"]), current_outstanding)
+		if amount <= 0:
+			continue
+
+		pe = get_payment_entry("Sales Invoice", invoice_name)
+		if isinstance(pe, dict):
+			pe = frappe.get_doc(pe)
+
+		pe.mode_of_payment = row["mode_of_payment"]
+		if row.get("reference_no"):
+			pe.reference_no = row["reference_no"]
+
+		# Point paid_to / paid_from at the account for this mode of payment.
+		try:
+			bank = get_bank_cash_account(pe, None)
+			account = (bank or {}).get("account")
+			if account:
+				if pe.payment_type == "Receive":
+					pe.paid_to = account
+				elif pe.payment_type == "Pay":
+					pe.paid_from = account
+		except Exception:
+			pass
+
+		if amount < current_outstanding - 0.01:
+			pe.paid_amount = amount
+			pe.received_amount = amount
+			for ref in pe.get("references") or []:
+				ref.allocated_amount = amount
+				break
+
+		pe.insert()
+		pe.submit()
+		created.append(pe.name)
+		paid_total += amount
+
+	if not created:
+		frappe.throw(_("No payment entries were created."))
 
 	si.reload()
 
 	return {
-		"payment_entry": pe.name,
-		"paid_amount": amount,
+		"payment_entry": created[0],
+		"payment_entries": created,
+		"paid_amount": paid_total,
 		"outstanding_amount": flt(si.outstanding_amount),
 		"status": si.status,
 	}

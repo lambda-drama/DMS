@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -136,23 +136,19 @@ export function AddExtraPartSection({
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label className="text-xs">Qty</Label>
-            <Input
-              type="number"
-              min={0.01}
-              step="any"
-              value={quantity || ""}
-              onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+            <DecimalInput
+              min={0}
+              value={quantity}
+              onValueChange={setQuantity}
               disabled={disabled || busy}
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label className="text-xs">Unit price (editable)</Label>
-            <Input
-              type="number"
+            <DecimalInput
               min={0}
-              step="any"
-              value={unitPrice || ""}
-              onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+              value={unitPrice}
+              onValueChange={setUnitPrice}
               disabled={disabled || busy}
             />
           </div>

@@ -234,7 +234,7 @@ export function CreateServiceItemDialog({
               <Label>Estimated Hours</Label>
               <Input
                 type="number"
-                step="0.5"
+                step="any"
                 min="0"
                 value={estimatedHours}
                 onChange={(e) => setEstimatedHours(e.target.value)}

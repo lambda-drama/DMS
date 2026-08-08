@@ -46,6 +46,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -1130,16 +1131,12 @@ export default function NewJobCardPage() {
                 <Label htmlFor="estimated_duration_hours">
                   Estimated Duration (hours)
                 </Label>
-                <Input
+                <DecimalInput
                   id="estimated_duration_hours"
-                  type="number"
-                  step="0.5"
                   min={0}
                   placeholder="0"
-                  value={estimatedDurationHours || ""}
-                  onChange={(e) =>
-                    setEstimatedDurationHours(parseFloat(e.target.value) || 0)
-                  }
+                  value={estimatedDurationHours}
+                  onValueChange={setEstimatedDurationHours}
                 />
               </div>
 
@@ -1733,32 +1730,23 @@ export default function NewJobCardPage() {
               <div className="grid grid-cols-2 gap-3 sm:contents">
                 <div className="space-y-1 sm:col-span-2">
                   <Label className="text-xs">Hours</Label>
-                  <Input
-                    type="number"
-                    step="0.5"
+                  <DecimalInput
                     min={0}
                     placeholder="0"
-                    value={newLabour.estimated_hours || ""}
-                    onChange={(e) =>
-                      setNewLabour((prev) => ({
-                        ...prev,
-                        estimated_hours: parseFloat(e.target.value) || 0,
-                      }))
+                    value={newLabour.estimated_hours}
+                    onValueChange={(estimated_hours) =>
+                      setNewLabour((prev) => ({ ...prev, estimated_hours }))
                     }
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <Label className="text-xs">Rate/Hr</Label>
-                  <Input
-                    type="number"
+                  <DecimalInput
                     min={0}
                     placeholder="0"
-                    value={newLabour.rate_per_hour || ""}
-                    onChange={(e) =>
-                      setNewLabour((prev) => ({
-                        ...prev,
-                        rate_per_hour: parseFloat(e.target.value) || 0,
-                      }))
+                    value={newLabour.rate_per_hour}
+                    onValueChange={(rate_per_hour) =>
+                      setNewLabour((prev) => ({ ...prev, rate_per_hour }))
                     }
                   />
                 </div>
@@ -1810,31 +1798,23 @@ export default function NewJobCardPage() {
               <div className="grid grid-cols-2 gap-3 sm:contents">
                 <div className="space-y-1 sm:col-span-2">
                   <Label className="text-xs">Quantity</Label>
-                  <Input
-                    type="number"
-                    min={1}
+                  <DecimalInput
+                    min={0}
                     placeholder="1"
-                    value={newPart.quantity_requested || ""}
-                    onChange={(e) =>
-                      setNewPart((prev) => ({
-                        ...prev,
-                        quantity_requested: parseInt(e.target.value) || 1,
-                      }))
+                    value={newPart.quantity_requested}
+                    onValueChange={(quantity_requested) =>
+                      setNewPart((prev) => ({ ...prev, quantity_requested }))
                     }
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-3">
                   <Label className="text-xs">Unit Price (editable)</Label>
-                  <Input
-                    type="number"
+                  <DecimalInput
                     min={0}
                     placeholder="0"
-                    value={newPart.unit_price || ""}
-                    onChange={(e) =>
-                      setNewPart((prev) => ({
-                        ...prev,
-                        unit_price: parseFloat(e.target.value) || 0,
-                      }))
+                    value={newPart.unit_price}
+                    onValueChange={(unit_price) =>
+                      setNewPart((prev) => ({ ...prev, unit_price }))
                     }
                   />
                 </div>

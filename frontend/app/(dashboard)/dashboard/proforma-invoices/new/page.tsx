@@ -699,7 +699,7 @@ export default function ProformaInvoiceNewPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="0.5"
+                    step="any"
                     value={line.hours}
                     onChange={(e) =>
                       setLabourRows((prev) =>

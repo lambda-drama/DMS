@@ -41,6 +41,9 @@ export interface PurchaseReceiptDefaults {
   default_warehouse?: string | null;
   default_supplier?: string | null;
   default_supplier_group?: string | null;
+  default_currency?: string | null;
+  default_price_list?: string | null;
+  price_lists?: Array<{ name: string; currency?: string | null }>;
   cost_center?: string | null;
   branch?: string | null;
   project?: string | null;
@@ -99,6 +102,8 @@ export interface PurchaseReceiptDetail {
   posting_date?: string;
   docstatus?: number;
   grand_total?: number;
+  currency?: string;
+  buying_price_list?: string;
   remarks?: string;
   items: PurchaseReceiptDetailItem[];
 }
@@ -456,6 +461,9 @@ export async function createPurchaseReceipt(data: {
   company?: string;
   supplier?: string;
   warehouse?: string;
+  currency?: string;
+  price_list?: string;
+  buying_price_list?: string;
   posting_date?: string;
   remarks?: string;
   submit?: boolean;
@@ -465,6 +473,20 @@ export async function createPurchaseReceipt(data: {
     method: 'POST',
     body: JSON.stringify({ data }),
   });
+}
+
+export async function fetchItemPriceListRate(
+  itemCode: string,
+  priceList: string
+): Promise<number> {
+  const result = await apiRequest<{ rate?: number }>(
+    `/api/method/${API}.get_item_price_list_rate_api`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ item_code: itemCode, price_list: priceList }),
+    }
+  );
+  return Number(result?.rate || 0);
 }
 
 export async function fetchStockItemCreateDefaults(): Promise<StockItemCreateDefaults> {
