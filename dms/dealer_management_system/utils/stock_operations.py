@@ -246,6 +246,86 @@ def get_dms_default_selling_price_list() -> str | None:
 	)
 
 
+def _dms_settings_configured_price_list() -> str | None:
+	"""Raw Default Price List from DMS Settings (any selling/buying flags)."""
+	meta = frappe.get_meta("DMS Settings")
+	if not meta.has_field("default_price_list"):
+		return None
+	price_list = (frappe.db.get_single_value("DMS Settings", "default_price_list") or "").strip()
+	if not price_list or not frappe.db.exists("Price List", price_list):
+		return None
+	enabled = frappe.db.get_value("Price List", price_list, "enabled")
+	if not cint(enabled):
+		return None
+	return price_list
+
+
+def get_dms_default_buying_price_list() -> str | None:
+	"""Prefer DMS Settings default price list when buying-enabled; else Buying Settings / first buying list."""
+	configured = _dms_settings_configured_price_list()
+	if configured:
+		buying = cint(frappe.db.get_value("Price List", configured, "buying") or 0)
+		if buying:
+			return configured
+
+	buying_settings = (frappe.db.get_single_value("Buying Settings", "buying_price_list") or "").strip()
+	if buying_settings and frappe.db.exists("Price List", buying_settings):
+		return buying_settings
+
+	# Still surface DMS default even if not marked buying (user configured it intentionally).
+	if configured:
+		return configured
+
+	return frappe.db.get_value(
+		"Price List",
+		{"enabled": 1, "buying": 1},
+		"name",
+		order_by="name asc",
+	)
+
+
+def list_dms_buying_price_lists() -> list[dict]:
+	"""Enabled buying price lists for purchase receipt UI (+ DMS default if missing)."""
+	rows = frappe.get_all(
+		"Price List",
+		filters={"enabled": 1, "buying": 1},
+		fields=["name", "currency"],
+		order_by="name asc",
+	)
+	out = [{"name": r.name, "currency": r.currency or None} for r in rows]
+	names = {r["name"] for r in out}
+
+	configured = _dms_settings_configured_price_list()
+	if configured and configured not in names:
+		currency = frappe.db.get_value("Price List", configured, "currency")
+		out.insert(0, {"name": configured, "currency": currency or None})
+
+	return out
+
+
+def get_item_price_list_rate(item_code: str | None, price_list: str | None) -> float:
+	"""Item Price rate for a price list (buying or selling)."""
+	item_code = (item_code or "").strip()
+	price_list = (price_list or "").strip()
+	if not item_code or not price_list:
+		return 0.0
+	rate = frappe.db.get_value(
+		"Item Price",
+		{"item_code": item_code, "price_list": price_list},
+		"price_list_rate",
+	)
+	return flt(rate)
+
+
+def get_company_default_currency(company: str | None = None) -> str:
+	company = (company or "").strip() or get_default_dms_company()
+	if company:
+		currency = (frappe.db.get_value("Company", company, "default_currency") or "").strip()
+		if currency:
+			return currency
+	return "ETB"
+
+
 def upsert_dms_selling_item_price(
 	item_code: str,
 	rate: float,
@@ -380,12 +460,21 @@ def get_purchase_receipt_defaults(company: str | None = None) -> dict:
 
 	default_warehouse = _default_workshop_warehouse(allowed)
 	default_supplier = get_dms_default_supplier(company)
+	default_price_list = get_dms_default_buying_price_list()
+	default_currency = get_company_default_currency(company)
+	if default_price_list:
+		pl_currency = (frappe.db.get_value("Price List", default_price_list, "currency") or "").strip()
+		if pl_currency:
+			default_currency = pl_currency
 
 	return {
 		"company": company,
 		"default_warehouse": default_warehouse,
 		"default_supplier": default_supplier,
 		"default_supplier_group": (frappe.db.get_single_value("DMS Settings", "default_supplier_group") or "").strip() or None,
+		"default_currency": default_currency,
+		"default_price_list": default_price_list,
+		"price_lists": list_dms_buying_price_lists(),
 		"cost_center": getattr(defaults_row, "cost_center", None) if defaults_row else None,
 		"branch": getattr(defaults_row, "branch", None) if defaults_row else None,
 		"project": getattr(defaults_row, "project", None) if defaults_row else None,
@@ -1385,12 +1474,21 @@ def create_dms_purchase_receipt(data: dict) -> dict:
 	if not default_warehouse:
 		default_warehouse = (pr_defaults.get("default_warehouse") or "").strip()
 
+	currency = (data.get("currency") or "").strip() or get_company_default_currency(company)
+	buying_price_list = (data.get("buying_price_list") or data.get("price_list") or "").strip()
+	if not buying_price_list:
+		buying_price_list = get_dms_default_buying_price_list() or ""
+
 	pr = frappe.new_doc("Purchase Receipt")
 	pr.company = company
 	pr.supplier = supplier
 	pr.posting_date = posting_date
 	pr.set_posting_time = 1
 	pr.remarks = (data.get("remarks") or _("Spare parts purchase receipt from DMS")).strip()
+	if pr.meta.has_field("currency") and currency:
+		pr.currency = currency
+	if pr.meta.has_field("buying_price_list") and buying_price_list:
+		pr.buying_price_list = buying_price_list
 
 	if pr.meta.has_field("custom_sparepart_receipt"):
 		pr.custom_sparepart_receipt = 1
@@ -1436,6 +1534,10 @@ def create_dms_purchase_receipt(data: dict) -> dict:
 		frappe.throw(_("Add at least one valid item line."))
 
 	pr.set_missing_values()
+	if pr.meta.has_field("currency") and currency:
+		pr.currency = currency
+	if pr.meta.has_field("buying_price_list") and buying_price_list:
+		pr.buying_price_list = buying_price_list
 	if not pr.supplier:
 		pr.supplier = supplier
 	if not pr.supplier:
@@ -1597,6 +1699,8 @@ def get_dms_purchase_receipt_detail(name: str) -> dict:
 		"posting_date": str(doc.posting_date) if doc.posting_date else None,
 		"docstatus": doc.docstatus,
 		"grand_total": flt(doc.grand_total),
+		"currency": doc.get("currency"),
+		"buying_price_list": doc.get("buying_price_list"),
 		"remarks": doc.remarks,
 		"items": items,
 	}

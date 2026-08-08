@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/ui/decimal-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -466,18 +467,16 @@ export function CreateInvoiceDialog({
                       <TableCell className="text-right">{line.qty}</TableCell>
                       <TableCell className="text-right">
                         {line.source_row ? (
-                          <Input
-                            type="number"
+                          <DecimalInput
                             min={0}
-                            step="0.01"
                             className="ml-auto h-8 w-28 text-right"
+                            blankWhenZero={false}
                             value={
                               editedRates[line.source_row] ??
                               line.base_rate ??
                               line.rate
                             }
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value) || 0;
+                            onValueChange={(value) => {
                               setEditedRates((prev) => ({
                                 ...prev,
                                 [line.source_row!]: value,

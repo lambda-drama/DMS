@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/ui/decimal-input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, CreditCard } from 'lucide-react';
+import { Loader2, CreditCard, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as invoicesSvc from '@/services/invoices';
 import type { SalesInvoiceDetail } from '@/types/dms';
@@ -30,6 +31,22 @@ function formatMoney(amount: number, currency?: string) {
     currency: currency || 'USD',
     minimumFractionDigits: 2,
   }).format(amount);
+}
+
+type PaymentRow = {
+  id: string;
+  mode_of_payment: string;
+  amount: number;
+  reference_no: string;
+};
+
+function newPaymentRow(mode = '', amount = 0): PaymentRow {
+  return {
+    id: crypto.randomUUID(),
+    mode_of_payment: mode,
+    amount,
+    reference_no: '',
+  };
 }
 
 interface CollectPaymentDialogProps {
@@ -48,10 +65,10 @@ export function CollectPaymentDialog({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [invoice, setInvoice] = useState<SalesInvoiceDetail | null>(null);
-  const [modes, setModes] = useState<{ name: string; type?: string }[]>([]);
-  const [modeOfPayment, setModeOfPayment] = useState('');
-  const [paidAmount, setPaidAmount] = useState('');
-  const [referenceNo, setReferenceNo] = useState('');
+  const [modes, setModes] = useState<
+    { name: string; type?: string; account?: string | null; account_name?: string | null }[]
+  >([]);
+  const [rows, setRows] = useState<PaymentRow[]>([newPaymentRow()]);
 
   useEffect(() => {
     if (!open || !salesInvoice) return;
@@ -59,8 +76,7 @@ export function CollectPaymentDialog({
     let cancelled = false;
     setLoading(true);
     setInvoice(null);
-    setModeOfPayment('');
-    setReferenceNo('');
+    setRows([newPaymentRow()]);
 
     invoicesSvc
       .getSalesInvoiceDetail(salesInvoice)
@@ -70,10 +86,8 @@ export function CollectPaymentDialog({
         const paymentModes = await invoicesSvc.listModesOfPayment(inv.company);
         if (cancelled) return;
         setModes(paymentModes);
-        setPaidAmount(String(inv.outstanding_amount || 0));
-        if (paymentModes.length > 0) {
-          setModeOfPayment(paymentModes[0].name);
-        }
+        const defaultMode = paymentModes[0]?.name || '';
+        setRows([newPaymentRow(defaultMode, inv.outstanding_amount || 0)]);
       })
       .catch((err: Error) => {
         if (!cancelled) {
@@ -90,6 +104,29 @@ export function CollectPaymentDialog({
     };
   }, [open, salesInvoice, onOpenChange]);
 
+  const outstanding = invoice?.outstanding_amount || 0;
+  const totalPaid = useMemo(
+    () => rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
+    [rows]
+  );
+  const remaining = Math.round((outstanding - totalPaid) * 100) / 100;
+
+  const updateRow = (id: string, patch: Partial<PaymentRow>) => {
+    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
+
+  const addRow = () => {
+    const nextMode =
+      modes.find((m) => !rows.some((r) => r.mode_of_payment === m.name))?.name ||
+      modes[0]?.name ||
+      '';
+    setRows((prev) => [...prev, newPaymentRow(nextMode, Math.max(remaining, 0))]);
+  };
+
+  const removeRow = (id: string) => {
+    setRows((prev) => (prev.length <= 1 ? prev : prev.filter((row) => row.id !== id)));
+  };
+
   const handlePay = async () => {
     if (!invoice) return;
 
@@ -98,14 +135,33 @@ export function CollectPaymentDialog({
       return;
     }
 
-    if (!modeOfPayment) {
-      toast.error('Select a mode of payment');
+    const payments = rows
+      .filter((row) => row.mode_of_payment && Number(row.amount) > 0)
+      .map((row) => ({
+        mode_of_payment: row.mode_of_payment,
+        amount: Number(row.amount),
+        reference_no: row.reference_no.trim() || undefined,
+      }));
+
+    if (!payments.length) {
+      toast.error('Add at least one mode of payment with an amount');
       return;
     }
 
-    const amount = parseFloat(paidAmount);
-    if (!amount || amount <= 0) {
+    if (payments.some((p) => !p.mode_of_payment)) {
+      toast.error('Select a mode of payment for each row');
+      return;
+    }
+
+    if (totalPaid <= 0) {
       toast.error('Enter a valid payment amount');
+      return;
+    }
+
+    if (totalPaid > outstanding + 0.01) {
+      toast.error(
+        `Payment total (${formatMoney(totalPaid, invoice.currency)}) exceeds outstanding (${formatMoney(outstanding, invoice.currency)})`
+      );
       return;
     }
 
@@ -113,11 +169,13 @@ export function CollectPaymentDialog({
     try {
       const result = await invoicesSvc.collectPayment({
         salesInvoice: invoice.name,
-        modeOfPayment,
-        paidAmount: amount,
-        referenceNo: referenceNo.trim() || undefined,
+        payments,
       });
-      toast.success(`Payment recorded (${result.payment_entry})`);
+      const peLabel =
+        result.payment_entries && result.payment_entries.length > 1
+          ? result.payment_entries.join(', ')
+          : result.payment_entry;
+      toast.success(`Payment recorded (${peLabel})`);
       onPaid?.();
       onOpenChange(false);
     } catch (err) {
@@ -135,14 +193,14 @@ export function CollectPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
             Collect Payment
           </DialogTitle>
           <DialogDescription>
-            Record a payment against sales invoice {salesInvoice}.
+            Record payment against sales invoice {salesInvoice}. Split across as many modes as needed.
           </DialogDescription>
         </DialogHeader>
 
@@ -184,45 +242,107 @@ export function CollectPaymentDialog({
             )}
 
             {canPay && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="pay-amount">Amount to collect</Label>
-                  <Input
-                    id="pay-amount"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                  />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Modes of payment *</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addRow}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add mode
+                  </Button>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Mode of payment *</Label>
-                  <Select value={modeOfPayment} onValueChange={setModeOfPayment}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modes.map((m) => (
-                        <SelectItem key={m.name} value={m.name}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {rows.map((row, index) => (
+                  <div
+                    key={row.id}
+                    className="space-y-3 rounded-lg border p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Payment {index + 1}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        disabled={rows.length <= 1}
+                        onClick={() => removeRow(row.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="pay-reference">Reference no. (optional)</Label>
-                  <Input
-                    id="pay-reference"
-                    value={referenceNo}
-                    onChange={(e) => setReferenceNo(e.target.value)}
-                    placeholder="Cheque / transaction reference"
-                  />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Mode *</Label>
+                        <Select
+                          value={row.mode_of_payment || undefined}
+                          onValueChange={(mode_of_payment) =>
+                            updateRow(row.id, { mode_of_payment })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modes.map((m) => {
+                              const accountLabel =
+                                m.account_name && m.account && m.account_name !== m.account
+                                  ? `${m.account_name} (${m.account})`
+                                  : m.account_name || m.account;
+                              return (
+                                <SelectItem key={m.name} value={m.name}>
+                                  {accountLabel ? `${m.name} — ${accountLabel}` : m.name}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Amount *</Label>
+                        <DecimalInput
+                          min={0}
+                          blankWhenZero={false}
+                          value={row.amount}
+                          onValueChange={(amount) => updateRow(row.id, { amount })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs">Reference no. (optional)</Label>
+                      <Input
+                        value={row.reference_no}
+                        onChange={(e) =>
+                          updateRow(row.id, { reference_no: e.target.value })
+                        }
+                        placeholder="Cheque / transaction reference"
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm space-y-1">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Total collecting</span>
+                    <span className="font-medium">{formatMoney(totalPaid, currency)}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Still outstanding</span>
+                    <span
+                      className={
+                        remaining < -0.01
+                          ? 'font-medium text-destructive'
+                          : 'font-medium'
+                      }
+                    >
+                      {formatMoney(Math.max(remaining, 0), currency)}
+                      {remaining < -0.01 ? ' (over)' : ''}
+                    </span>
+                  </div>
                 </div>
-              </>
+              </div>
             )}
 
             {(invoice.outstanding_amount || 0) <= 0 && invoice.docstatus === 1 && (

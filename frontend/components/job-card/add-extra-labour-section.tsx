@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/searchable-select";
@@ -154,23 +154,19 @@ export function AddExtraLabourSection({
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label className="text-xs">Hours</Label>
-            <Input
-              type="number"
-              min={0.1}
-              step="0.1"
-              value={estimatedHours || ""}
-              onChange={(e) => setEstimatedHours(parseFloat(e.target.value) || 0)}
+            <DecimalInput
+              min={0}
+              value={estimatedHours}
+              onValueChange={setEstimatedHours}
               disabled={disabled || busy}
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label className="text-xs">Rate/hr (editable)</Label>
-            <Input
-              type="number"
+            <DecimalInput
               min={0}
-              step="any"
-              value={ratePerHour || ""}
-              onChange={(e) => setRatePerHour(parseFloat(e.target.value) || 0)}
+              value={ratePerHour}
+              onValueChange={setRatePerHour}
               disabled={disabled || busy}
             />
           </div>
