@@ -46,12 +46,23 @@ const WORKSPACES: Array<{
 
 /**
  * Parent “DMS” app switcher — pick DMS or DMS CRM workspace.
+ * Hidden when DMS CRM User Settings limits the user to one workspace.
  */
 export function WorkspaceSwitcher({ onNavigate, className, variant = 'dms' }: Props) {
-  const { workspace, setWorkspace } = useWorkspace();
+  const { workspace, setWorkspace, canAccessDms, canAccessCrm, canSwitchWorkspace, accessLoading } =
+    useWorkspace();
   const { navigate } = useNavigation();
 
-  const active = WORKSPACES.find((w) => w.id === workspace) || WORKSPACES[0];
+  const available = WORKSPACES.filter((w) =>
+    w.id === 'dms' ? canAccessDms : canAccessCrm
+  );
+
+  // No switcher when limited to a single workspace (or still loading access).
+  if (accessLoading || !canSwitchWorkspace || available.length < 2) {
+    return null;
+  }
+
+  const active = available.find((w) => w.id === workspace) || available[0];
 
   const go = (ws: AppWorkspace, view: string) => {
     setWorkspace(ws);
@@ -79,17 +90,12 @@ export function WorkspaceSwitcher({ onNavigate, className, variant = 'dms' }: Pr
           <ChevronUp className="ml-2 h-3.5 w-3.5 shrink-0 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="top"
-        align="start"
-        className="w-56"
-        sideOffset={8}
-      >
+      <DropdownMenuContent side="top" align="start" className="w-56" sideOffset={8}>
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
           Switch workspace
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {WORKSPACES.map((item) => {
+        {available.map((item) => {
           const Icon = item.icon;
           const isActive = workspace === item.id;
           return (

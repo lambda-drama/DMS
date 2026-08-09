@@ -28,8 +28,16 @@ export default function DashboardShell({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const { activeView } = useNavigation();
-  const { isCrm, switchToCrm, switchToDms } = useWorkspace();
+  const { activeView, navigate } = useNavigation();
+  const {
+    isCrm,
+    switchToCrm,
+    switchToDms,
+    canAccessDms,
+    canAccessCrm,
+    canViewStaffAudit,
+    accessLoading,
+  } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -41,12 +49,45 @@ export default function DashboardShell({
   ]);
 
   useEffect(() => {
-    if (isCrmView(activeView)) {
-      if (!isCrm) switchToCrm();
-    } else if (activeView && isCrm && !CRM_KEEPS_APPOINTMENTS.has(activeView)) {
-      switchToDms();
+    if (accessLoading) return;
+
+    const view = activeView || 'dashboard';
+    const onCrmView = isCrmView(view);
+    const onStaffAudit = view === 'crm-staff-audit';
+
+    if (onStaffAudit && !canViewStaffAudit) {
+      navigate(canAccessCrm ? 'crm-dashboard' : 'dashboard');
+      return;
     }
-  }, [activeView, isCrm, switchToCrm, switchToDms]);
+
+    if (onCrmView && !canAccessCrm && !CRM_KEEPS_APPOINTMENTS.has(view)) {
+      navigate('dashboard');
+      if (isCrm) switchToDms();
+      return;
+    }
+
+    if (!onCrmView && !canAccessDms && !CRM_KEEPS_APPOINTMENTS.has(view)) {
+      navigate('crm-dashboard');
+      if (!isCrm) switchToCrm();
+      return;
+    }
+
+    if (onCrmView) {
+      if (!isCrm && canAccessCrm) switchToCrm();
+    } else if (activeView && isCrm && !CRM_KEEPS_APPOINTMENTS.has(activeView)) {
+      if (canAccessDms) switchToDms();
+    }
+  }, [
+    activeView,
+    isCrm,
+    switchToCrm,
+    switchToDms,
+    canAccessDms,
+    canAccessCrm,
+    canViewStaffAudit,
+    accessLoading,
+    navigate,
+  ]);
 
   useLayoutEffect(() => {
     setSidebarOpen(false);

@@ -814,3 +814,11 @@ def get_customer_terms_and_conditions():
 	from dms.dealer_management_system.utils.customer_terms import fetch_bilingual_terms_payload
 
 	return fetch_bilingual_terms_payload()
+
+
+@frappe.whitelist()
+def get_workspace_access():
+	"""DMS/CRM workspace limits + Staff Audit visibility from DMS CRM User Settings."""
+	from dms.dealer_management_system.utils.crm_user_settings import get_workspace_access as _access
+
+	return _access()

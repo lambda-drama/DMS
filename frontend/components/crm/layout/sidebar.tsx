@@ -22,6 +22,7 @@ import {
   Truck,
   Users,
   BarChart3,
+  ScrollText,
   Wrench,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
@@ -29,6 +30,7 @@ import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { shellTopBarClassName } from '@/lib/app-shell';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigation } from '@/contexts/navigation-context';
+import { useWorkspace } from '@/contexts/workspace-context';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -128,6 +130,11 @@ const navigation: NavSection[] = [
         icon: BarChart3,
         params: { section: 'crm_call_campaign', report: 'dashboard' },
       },
+      {
+        name: 'Staff Audit',
+        view: 'crm-staff-audit',
+        icon: ScrollText,
+      },
     ],
   },
 ];
@@ -154,6 +161,7 @@ interface CrmSidebarProps {
 export function CrmSidebar({ onNavigate }: CrmSidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, viewParams, navigate } = useNavigation();
+  const { canViewStaffAudit } = useWorkspace();
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(DEFAULT_OPEN);
 
   useEffect(() => {
@@ -168,7 +176,17 @@ export function CrmSidebar({ onNavigate }: CrmSidebarProps) {
     });
   }, [viewGroup]);
 
-  const sections = useMemo(() => navigation, []);
+  const sections = useMemo(() => {
+    return navigation.map((section) => {
+      if (section.title !== 'Reports') return section;
+      return {
+        ...section,
+        items: section.items.filter(
+          (item) => item.view !== 'crm-staff-audit' || canViewStaffAudit
+        ),
+      };
+    });
+  }, [canViewStaffAudit]);
 
   const isItemActive = (item: NavItem) => {
     if (viewGroup !== item.view) return false;
