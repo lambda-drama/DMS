@@ -109,6 +109,7 @@ const viewTitles: Record<string, string> = {
   'crm-referrals': 'Referrals',
   'crm-referral-detail': 'Referral',
   'crm-reports': 'CRM Reports',
+  'crm-staff-audit': 'Staff Audit',
 };
 
 interface HeaderProps {

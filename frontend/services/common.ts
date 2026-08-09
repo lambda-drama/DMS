@@ -208,6 +208,22 @@ export async function fetchDmsCustomerDefaults(): Promise<DmsCustomerDefaults> {
   });
 }
 
+export interface WorkspaceAccess {
+  listed: boolean;
+  access_limited_to: '' | 'DMS' | 'CRM' | string;
+  can_access_dms: boolean;
+  can_access_crm: boolean;
+  can_view_staff_audit: boolean;
+  can_switch_workspace: boolean;
+}
+
+export async function fetchWorkspaceAccess(): Promise<WorkspaceAccess> {
+  return apiRequest<WorkspaceAccess>(`/api/method/${API}.get_workspace_access`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 export async function fetchVINs(customer?: string, search?: string): Promise<VINNo[]> {
   return apiRequest<VINNo[]>(`/api/method/${API}.get_vins`, {
     method: 'POST',

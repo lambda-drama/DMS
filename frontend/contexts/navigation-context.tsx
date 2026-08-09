@@ -76,6 +76,7 @@ const CRM_VIEWS = [
   'crm-referrals',
   'crm-referral-detail',
   'crm-reports',
+  'crm-staff-audit',
 ] as const;
 
 const ALL_VIEWS = [...DMS_VIEWS, ...CRM_VIEWS];
@@ -164,6 +165,7 @@ const VIEW_GROUPS: Record<string, string> = {
   'crm-referrals': 'crm-referrals',
   'crm-referral-detail': 'crm-referrals',
   'crm-reports': 'crm-reports',
+  'crm-staff-audit': 'crm-staff-audit',
 };
 
 export function isCrmView(view: string): boolean {

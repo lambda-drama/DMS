@@ -106,6 +106,7 @@ const CrmReferralDetailPage = dynamic(
   () => import('./(dashboard)/crm/referrals/detail/page')
 );
 const CrmReportsPage = dynamic(() => import('./(dashboard)/crm/reports/page'));
+const CrmStaffAuditPage = dynamic(() => import('./(dashboard)/crm/staff-audit/page'));
 
 function LoadingScreen() {
   return (
@@ -254,6 +255,7 @@ function AppContent() {
       case 'crm-referrals':      return <CrmReferralsPage />;
       case 'crm-referral-detail': return <CrmReferralDetailPage />;
       case 'crm-reports':        return <CrmReportsPage />;
+      case 'crm-staff-audit':    return <CrmStaffAuditPage />;
       default:                   return <DashboardMain />;
     }
   };
