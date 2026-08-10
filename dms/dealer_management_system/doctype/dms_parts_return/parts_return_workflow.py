@@ -9,6 +9,7 @@ from frappe.utils import flt, today
 
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import spare_part_erp_item_code
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+	get_dms_company_defaults_row,
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
 )
@@ -156,6 +157,13 @@ def _create_return_stock_entry(doc, jc, source_wh: str, target_wh: str) -> str:
 	se.posting_date = doc.posting_date or today()
 	se.set_posting_time = 1
 	se.remarks = _("Parts return {0} for Job Card {1}").format(doc.name, jc.name)
+
+	defaults_row = get_dms_company_defaults_row(jc.company)
+	if defaults_row:
+		for field in ("branch", "cost_center", "project"):
+			val = getattr(defaults_row, field, None)
+			if val and se.meta.has_field(field):
+				se.set(field, val)
 
 	for row in doc.items:
 		erp_item = spare_part_erp_item_code(row.item_code)
