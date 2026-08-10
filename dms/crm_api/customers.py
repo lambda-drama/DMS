@@ -936,6 +936,65 @@ def create_customer(data=None, force=0):
 
 
 @frappe.whitelist()
+def update_customer(name, data=None):
+	"""Update core Customer master fields from DMS / CRM UI."""
+	ensure_crm_write(GATE)
+	frappe.has_permission("Customer", "write", throw=True)
+
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Customer name is required."))
+	if not frappe.db.exists("Customer", name):
+		frappe.throw(_("Customer {0} not found.").format(name))
+
+	payload = parse_json(data) or {}
+	doc = frappe.get_doc("Customer", name)
+	doc.check_permission("write")
+
+	groups = _dms_customer_groups()
+	if groups and doc.customer_group and doc.customer_group not in groups:
+		frappe.throw(_("Customer {0} is not a DMS vehicle customer.").format(name))
+
+	if "customer_name" in payload:
+		customer_name = (payload.get("customer_name") or "").strip()
+		if not customer_name:
+			frappe.throw(_("Customer name is required."))
+		doc.customer_name = customer_name
+
+	if "customer_type" in payload and payload.get("customer_type"):
+		doc.customer_type = payload.get("customer_type")
+
+	if "customer_group" in payload:
+		customer_group = (payload.get("customer_group") or "").strip()
+		if customer_group:
+			if groups and customer_group not in groups:
+				frappe.throw(_("Customer group must be a DMS vehicle customer group."))
+			doc.customer_group = customer_group
+
+	if "mobile_no" in payload:
+		doc.mobile_no = (payload.get("mobile_no") or "").strip() or None
+	if "email_id" in payload:
+		doc.email_id = (payload.get("email_id") or "").strip() or None
+	if "territory" in payload:
+		doc.territory = (payload.get("territory") or "").strip() or None
+	if "tax_id" in payload and hasattr(doc, "tax_id"):
+		doc.tax_id = (payload.get("tax_id") or "").strip() or None
+	if "website" in payload and hasattr(doc, "website"):
+		doc.website = (payload.get("website") or "").strip() or None
+
+	doc.save()
+	frappe.db.commit()
+	return {
+		"ok": True,
+		"name": doc.name,
+		"customer_name": doc.customer_name,
+		"customer_group": doc.customer_group,
+		"mobile_no": doc.mobile_no,
+		"email_id": doc.email_id,
+	}
+
+
+@frappe.whitelist()
 def get_customer_360(customer: str):
 	"""Return full Customer 360 payload (blueprint §4 tabs, all phases)."""
 	ensure_crm_read(GATE)

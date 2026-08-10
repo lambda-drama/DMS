@@ -56,6 +56,12 @@ def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=
 		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
+	# List used to show stale stored warranty_status; job card uses live recompute.
+	# Refresh each row (page-sized) so badges match the job-card warranty banner.
+	from dms.utils.warranty import refresh_vin_warranty_status_for_list
+
+	refresh_vin_warranty_status_for_list(vehicles)
+
 	return {"data": vehicles, "total": total}
 
 
@@ -79,7 +85,30 @@ def get_vehicle(name):
 
 	from dms.utils.warranty import get_warranty_summary
 
-	data["warranty_summary"] = get_warranty_summary(doc, recalculate=True)
+	summary = get_warranty_summary(doc, recalculate=True)
+	data["warranty_summary"] = summary
+	# Keep top-level field aligned with live summary (detail sheet / forms)
+	if summary.get("warranty_status"):
+		data["warranty_status"] = summary["warranty_status"]
+		data["warranty_end_date"] = summary.get("warranty_end_date") or data.get("warranty_end_date")
+		stored = (doc.warranty_status or "").strip()
+		live = (summary.get("warranty_status") or "").strip()
+		if (
+			live
+			and live != stored
+			and stored not in ("Void", "Pending Verification")
+		):
+			frappe.db.set_value(
+				"VIN No",
+				doc.name,
+				{
+					"warranty_status": live,
+					"warranty_start_date": summary.get("warranty_start_date"),
+					"warranty_end_date": summary.get("warranty_end_date"),
+					"warranty_km_limit": summary.get("warranty_km_limit"),
+				},
+				update_modified=False,
+			)
 	return data
 
 

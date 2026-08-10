@@ -173,6 +173,7 @@ def create_spare_part_sale(data):
 		remarks=remarks,
 		submit=cint(data.get("submit", 1)),
 		parts_discount=data.get("parts_discount"),
+		apply_taxes=True,
 	)
 
 	si = frappe.get_doc("Sales Invoice", name)

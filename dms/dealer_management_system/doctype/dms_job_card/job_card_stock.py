@@ -177,3 +177,97 @@ def _ensure_erpnext():
 		import erpnext  # noqa: F401
 	except ImportError:
 		frappe.throw(_("ERPNext must be installed for stock transfers."))
+
+
+def _collect_job_card_stock_entry_names(job_card: str) -> list[str]:
+	"""All Stock Entries created for parts issue / return / WIP / material issue on a job card."""
+	names: list[str] = []
+
+	for field in ("wip_material_transfer", "material_issue"):
+		val = frappe.db.get_value("DMS Job Card", job_card, field)
+		if val:
+			names.append(val)
+
+	for doctype in ("DMS Parts Request", "DMS Parts Return"):
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		linked = frappe.get_all(
+			doctype,
+			filters={"job_card": job_card, "stock_entry": ["is", "set"]},
+			pluck="stock_entry",
+		)
+		names.extend([n for n in linked if n])
+
+	# Unique, preserve order
+	seen = set()
+	unique = []
+	for n in names:
+		if n not in seen:
+			seen.add(n)
+			unique.append(n)
+	return unique
+
+
+def cancel_job_card_stock_transfers(job_card: str) -> list[str]:
+	"""
+	Cancel submitted Stock Entries linked to a job card (parts issue transfers, returns,
+	WIP transfer, material issue). Newest first so dependent moves reverse cleanly.
+	"""
+	_ensure_erpnext()
+	entry_names = _collect_job_card_stock_entry_names(job_card)
+	if not entry_names:
+		return []
+
+	rows = frappe.get_all(
+		"Stock Entry",
+		filters={"name": ["in", entry_names]},
+		fields=["name", "docstatus", "creation", "posting_date", "posting_time"],
+	)
+	# Newest first
+	rows.sort(
+		key=lambda r: (
+			str(r.get("posting_date") or ""),
+			str(r.get("posting_time") or ""),
+			str(r.get("creation") or ""),
+		),
+		reverse=True,
+	)
+
+	cancelled: list[str] = []
+	for row in rows:
+		if cint(row.docstatus) != 1:
+			continue
+		se = frappe.get_doc("Stock Entry", row.name)
+		se.flags.ignore_permissions = True
+		try:
+			se.cancel()
+		except Exception:
+			frappe.throw(
+				_(
+					"Could not cancel Stock Entry {0} linked to this job card. "
+					"Resolve the stock entry first, then cancel the job card again."
+				).format(frappe.bold(row.name)),
+				title=_("Stock transfer cancel failed"),
+			)
+		cancelled.append(row.name)
+
+	# Reset part issue qty / warehouse after reversing transfers
+	part_rows = frappe.get_all(
+		"Job Card Part Item",
+		filters={"parent": job_card},
+		pluck="name",
+	)
+	for part_name in part_rows:
+		frappe.db.set_value(
+			"Job Card Part Item",
+			part_name,
+			{
+				"quantity_issued": 0,
+				"quantity_returned": 0,
+				"line_status": "Requested",
+				"warehouse": "",
+			},
+			update_modified=False,
+		)
+
+	return cancelled

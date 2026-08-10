@@ -64,6 +64,7 @@ fixtures = [
                     "Material Request-custom__sparepart_stock",
                     "Vehicle Service Item-custom_estimated_timehours",
                     "Vehicle Service Item-custom_service_code",
+                    "Sales Invoice-custom_missing_dms",
                     
                 ]
             ]

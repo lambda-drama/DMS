@@ -87,6 +87,9 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 		filters["promised_delivery_date_time"] = ["<", now_datetime()]
 	elif filter and filter in JOB_CARD_FILTER_PRESETS:
 		filters["status"] = ["in", JOB_CARD_FILTER_PRESETS[filter]]
+	else:
+		# Default list: hide cancelled so they stay out of the active queue
+		filters["status"] = ["!=", "Cancelled"]
 	if customer:
 		filters["customer"] = customer
 
@@ -1256,3 +1259,92 @@ def start_job_card_qc(name):
 	doc.save(ignore_permissions=True)
 	frappe.db.commit()
 	return {"status": doc.status, "qc_started_at": str(doc.qc_started_at)}
+
+
+_TERMINAL_CANCEL_BLOCKED = frozenset({"Cancelled", "Delivered"})
+
+
+@frappe.whitelist()
+def cancel_job_card(name, reason=None):
+	"""Cancel a saved job card at any point so it can be filtered out (no delete).
+
+	Also cancels linked stock transfers from parts issue / WIP / material issue.
+	"""
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	if doc.status in _TERMINAL_CANCEL_BLOCKED:
+		frappe.throw(_("Job card is already {0}.").format(doc.status))
+
+	reason = (reason or "").strip()
+	prev = doc.status
+
+	# Reverse stock movements first (parts issue / return / WIP / material issue)
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+		cancel_job_card_stock_transfers,
+	)
+
+	cancelled_stock = cancel_job_card_stock_transfers(doc.name)
+
+	# Cancel all linked parts requests (including Issued / Received after stock reverse)
+	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
+		_CANCELLABLE_PARTS_REQUEST_STATUSES,
+		cancel_parts_request,
+	)
+
+	open_prs = frappe.get_all(
+		"DMS Parts Request",
+		filters={
+			"job_card": doc.name,
+			"status": ["in", list(_CANCELLABLE_PARTS_REQUEST_STATUSES)],
+		},
+		pluck="name",
+	)
+	for pr_name in open_prs:
+		try:
+			cancel_parts_request(pr_name)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "cancel_job_card parts request")
+
+	# Issued / Received requests: stock already reversed — mark Cancelled
+	issued_prs = frappe.get_all(
+		"DMS Parts Request",
+		filters={
+			"job_card": doc.name,
+			"status": ["in", ["Issued", "Received", "Partially Issued"]],
+		},
+		pluck="name",
+	)
+	for pr_name in issued_prs:
+		frappe.db.set_value(
+			"DMS Parts Request",
+			pr_name,
+			"status",
+			"Cancelled",
+			update_modified=True,
+		)
+
+	updates = {"status": "Cancelled"}
+	if reason:
+		note = (doc.internal_notes or "").strip()
+		cancel_note = _("Cancelled: {0}").format(reason)
+		updates["internal_notes"] = f"{note}\n{cancel_note}".strip() if note else cancel_note
+
+	frappe.db.set_value("DMS Job Card", doc.name, updates, update_modified=True)
+
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+		log_job_card_status_change,
+	)
+
+	log_job_card_status_change(doc.name, "Cancelled", previous_status=prev, notes=reason or None)
+	frappe.db.commit()
+	doc.reload()
+	return {
+		"name": doc.name,
+		"status": doc.status,
+		"docstatus": doc.docstatus,
+		"cancelled_stock_entries": cancelled_stock,
+	}
