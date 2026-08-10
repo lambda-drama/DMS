@@ -352,6 +352,44 @@ def get_technician(name):
 
 
 @frappe.whitelist()
+def update_technician(name, data):
+	"""Update editable Technician master fields from DMS UI."""
+	if isinstance(data, str):
+		import json
+
+		data = json.loads(data)
+
+	if not name:
+		frappe.throw(_("Technician name is required"))
+
+	doc = frappe.get_doc("Technician", name)
+	doc.check_permission("write")
+
+	updatable = [
+		"first_name",
+		"last_name",
+		"personal_phone",
+		"date_of_joining",
+		"skill_level",
+		"labor_rate_group",
+		"status",
+		"branch",
+		"work_shift",
+	]
+	for field in updatable:
+		if field in data:
+			doc.set(field, data[field])
+
+	doc.save()
+	frappe.db.commit()
+	return {
+		"name": doc.name,
+		"full_name": doc.full_name,
+		"status": doc.status,
+	}
+
+
+@frappe.whitelist()
 def get_technician_schedule(name, date=None):
 	if not date:
 		date = today()

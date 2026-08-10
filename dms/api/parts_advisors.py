@@ -49,3 +49,39 @@ def get_parts_advisor(name):
 	doc = frappe.get_doc("Parts Advisor", name)
 	doc.check_permission("read")
 	return doc.as_dict()
+
+
+@frappe.whitelist()
+def update_parts_advisor(name, data):
+	"""Update editable Parts Advisor master fields from DMS UI."""
+	if isinstance(data, str):
+		import json
+
+		data = json.loads(data)
+
+	if not name:
+		frappe.throw(_("Parts Advisor name is required"))
+
+	doc = frappe.get_doc("Parts Advisor", name)
+	doc.check_permission("write")
+
+	updatable = [
+		"first_name",
+		"last_name",
+		"phone",
+		"email",
+		"status",
+		"date_of_joining",
+		"internal_employee",
+	]
+	for field in updatable:
+		if field in data:
+			doc.set(field, data[field])
+
+	doc.save()
+	frappe.db.commit()
+	return {
+		"name": doc.name,
+		"full_name": doc.get("full_name") or doc.name,
+		"status": doc.get("status"),
+	}

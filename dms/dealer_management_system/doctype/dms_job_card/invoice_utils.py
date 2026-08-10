@@ -1037,7 +1037,7 @@ def _apply_loyalty_service_discount_to_si(si, customer: str | None) -> None:
 	if hasattr(si, "additional_discount_percentage"):
 		si.additional_discount_percentage = pct
 		if hasattr(si, "apply_discount_on"):
-			si.apply_discount_on = si.apply_discount_on or "Grand Total"
+			si.apply_discount_on = "Net Total"
 
 
 def _distribute_discount_on_preview_lines(lines: list[dict], discount_amount: float) -> None:
@@ -1254,6 +1254,73 @@ def mark_sales_invoice_as_dms_ui_transaction(si) -> None:
 		si.custom_spare_parts = 1
 
 
+def mark_sales_invoice_as_missing_dms(si) -> None:
+	"""Flag catch-up invoices for past data that should have been DMS-linked."""
+	if frappe.get_meta("Sales Invoice").has_field("custom_missing_dms"):
+		si.custom_missing_dms = 1
+
+
+def apply_missing_dms_vin_updates(
+	vehicle_vin: str | None,
+	customer: str | None,
+	current_odometer=None,
+) -> None:
+	"""
+	For DMS missing-invoice catch-up: push invoice customer / odometer onto VIN No.
+
+	On customer change:
+	- previous owner is archived into Customer History only
+	- new owner is set on VIN No.current_customer (main field), not duplicated into history
+	"""
+	vin = (vehicle_vin or "").strip()
+	if not vin:
+		return
+	if not frappe.db.exists("VIN No", vin):
+		frappe.throw(_("VIN {0} not found.").format(frappe.bold(vin)))
+
+	customer = (customer or "").strip() or None
+	vin_doc = frappe.get_doc("VIN No", vin)
+	vin_doc.check_permission("write")
+
+	changed = False
+	previous_customer = (vin_doc.current_customer or "").strip() or None
+
+	if customer and previous_customer != customer:
+		# Archive old owner into history; do not also insert the new owner there.
+		if previous_customer:
+			vin_doc._archive_customer_in_history(previous_customer)
+		# Clear any leftover is_current flags so history is past owners only.
+		archive_day = getdate(today())
+		for row in vin_doc.get("customer_history") or []:
+			if cint(row.is_current):
+				row.is_current = 0
+				if not row.to_date:
+					row.to_date = archive_day
+		vin_doc.current_customer = customer
+		changed = True
+
+	if current_odometer is not None and current_odometer != "":
+		new_odo = cint(current_odometer)
+		if new_odo < 0:
+			frappe.throw(_("Odometer cannot be negative."))
+		old_odo = cint(vin_doc.current_odometer or 0)
+		if new_odo != old_odo:
+			vin_doc.current_odometer = new_odo
+			if frappe.get_meta("VIN No").has_field("odometer_last_updated"):
+				from frappe.utils import now_datetime
+
+				vin_doc.odometer_last_updated = now_datetime()
+			changed = True
+
+	if changed:
+		# Prevent VIN No.sync_customer_history from appending the new owner to history.
+		frappe.flags.skip_vin_customer_history_sync = True
+		try:
+			vin_doc.save()
+		finally:
+			frappe.flags.skip_vin_customer_history_sync = False
+
+
 def _normalize_standalone_discount(discount) -> dict | None:
 	"""Parse {type: percentage|amount, value: number} from API payload."""
 	return parse_discount_payload(discount)
@@ -1343,6 +1410,12 @@ def create_standalone_dms_sales_invoice(
 	submit: bool = False,
 	labour_discount=None,
 	parts_discount=None,
+	is_dms_invoice: int | bool = 0,
+	vehicle_vin: str | None = None,
+	vehicle_brand: str | None = None,
+	vehicle_model: str | None = None,
+	current_odometer=None,
+	apply_taxes: bool = False,
 ) -> str:
 	"""Create a Sales Invoice from DMS UI labour + parts (no job card)."""
 	_ensure_erpnext()
@@ -1359,6 +1432,9 @@ def create_standalone_dms_sales_invoice(
 	labour_lines = labour_lines or []
 	parts_lines = parts_lines or []
 	warehouse = (warehouse or "").strip()
+	vehicle_vin = (vehicle_vin or "").strip() or None
+	vehicle_brand = (vehicle_brand or "").strip() or None
+	vehicle_model = (vehicle_model or "").strip() or None
 
 	needs_stock_warehouse = False
 	for row in parts_lines:
@@ -1384,9 +1460,28 @@ def create_standalone_dms_sales_invoice(
 	si.posting_date = getdate(posting_date) if posting_date else getdate(today())
 	si.set_posting_time = 1
 	si.due_date = getdate(due_date) if due_date else si.posting_date
-	if remarks:
-		si.remarks = remarks
+
+	invoice_remarks = (remarks or "").strip()
+	try:
+		from dms.api.spare_part_sales import _vehicle_remarks_suffix
+
+		vehicle_suffix = _vehicle_remarks_suffix(
+			vin=vehicle_vin,
+			vehicle_brand=vehicle_brand,
+			vehicle_model=vehicle_model,
+		)
+	except Exception:
+		vehicle_suffix = ""
+	if vehicle_suffix:
+		invoice_remarks = f"{invoice_remarks}\n{vehicle_suffix}".strip() if invoice_remarks else vehicle_suffix
+	if invoice_remarks:
+		si.remarks = invoice_remarks
+
+	# Always flag invoices created from the DMS UI standalone path.
 	mark_sales_invoice_as_dms_ui_transaction(si)
+	# Checkbox "DMS invoice" = catch-up / past data missing DMS linkage.
+	if cint(is_dms_invoice):
+		mark_sales_invoice_as_missing_dms(si)
 
 	invoice_currency = (currency or "ETB").strip() or "ETB"
 	if not frappe.db.exists("Currency", invoice_currency):
@@ -1447,8 +1542,8 @@ def create_standalone_dms_sales_invoice(
 		)
 
 	use_dms_discount_field = _sales_invoice_item_has_dms_discount_field()
-	item_final_rates: list[float] = []
-	item_dms_discounts: list[float] = []
+	# Parallel to si.items: base/list rate, net rate, line discount total, optional %
+	line_pricing: list[dict] = []
 
 	for row in labour_lines:
 		qty, base_rate, line_amount, missing_vsi = _standalone_labour_line_amount(row)
@@ -1468,12 +1563,28 @@ def create_standalone_dms_sales_invoice(
 		final_rate = _standalone_discounted_unit_rate(
 			qty, base_rate, line_amount, labour_group_total, labour_disc
 		)
-		item_final_rates.append(final_rate)
-		item_dms_discounts.append(line_discount)
+		disc_pct = (
+			flt(labour_disc["value"])
+			if labour_disc and labour_disc.get("type") == "percentage"
+			else 0.0
+		)
+		line_pricing.append(
+			{
+				"base_rate": base_rate,
+				"final_rate": final_rate,
+				"line_discount": line_discount,
+				"qty": qty,
+				"discount_percentage": disc_pct,
+			}
+		)
+		unit_disc = flt(line_discount / qty) if qty else 0.0
 		item_row = {
 			"item_code": item_code,
 			"qty": qty,
+			"price_list_rate": base_rate,
 			"rate": final_rate,
+			"discount_percentage": disc_pct,
+			"discount_amount": 0.0 if disc_pct else unit_disc,
 			"description": (row.get("description") or "")[:4096] or None,
 		}
 		if use_dms_discount_field:
@@ -1498,12 +1609,28 @@ def create_standalone_dms_sales_invoice(
 		final_rate = _standalone_discounted_unit_rate(
 			qty, base_rate, line_amount, parts_group_total, parts_disc
 		)
-		item_final_rates.append(final_rate)
-		item_dms_discounts.append(line_discount)
+		disc_pct = (
+			flt(parts_disc["value"])
+			if parts_disc and parts_disc.get("type") == "percentage"
+			else 0.0
+		)
+		line_pricing.append(
+			{
+				"base_rate": base_rate,
+				"final_rate": final_rate,
+				"line_discount": line_discount,
+				"qty": qty,
+				"discount_percentage": disc_pct,
+			}
+		)
+		unit_disc = flt(line_discount / qty) if qty else 0.0
 		item_row = {
 			"item_code": erp_item,
 			"qty": qty,
+			"price_list_rate": base_rate,
 			"rate": final_rate,
+			"discount_percentage": disc_pct,
+			"discount_amount": 0.0 if disc_pct else unit_disc,
 		}
 		if use_dms_discount_field:
 			item_row["custom_dms_discount"] = line_discount
@@ -1518,29 +1645,61 @@ def create_standalone_dms_sales_invoice(
 
 	si.set_missing_values()
 	si.currency = invoice_currency
+	_apply_sales_invoice_tax_choice(si, apply_taxes)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, company)
 	apply_company_letter_head(si, company)
 
-	# set_missing_values() may reset rates — re-apply net rate; custom_dms_discount is audit-only.
-	for idx, item_row in enumerate(si.get("items") or []):
-		if idx < len(item_final_rates):
-			final_rate = item_final_rates[idx]
-			item_row.rate = final_rate
-			item_row.price_list_rate = final_rate
-			item_row.discount_percentage = 0
-			item_row.discount_amount = 0
-			if use_dms_discount_field and idx < len(item_dms_discounts):
-				item_row.custom_dms_discount = item_dms_discounts[idx]
+	# set_missing_values / margin math can wipe net rates — force discounted pricing.
+	_apply_standalone_line_pricing(si, line_pricing, use_dms_discount_field)
 
 	_allow_zero_valuation_rate_when_missing(si)
 
 	si.run_method("calculate_taxes_and_totals")
+	# calculate_item_values may reset rate from rate_with_margin; re-apply net pricing.
+	_apply_standalone_line_pricing(si, line_pricing, use_dms_discount_field)
+	si.run_method("calculate_taxes_and_totals")
+
 	si.insert()
 
 	if submit:
 		si.submit()
 
+	if cint(is_dms_invoice) and vehicle_vin:
+		apply_missing_dms_vin_updates(
+			vehicle_vin=vehicle_vin,
+			customer=customer,
+			current_odometer=current_odometer,
+		)
+
 	return si.name
+
+
+def _apply_standalone_line_pricing(si, line_pricing: list[dict], use_dms_discount_field: bool) -> None:
+	"""Write base + ERPNext line discount + net rate so the bill reflects DMS discounts."""
+	for idx, item in enumerate(si.get("items") or []):
+		if idx >= len(line_pricing):
+			break
+		p = line_pricing[idx]
+		qty = flt(item.qty) or flt(p.get("qty"))
+		base = flt(p.get("base_rate"))
+		final = flt(p.get("final_rate"))
+		line_disc = flt(p.get("line_discount"))
+		disc_pct = flt(p.get("discount_percentage"))
+		unit_disc = flt(line_disc / qty) if qty else 0.0
+
+		item.price_list_rate = base
+		if disc_pct > 0:
+			item.discount_percentage = disc_pct
+			item.discount_amount = flt(base * disc_pct / 100.0)
+		else:
+			item.discount_percentage = 0
+			item.discount_amount = unit_disc
+		item.rate = final
+		item.amount = flt(qty * final)
+		item.net_rate = final
+		item.net_amount = flt(qty * final)
+		if use_dms_discount_field:
+			item.custom_dms_discount = line_disc
 
 
 def _apply_dms_settings_dimensions_to_sales_order(so, company: str):

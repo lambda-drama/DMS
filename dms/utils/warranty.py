@@ -194,3 +194,43 @@ def sync_vin_warranty_after_sale(vin_name: str | None = None, serial_name: str |
 		return
 
 	apply_dms_warranty_schedule(vin_name, persist=True)
+
+
+def refresh_vin_warranty_status_for_list(rows: list[dict] | None) -> None:
+	"""
+	Mutate list rows in place with live warranty_status.
+	Also persist when stored value is stale (except Void / Pending Verification).
+	"""
+	if not rows:
+		return
+
+	for row in rows:
+		name = row.get("name")
+		if not name:
+			continue
+		stored = (row.get("warranty_status") or "").strip()
+		if stored in ("Void", "Pending Verification"):
+			continue
+		try:
+			summary = get_warranty_summary(name, recalculate=True)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "refresh_vin_warranty_status_for_list")
+			continue
+
+		live = (summary.get("warranty_status") or "").strip()
+		if not live:
+			continue
+
+		row["warranty_status"] = live
+		if summary.get("warranty_end_date"):
+			row["warranty_end_date"] = summary["warranty_end_date"]
+
+		if live != stored:
+			updates = {"warranty_status": live}
+			if summary.get("warranty_start_date"):
+				updates["warranty_start_date"] = summary["warranty_start_date"]
+			if summary.get("warranty_end_date"):
+				updates["warranty_end_date"] = summary["warranty_end_date"]
+			if summary.get("warranty_km_limit") is not None:
+				updates["warranty_km_limit"] = summary["warranty_km_limit"]
+			frappe.db.set_value("VIN No", name, updates, update_modified=False)
