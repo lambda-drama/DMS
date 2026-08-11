@@ -171,7 +171,7 @@ export function CreateSparePartDialog({
             <Label>Standard Rate</Label>
             <Input
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               value={standardRate}
               onChange={(e) => setStandardRate(e.target.value)}

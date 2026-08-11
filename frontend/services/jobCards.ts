@@ -79,6 +79,16 @@ export async function submitJobCard(name: string): Promise<{ name: string; statu
   });
 }
 
+export async function cancelJobCard(
+  name: string,
+  reason?: string
+): Promise<{ name: string; status: string; docstatus: number }> {
+  return apiRequest(`/api/method/${API}.cancel_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({ name, reason: reason || null }),
+  });
+}
+
 // ─── Field-level update on submitted doc ─────────────────────
 
 export async function setFieldValue(

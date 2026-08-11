@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { fetchTenderFormOptions, getTender, updateTender } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Button } from '@/components/ui/button';
+import { AddLineButton } from '@/components/ui/add-line-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
-import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 
 type ReqRow = {
   model: string;
@@ -21,6 +22,16 @@ type ReqRow = {
   unit_estimate: string;
   notes: string;
 };
+
+function emptyReq(): ReqRow {
+  return {
+    model: '',
+    specification: '',
+    quantity: 1,
+    unit_estimate: '',
+    notes: '',
+  };
+}
 
 export default function CrmTenderDetailPage() {
   const { navigate, viewParams } = useNavigation();
@@ -48,7 +59,7 @@ export default function CrmTenderDetailPage() {
     opportunity: '',
     framework_agreement: '',
   });
-  const [requirements, setRequirements] = useState<ReqRow[]>([]);
+  const [requirements, setRequirements] = useState<ReqRow[]>([emptyReq()]);
 
   useEffect(() => {
     if (!data) return;
@@ -70,17 +81,16 @@ export default function CrmTenderDetailPage() {
       opportunity: String(data.opportunity || ''),
       framework_agreement: String(data.framework_agreement || ''),
     });
-    setRequirements(
-      (Array.isArray(data.requirements) ? data.requirements : []).map(
-        (row: Record<string, unknown>) => ({
-          model: String(row.model || ''),
-          specification: String(row.specification || ''),
-          quantity: Number(row.quantity || 1),
-          unit_estimate: row.unit_estimate != null ? String(row.unit_estimate) : '',
-          notes: String(row.notes || ''),
-        })
-      )
+    const mapped = (Array.isArray(data.requirements) ? data.requirements : []).map(
+      (row: Record<string, unknown>) => ({
+        model: String(row.model || ''),
+        specification: String(row.specification || ''),
+        quantity: Number(row.quantity || 1),
+        unit_estimate: row.unit_estimate != null ? String(row.unit_estimate) : '',
+        notes: String(row.notes || ''),
+      })
     );
+    setRequirements(mapped.length ? mapped : [emptyReq()]);
   }, [data]);
 
   const selectOpts = (values?: string[]) =>
@@ -275,90 +285,72 @@ export default function CrmTenderDetailPage() {
       </Card>
 
       <Card className="border-border/70 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-base">Quantity by model</CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setRequirements((prev) => [
-                ...prev,
-                {
-                  model: '',
-                  specification: '',
-                  quantity: 1,
-                  unit_estimate: '',
-                  notes: '',
-                },
-              ])
-            }
-          >
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            Add line
-          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          {requirements.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Requested quantity by model and specification.
-            </p>
-          ) : (
-            requirements.map((row, idx) => (
-              <div
-                key={idx}
-                className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
+          {requirements.map((row, idx) => (
+            <div
+              key={idx}
+              className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
+            >
+              <Input
+                className="sm:col-span-2"
+                placeholder="Model"
+                value={row.model}
+                onChange={(e) =>
+                  setRequirements((prev) => {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], model: e.target.value };
+                    return next;
+                  })
+                }
+              />
+              <Input
+                className="sm:col-span-2"
+                placeholder="Specification"
+                value={row.specification}
+                onChange={(e) =>
+                  setRequirements((prev) => {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], specification: e.target.value };
+                    return next;
+                  })
+                }
+              />
+              <Input
+                type="number"
+                placeholder="Qty"
+                value={row.quantity}
+                onChange={(e) =>
+                  setRequirements((prev) => {
+                    const next = [...prev];
+                    next[idx] = {
+                      ...next[idx],
+                      quantity: Number(e.target.value || 1),
+                    };
+                    return next;
+                  })
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setRequirements((prev) => {
+                    const next = prev.filter((_, i) => i !== idx);
+                    return next.length ? next : [emptyReq()];
+                  })
+                }
               >
-                <Input
-                  className="sm:col-span-2"
-                  placeholder="Model"
-                  value={row.model}
-                  onChange={(e) =>
-                    setRequirements((prev) => {
-                      const next = [...prev];
-                      next[idx] = { ...next[idx], model: e.target.value };
-                      return next;
-                    })
-                  }
-                />
-                <Input
-                  className="sm:col-span-2"
-                  placeholder="Specification"
-                  value={row.specification}
-                  onChange={(e) =>
-                    setRequirements((prev) => {
-                      const next = [...prev];
-                      next[idx] = { ...next[idx], specification: e.target.value };
-                      return next;
-                    })
-                  }
-                />
-                <Input
-                  type="number"
-                  placeholder="Qty"
-                  value={row.quantity}
-                  onChange={(e) =>
-                    setRequirements((prev) => {
-                      const next = [...prev];
-                      next[idx] = {
-                        ...next[idx],
-                        quantity: Number(e.target.value || 1),
-                      };
-                      return next;
-                    })
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setRequirements((prev) => prev.filter((_, i) => i !== idx))
-                  }
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <AddLineButton
+            onClick={() => setRequirements((prev) => [...prev, emptyReq()])}
+            label="Add line"
+          />
         </CardContent>
       </Card>
 

@@ -10,7 +10,9 @@ import {
   type Customer360Data,
 } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
+import { usePermissions } from '@/contexts/permissions-context';
 import { useCrmFeedback } from '@/components/crm/form-feedback';
+import { EditCustomerDialog } from '@/components/customers/edit-customer-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +26,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Pencil,
   Target,
   UserRound,
   Wrench,
@@ -1353,9 +1356,11 @@ function AuditTab({
 
 export default function CrmCustomerDetailPage() {
   const { navigate, viewParams } = useNavigation();
+  const { canWrite } = usePermissions();
   const customerId = viewParams.get('id') || '';
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { data, isLoading, error } = useSWR(
+  const { data, isLoading, error, mutate } = useSWR(
     customerId ? ['crm-customer-360', customerId] : null,
     () => fetchCustomer360(customerId)
   );
@@ -1440,7 +1445,14 @@ export default function CrmCustomerDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <div className="flex flex-col items-end gap-2">
+          {canWrite('customers') ? (
+            <Button onClick={() => setEditOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Customer
+            </Button>
+          ) : null}
+          <div className="flex flex-wrap justify-end gap-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1">
             <Car className="h-3.5 w-3.5" />
             {summary.vehicles} vehicles
@@ -1461,6 +1473,7 @@ export default function CrmCustomerDetailPage() {
             <UserRound className="h-3.5 w-3.5" />
             {summary.contacts} contacts
           </span>
+          </div>
         </div>
       </div>
 
@@ -1516,6 +1529,25 @@ export default function CrmCustomerDetailPage() {
           <AuditTab data={data} duplicates={duplicates} masterId={customerId} />
         </TabsContent>
       </Tabs>
+
+      <EditCustomerDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        customer={customer}
+        onUpdated={() => {
+          void mutate();
+          void globalMutate(
+            (key) =>
+              Array.isArray(key) &&
+              (key[0] === 'crm-customer-360' ||
+                key[0] === 'crm-customer-duplicates' ||
+                key[0] === 'customers' ||
+                key[0] === 'crm-customers'),
+            undefined,
+            { revalidate: true }
+          );
+        }}
+      />
     </div>
   );
 }

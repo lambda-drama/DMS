@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { usePartsAdvisorsList, usePartsAdvisorDetail } from "@/hooks/use-dms";
+import { usePermissions } from "@/contexts/permissions-context";
 import { CreatePartsAdvisorDialog } from "@/components/parts-advisors/create-parts-advisor-dialog";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
@@ -24,6 +25,7 @@ import {
   Mail,
   Loader2,
   UserCircle,
+  Pencil,
 } from "lucide-react";
 import type { PartsAdvisorListItem } from "@/services/partsAdvisors";
 
@@ -48,13 +50,16 @@ function statusBadgeClass(status?: string) {
 }
 
 export default function PartsAdvisorsPage() {
+  const { canWrite } = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Active");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: advisors, isLoading, error } = usePartsAdvisorsList(search, statusFilter);
-  const { data: selected, isLoading: detailLoading } = usePartsAdvisorDetail(selectedId);
+  const { data: selected, isLoading: detailLoading, mutate: mutateAdvisor } =
+    usePartsAdvisorDetail(selectedId);
 
   const filtered = useMemo(() => {
     if (!advisors) return [];
@@ -171,12 +176,28 @@ export default function PartsAdvisorsPage() {
         onOpenChange={setCreateOpen}
         onCreated={() => setCreateOpen(false)}
       />
+      <CreatePartsAdvisorDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        advisor={selected}
+        onUpdated={() => {
+          void mutateAdvisor();
+        }}
+      />
 
       <DetailSheet
         open={Boolean(selectedId)}
         onOpenChange={(open) => !open && setSelectedId(null)}
         title={selected?.full_name || selectedId || "Parts Advisor"}
-        description={selectedId || undefined}
+        subtitle={selectedId || undefined}
+        footer={
+          canWrite("parts-advisors") && selected ? (
+            <Button className="w-full sm:w-auto" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          ) : null
+        }
       >
         {detailLoading && (
           <div className="flex justify-center py-8">

@@ -44,14 +44,27 @@ import {
   ChevronDown,
   BarChart3,
   RotateCcw,
+  XCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
 import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-dialog";
 import { resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import { PaginationControls } from "@/components/pagination-controls";
 import { ListRowActions } from "@/components/list-row-actions";
 import { cn } from "@/lib/utils";
+import * as jobCardsSvc from "@/services/jobCards";
 import type { DMSJobCard, JobCardStatus } from "@/types/dms";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 function canCreateRepeatJob(jc: Pick<DMSJobCard, "status" | "job_card_type">) {
   return (
@@ -60,8 +73,13 @@ function canCreateRepeatJob(jc: Pick<DMSJobCard, "status" | "job_card_type">) {
   );
 }
 
+function canCancelJobCard(jc: Pick<DMSJobCard, "status" | "docstatus">) {
+  const workflow = resolveJobCardWorkflowStatus(jc.status, jc.docstatus);
+  return workflow !== "Cancelled" && workflow !== "Delivered";
+}
+
 const statusFilterOptions: { value: string; label: string }[] = [
-  { value: "all", label: "All Statuses" },
+  { value: "all", label: "All (excl. Cancelled)" },
   { value: "Draft", label: "Draft" },
   { value: "Estimation Pending", label: "Estimation Pending" },
   { value: "Estimation Approved", label: "Estimation Approved" },
@@ -194,6 +212,9 @@ export default function JobCardsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showMobileStats, setShowMobileStats] = useState(false);
   const [repeatSource, setRepeatSource] = useState<DMSJobCard | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<DMSJobCard | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const openRepeatDialog = (jc: DMSJobCard) => {
     setRepeatSource(jc);
@@ -211,7 +232,7 @@ export default function JobCardsPage() {
     }
   }, [viewParams]);
 
-  const { data: result, isLoading, error } = useJobCards({
+  const { data: result, isLoading, error, mutate } = useJobCards({
     status: statusFilter !== "all" ? statusFilter : undefined,
     filter: presetFilter || undefined,
     limit: pageSize,
@@ -220,6 +241,26 @@ export default function JobCardsPage() {
   const jobCards = result?.data;
   const totalItems = result?.total || 0;
   const { data: selectedJobCard, isLoading: detailLoading } = useJobCard(selectedId);
+
+  const handleConfirmCancel = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      await jobCardsSvc.cancelJobCard(
+        cancelTarget.name,
+        cancelReason.trim() || undefined
+      );
+      toast.success(`Job card ${cancelTarget.name} cancelled`);
+      setCancelTarget(null);
+      setCancelReason("");
+      if (selectedId === cancelTarget.name) setSelectedId(null);
+      await mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel job card");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   useEffect(() => {
     setPage(1);
@@ -385,6 +426,18 @@ export default function JobCardsPage() {
                                     Create Repeat Job
                                   </DropdownMenuItem>
                                 ) : null}
+                                {canCancelJobCard(jc) ? (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => {
+                                      setCancelReason("");
+                                      setCancelTarget(jc);
+                                    }}
+                                  >
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Cancel Job Card
+                                  </DropdownMenuItem>
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </ListRowActions>
@@ -487,6 +540,18 @@ export default function JobCardsPage() {
                                 <DropdownMenuItem onClick={() => openRepeatDialog(jc)}>
                                   <RotateCcw className="h-4 w-4 mr-2" />
                                   Create Repeat Job
+                                </DropdownMenuItem>
+                              ) : null}
+                              {canCancelJobCard(jc) ? (
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => {
+                                    setCancelReason("");
+                                    setCancelTarget(jc);
+                                  }}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Cancel Job Card
                                 </DropdownMenuItem>
                               ) : null}
                             </DropdownMenuContent>
@@ -633,6 +698,57 @@ export default function JobCardsPage() {
           navigate("job-card-detail", { id: name });
         }}
       />
+
+      <Dialog
+        open={!!cancelTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCancelTarget(null);
+            setCancelReason("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Job Card</DialogTitle>
+            <DialogDescription>
+              {cancelTarget
+                ? `Cancel ${cancelTarget.name}? Linked parts stock transfers will be reversed. The job card is not deleted — filter status to Cancelled to find it later.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="list-cancel-reason">Reason (optional)</Label>
+            <Textarea
+              id="list-cancel-reason"
+              placeholder="Why is this job card being cancelled?"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCancelTarget(null);
+                setCancelReason("");
+              }}
+              disabled={cancelling}
+            >
+              Keep Job Card
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancel}
+              disabled={cancelling}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              {cancelling ? "Cancelling…" : "Cancel Job Card"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

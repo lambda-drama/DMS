@@ -47,6 +47,7 @@ import {
   CreditCard,
   XCircle,
   Loader2,
+  FilePenLine,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -59,6 +60,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
+import { AmendInvoiceDialog } from "@/components/invoices/amend-invoice-dialog";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { ListRowActions } from "@/components/list-row-actions";
 import * as invoicesSvc from "@/services/invoices";
@@ -93,8 +95,10 @@ export default function InvoicesPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelInvoiceId, setCancelInvoiceId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [showAmendDialog, setShowAmendDialog] = useState(false);
+  const [amendInvoiceId, setAmendInvoiceId] = useState<string | null>(null);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
-  const { canCancel } = usePermissions();
+  const { canCancel, canCreate, canWrite } = usePermissions();
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -125,8 +129,34 @@ export default function InvoicesPage() {
   const canCancelFor = (inv: Pick<SalesInvoiceListItem, "docstatus" | "status">) =>
     canCancel("invoices") && inv.docstatus === 1 && inv.status !== "Cancelled";
 
+  const isDraftInvoice = (
+    inv: Pick<SalesInvoiceListItem, "docstatus" | "status">
+  ) => inv.docstatus === 0 || inv.status === "Draft";
+
+  const isCancelledInvoice = (
+    inv: Pick<SalesInvoiceListItem, "docstatus" | "status">
+  ) => inv.docstatus === 2 || inv.status === "Cancelled";
+
+  const canEditDraftFor = (
+    inv: Pick<SalesInvoiceListItem, "docstatus" | "status">
+  ) => (canCreate("invoices") || canWrite("invoices")) && isDraftInvoice(inv);
+
+  const canAmendCancelledFor = (
+    inv: Pick<SalesInvoiceListItem, "docstatus" | "status" | "already_amended">
+  ) => {
+    if (!(canCreate("invoices") || canWrite("invoices"))) return false;
+    if (!isCancelledInvoice(inv)) return false;
+    // Already amended — no second Amend.
+    if (inv.already_amended) return false;
+    return true;
+  };
+
   const canCollectPayment = invoiceDetail ? canCollectFor(invoiceDetail) : false;
   const canCancelInvoice = invoiceDetail ? canCancelFor(invoiceDetail) : false;
+  const canEditDraftInvoice = invoiceDetail ? canEditDraftFor(invoiceDetail) : false;
+  const canAmendCancelledInvoice = invoiceDetail
+    ? canAmendCancelledFor(invoiceDetail)
+    : false;
 
   const openCollectPayment = (invoiceName: string) => {
     setPaymentInvoiceId(invoiceName);
@@ -136,6 +166,14 @@ export default function InvoicesPage() {
   const openCancelInvoice = (invoiceName: string) => {
     setCancelInvoiceId(invoiceName);
     setShowCancelDialog(true);
+  };
+
+  const openInvoiceEditor = (invoiceName: string) => {
+    // Keep detail sheet closed while the editor modal is open.
+    setSelectedId(null);
+    setInvoiceDetail(null);
+    setAmendInvoiceId(invoiceName);
+    setShowAmendDialog(true);
   };
 
   const refreshAfterInvoiceAction = async (invoiceName: string) => {
@@ -387,6 +425,18 @@ export default function InvoicesPage() {
                                     Cancel invoice
                                   </DropdownMenuItem>
                                 ) : null}
+                                {canEditDraftFor(invoice) ? (
+                                  <DropdownMenuItem onClick={() => openInvoiceEditor(invoice.name)}>
+                                    <FilePenLine className="h-4 w-4 mr-2" />
+                                    Edit invoice
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {canAmendCancelledFor(invoice) ? (
+                                  <DropdownMenuItem onClick={() => openInvoiceEditor(invoice.name)}>
+                                    <FilePenLine className="h-4 w-4 mr-2" />
+                                    Amend invoice
+                                  </DropdownMenuItem>
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </ListRowActions>
@@ -435,6 +485,26 @@ export default function InvoicesPage() {
                 >
                   <XCircle className="h-4 w-4 mr-2" />
                   Cancel Invoice
+                </Button>
+              ) : null}
+              {canEditDraftInvoice && selectedId ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => openInvoiceEditor(selectedId)}
+                >
+                  <FilePenLine className="h-4 w-4 mr-2" />
+                  Edit Invoice
+                </Button>
+              ) : null}
+              {canAmendCancelledInvoice && selectedId ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => openInvoiceEditor(selectedId)}
+                >
+                  <FilePenLine className="h-4 w-4 mr-2" />
+                  Amend Invoice
                 </Button>
               ) : null}
             </div>
@@ -624,6 +694,27 @@ export default function InvoicesPage() {
           }}
         />
       )}
+
+      {amendInvoiceId ? (
+        <AmendInvoiceDialog
+          open={showAmendDialog}
+          onOpenChange={(open) => {
+            setShowAmendDialog(open);
+            if (!open) setAmendInvoiceId(null);
+          }}
+          salesInvoice={amendInvoiceId}
+          onAmended={(draftName) => {
+            // Refresh list only — do not open the detail sheet while editing.
+            void mutate((key) => Array.isArray(key) && key[0] === "invoices");
+            setAmendInvoiceId(draftName);
+          }}
+          onSaved={(invoiceName) => {
+            void mutate((key) => Array.isArray(key) && key[0] === "invoices");
+            setSelectedId(invoiceName);
+            void invoicesSvc.getSalesInvoiceDetail(invoiceName).then(setInvoiceDetail);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

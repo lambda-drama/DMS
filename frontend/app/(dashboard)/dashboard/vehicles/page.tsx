@@ -4,8 +4,10 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useVehicles, useVehicle } from "@/hooks/use-dms";
+import { usePermissions } from "@/contexts/permissions-context";
 import { PaginationControls } from "@/components/pagination-controls";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
+import { EditVehicleDialog } from "@/components/vehicles/edit-vehicle-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +36,7 @@ import {
   Loader2,
   Filter,
   Fuel,
+  Pencil,
 } from "lucide-react";
 
 const statusOptions = [
@@ -78,6 +81,7 @@ function getWarrantyBadge(status?: string) {
 
 export default function VehiclesPage() {
   const { navigate, viewParams } = useNavigation();
+  const { canWrite } = usePermissions();
   const customerFromUrl = viewParams.get("customer");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -85,8 +89,9 @@ export default function VehiclesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { data: selectedVehicle, isLoading: detailLoading } = useVehicle(selectedId);
+  const { data: selectedVehicle, isLoading: detailLoading, mutate: mutateVehicle } = useVehicle(selectedId);
 
   const { data: result, isLoading, error } = useVehicles({
     customer: customerFromUrl || undefined,
@@ -405,6 +410,17 @@ export default function VehiclesPage() {
         badge={selectedVehicle?.vehicle_status ? { label: selectedVehicle.vehicle_status } : undefined}
         isLoading={detailLoading}
         onOpenInDesk={() => window.open(`/app/vin-no/${selectedId}`, "_blank")}
+        footer={
+          canWrite("vehicles") && selectedVehicle ? (
+            <Button
+              className="w-full sm:w-auto"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Vehicle
+            </Button>
+          ) : null
+        }
       >
         {selectedVehicle && (
           <>
@@ -457,6 +473,15 @@ export default function VehiclesPage() {
           </>
         )}
       </DetailSheet>
+
+      <EditVehicleDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        vehicle={selectedVehicle || null}
+        onUpdated={() => {
+          void mutateVehicle();
+        }}
+      />
     </div>
   );
 }

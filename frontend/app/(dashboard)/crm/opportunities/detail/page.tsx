@@ -34,6 +34,7 @@ import {
 import { useNavigation } from '@/contexts/navigation-context';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { Button } from '@/components/ui/button';
+import { AddLineButton } from '@/components/ui/add-line-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,7 +43,7 @@ import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { PipelinePath } from '@/components/crm/pipeline-path';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 
 const DEAL_PATH = [
   'Qualified',
@@ -77,6 +78,24 @@ type FleetReq = {
   delivery_batch: string;
   delivery_date: string;
 };
+
+function emptyOppItem(): OppItem {
+  return { item_code: '', qty: 1, rate: 0, discount_percentage: 0 };
+}
+
+function emptyFleetReq(): FleetReq {
+  return {
+    model: '',
+    specification: '',
+    quantity: 1,
+    preferred_color: '',
+    unit_price: '',
+    body_building_notes: '',
+    delivery_location: '',
+    delivery_batch: '',
+    delivery_date: '',
+  };
+}
 
 type OppForm = {
   title: string;
@@ -138,12 +157,12 @@ const emptyForm: OppForm = {
   delivery_schedule_notes: '',
   aftersales_package_notes: '',
   special_conversion_notes: '',
-  fleet_requirements: [],
-  items: [],
+  fleet_requirements: [emptyFleetReq()],
+  items: [emptyOppItem()],
 };
 
 function formFromDoc(doc: Record<string, unknown>): OppForm {
-  const items = Array.isArray(doc.items)
+  const mappedItems = Array.isArray(doc.items)
     ? (doc.items as Record<string, unknown>[]).map((row) => ({
         item_code: String(row.item_code || ''),
         item_name: String(row.item_name || ''),
@@ -155,7 +174,8 @@ function formFromDoc(doc: Record<string, unknown>): OppForm {
         net_amount: Number(row.net_amount || 0),
       }))
     : [];
-  const fleet_requirements = Array.isArray(doc.fleet_requirements)
+  const items = mappedItems.length ? mappedItems : [emptyOppItem()];
+  const mappedFleet = Array.isArray(doc.fleet_requirements)
     ? (doc.fleet_requirements as Record<string, unknown>[]).map((row) => ({
         model: String(row.model || ''),
         specification: String(row.specification || ''),
@@ -168,6 +188,7 @@ function formFromDoc(doc: Record<string, unknown>): OppForm {
         delivery_date: String(row.delivery_date || ''),
       }))
     : [];
+  const fleet_requirements = mappedFleet.length ? mappedFleet : [emptyFleetReq()];
   return {
     title: String(doc.title || ''),
     customer: String(doc.customer || ''),
@@ -369,7 +390,7 @@ export default function CrmOpportunityDetailPage() {
     aftersales_package_notes: form.aftersales_package_notes || null,
     special_conversion_notes: form.special_conversion_notes || null,
     fleet_requirements: form.fleet_requirements
-      .filter((r) => r.model || r.specification || r.quantity)
+      .filter((r) => r.model || r.specification)
       .map((r) => ({
         model: r.model || null,
         specification: r.specification || null,
@@ -1411,102 +1432,94 @@ export default function CrmOpportunityDetailPage() {
       </Card>
 
       <Card className="border-border/70 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader>
           <CardTitle className="text-base">Items</CardTitle>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {form.items.map((row, index) => (
+            <div
+              key={`${row.item_code}-${index}`}
+              className="grid gap-2 rounded-md border border-border/60 p-3 sm:grid-cols-12"
+            >
+              <div className="sm:col-span-5">
+                <SearchableSelect
+                  options={(items || []).map((it) => ({
+                    value: it.name,
+                    label: it.label || it.item_name || it.name,
+                  }))}
+                  value={row.item_code}
+                  onValueChange={(v) => {
+                    const selected = (items || []).find((it) => it.name === v);
+                    updateItem(index, {
+                      item_code: v || '',
+                      item_name: selected?.item_name || '',
+                      uom: selected?.uom || '',
+                      rate: Number(selected?.rate || row.rate || 0),
+                    });
+                  }}
+                  onSearchChange={setItemSearch}
+                  placeholder="Search item…"
+                  isLoading={itemsLoading}
+                  valueLabel={row.item_name || row.item_code}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Input
+                  type="number"
+                  value={row.qty}
+                  onChange={(e) => updateItem(index, { qty: Number(e.target.value || 0) })}
+                  placeholder="Qty"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Input
+                  type="number"
+                  value={row.rate}
+                  onChange={(e) => updateItem(index, { rate: Number(e.target.value || 0) })}
+                  placeholder="Rate"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Input
+                  type="number"
+                  value={row.discount_percentage || 0}
+                  onChange={(e) =>
+                    updateItem(index, {
+                      discount_percentage: Number(e.target.value || 0),
+                    })
+                  }
+                  placeholder="Disc %"
+                />
+              </div>
+              <div className="flex items-center justify-end sm:col-span-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    setForm((prev) => {
+                      const next = prev.items.filter((_, i) => i !== index);
+                      return {
+                        ...prev,
+                        items: next.length ? next : [emptyOppItem()],
+                      };
+                    })
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          <AddLineButton
             onClick={() =>
               setForm((prev) => ({
                 ...prev,
-                items: [...prev.items, { item_code: '', qty: 1, rate: 0, discount_percentage: 0 }],
+                items: [...prev.items, emptyOppItem()],
               }))
             }
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            Add item
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {form.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Add items to enable Create Quotation (standard ERPNext Quotation lines).
-            </p>
-          ) : (
-            form.items.map((row, index) => (
-              <div
-                key={`${row.item_code}-${index}`}
-                className="grid gap-2 rounded-md border border-border/60 p-3 sm:grid-cols-12"
-              >
-                <div className="sm:col-span-5">
-                  <SearchableSelect
-                    options={(items || []).map((it) => ({
-                      value: it.name,
-                      label: it.label || it.item_name || it.name,
-                    }))}
-                    value={row.item_code}
-                    onValueChange={(v) => {
-                      const selected = (items || []).find((it) => it.name === v);
-                      updateItem(index, {
-                        item_code: v || '',
-                        item_name: selected?.item_name || '',
-                        uom: selected?.uom || '',
-                        rate: Number(selected?.rate || row.rate || 0),
-                      });
-                    }}
-                    onSearchChange={setItemSearch}
-                    placeholder="Search item…"
-                    isLoading={itemsLoading}
-                    valueLabel={row.item_name || row.item_code}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Input
-                    type="number"
-                    value={row.qty}
-                    onChange={(e) => updateItem(index, { qty: Number(e.target.value || 0) })}
-                    placeholder="Qty"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Input
-                    type="number"
-                    value={row.rate}
-                    onChange={(e) => updateItem(index, { rate: Number(e.target.value || 0) })}
-                    placeholder="Rate"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Input
-                    type="number"
-                    value={row.discount_percentage || 0}
-                    onChange={(e) =>
-                      updateItem(index, {
-                        discount_percentage: Number(e.target.value || 0),
-                      })
-                    }
-                    placeholder="Disc %"
-                  />
-                </div>
-                <div className="flex items-center justify-end sm:col-span-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        items: prev.items.filter((_, i) => i !== index),
-                      }))
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
+            label="Add item"
+          />
         </CardContent>
       </Card>
 
@@ -1632,152 +1645,128 @@ export default function CrmOpportunityDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Fleet requirements</p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    fleet_requirements: [
-                      ...prev.fleet_requirements,
-                      {
-                        model: '',
-                        specification: '',
-                        quantity: 1,
-                        preferred_color: '',
-                        unit_price: '',
-                        body_building_notes: '',
-                        delivery_location: '',
-                        delivery_batch: '',
-                        delivery_date: '',
-                      },
-                    ],
-                  }))
-                }
+            <p className="text-sm font-medium">Fleet requirements</p>
+            {form.fleet_requirements.map((row, idx) => (
+              <div
+                key={idx}
+                className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
               >
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Add line
-              </Button>
-            </div>
-            {form.fleet_requirements.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Requested quantity by model, specification, batch and delivery location.
-              </p>
-            ) : (
-              form.fleet_requirements.map((row, idx) => (
-                <div
-                  key={idx}
-                  className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
-                >
-                  <Input
-                    className="sm:col-span-2"
-                    placeholder="Model (Vehicle Model name)"
-                    value={row.model}
-                    onChange={(e) =>
-                      setForm((prev) => {
-                        const next = [...prev.fleet_requirements];
-                        next[idx] = { ...next[idx], model: e.target.value };
-                        return { ...prev, fleet_requirements: next };
-                      })
-                    }
-                  />
-                  <Input
-                    className="sm:col-span-2"
-                    placeholder="Specification"
-                    value={row.specification}
-                    onChange={(e) =>
-                      setForm((prev) => {
-                        const next = [...prev.fleet_requirements];
-                        next[idx] = { ...next[idx], specification: e.target.value };
-                        return { ...prev, fleet_requirements: next };
-                      })
-                    }
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Qty"
-                    value={row.quantity}
-                    onChange={(e) =>
-                      setForm((prev) => {
-                        const next = [...prev.fleet_requirements];
-                        next[idx] = {
-                          ...next[idx],
-                          quantity: Number(e.target.value || 1),
-                        };
-                        return { ...prev, fleet_requirements: next };
-                      })
-                    }
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      setForm((prev) => ({
+                <Input
+                  className="sm:col-span-2"
+                  placeholder="Model (Vehicle Model name)"
+                  value={row.model}
+                  onChange={(e) =>
+                    setForm((prev) => {
+                      const next = [...prev.fleet_requirements];
+                      next[idx] = { ...next[idx], model: e.target.value };
+                      return { ...prev, fleet_requirements: next };
+                    })
+                  }
+                />
+                <Input
+                  className="sm:col-span-2"
+                  placeholder="Specification"
+                  value={row.specification}
+                  onChange={(e) =>
+                    setForm((prev) => {
+                      const next = [...prev.fleet_requirements];
+                      next[idx] = { ...next[idx], specification: e.target.value };
+                      return { ...prev, fleet_requirements: next };
+                    })
+                  }
+                />
+                <Input
+                  type="number"
+                  placeholder="Qty"
+                  value={row.quantity}
+                  onChange={(e) =>
+                    setForm((prev) => {
+                      const next = [...prev.fleet_requirements];
+                      next[idx] = {
+                        ...next[idx],
+                        quantity: Number(e.target.value || 1),
+                      };
+                      return { ...prev, fleet_requirements: next };
+                    })
+                  }
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    setForm((prev) => {
+                      const next = prev.fleet_requirements.filter((_, i) => i !== idx);
+                      return {
                         ...prev,
-                        fleet_requirements: prev.fleet_requirements.filter(
-                          (_, i) => i !== idx
-                        ),
-                      }))
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    placeholder="Delivery location"
-                    value={row.delivery_location}
-                    onChange={(e) =>
-                      setForm((prev) => {
-                        const next = [...prev.fleet_requirements];
-                        next[idx] = {
-                          ...next[idx],
-                          delivery_location: e.target.value,
-                        };
-                        return { ...prev, fleet_requirements: next };
-                      })
-                    }
-                  />
-                  <Input
-                    placeholder="Batch"
-                    value={row.delivery_batch}
-                    onChange={(e) =>
-                      setForm((prev) => {
-                        const next = [...prev.fleet_requirements];
-                        next[idx] = { ...next[idx], delivery_batch: e.target.value };
-                        return { ...prev, fleet_requirements: next };
-                      })
-                    }
-                  />
-                  <Input
-                    type="date"
-                    value={row.delivery_date}
-                    onChange={(e) =>
-                      setForm((prev) => {
-                        const next = [...prev.fleet_requirements];
-                        next[idx] = { ...next[idx], delivery_date: e.target.value };
-                        return { ...prev, fleet_requirements: next };
-                      })
-                    }
-                  />
-                  <Input
-                    className="sm:col-span-3"
-                    placeholder="Body-building notes"
-                    value={row.body_building_notes}
-                    onChange={(e) =>
-                      setForm((prev) => {
-                        const next = [...prev.fleet_requirements];
-                        next[idx] = {
-                          ...next[idx],
-                          body_building_notes: e.target.value,
-                        };
-                        return { ...prev, fleet_requirements: next };
-                      })
-                    }
-                  />
-                </div>
-              ))
-            )}
+                        fleet_requirements: next.length ? next : [emptyFleetReq()],
+                      };
+                    })
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <Input
+                  placeholder="Delivery location"
+                  value={row.delivery_location}
+                  onChange={(e) =>
+                    setForm((prev) => {
+                      const next = [...prev.fleet_requirements];
+                      next[idx] = {
+                        ...next[idx],
+                        delivery_location: e.target.value,
+                      };
+                      return { ...prev, fleet_requirements: next };
+                    })
+                  }
+                />
+                <Input
+                  placeholder="Batch"
+                  value={row.delivery_batch}
+                  onChange={(e) =>
+                    setForm((prev) => {
+                      const next = [...prev.fleet_requirements];
+                      next[idx] = { ...next[idx], delivery_batch: e.target.value };
+                      return { ...prev, fleet_requirements: next };
+                    })
+                  }
+                />
+                <Input
+                  type="date"
+                  value={row.delivery_date}
+                  onChange={(e) =>
+                    setForm((prev) => {
+                      const next = [...prev.fleet_requirements];
+                      next[idx] = { ...next[idx], delivery_date: e.target.value };
+                      return { ...prev, fleet_requirements: next };
+                    })
+                  }
+                />
+                <Input
+                  className="sm:col-span-3"
+                  placeholder="Body-building notes"
+                  value={row.body_building_notes}
+                  onChange={(e) =>
+                    setForm((prev) => {
+                      const next = [...prev.fleet_requirements];
+                      next[idx] = {
+                        ...next[idx],
+                        body_building_notes: e.target.value,
+                      };
+                      return { ...prev, fleet_requirements: next };
+                    })
+                  }
+                />
+              </div>
+            ))}
+            <AddLineButton
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  fleet_requirements: [...prev.fleet_requirements, emptyFleetReq()],
+                }))
+              }
+              label="Add line"
+            />
           </CardContent>
         </Card>
       ) : null}

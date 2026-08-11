@@ -35,6 +35,7 @@ import {
 } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
 import { Button } from '@/components/ui/button';
+import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -1371,9 +1372,7 @@ export default function NewInspectionPage() {
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="outline" onClick={addComplaint}>
-                  + Add Another Complaint
-                </Button>
+                <AddLineButton onClick={addComplaint} label="Add Another Complaint" />
               </div>
 
               <Separator />

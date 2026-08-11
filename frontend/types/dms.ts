@@ -1295,6 +1295,9 @@ export interface SalesInvoiceListItem {
   docstatus?: 0 | 1 | 2;
   creation?: string;
   modified?: string;
+  /** Set when another Sales Invoice was amended from this one. */
+  already_amended?: number | boolean;
+  amended_as?: string | null;
 }
 
 export interface InvoicePreviewLine {
@@ -1339,13 +1342,23 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
   remarks?: string;
   net_total?: number;
   total_taxes_and_charges?: number;
+  amended_from?: string;
+  additional_discount_percentage?: number;
+  discount_amount?: number;
+  apply_discount_on?: string;
+  missing_dms?: number;
+  is_dms_transaction?: number;
+  dms_job_card?: string;
   items: {
+    name?: string;
+    idx?: number;
     item_code: string;
     item_name?: string;
     description?: string;
     qty: number;
     rate: number;
     amount: number;
+    dms_discount?: number;
   }[];
 }
 

@@ -13,6 +13,7 @@ import {
   useVehicleServiceItems,
   useWarehouses,
   useCurrencies,
+  useVINs,
 } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
@@ -33,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, FileText, Plus, Receipt, User, Wrench } from "lucide-react";
+import { ArrowLeft, FileText, Receipt, Trash2, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchLabourRate,
@@ -46,8 +47,7 @@ import {
 import * as invoicesSvc from "@/services/invoices";
 import * as vehiclesSvc from "@/services/vehicles";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
-import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
-import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
+import { AddLineButton } from "@/components/ui/add-line-button";
 import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import {
@@ -56,6 +56,7 @@ import {
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
+import type { VINNo } from "@/types/dms";
 
 interface LabourRow {
   source_row?: string;
@@ -72,6 +73,24 @@ interface PartRow {
   bin_location?: string;
   quantity: number;
   unit_price: number;
+}
+
+function emptyLabourRow(): LabourRow {
+  return {
+    vehicle_service_item: "",
+    vehicle_service_item_name: "",
+    estimated_hours: 0,
+    rate_per_hour: 0,
+  };
+}
+
+function emptyPartRow(): PartRow {
+  return {
+    item_code: "",
+    item_name: "",
+    quantity: 1,
+    unit_price: 0,
+  };
 }
 
 function buildRateOverridesFromRows(
@@ -107,10 +126,40 @@ export default function NewInvoicePage() {
   const [serviceItemSearch, setServiceItemSearch] = useState("");
   const [sparePartSearch, setSparePartSearch] = useState("");
   const [vehicleModelFilter, setVehicleModelFilter] = useState("");
-  
+  const [vinSearch, setVinSearch] = useState("");
+
   // Create dialogs state
   const [showCreateSparePartDialog, setShowCreateSparePartDialog] = useState(false);
   const [showCreateServiceItemDialog, setShowCreateServiceItemDialog] = useState(false);
+  const [createLabourIdx, setCreateLabourIdx] = useState(0);
+  const [createPartIdx, setCreatePartIdx] = useState(0);
+
+  const [customer, setCustomer] = useState("");
+  const [customerMeta, setCustomerMeta] = useState<{
+    name: string;
+    customer_name: string;
+    mobile_no?: string;
+  } | null>(null);
+  const [isDmsInvoice, setIsDmsInvoice] = useState(false);
+  const [vehicleVin, setVehicleVin] = useState("");
+  const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
+  const [vehicleBrand, setVehicleBrand] = useState("");
+  const [vehicleBrandLabel, setVehicleBrandLabel] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [currentOdometer, setCurrentOdometer] = useState(0);
+  const [currency, setCurrency] = useState("ETB");
+  const [postingDate, setPostingDate] = useState(new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState(defaultDueDate());
+  const [remarks, setRemarks] = useState("");
+  const [submitInvoice, setSubmitInvoice] = useState(true);
+  const [applyTaxes, setApplyTaxes] = useState(false);
+
+  const isStandalone = !jobCardId;
+  const showVinOnCustomer = isStandalone && isDmsInvoice;
+  const effectiveVin = showVinOnCustomer ? vehicleVin : jobCard?.vehicle_vin || "";
+  const effectiveModelFilter = showVinOnCustomer
+    ? vehicleModel || vehicleModelFilter
+    : vehicleModelFilter;
 
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
@@ -121,49 +170,30 @@ export default function NewInvoicePage() {
     warehouseSearch,
     company || undefined
   );
-  const { data: serviceItems, isLoading: serviceItemsLoading } =
-    useVehicleServiceItems(serviceItemSearch, vehicleModelFilter || undefined, jobCard?.vehicle_vin || undefined);
+  const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(
+    serviceItemSearch,
+    effectiveModelFilter || undefined,
+    effectiveVin || undefined
+  );
   const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts(
     sparePartSearch,
     undefined,
     company || undefined,
-    vehicleModelFilter || undefined,
-    jobCard?.vehicle_vin || undefined
+    effectiveModelFilter || undefined,
+    effectiveVin || undefined
   );
   const { data: currencies } = useCurrencies();
+  const { data: vins, isLoading: vinsLoading } = useVINs(
+    showVinOnCustomer ? customer || undefined : undefined,
+    showVinOnCustomer ? vinSearch : undefined
+  );
 
-  const [customer, setCustomer] = useState("");
-  const [customerMeta, setCustomerMeta] = useState<{
-    name: string;
-    customer_name: string;
-    mobile_no?: string;
-  } | null>(null);
-  const [currency, setCurrency] = useState("ETB");
-  const [postingDate, setPostingDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState(defaultDueDate());
-  const [remarks, setRemarks] = useState("");
-  const [submitInvoice, setSubmitInvoice] = useState(true);
-  const [applyTaxes, setApplyTaxes] = useState(false);
-
-  const [labourRows, setLabourRows] = useState<LabourRow[]>([]);
-  const [partRows, setPartRows] = useState<PartRow[]>([]);
+  const [labourRows, setLabourRows] = useState<LabourRow[]>([emptyLabourRow()]);
+  const [partRows, setPartRows] = useState<PartRow[]>([emptyPartRow()]);
   const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>("none");
   const [labourDiscountInput, setLabourDiscountInput] = useState("");
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>("none");
   const [partsDiscountInput, setPartsDiscountInput] = useState("");
-  const [newLabour, setNewLabour] = useState<LabourRow>({
-    vehicle_service_item: "",
-    vehicle_service_item_name: "",
-    estimated_hours: 0,
-    rate_per_hour: 0,
-  });
-  const [newPart, setNewPart] = useState<PartRow>({
-    item_code: "",
-    item_name: "",
-    bin_location: "",
-    quantity: 1,
-    unit_price: 0,
-  });
 
   useAutofillSingleCompany(
     companies,
@@ -211,8 +241,8 @@ export default function NewInvoicePage() {
       quantity: pl.quantity_issued || pl.quantity_requested || pl.quantity || 1,
       unit_price: pl.unit_price || 0,
     }));
-    setLabourRows(labour);
-    setPartRows(parts);
+    setLabourRows(labour.length ? labour : [emptyLabourRow()]);
+    setPartRows(parts.length ? parts : [emptyPartRow()]);
   }, [jobCard]);
 
   useEffect(() => {
@@ -231,11 +261,13 @@ export default function NewInvoicePage() {
     [customers, customer, customerMeta]
   );
 
-  const labourTotal = labourRows.reduce(
+  const filledLabourRows = labourRows.filter((r) => r.vehicle_service_item);
+  const filledPartRows = partRows.filter((r) => r.item_code);
+  const labourTotal = filledLabourRows.reduce(
     (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
     0
   );
-  const partsTotal = partRows.reduce((sum, r) => sum + r.quantity * r.unit_price, 0);
+  const partsTotal = filledPartRows.reduce((sum, r) => sum + r.quantity * r.unit_price, 0);
   const labourDiscountValue = parseDiscountValue(labourDiscountMode, labourDiscountInput);
   const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
   const labourDiscountTotal = groupDiscountAmount(
@@ -251,7 +283,103 @@ export default function NewInvoicePage() {
   const labourNet = labourTotal - labourDiscountTotal;
   const partsNet = partsTotal - partsDiscountTotal;
   const subtotal = labourNet + partsNet;
-  const isStandalone = !jobCardId;
+
+  const clearVinFields = () => {
+    setVehicleVin("");
+    setSelectedVin(null);
+    setVehicleBrand("");
+    setVehicleBrandLabel("");
+    setVehicleModel("");
+    setVehicleModelFilter("");
+    setVinSearch("");
+    setCurrentOdometer(0);
+  };
+
+  const applyVinToForm = (vin: VINNo & { brand?: string; brand_label?: string }) => {
+    setSelectedVin(vin);
+    setVehicleBrand(vin.brand || "");
+    setVehicleBrandLabel(vin.brand_label || vin.brand || "");
+    const model = vin.model || vin.resolved_vehicle_model || "";
+    setVehicleModel(model);
+    setVehicleModelFilter(model);
+    setCurrentOdometer(vin.current_odometer || 0);
+    if (vin.current_customer) {
+      setCustomer(vin.current_customer);
+      setCustomerMeta({
+        name: vin.current_customer,
+        customer_name: vin.customer_name || vin.current_customer,
+      });
+    }
+  };
+
+  const handleVinSelect = async (vinName: string) => {
+    setVehicleVin(vinName);
+    if (!vinName) {
+      clearVinFields();
+      return;
+    }
+
+    const fromList = vins?.find((v) => v.name === vinName);
+    if (fromList) {
+      applyVinToForm(fromList);
+    }
+
+    try {
+      const full = await vehiclesSvc.getVehicle(vinName);
+      applyVinToForm({
+        name: full.name,
+        vin_number: full.vin_number,
+        plate_number: full.plate_number,
+        model: full.model,
+        model_name: full.model_name,
+        resolved_vehicle_model: full.resolved_vehicle_model,
+        resolved_vehicle_model_label: full.resolved_vehicle_model_label,
+        current_customer: full.current_customer,
+        customer_name: full.customer_name,
+        current_odometer: full.current_odometer,
+        brand: full.brand,
+        brand_label: full.brand_label,
+      });
+    } catch {
+      if (!fromList) {
+        toast.error("Could not load vehicle details for the selected VIN");
+      }
+    }
+  };
+
+  const handleDmsInvoiceChange = (checked: boolean) => {
+    setIsDmsInvoice(checked);
+    if (!checked) {
+      clearVinFields();
+    }
+  };
+
+  const vinSelectOptions = useMemo(() => {
+    const mapped =
+      vins?.map((v) => ({
+        value: v.name,
+        label: v.vin_number,
+        description: [v.model, v.model_name, v.plate_number, v.customer_name]
+          .filter(Boolean)
+          .join(" · "),
+      })) || [];
+
+    if (vehicleVin && selectedVin && !mapped.some((o) => o.value === vehicleVin)) {
+      mapped.unshift({
+        value: vehicleVin,
+        label: selectedVin.vin_number || vehicleVin,
+        description: [
+          selectedVin.model || selectedVin.resolved_vehicle_model,
+          selectedVin.model_name,
+          selectedVin.plate_number,
+          selectedVin.customer_name,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      });
+    }
+    return mapped;
+  }, [vins, vehicleVin, selectedVin]);
 
   const handleCustomerChange = (id: string) => {
     const next = resolveCustomerFieldChange(id, customers, dmsCustomerDefaults);
@@ -264,14 +392,21 @@ export default function NewInvoicePage() {
     setCustomerMeta({ name, customer_name: label || name });
   };
 
-  const handleServiceItemSelect = async (itemName: string) => {
+  const handleServiceItemSelect = async (idx: number, itemName: string) => {
     if (!itemName) {
-      setNewLabour({
-        vehicle_service_item: "",
-        vehicle_service_item_name: "",
-        estimated_hours: 0,
-        rate_per_hour: 0,
-      });
+      setLabourRows((prev) =>
+        prev.map((row, i) =>
+          i === idx
+            ? {
+                ...row,
+                vehicle_service_item: "",
+                vehicle_service_item_name: "",
+                estimated_hours: 0,
+                rate_per_hour: 0,
+              }
+            : row
+        )
+      );
       return;
     }
     const item = serviceItems?.find((i) => i.name === itemName);
@@ -298,17 +433,36 @@ export default function NewInvoicePage() {
       }
     }
 
-    setNewLabour({
-      vehicle_service_item: itemName,
-      vehicle_service_item_name: serviceLabel,
-      estimated_hours: estHours,
-      rate_per_hour: rate || newLabour.rate_per_hour,
-    });
+    setLabourRows((prev) =>
+      prev.map((row, i) =>
+        i === idx
+          ? {
+              ...row,
+              vehicle_service_item: itemName,
+              vehicle_service_item_name: serviceLabel,
+              estimated_hours: estHours,
+              rate_per_hour: rate || row.rate_per_hour,
+            }
+          : row
+      )
+    );
   };
 
-  const handleSparePartSelect = async (partName: string) => {
+  const handleSparePartSelect = async (idx: number, partName: string) => {
     if (!partName) {
-      setNewPart({ item_code: "", item_name: "", bin_location: "", quantity: 1, unit_price: 0 });
+      setPartRows((prev) =>
+        prev.map((row, i) =>
+          i === idx
+            ? {
+                ...row,
+                item_code: "",
+                item_name: "",
+                bin_location: "",
+                unit_price: 0,
+              }
+            : row
+        )
+      );
       return;
     }
     const part = spareParts?.find((p) => p.name === partName);
@@ -318,44 +472,41 @@ export default function NewInvoicePage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not load part price");
     }
-    setNewPart({
-      item_code: partName,
-      item_name: part?.item_name || partName,
-      bin_location: part?.bin_location || "",
-      quantity: 1,
-      unit_price: unitPrice,
-    });
+    setPartRows((prev) =>
+      prev.map((row, i) =>
+        i === idx
+          ? {
+              ...row,
+              item_code: partName,
+              item_name: part?.item_name || partName,
+              bin_location: part?.bin_location || "",
+              unit_price: unitPrice,
+            }
+          : row
+      )
+    );
   };
 
   const addLabourRow = () => {
-    if (!newLabour.vehicle_service_item) {
-      toast.error("Select a service item");
-      return;
-    }
-    if (newLabour.estimated_hours <= 0) {
-      toast.error("Enter hours");
-      return;
-    }
-    setLabourRows((prev) => [...prev, { ...newLabour }]);
-    setNewLabour({
-      vehicle_service_item: "",
-      vehicle_service_item_name: "",
-      estimated_hours: 0,
-      rate_per_hour: 0,
-    });
+    setLabourRows((prev) => [...prev, emptyLabourRow()]);
   };
 
   const addPartRow = () => {
-    if (!newPart.item_code) {
-      toast.error("Select a spare part");
-      return;
-    }
-    if (newPart.quantity <= 0) {
-      toast.error("Enter quantity");
-      return;
-    }
-    setPartRows((prev) => [...prev, { ...newPart }]);
-    setNewPart({ item_code: "", item_name: "", quantity: 1, unit_price: 0 });
+    setPartRows((prev) => [...prev, emptyPartRow()]);
+  };
+
+  const removeLabourRow = (idx: number) => {
+    setLabourRows((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length ? next : [emptyLabourRow()];
+    });
+  };
+
+  const removePartRow = (idx: number) => {
+    setPartRows((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length ? next : [emptyPartRow()];
+    });
   };
 
   const updateLabourRow = (idx: number, patch: Partial<LabourRow>) => {
@@ -381,7 +532,7 @@ export default function NewInvoicePage() {
           postingDate,
           submit: submitInvoice,
           applyTaxes,
-          rateOverrides: buildRateOverridesFromRows(labourRows, partRows),
+          rateOverrides: buildRateOverridesFromRows(filledLabourRows, filledPartRows),
         });
         toast.success("Invoice created successfully");
         navigate("invoices");
@@ -401,11 +552,11 @@ export default function NewInvoicePage() {
       toast.error("Select a company");
       return;
     }
-    if (labourRows.length === 0 && partRows.length === 0) {
+    if (filledLabourRows.length === 0 && filledPartRows.length === 0) {
       toast.error("Add at least one labour or parts line");
       return;
     }
-    if (partRows.length > 0 && !warehouse) {
+    if (filledPartRows.length > 0 && !warehouse) {
       toast.error("Select a warehouse for spare parts");
       return;
     }
@@ -448,16 +599,25 @@ export default function NewInvoicePage() {
         submit: submitInvoice,
         labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
         parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
-        labour: labourRows.map((r) => ({
+        labour: filledLabourRows.map((r) => ({
           vehicle_service_item: r.vehicle_service_item,
           hours: r.estimated_hours,
           rate_per_hour: r.rate_per_hour,
         })),
-        parts: partRows.map((r) => ({
+        parts: filledPartRows.map((r) => ({
           spare_part: r.item_code,
           qty: r.quantity,
           unit_price: r.unit_price,
         })),
+        is_dms_invoice: isDmsInvoice,
+        vehicle_vin: showVinOnCustomer && vehicleVin ? vehicleVin : undefined,
+        vehicle_brand: showVinOnCustomer && vehicleBrand ? vehicleBrand : undefined,
+        vehicle_model: showVinOnCustomer && vehicleModel ? vehicleModel : undefined,
+        current_odometer:
+          showVinOnCustomer && vehicleVin && Number.isFinite(currentOdometer)
+            ? currentOdometer
+            : undefined,
+        apply_taxes: applyTaxes,
       });
       toast.success("Invoice created successfully");
       navigate("invoices");
@@ -505,6 +665,62 @@ export default function NewInvoicePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {showVinOnCustomer ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>VIN</Label>
+                    <SearchableSelect
+                      options={vinSelectOptions}
+                      value={vehicleVin}
+                      onValueChange={(val) => void handleVinSelect(val)}
+                      onSearchChange={setVinSearch}
+                      placeholder="Search VIN, chassis, or plate (min 3 chars)..."
+                      isLoading={vinsLoading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Start with VIN — selects customer, make, model, and odometer when available.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Make</Label>
+                      <Input
+                        readOnly
+                        value={vehicleBrandLabel}
+                        placeholder="From selected VIN"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Model</Label>
+                      <Input
+                        readOnly
+                        value={
+                          selectedVin?.model_name ||
+                          selectedVin?.resolved_vehicle_model_label ||
+                          vehicleModel ||
+                          ""
+                        }
+                        placeholder="From selected VIN"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invoice_current_odometer">Current odometer (km)</Label>
+                    <Input
+                      id="invoice_current_odometer"
+                      type="number"
+                      min={0}
+                      placeholder="0"
+                      value={currentOdometer || ""}
+                      onChange={(e) => setCurrentOdometer(parseInt(e.target.value, 10) || 0)}
+                      disabled={!vehicleVin}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Editable — saved to the VIN when you create the invoice.
+                    </p>
+                  </div>
+                </>
+              ) : null}
               <div className="space-y-2">
                 <Label>Customer *</Label>
                 <LinkWithCreate doctype="Customer" onCreated={handleCustomerCreated}>
@@ -519,6 +735,16 @@ export default function NewInvoicePage() {
                     disabled={Boolean(jobCardId)}
                   />
                 </LinkWithCreate>
+                {showVinOnCustomer ? (
+                  <p className="text-xs text-muted-foreground">
+                    {vehicleVin &&
+                    selectedVin?.current_customer &&
+                    customer &&
+                    selectedVin.current_customer !== customer
+                      ? "Customer differs from VIN owner — on create, the previous owner goes to Customer History and this customer becomes the VIN’s current owner."
+                      : "Choosing a customer filters available VINs. You can also change customer after selecting a VIN."}
+                  </p>
+                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -531,6 +757,23 @@ export default function NewInvoicePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {isStandalone ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="dms_invoice"
+                      checked={isDmsInvoice}
+                      onCheckedChange={(c) => handleDmsInvoiceChange(Boolean(c))}
+                    />
+                    <Label htmlFor="dms_invoice" className="cursor-pointer font-medium">
+                      DMS invoice
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">
+                    Tick to mark Missing DMS (past data catch-up) and show VIN on the customer card.
+                  </p>
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <Label>Company *</Label>
                 <SearchableSelect
@@ -571,7 +814,7 @@ export default function NewInvoicePage() {
               )}
               {!jobCardId && (
                 <div className="space-y-2">
-                  <Label>Warehouse{partRows.length > 0 ? " *" : ""}</Label>
+                  <Label>Warehouse{filledPartRows.length > 0 ? " *" : ""}</Label>
                   <SearchableSelect
                     options={
                       warehouses?.map((w) => ({
@@ -621,23 +864,21 @@ export default function NewInvoicePage() {
                   Submit invoice in ERPNext
                 </Label>
               </div>
-              {jobCardId ? (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="apply_taxes"
-                      checked={applyTaxes}
-                      onCheckedChange={(c) => setApplyTaxes(Boolean(c))}
-                    />
-                    <Label htmlFor="apply_taxes" className="cursor-pointer font-normal">
-                      Include taxes / tax withholding
-                    </Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground pl-6">
-                    Leave unchecked to create the invoice without taxes or tax withholding.
-                  </p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="apply_taxes"
+                    checked={applyTaxes}
+                    onCheckedChange={(c) => setApplyTaxes(Boolean(c))}
+                  />
+                  <Label htmlFor="apply_taxes" className="cursor-pointer font-normal">
+                    Include taxes / tax withholding
+                  </Label>
                 </div>
-              ) : null}
+                <p className="text-xs text-muted-foreground pl-6">
+                  Leave unchecked to create the invoice without taxes or tax withholding.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -653,71 +894,78 @@ export default function NewInvoicePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {labourRows.length > 0 && (
-              <EditableLabourLinesTable
-                rows={labourRows}
-                onUpdateRow={updateLabourRow}
-                onRemoveRow={(idx) =>
-                  setLabourRows((prev) => prev.filter((_, i) => i !== idx))
-                }
-                minWidthClassName=""
-              />
-            )}
-            <div className="grid grid-cols-12 items-end gap-2">
-              <div className="col-span-5 space-y-1">
-                <Label className="text-xs">Service item *</Label>
-                <SearchableSelect
-                  options={
-                    serviceItems?.map((si) => ({
-                      value: si.name,
-                      label: formatVehicleServiceItemLabel(si),
-                      description: si.custom_rate || si.estimated_hours
-                        ? [
-                            si.custom_rate ? `Rate: ${si.custom_rate}` : null,
-                            si.estimated_hours ? `${si.estimated_hours}h` : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')
-                        : undefined,
-                    })) || []
-                  }
-                  value={newLabour.vehicle_service_item}
-                  onValueChange={handleServiceItemSelect}
-                  onSearchChange={setServiceItemSearch}
-                  placeholder="Search labour items..."
-                  isLoading={serviceItemsLoading}
-                  onCreateNew={() => setShowCreateServiceItemDialog(true)}
-                  createNewLabel="New Service Item"
-                />
+            {labourRows.map((row, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+              >
+                <div className="space-y-1 sm:col-span-5">
+                  <Label className="text-xs">Service item *</Label>
+                  <SearchableSelect
+                    options={
+                      serviceItems?.map((si) => ({
+                        value: si.name,
+                        label: formatVehicleServiceItemLabel(si),
+                        description: si.custom_rate || si.estimated_hours
+                          ? [
+                              si.custom_rate ? `Rate: ${si.custom_rate}` : null,
+                              si.estimated_hours ? `${si.estimated_hours}h` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")
+                          : undefined,
+                      })) || []
+                    }
+                    value={row.vehicle_service_item}
+                    valueLabel={row.vehicle_service_item_name || undefined}
+                    onValueChange={(val) => void handleServiceItemSelect(idx, val)}
+                    onSearchChange={setServiceItemSearch}
+                    placeholder="Search labour items..."
+                    isLoading={serviceItemsLoading}
+                    onCreateNew={() => {
+                      setCreateLabourIdx(idx);
+                      setShowCreateServiceItemDialog(true);
+                    }}
+                    createNewLabel="New Service Item"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:contents">
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Hours</Label>
+                    <DecimalInput
+                      min={0}
+                      value={row.estimated_hours}
+                      onValueChange={(estimated_hours) =>
+                        updateLabourRow(idx, { estimated_hours })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <Label className="text-xs">Rate/hr</Label>
+                    <DecimalInput
+                      min={0}
+                      value={row.rate_per_hour}
+                      onValueChange={(rate_per_hour) =>
+                        updateLabourRow(idx, { rate_per_hour })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end sm:col-span-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLabourRow(idx)}
+                    className="h-8 w-8 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Hours</Label>
-                <DecimalInput
-                  min={0}
-                  value={newLabour.estimated_hours}
-                  onValueChange={(estimated_hours) =>
-                    setNewLabour((p) => ({ ...p, estimated_hours }))
-                  }
-                />
-              </div>
-              <div className="col-span-3 space-y-1">
-                <Label className="text-xs">Rate/hr</Label>
-                <DecimalInput
-                  min={0}
-                  value={newLabour.rate_per_hour}
-                  onValueChange={(rate_per_hour) =>
-                    setNewLabour((p) => ({ ...p, rate_per_hour }))
-                  }
-                />
-              </div>
-              <div className="col-span-2">
-                <Button type="button" onClick={addLabourRow} className="w-full">
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add
-                </Button>
-              </div>
-            </div>
-            {isStandalone && labourRows.length > 0 && (
+            ))}
+            <AddLineButton onClick={addLabourRow} />
+            {isStandalone && filledLabourRows.length > 0 && (
               <GroupDiscountFields
                 label="Labour"
                 mode={labourDiscountMode}
@@ -742,59 +990,65 @@ export default function NewInvoicePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {partRows.length > 0 && (
-              <EditablePartsLinesTable
-                rows={partRows}
-                quantityField="quantity"
-                onUpdateRow={updatePartRow}
-                onRemoveRow={(idx) =>
-                  setPartRows((prev) => prev.filter((_, i) => i !== idx))
-                }
-                minWidthClassName=""
-              />
-            )}
-            <div className="grid grid-cols-12 items-end gap-2">
-              <div className="col-span-5 space-y-1">
-                <Label className="text-xs">Spare part *</Label>
-                <SearchableSelect
-                  options={spareParts?.map(sparePartToSelectOption) || []}
-                  value={newPart.item_code}
-                  onValueChange={handleSparePartSelect}
-                  onSearchChange={setSparePartSearch}
-                  placeholder="Search parts..."
-                  isLoading={sparePartsLoading}
-                  onCreateNew={() => setShowCreateSparePartDialog(true)}
-                  createNewLabel="New Spare Part"
-                />
+            {partRows.map((row, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+              >
+                <div className="space-y-1 sm:col-span-5">
+                  <Label className="text-xs">Spare part *</Label>
+                  <SearchableSelect
+                    options={spareParts?.map(sparePartToSelectOption) || []}
+                    value={row.item_code}
+                    valueLabel={row.item_name || undefined}
+                    onValueChange={(val) => void handleSparePartSelect(idx, val)}
+                    onSearchChange={setSparePartSearch}
+                    placeholder="Search parts..."
+                    isLoading={sparePartsLoading}
+                    onCreateNew={() => {
+                      setCreatePartIdx(idx);
+                      setShowCreateSparePartDialog(true);
+                    }}
+                    createNewLabel="New Spare Part"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:contents">
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Qty</Label>
+                    <DecimalInput
+                      min={0}
+                      value={row.quantity}
+                      onValueChange={(quantity) =>
+                        updatePartRow(idx, { quantity })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <Label className="text-xs">Unit price</Label>
+                    <DecimalInput
+                      min={0}
+                      value={row.unit_price}
+                      onValueChange={(unit_price) =>
+                        updatePartRow(idx, { unit_price })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end sm:col-span-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePartRow(idx)}
+                    className="h-8 w-8 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Qty</Label>
-                <DecimalInput
-                  min={0}
-                  value={newPart.quantity}
-                  onValueChange={(quantity) =>
-                    setNewPart((p) => ({ ...p, quantity }))
-                  }
-                />
-              </div>
-              <div className="col-span-3 space-y-1">
-                <Label className="text-xs">Unit price</Label>
-                <DecimalInput
-                  min={0}
-                  value={newPart.unit_price}
-                  onValueChange={(unit_price) =>
-                    setNewPart((p) => ({ ...p, unit_price }))
-                  }
-                />
-              </div>
-              <div className="col-span-2">
-                <Button type="button" onClick={addPartRow} className="w-full">
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add
-                </Button>
-              </div>
-            </div>
-            {isStandalone && partRows.length > 0 && (
+            ))}
+            <AddLineButton onClick={addPartRow} />
+            {isStandalone && filledPartRows.length > 0 && (
               <GroupDiscountFields
                 label="Parts"
                 mode={partsDiscountMode}
@@ -854,7 +1108,7 @@ export default function NewInvoicePage() {
                 Tax and grand total are calculated in ERPNext on save.
                 {isStandalone &&
                   (labourDiscountTotal > 0 || partsDiscountTotal > 0) &&
-                  " Discounted rates are written to each invoice line; DMS Discount column is audit only."}
+                  " Labour/parts discounts reduce each line rate (and Discount Amount on the Sales Invoice)."}
               </p>
             </div>
           </CardContent>
@@ -890,11 +1144,10 @@ export default function NewInvoicePage() {
         open={showCreateSparePartDialog}
         onOpenChange={setShowCreateSparePartDialog}
         onCreated={(itemCode, itemName) => {
-          setNewPart((prev) => ({
-            ...prev,
+          updatePartRow(createPartIdx, {
             item_code: itemCode,
             item_name: itemName,
-          }));
+          });
           setSparePartSearch(itemCode);
           toast.success(`Spare part ${itemName} created and selected.`);
         }}
@@ -903,10 +1156,7 @@ export default function NewInvoicePage() {
         open={showCreateServiceItemDialog}
         onOpenChange={setShowCreateServiceItemDialog}
         onCreated={(serviceItemName) => {
-          setNewLabour((prev) => ({
-            ...prev,
-            vehicle_service_item: serviceItemName,
-          }));
+          void handleServiceItemSelect(createLabourIdx, serviceItemName);
           setServiceItemSearch(serviceItemName);
           toast.success(`Service item created and selected.`);
         }}

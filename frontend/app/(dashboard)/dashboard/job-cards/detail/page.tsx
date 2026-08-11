@@ -2547,6 +2547,7 @@ export default function JobCardDetailPage() {
       {/* ─── Dialogs ──────────────────────────────────────────── */}
 
       {/* Mark Customer Approved Dialog */}
+      {/* Approve Dialog */}
       <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
         <DialogContent>
           <DialogHeader>
