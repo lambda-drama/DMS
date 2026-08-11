@@ -324,11 +324,11 @@
    "options": "Technician"
   },
   {
-   "default": "Customer Waiting",
+   "default": "Drop-off",
    "fieldname": "vehicle_arrival_status",
    "fieldtype": "Select",
    "label": "Vehicle Arrival Status",
-   "options": "Customer Waiting\nDrop-off\nPick-up Later\nTow-in\nFleet Driver Drop-off",
+   "options": "Drop-off\nPick-up Later\nTow-in\nFleet Driver Drop-off",
    "reqd": 1
   },
   {
@@ -610,7 +610,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Appointment Status",
-   "options": "Booked\nReminder Sent\nArrived\nIn Inspection\nIn Workshop\nReady for Pickup\nCompleted\nNo-Show\nCancelled\nRescheduled",
+   "options": "Booked\nReminder Sent\nArrived\nIn Inspection\nIn Workshop\nReady for Pickup\nCompleted\nNo-Show\nCancelled\nRescheduled\nDraft",
    "read_only_depends_on": "eval:doc.arrived_date_time",
    "reqd": 1
   },
@@ -625,7 +625,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-23 13:16:32.407068",
+ "modified": "2026-08-12 02:27:16.756692",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Appointment",

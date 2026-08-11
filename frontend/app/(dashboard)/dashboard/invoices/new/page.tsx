@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import {
   useCompanies,
@@ -46,6 +46,7 @@ import {
 } from "@/services/common";
 import * as invoicesSvc from "@/services/invoices";
 import * as vehiclesSvc from "@/services/vehicles";
+import * as sparePartSalesSvc from "@/services/sparePartSales";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { AddLineButton } from "@/components/ui/add-line-button";
 import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
@@ -216,6 +217,23 @@ export default function NewInvoicePage() {
     { enabled: !jobCardId }
   );
 
+  const applyPartsWarehouseDefault = useCallback(async (co: string) => {
+    if (!co || jobCardId) return;
+    try {
+      const result = await sparePartSalesSvc.fetchSparePartSalesDefaults(co);
+      if (result.default_warehouse) {
+        setWarehouse(result.default_warehouse);
+      }
+    } catch {
+      // Keep warehouse empty if defaults cannot be loaded
+    }
+  }, [jobCardId]);
+
+  useEffect(() => {
+    if (!company || jobCardId) return;
+    void applyPartsWarehouseDefault(company);
+  }, [company, jobCardId, applyPartsWarehouseDefault]);
+
   useEffect(() => {
     if (!jobCard) return;
     if (jobCard.customer) {
@@ -345,6 +363,24 @@ export default function NewInvoicePage() {
         toast.error("Could not load vehicle details for the selected VIN");
       }
     }
+  };
+
+  const vinFromReturn = viewParams.get("vin");
+
+  useEffect(() => {
+    if (!vinFromReturn || jobCardId) return;
+    setIsDmsInvoice(true);
+    if (vinFromReturn === vehicleVin) return;
+    void handleVinSelect(vinFromReturn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once when returning from vehicle-new
+  }, [vinFromReturn, jobCardId]);
+
+  const goToNewVehicle = () => {
+    const params: Record<string, string> = { returnTo: "invoice-new" };
+    const draft = vinSearch.trim();
+    if (draft) params.vinDraft = draft;
+    if (company) params.company = company;
+    navigate("vehicle-new", params);
   };
 
   const handleDmsInvoiceChange = (checked: boolean) => {
@@ -676,9 +712,12 @@ export default function NewInvoicePage() {
                       onSearchChange={setVinSearch}
                       placeholder="Search VIN, chassis, or plate (min 3 chars)..."
                       isLoading={vinsLoading}
+                      onCreateNew={goToNewVehicle}
+                      createNewLabel="Register new vehicle"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Start with VIN — selects customer, make, model, and odometer when available.
+                      Start with VIN — or use + to register a new one. Selects customer, make, model,
+                      and odometer when available.
                     </p>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -788,6 +827,7 @@ export default function NewInvoicePage() {
                     setCompany(val);
                     setWarehouse("");
                     setWarehouseSearch("");
+                    if (val) void applyPartsWarehouseDefault(val);
                   }}
                   onSearchChange={setCompanySearch}
                   placeholder="Select company..."
@@ -830,8 +870,8 @@ export default function NewInvoicePage() {
                     disabled={!company}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Used for spare parts on the invoice (stock items). Labour lines are not
-                    warehouse-specific.
+                    Defaults to Parts Warehouse from DMS Settings for this company. Used for spare parts
+                    (stock items); labour lines are not warehouse-specific.
                   </p>
                 </div>
               )}

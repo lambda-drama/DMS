@@ -215,6 +215,10 @@ export interface WorkspaceAccess {
   can_access_crm: boolean;
   can_view_staff_audit: boolean;
   can_switch_workspace: boolean;
+  can_view_dms_dashboard?: boolean;
+  can_view_dms_report?: boolean;
+  /** null = all sections; [] = none; string[] = only these section ids */
+  allowed_dms_report_sections?: string[] | null;
 }
 
 export async function fetchWorkspaceAccess(): Promise<WorkspaceAccess> {

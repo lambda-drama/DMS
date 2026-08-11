@@ -1432,6 +1432,10 @@ def create_standalone_dms_sales_invoice(
 	labour_lines = labour_lines or []
 	parts_lines = parts_lines or []
 	warehouse = (warehouse or "").strip()
+	if not warehouse:
+		from dms.dealer_management_system.utils.stock_operations import get_dms_parts_warehouse
+
+		warehouse = (get_dms_parts_warehouse(company) or "").strip()
 	vehicle_vin = (vehicle_vin or "").strip() or None
 	vehicle_brand = (vehicle_brand or "").strip() or None
 	vehicle_model = (vehicle_model or "").strip() or None

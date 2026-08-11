@@ -32,7 +32,17 @@ export async function getAppointment(name: string): Promise<ServiceAppointment> 
   });
 }
 
-export async function createAppointment(data: Partial<ServiceAppointment>): Promise<{ name: string; customer: string; customer_name: string; appointment_date_time: string; status: string }> {
+export async function createAppointment(
+  data: Partial<ServiceAppointment> & { as_draft?: boolean | number; confirm?: boolean | number }
+): Promise<{
+  name: string;
+  customer: string;
+  customer_name: string;
+  appointment_date_time: string;
+  status: string;
+  docstatus?: number;
+  as_draft?: number;
+}> {
   return apiRequest(`/api/method/${API}.create_appointment`, {
     method: 'POST',
     body: JSON.stringify({ data }),

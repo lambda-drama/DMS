@@ -453,12 +453,33 @@ def _default_workshop_warehouse(allowed: list[dict]) -> str | None:
 	return None
 
 
+def get_dms_parts_warehouse(company: str | None = None) -> str | None:
+	"""Parts Warehouse from DMS Settings → Company Defaults for `company`."""
+	row = get_dms_company_defaults_row(company)
+	if not row:
+		return None
+	return (getattr(row, "parts_warehouse", None) or "").strip() or None
+
+
+def get_dms_purchase_receipt_warehouse(company: str | None = None) -> str | None:
+	"""Purchase Receipt Warehouse, falling back to Parts Warehouse."""
+	row = get_dms_company_defaults_row(company)
+	if not row:
+		return None
+	wh = (getattr(row, "purchase_receipt_warehouse", None) or "").strip()
+	if wh:
+		return wh
+	return get_dms_parts_warehouse(company)
+
+
 def get_purchase_receipt_defaults(company: str | None = None) -> dict:
 	company = (company or "").strip() or get_default_dms_company()
 	defaults_row = get_dms_company_defaults_row(company)
 	allowed = get_dms_allowed_warehouses(company)
 
-	default_warehouse = _default_workshop_warehouse(allowed)
+	default_warehouse = (
+		get_dms_purchase_receipt_warehouse(company) or _default_workshop_warehouse(allowed)
+	)
 	default_supplier = get_dms_default_supplier(company)
 	default_price_list = get_dms_default_buying_price_list()
 	default_currency = get_company_default_currency(company)
@@ -490,7 +511,7 @@ def get_stock_operation_defaults(company: str | None = None) -> dict:
 	defaults_row = get_dms_company_defaults_row(company)
 	allowed = get_dms_allowed_warehouses(company)
 
-	default_warehouse = _default_workshop_warehouse(allowed)
+	default_warehouse = get_dms_parts_warehouse(company) or _default_workshop_warehouse(allowed)
 
 	stock_account = None
 	if defaults_row:

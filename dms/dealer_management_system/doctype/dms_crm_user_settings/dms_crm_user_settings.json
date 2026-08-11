@@ -21,7 +21,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-10 01:49:21.069662",
+ "modified": "2026-08-12 03:07:24.273783",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS CRM User Settings",
@@ -34,6 +34,16 @@
    "print": 1,
    "read": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Dealer Manager",
    "share": 1,
    "write": 1
   }

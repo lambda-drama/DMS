@@ -57,6 +57,7 @@ export interface BrdDashboardKpis {
   qc_fail_rate_pct?: number;
   parts_fill_rate_pct?: number;
   warranty_jobs?: number;
+  hide_net_revenue?: number | boolean;
 }
 
 export interface DashboardSummary {

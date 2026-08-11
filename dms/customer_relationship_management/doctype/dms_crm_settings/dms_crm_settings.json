@@ -1,6 +1,6 @@
 {
  "actions": [],
- "creation": "2026-07-27 22:00:00.000000",
+ "creation": "2026-07-27 22:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -85,28 +85,28 @@
   },
   {
    "default": "10",
-   "description": "Blueprint §5.4 — Hot: within 10 minutes",
+   "description": "Blueprint \u00a75.4 \u2014 Hot: within 10 minutes",
    "fieldname": "hot_response_minutes",
    "fieldtype": "Int",
    "label": "Hot Lead Response (minutes)"
   },
   {
    "default": "30",
-   "description": "Blueprint §5.4 — Warm: within 30 minutes",
+   "description": "Blueprint \u00a75.4 \u2014 Warm: within 30 minutes",
    "fieldname": "warm_response_minutes",
    "fieldtype": "Int",
    "label": "Warm Lead Response (minutes)"
   },
   {
    "default": "2",
-   "description": "Blueprint §5.4 — Standard: within 2 business hours",
+   "description": "Blueprint \u00a75.4 \u2014 Standard: within 2 business hours",
    "fieldname": "standard_response_hours",
    "fieldtype": "Int",
    "label": "Standard Lead Response (hours)"
   },
   {
    "default": "30",
-   "description": "Blueprint §5.4 — Fleet / Tender: within 30 minutes",
+   "description": "Blueprint \u00a75.4 \u2014 Fleet / Tender: within 30 minutes",
    "fieldname": "fleet_response_minutes",
    "fieldtype": "Int",
    "label": "Fleet / Tender Response (minutes)"
@@ -125,7 +125,7 @@
   },
   {
    "default": "30",
-   "description": "Blueprint §5.3 — unaccepted leads reassigned after N minutes",
+   "description": "Blueprint \u00a75.3 \u2014 unaccepted leads reassigned after N minutes",
    "fieldname": "unaccepted_reassign_minutes",
    "fieldtype": "Int",
    "label": "Unaccepted Lead Reassign (minutes)"
@@ -143,10 +143,10 @@
   },
   {
    "default": "1",
-   "description": "When enabled, save is blocked (not just warned) if next action due is missing. Required for BRD §15.2 / §22.4 pipeline discipline.",
+   "description": "When enabled, save is blocked (not just warned) if next action due is missing. Required for BRD \u00a715.2 / \u00a722.4 pipeline discipline.",
    "fieldname": "hard_enforce_next_action",
    "fieldtype": "Check",
-   "label": "Hard Enforce Next Action (§15.2)"
+   "label": "Hard Enforce Next Action (\u00a715.2)"
   },
   {
    "default": "1",
@@ -170,7 +170,7 @@
   {
    "fieldname": "section_lead_scoring",
    "fieldtype": "Section Break",
-   "label": "Lead Scoring (§6.3)"
+   "label": "Lead Scoring (\u00a76.3)"
   },
   {
    "default": "70",
@@ -223,7 +223,7 @@
   {
    "fieldname": "section_service_retention",
    "fieldtype": "Section Break",
-   "label": "Service Retention (§10)"
+   "label": "Service Retention (\u00a710)"
   },
   {
    "default": "1",
@@ -270,7 +270,7 @@
    "label": "Service Reminder Sequence"
   },
   {
-   "description": "Blueprint §10.3 — edit offsets/channels freely. Negative days_offset = before due.",
+   "description": "Blueprint \u00a710.3 \u2014 edit offsets/channels freely. Negative days_offset = before due.",
    "fieldname": "service_reminder_sequence",
    "fieldtype": "Table",
    "label": "Reminder Sequence",
@@ -303,11 +303,11 @@
   {
    "fieldname": "section_case_sla",
    "fieldtype": "Section Break",
-   "label": "Case SLA (§12)"
+   "label": "Case SLA (\u00a712)"
   },
   {
    "default": "15",
-   "description": "Blueprint §12.3 — Critical first response",
+   "description": "Blueprint \u00a712.3 \u2014 Critical first response",
    "fieldname": "critical_case_response_minutes",
    "fieldtype": "Int",
    "label": "Critical Response (minutes)"
@@ -361,7 +361,7 @@
   {
    "fieldname": "section_appointments",
    "fieldtype": "Section Break",
-   "label": "Appointments (§11)"
+   "label": "Appointments (\u00a711)"
   },
   {
    "default": "60",
@@ -380,7 +380,7 @@
   {
    "fieldname": "section_call_center",
    "fieldtype": "Section Break",
-   "label": "Call Center (§11)"
+   "label": "Call Center (\u00a711)"
   },
   {
    "default": "1",
@@ -390,7 +390,7 @@
   },
   {
    "default": "Inbound\nNew Leads\nCallbacks\nService Reminders\nLapsed Customers\nSurveys\nComplaints",
-   "description": "One queue name per line — used by Call Center workspace filters",
+   "description": "One queue name per line \u2014 used by Call Center workspace filters",
    "fieldname": "call_center_queues",
    "fieldtype": "Small Text",
    "label": "Call Center Queues"
@@ -398,7 +398,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-05 01:00:00.000000",
+ "modified": "2026-08-12 03:07:53.825884",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Settings",
@@ -426,8 +426,19 @@
    "print": 1,
    "read": 1,
    "role": "DMS CRM User"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Dealer Manager",
+   "share": 1,
+   "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

@@ -121,8 +121,16 @@ def get_dms_ui_permissions():
 		out[view] = _flags_for_doctype(doctype, user)
 
 	management_access = has_management_view_role(user)
-	dashboard_visible = management_access
-	reports_visible = management_access
+
+	from dms.dealer_management_system.utils.crm_user_settings import (
+		can_view_dms_dashboard,
+		can_view_dms_report,
+		get_allowed_dms_report_sections,
+	)
+
+	dashboard_visible = can_view_dms_dashboard(user)
+	reports_visible = can_view_dms_report(user)
+	allowed_report_sections = get_allowed_dms_report_sections(user)
 
 	out["dashboard"] = {
 		"doctype": None,
@@ -143,6 +151,7 @@ def get_dms_ui_permissions():
 		"report": int(reports_visible),
 		"write": 0,
 		"create": 0,
+		"allowed_sections": allowed_report_sections,
 	}
 
 	out["settings"] = {

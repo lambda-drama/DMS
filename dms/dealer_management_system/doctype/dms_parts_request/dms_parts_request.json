@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "naming_series:",
- "creation": "2026-06-12 10:00:00.000000",
+ "creation": "2026-06-12 10:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -124,9 +124,9 @@
    "options": "Company"
   },
   {
+   "fetch_from": "job_card.branch",
    "fieldname": "branch",
    "fieldtype": "Link",
-   "fetch_from": "job_card.branch",
    "in_standard_filter": 1,
    "label": "Branch",
    "options": "Branch",
@@ -194,7 +194,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-12 10:00:00.000000",
+ "modified": "2026-08-12 02:52:21.975660",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Parts Request",
@@ -211,7 +211,6 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
@@ -224,7 +223,6 @@
    "report": 1,
    "role": "Dealer Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
@@ -239,16 +237,38 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [
-  {"color": "Gray", "title": "Draft"},
-  {"color": "Orange", "title": "Pending Approval"},
-  {"color": "Blue", "title": "Approved"},
-  {"color": "Cyan", "title": "Ready for Issue"},
-  {"color": "Yellow", "title": "Partially Issued"},
-  {"color": "Green", "title": "Issued"},
-  {"color": "Green", "title": "Received"}
+  {
+   "color": "Gray",
+   "title": "Draft"
+  },
+  {
+   "color": "Orange",
+   "title": "Pending Approval"
+  },
+  {
+   "color": "Blue",
+   "title": "Approved"
+  },
+  {
+   "color": "Cyan",
+   "title": "Ready for Issue"
+  },
+  {
+   "color": "Yellow",
+   "title": "Partially Issued"
+  },
+  {
+   "color": "Green",
+   "title": "Issued"
+  },
+  {
+   "color": "Green",
+   "title": "Received"
+  }
  ],
  "track_changes": 1
 }

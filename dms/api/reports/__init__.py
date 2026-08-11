@@ -6,7 +6,12 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
-from dms.api.permissions import has_management_view_role
+from dms.dealer_management_system.utils.crm_user_settings import (
+	can_view_dms_report_section,
+	get_allowed_dms_report_sections,
+	require_dms_report_access,
+	require_dms_report_section_access,
+)
 from dms.api.reports.catalog import _report_catalog
 from dms.api.reports.common import _parse_filters
 
@@ -84,13 +89,34 @@ def _section_dashboard_fn(section_id):
 	}.get(section_id)
 
 
+def _sections_for_report(report_id: str) -> list[str]:
+	report_id = (report_id or "").strip()
+	if not report_id:
+		return []
+	out = []
+	for section in _report_catalog():
+		for report in section.get("reports") or []:
+			if report.get("id") == report_id:
+				sid = section.get("id")
+				if sid:
+					out.append(sid)
+	return out
+
+
+def _filter_catalog_for_user(sections: list) -> list:
+	allowed = get_allowed_dms_report_sections()
+	if allowed is None:
+		return sections
+	allowed_set = set(allowed)
+	return [s for s in sections if s.get("id") in allowed_set]
+
+
 @frappe.whitelist()
 def list_reports():
 	"""Catalog for the Reports hub — sections (folders) and reports."""
-	if not has_management_view_role():
-		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	require_dms_report_access()
 
-	sections = _report_catalog()
+	sections = _filter_catalog_for_user(_report_catalog())
 	flat = []
 	seen = set()
 	for section in sections:
@@ -100,21 +126,25 @@ def list_reports():
 				continue
 			seen.add(rid)
 			flat.append({**report, "section_id": section["id"], "section_title": section["title"]})
-	return {"sections": sections, "reports": flat}
+	return {
+		"sections": sections,
+		"reports": flat,
+		"allowed_sections": get_allowed_dms_report_sections(),
+	}
 
 
 @frappe.whitelist()
 def get_section_dashboard(section_id, filters=None):
 	"""KPI + chart payload for a report section home."""
-	if not has_management_view_role():
-		frappe.throw(_("Not permitted"), frappe.PermissionError)
-
 	if isinstance(filters, str):
 		import json
 		filters = json.loads(filters) if filters else {}
 
 	section_id = (section_id or "").strip()
-	fn = _section_dashboard_fn(section_id) or _section_dashboard_fn("executive")
+	require_dms_report_section_access(section_id)
+	fn = _section_dashboard_fn(section_id)
+	if not fn:
+		frappe.throw(_("Unknown report section: {0}").format(section_id))
 	dash = fn(filters)
 	return {
 		"section_id": section_id,
@@ -127,14 +157,23 @@ def get_section_dashboard(section_id, filters=None):
 @frappe.whitelist()
 def get_report(report_id, filters=None):
 	"""Run a report by id."""
-	if not has_management_view_role():
-		frappe.throw(_("Not permitted"), frappe.PermissionError)
-
 	if isinstance(filters, str):
 		import json
 		filters = json.loads(filters) if filters else {}
 
-	fn = _all_handlers().get((report_id or "").strip())
+	report_id = (report_id or "").strip()
+	sections = _sections_for_report(report_id)
+	if not sections:
+		frappe.throw(_("Unknown report: {0}").format(report_id))
+
+	# Allow if the report belongs to any permitted section (some ids appear in more than one).
+	if not any(can_view_dms_report_section(sid) for sid in sections):
+		frappe.throw(
+			_("Not permitted to view the {0} report.").format(report_id),
+			frappe.PermissionError,
+		)
+
+	fn = _all_handlers().get(report_id)
 	if not fn:
 		frappe.throw(_("Unknown report: {0}").format(report_id))
 	return fn(filters)

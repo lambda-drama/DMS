@@ -43,6 +43,8 @@ export interface DmsModulePermissions {
   cancel?: number | boolean;
   report?: number | boolean;
   export?: number | boolean;
+  /** Report sections: null = all, [] = none, string[] = subset */
+  allowed_sections?: string[] | null;
 }
 
 export type DmsPermissionsMap = Partial<Record<DmsPermissionModule, DmsModulePermissions>>;
@@ -98,4 +100,14 @@ export function permissionModuleForView(view: string): DmsPermissionModule | nul
 
 export function truthy(v: number | boolean | undefined): boolean {
   return Boolean(v);
+}
+
+/** null allowed_sections = all; [] = none; list = only those section ids. */
+export function canAccessReportSection(
+  allowedSections: string[] | null | undefined,
+  sectionId: string | undefined | null
+): boolean {
+  if (!sectionId) return true;
+  if (allowedSections === null || allowedSections === undefined) return true;
+  return allowedSections.includes(sectionId);
 }

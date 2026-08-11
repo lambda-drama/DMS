@@ -4,7 +4,10 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, flt, getdate, nowdate
 
-from dms.api.permissions import has_management_view_role
+from dms.dealer_management_system.utils.crm_user_settings import (
+	can_view_dms_report,
+	require_dms_dashboard_access,
+)
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
 from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
 
@@ -133,8 +136,7 @@ def _vehicle_label(license_plate=None, vehicle_model=None):
 @frappe.whitelist()
 def get_dashboard_summary():
 	"""Aggregated metrics and lists for the DMS home dashboard."""
-	if not has_management_view_role():
-		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	require_dms_dashboard_access()
 
 	today = nowdate()
 	yesterday = add_days(today, -1)
@@ -297,6 +299,13 @@ def get_dashboard_summary():
 			"from_date": add_days(today, -30),
 			"to_date": today,
 		})
+		# Net revenue is report-scoped — hide when user only has dashboard access.
+		if not can_view_dms_report():
+			brd_kpis.pop("net_revenue", None)
+			brd_kpis.pop("revenue_currency", None)
+			brd_kpis.pop("labour_revenue", None)
+			brd_kpis.pop("parts_revenue", None)
+			brd_kpis["hide_net_revenue"] = 1
 	except Exception:
 		frappe.log_error(title="DMS BRD dashboard KPIs")
 

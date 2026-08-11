@@ -31,6 +31,7 @@ import {
   Plus,
   X,
   CheckCircle2,
+  Save,
 } from 'lucide-react';
 import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
@@ -83,7 +84,6 @@ const priorities: Priority[] = [
 ];
 
 const arrivalStatuses: VehicleArrivalStatus[] = [
-  'Customer Waiting',
   'Drop-off',
   'Pick-up Later',
   'Tow-in',
@@ -91,7 +91,7 @@ const arrivalStatuses: VehicleArrivalStatus[] = [
 ];
 
 export default function NewAppointmentPage() {
-  const { navigate } = useNavigation();
+  const { navigate, viewParams } = useNavigation();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
   const [form, setForm] = useState({
@@ -109,7 +109,7 @@ export default function NewAppointmentPage() {
     preferred_advisor: '',
     assigned_bay: '',
     special_instructions: '',
-    vehicle_arrival_status: 'Customer Waiting',
+    vehicle_arrival_status: 'Drop-off',
     company: '',
   });
 
@@ -224,6 +224,22 @@ export default function NewAppointmentPage() {
     }
   };
 
+  const vinFromReturn = viewParams.get('vin');
+
+  useEffect(() => {
+    if (!vinFromReturn || vinFromReturn === form.vin_chassis) return;
+    void handleVinSelect(vinFromReturn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once when returning from vehicle-new
+  }, [vinFromReturn]);
+
+  const goToNewVehicle = () => {
+    const params: Record<string, string> = { returnTo: 'appointment-new' };
+    const draft = vinSearch.trim();
+    if (draft) params.vinDraft = draft;
+    if (form.company) params.company = form.company;
+    navigate('vehicle-new', params);
+  };
+
   const handleCustomerChange = (customerId: string) => {
     const next = resolveCustomerFieldChange(customerId, customers, dmsCustomerDefaults);
     setForm((prev) => ({ ...prev, customer: next.customer }));
@@ -316,53 +332,69 @@ export default function NewAppointmentPage() {
     setSelectedServices(selectedServices.filter((s) => s !== service));
   };
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function saveAppointment(mode: 'draft' | 'create') {
+    const asDraft = mode === 'draft';
 
-    if (!form.vin_chassis) {
-      toast.error('Please select a vehicle');
-      return;
-    }
-    if (!form.customer) {
-      toast.error('Please select a customer');
-      return;
-    }
-    if (!form.vehicle) {
-      toast.error('Selected vehicle has no linked model. Update the VIN record in Vehicles.');
-      return;
-    }
-    if (selectedServices.length === 0) {
-      toast.error('Please add at least one service type');
-      return;
-    }
     if (!form.company) {
       toast.error('Please select a company');
       return;
     }
 
-    try {
-      await commonSvc.updateCustomerContact(form.customer, {
-        mobile_no: customerContact.mobile_no,
-        email_id: customerContact.email_id,
-      });
+    if (!asDraft) {
+      if (!form.vin_chassis) {
+        toast.error('Please select a vehicle');
+        return;
+      }
+      if (!form.customer) {
+        toast.error('Please select a customer');
+        return;
+      }
+      if (!form.vehicle) {
+        toast.error('Selected vehicle has no linked model. Update the VIN record in Vehicles.');
+        return;
+      }
+      if (selectedServices.length === 0) {
+        toast.error('Please add at least one service type');
+        return;
+      }
+      if (!form.customer_complaint_summary.trim()) {
+        toast.error('Please enter the customer complaint summary');
+        return;
+      }
+    } else if (!form.customer && !form.vin_chassis) {
+      toast.error('Select at least a customer or vehicle before saving a draft');
+      return;
+    }
 
-      await createAppointment({
+    try {
+      if (form.customer) {
+        await commonSvc.updateCustomerContact(form.customer, {
+          mobile_no: customerContact.mobile_no,
+          email_id: customerContact.email_id,
+        });
+      }
+
+      const result = await createAppointment({
         booking_source: form.booking_source,
         priority: form.priority,
         company: form.company,
         appointment_date_time: form.appointment_date_time,
         promised_delivery_date_time: form.promised_delivery_date_time || undefined,
         estimated_duration_hours: form.estimated_duration_hours,
-        customer: form.customer,
-        vehicle: form.vehicle,
-        vin_chassis: form.vin_chassis,
+        customer: form.customer || undefined,
+        vehicle: form.vehicle || undefined,
+        vin_chassis: form.vin_chassis || undefined,
         license_plate: form.license_plate,
         current_odometer: form.current_odometer,
         customer_complaint_summary: form.customer_complaint_summary,
-        preferred_advisor: form.preferred_advisor,
+        preferred_advisor: form.preferred_advisor || undefined,
+        assigned_bay: form.assigned_bay || undefined,
+        vehicle_arrival_status: form.vehicle_arrival_status,
         special_instructions: form.special_instructions,
         mobile_no: customerContact.mobile_no,
         customer_email: customerContact.email_id,
+        as_draft: asDraft ? 1 : 0,
+        confirm: asDraft ? 0 : 1,
         service_type_requested: selectedServices.map((s) => {
           const st = serviceTypes?.find((t) => t.name === s);
           return {
@@ -373,16 +405,31 @@ export default function NewAppointmentPage() {
         }),
       } as any);
 
-      toast.success('Appointment created successfully', {
-        description: 'The customer will receive a confirmation.',
-      });
+      if (asDraft) {
+        toast.success('Appointment saved as draft', {
+          description: result.name,
+        });
+      } else {
+        toast.success('Appointment created successfully', {
+          description: 'The appointment has been confirmed.',
+        });
+      }
 
       navigate('appointments');
-    } catch {
-      toast.error('Failed to create appointment', {
-        description: 'Please try again.',
+    } catch (err) {
+      toast.error(asDraft ? 'Failed to save draft' : 'Failed to create appointment', {
+        description: err instanceof Error ? err.message : 'Please try again.',
       });
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await saveAppointment('create');
+  }
+
+  async function handleSaveDraft() {
+    await saveAppointment('draft');
   }
 
   return (
@@ -553,10 +600,13 @@ export default function NewAppointmentPage() {
                 onSearchChange={setVinSearch}
                 placeholder="Type at least 3 characters of VIN, chassis, or plate..."
                 isLoading={vinsLoading}
+                onCreateNew={goToNewVehicle}
+                createNewLabel="Register new vehicle"
               />
               <p className="text-xs text-muted-foreground">
-                Search and select the vehicle first. The registered owner fills in as customer when
-                available; you can change or create a customer without clearing the VIN.
+                Search and select the vehicle first, or use + to register a new VIN. The registered
+                owner fills in as customer when available; you can change or create a customer without
+                clearing the VIN.
               </p>
               {form.vin_chassis && !form.vehicle && (
                 <p className="text-xs text-destructive">
@@ -780,6 +830,19 @@ export default function NewAppointmentPage() {
         <FormActionsBar>
           <Button type="button" variant="outline" onClick={() => navigate('appointments')}>
             Cancel
+          </Button>
+          <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isMutating}>
+            {isMutating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save as Draft
+              </>
+            )}
           </Button>
           <Button type="submit" form="new-appointment-form" disabled={isMutating}>
             {isMutating ? (

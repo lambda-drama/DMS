@@ -187,6 +187,9 @@ def create_appointment(data):
 		import json
 		data = json.loads(data)
 
+	as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
+	confirm = cint(data.get("confirm")) and not as_draft
+
 	vehicle = data.get("vehicle")
 	vin_chassis = data.get("vin_chassis")
 
@@ -203,7 +206,7 @@ def create_appointment(data):
 			if linked_item:
 				vehicle = linked_item
 
-	if vin_chassis and not vehicle:
+	if vin_chassis and not vehicle and not as_draft:
 		frappe.throw(_("Selected vehicle has no linked model item. Update the VIN record first."))
 
 	company = (data.get("company") or "").strip()
@@ -214,34 +217,49 @@ def create_appointment(data):
 		if company not in allowed:
 			frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
 
+	if not as_draft:
+		if not data.get("customer"):
+			frappe.throw(_("Customer is required"))
+		if not vin_chassis and not vehicle:
+			frappe.throw(_("Please select a vehicle"))
+		if not (data.get("customer_complaint_summary") or "").strip():
+			frappe.throw(_("Customer complaint summary is required"))
+
 	doc_data = {
 		"doctype": "Service Appointment",
 		"booking_source": data.get("booking_source", "Walk-in"),
-		"booking_reference": data.get("booking_reference"),
+		"booking_reference": data.get("booking_reference") or None,
 		"appointment_date_time": data.get("appointment_date_time"),
 		"company": company or None,
 		"estimated_duration_hours": data.get("estimated_duration_hours"),
 		"priority": data.get("priority", "Normal"),
-		"customer": resolve_dms_customer(data.get("customer")),
-		"vehicle": vehicle,
-		"vin_chassis": vin_chassis,
-		"license_plate": data.get("license_plate"),
+		"customer": resolve_dms_customer(data.get("customer")) if data.get("customer") else None,
+		"vehicle": vehicle or None,
+		"vin_chassis": vin_chassis or None,
+		"license_plate": data.get("license_plate") or None,
 		"current_odometer": data.get("current_odometer"),
-		"customer_complaint_summary": data.get("customer_complaint_summary"),
-		"preferred_advisor": data.get("preferred_advisor"),
-		"preferred_technician": data.get("preferred_technician"),
-		"special_instructions": data.get("special_instructions"),
-		"mobile_no": data.get("mobile_no"),
-		"customer_email": data.get("customer_email"),
+		"customer_complaint_summary": data.get("customer_complaint_summary") or None,
+		"preferred_advisor": data.get("preferred_advisor") or None,
+		"preferred_technician": data.get("preferred_technician") or None,
+		"special_instructions": data.get("special_instructions") or None,
+		"vehicle_arrival_status": data.get("vehicle_arrival_status") or "Drop-off",
+		"assigned_bay": data.get("assigned_bay") or None,
+		"mobile_no": data.get("mobile_no") or None,
+		"customer_email": data.get("customer_email") or None,
 	}
 	promised = (data.get("promised_delivery_date_time") or "").strip()
 	if promised:
 		doc_data["promised_delivery_date_time"] = promised
 
+	if as_draft:
+		doc_data["status"] = "Draft"
+	else:
+		doc_data["status"] = data.get("status") or "Booked"
+
 	doc = frappe.get_doc(doc_data)
 
 	service_types = data.get("service_type_requested") or []
-	if not service_types:
+	if not service_types and not as_draft:
 		frappe.throw(_("Add at least one service type"))
 
 	for svc in service_types:
@@ -258,18 +276,35 @@ def create_appointment(data):
 			},
 		)
 
-	if not doc.service_type_requested:
+	if not doc.service_type_requested and not as_draft:
 		frappe.throw(_("Add at least one service type"))
 
+	if as_draft:
+		doc.flags.ignore_mandatory = True
+		doc.status_history = _append_status_history(doc, "Draft")
+
 	doc.insert()
+
+	if confirm:
+		doc.check_permission("submit")
+		if doc.status == "Draft":
+			doc.status = "Booked"
+		doc.customer_confirmed = "Confirmed"
+		doc.confirmation_sent = 1
+		doc.confirmation_sent_datetime = now_datetime()
+		doc.status_history = _append_status_history(doc, "Confirmed")
+		doc.submit()
+
 	frappe.db.commit()
 
 	return {
 		"name": doc.name,
 		"customer": doc.customer,
 		"customer_name": doc.customer_name,
-		"appointment_date_time": str(doc.appointment_date_time),
+		"appointment_date_time": str(doc.appointment_date_time) if doc.appointment_date_time else None,
 		"status": doc.status,
+		"docstatus": doc.docstatus,
+		"as_draft": 1 if as_draft or doc.docstatus == 0 else 0,
 	}
 
 
@@ -325,6 +360,8 @@ def confirm_appointment(name):
 		frappe.throw(_("Cannot confirm a {0} appointment").format(doc.status))
 
 	doc.check_permission("submit")
+	if doc.status == "Draft":
+		doc.status = "Booked"
 	doc.customer_confirmed = "Confirmed"
 	doc.confirmation_sent = 1
 	doc.confirmation_sent_datetime = now_datetime()
