@@ -102,6 +102,7 @@ function canCancel(apt: ServiceAppointment) {
 
 function getStatusConfig(status: AppointmentStatus | string | undefined) {
   const configs: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
+    'Draft': { color: 'bg-muted text-muted-foreground border-muted-foreground/20', icon: Clock },
     'Booked': { color: 'bg-chart-1/10 text-chart-1 border-chart-1/20', icon: Calendar },
     'Reminder Sent': { color: 'bg-chart-4/10 text-chart-4 border-chart-4/20', icon: Clock },
     'Arrived': { color: 'bg-chart-3/10 text-chart-3 border-chart-3/20', icon: CheckCircle2 },
@@ -207,7 +208,9 @@ export default function AppointmentsPage() {
     ARRIVED_STATUSES.has(apt.status)
   ).length;
   const pendingCount = (appointments || []).filter(
-    (apt) => normalizeDocstatus(apt.docstatus) === 0 && apt.status === 'Booked'
+    (apt) =>
+      normalizeDocstatus(apt.docstatus) === 0 &&
+      (apt.status === 'Draft' || apt.status === 'Booked')
   ).length;
 
   const handleConfirm = async () => {
@@ -352,6 +355,7 @@ export default function AppointmentsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
                   <SelectItem value="Booked">Booked</SelectItem>
                   <SelectItem value="Arrived">Arrived</SelectItem>
                   <SelectItem value="In Inspection">In Inspection</SelectItem>

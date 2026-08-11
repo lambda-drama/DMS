@@ -13,6 +13,7 @@ import * as permissionsSvc from '@/services/permissions';
 import {
   permissionModuleForView,
   truthy,
+  canAccessReportSection,
   type DmsPermissionModule,
   type DmsModulePermissions,
   type DmsPermissionsMap,
@@ -22,6 +23,7 @@ interface PermissionsContextType {
   permissions: DmsPermissionsMap;
   isLoading: boolean;
   canAccessView: (view: string) => boolean;
+  canAccessReportSection: (sectionId: string) => boolean;
   canRead: (module: DmsPermissionModule) => boolean;
   canCreate: (module: DmsPermissionModule) => boolean;
   canWrite: (module: DmsPermissionModule) => boolean;
@@ -62,6 +64,14 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       return truthy(p.visible) || truthy(p.read) || truthy(p.select);
     },
     [permissions]
+  );
+
+  const canAccessReportSectionFn = useCallback(
+    (sectionId: string) => {
+      if (!canAccessView('reports')) return false;
+      return canAccessReportSection(permissions.reports?.allowed_sections, sectionId);
+    },
+    [canAccessView, permissions.reports?.allowed_sections]
   );
 
   const canRead = useCallback(
@@ -105,6 +115,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       permissions,
       isLoading: isAuthenticated && isLoading,
       canAccessView,
+      canAccessReportSection: canAccessReportSectionFn,
       canRead,
       canCreate,
       canWrite,
@@ -118,6 +129,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       isLoading,
       canAccessView,
+      canAccessReportSectionFn,
       canRead,
       canCreate,
       canWrite,

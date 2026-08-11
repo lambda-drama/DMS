@@ -76,6 +76,7 @@ const getAppointmentData = (id: string) => ({
 
 function getStatusConfig(status: AppointmentStatus) {
   const configs: Record<AppointmentStatus, { color: string; bgColor: string }> = {
+    'Draft': { color: 'text-muted-foreground', bgColor: 'bg-muted border-muted-foreground/20' },
     'Booked': { color: 'text-chart-1', bgColor: 'bg-chart-1/10 border-chart-1/20' },
     'Reminder Sent': { color: 'text-chart-4', bgColor: 'bg-chart-4/10 border-chart-4/20' },
     'Arrived': { color: 'text-chart-3', bgColor: 'bg-chart-3/10 border-chart-3/20' },

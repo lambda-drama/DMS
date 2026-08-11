@@ -24,6 +24,9 @@ const DEFAULT_ACCESS: WorkspaceAccess = {
   can_access_crm: true,
   can_view_staff_audit: false,
   can_switch_workspace: true,
+  can_view_dms_dashboard: false,
+  can_view_dms_report: false,
+  allowed_dms_report_sections: [],
 };
 
 interface WorkspaceContextType {

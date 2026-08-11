@@ -25,6 +25,7 @@ export type Priority =
   | 'Urgent';
 
 export type AppointmentStatus = 
+  | 'Draft'
   | 'Booked' 
   | 'Reminder Sent' 
   | 'Arrived' 
@@ -36,11 +37,10 @@ export type AppointmentStatus =
   | 'Cancelled' 
   | 'Rescheduled';
 
-export type VehicleArrivalStatus = 
-  | 'Customer Waiting' 
-  | 'Drop-off' 
-  | 'Pick-up Later' 
-  | 'Tow-in' 
+export type VehicleArrivalStatus =
+  | 'Drop-off'
+  | 'Pick-up Later'
+  | 'Tow-in'
   | 'Fleet Driver Drop-off';
 
 export type CustomerConfirmationStatus = 

@@ -194,8 +194,14 @@ export default function ReportsPage() {
 
   // Default into first section when opened without params (sidebar always sends section)
   useEffect(() => {
-    if (loadingCatalog || sectionId || !sections.length) return;
-    navigate('reports', { section: sections[0].id, report: 'dashboard' });
+    if (loadingCatalog || !sections.length) return;
+    if (!sectionId) {
+      navigate('reports', { section: sections[0].id, report: 'dashboard' });
+      return;
+    }
+    if (!sections.some((s) => s.id === sectionId)) {
+      navigate('reports', { section: sections[0].id, report: 'dashboard' });
+    }
   }, [loadingCatalog, sectionId, sections, navigate]);
 
   const sparePartQuery = sparePartSearch.trim();

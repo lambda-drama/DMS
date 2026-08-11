@@ -25,6 +25,8 @@ export interface ReportSection {
 export interface ReportCatalog {
   sections: ReportSection[];
   reports: ReportMeta[];
+  /** null = all sections allowed */
+  allowed_sections?: string[] | null;
 }
 
 export interface ReportColumn {

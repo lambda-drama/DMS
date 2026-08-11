@@ -47,12 +47,26 @@ export default function NewVehiclePage() {
   const { toast } = useToast();
   const returnTo = viewParams.get("returnTo");
   const returnAppointment = viewParams.get("appointment");
+  const vinDraft = viewParams.get("vinDraft");
+  const companyDraft = viewParams.get("company");
 
   const returnTarget = useMemo(() => {
     if (returnTo === "inspection-new") {
       return {
         view: "inspection-new" as const,
         label: "Back to New Inspection",
+      };
+    }
+    if (returnTo === "appointment-new") {
+      return {
+        view: "appointment-new" as const,
+        label: "Back to New Appointment",
+      };
+    }
+    if (returnTo === "invoice-new") {
+      return {
+        view: "invoice-new" as const,
+        label: "Back to New Invoice",
       };
     }
     return {
@@ -67,6 +81,18 @@ export default function NewVehiclePage() {
       if (returnAppointment) params.appointment = returnAppointment;
       if (vinDocName) params.vin = vinDocName;
       navigate("inspection-new", params);
+      return;
+    }
+    if (returnTarget.view === "appointment-new") {
+      const params: Record<string, string> = {};
+      if (vinDocName) params.vin = vinDocName;
+      navigate("appointment-new", params);
+      return;
+    }
+    if (returnTarget.view === "invoice-new") {
+      const params: Record<string, string> = {};
+      if (vinDocName) params.vin = vinDocName;
+      navigate("invoice-new", params);
       return;
     }
     navigate("vehicles");
@@ -94,13 +120,13 @@ export default function NewVehiclePage() {
   } | null>(null);
 
   const [form, setForm] = useState({
-    company: "",
-    vin_number: "",
+    company: companyDraft || "",
+    vin_number: vinDraft ? vinDraft.toUpperCase() : "",
     engine_number: "",
     plate_number: "",
     linked_item: "",
     model: "",
-    warranty_status: "Inactive",
+    warranty_status: "Active",
     brand: "",
     model_variant: "",
     model_year: "",
@@ -166,7 +192,7 @@ export default function NewVehiclePage() {
         plate_number: form.plate_number || undefined,
         linked_item: form.linked_item,
         model: form.model || undefined,
-        warranty_status: form.warranty_status || "Inactive",
+        warranty_status: form.warranty_status || "Active",
         brand: form.brand || undefined,
         model_variant: form.model_variant || undefined,
         model_year: form.model_year ? parseInt(form.model_year) : undefined,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { mutate } from "swr";
 import { useNavigation } from "@/contexts/navigation-context";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -177,7 +177,11 @@ export default function InvoicesPage() {
   };
 
   const refreshAfterInvoiceAction = async (invoiceName: string) => {
-    await mutate((key) => Array.isArray(key) && key[0] === "invoices");
+    await mutate(
+      (key) => Array.isArray(key) && key[0] === "invoices",
+      undefined,
+      { revalidate: true }
+    );
     if (selectedId === invoiceName) {
       const updated = await invoicesSvc.getSalesInvoiceDetail(invoiceName);
       setInvoiceDetail(updated);
@@ -201,12 +205,29 @@ export default function InvoicesPage() {
     }
   };
 
-  const stats = {
-    total: invoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
-    paid: invoices?.filter((inv) => inv.status === "Paid").reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
-    outstanding: invoices?.reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0) || 0,
-    overdue: invoices?.filter((inv) => inv.status === "Overdue").reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0) || 0,
-  };
+  const stats = useMemo(() => {
+    // Only submitted (active) invoices — cancelled/draft must not inflate cards.
+    const active =
+      invoices?.filter(
+        (inv) =>
+          Number(inv.docstatus) === 1 &&
+          inv.status !== "Cancelled" &&
+          inv.status !== "Draft"
+      ) || [];
+
+    const total = active.reduce((sum, inv) => sum + (inv.grand_total || 0), 0);
+    const outstanding = active.reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0);
+    // Amount actually collected (handles Partly Paid and cancelled payments).
+    const paid = active.reduce((sum, inv) => {
+      const collected = (inv.grand_total || 0) - (inv.outstanding_amount || 0);
+      return sum + Math.max(0, collected);
+    }, 0);
+    const overdue = active
+      .filter((inv) => inv.status === "Overdue")
+      .reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0);
+
+    return { total, paid, outstanding, overdue };
+  }, [invoices]);
 
   const defaultCurrency = invoices?.[0]?.currency;
 

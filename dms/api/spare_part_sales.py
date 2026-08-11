@@ -15,6 +15,7 @@ from dms.api.utils import get_dms_default_customer, resolve_dms_customer
 from dms.dealer_management_system.utils.stock_operations import (
 	get_default_dms_company,
 	get_dms_allowed_warehouses,
+	get_dms_parts_warehouse,
 	get_purchase_receipt_defaults,
 )
 
@@ -46,9 +47,10 @@ def get_spare_part_sales_defaults(company=None):
 	customer_name = None
 	if default_customer:
 		customer_name = frappe.db.get_value("Customer", default_customer, "customer_name")
+	parts_wh = get_dms_parts_warehouse(defaults.get("company"))
 	return {
 		"company": defaults.get("company"),
-		"default_warehouse": defaults.get("default_warehouse"),
+		"default_warehouse": parts_wh or defaults.get("default_warehouse"),
 		"warehouses": defaults.get("warehouses") or [],
 		"companies": defaults.get("companies") or [],
 		"default_customer": default_customer,

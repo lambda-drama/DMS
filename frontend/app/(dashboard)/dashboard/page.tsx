@@ -76,9 +76,20 @@ function formatMoney(amount: number, currency?: string) {
 
 export default function DashboardPage() {
   const { navigate } = useNavigation();
-  const { canCreate, canAccessView } = usePermissions();
+  const { canCreate, canAccessView, getModule } = usePermissions();
   const canUseReports = canAccessView('reports');
   const { data, isLoading, error } = useDashboard();
+
+  const openReports = () => {
+    const allowed = getModule('reports')?.allowed_sections;
+    const preferred = ['executive', 'workshop', 'advisor', 'finance'];
+    const section =
+      allowed === null || allowed === undefined
+        ? 'executive'
+        : preferred.find((s) => allowed.includes(s)) || allowed[0];
+    if (!section) return;
+    navigate('reports', { section, report: 'dashboard' });
+  };
 
   const stats = data?.stats;
   const brd = data?.brd_kpis;
@@ -232,27 +243,25 @@ export default function DashboardPage() {
               <CardTitle className="text-base">Management KPIs (last 30 days)</CardTitle>
             </div>
             {canUseReports ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('reports', { section: 'executive', report: 'dashboard' })}
-              >
+              <Button variant="outline" size="sm" onClick={openReports}>
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Reports
               </Button>
             ) : null}
           </CardHeader>
           <CardContent className="px-3.5 pt-0">
-            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={`grid gap-2.5 sm:grid-cols-2 ${canUseReports ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
               <div className="rounded-xl border border-border/80 px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Open WIP</p>
                 <p className="dms-stat-value mt-0.5 text-xl">{brd.open_job_cards ?? 0}</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">{brd.overdue_promised ?? 0} overdue</p>
               </div>
-              <div className="rounded-xl border border-border/80 px-3 py-2.5">
-                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Net revenue</p>
-                <p className="dms-stat-value mt-0.5 text-xl">{formatMoney(brd.net_revenue ?? 0, brd.revenue_currency)}</p>
-              </div>
+              {canUseReports && !brd.hide_net_revenue ? (
+                <div className="rounded-xl border border-border/80 px-3 py-2.5">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Net revenue</p>
+                  <p className="dms-stat-value mt-0.5 text-xl">{formatMoney(brd.net_revenue ?? 0, brd.revenue_currency)}</p>
+                </div>
+              ) : null}
               <div className="rounded-xl border border-border/80 px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Appointment arrival</p>
                 <p className="dms-stat-value mt-0.5 text-xl">{brd.appointment_arrival_rate ?? 0}%</p>

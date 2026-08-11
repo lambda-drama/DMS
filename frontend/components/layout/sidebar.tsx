@@ -202,7 +202,7 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const { viewGroup, viewParams, navigate } = useNavigation();
-  const { canAccessView } = usePermissions();
+  const { canAccessView, canAccessReportSection } = usePermissions();
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(DEFAULT_OPEN);
 
   useEffect(() => {
@@ -222,10 +222,16 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       navigation
         .map((section) => ({
           ...section,
-          items: section.items.filter((item) => canAccessView(item.accessView || item.view)),
+          items: section.items.filter((item) => {
+            if (!canAccessView(item.accessView || item.view)) return false;
+            if (item.view === 'reports' && item.params?.section) {
+              return canAccessReportSection(item.params.section);
+            }
+            return true;
+          }),
         }))
         .filter((section) => section.items.length > 0),
-    [canAccessView]
+    [canAccessView, canAccessReportSection]
   );
 
   const handleSectionOpenChange = (title: string, open: boolean) => {

@@ -8,7 +8,19 @@
  "engine": "InnoDB",
  "field_order": [
   "user",
-  "access_limited_to"
+  "access_limited_to",
+  "can_view_dms_dashboard",
+  "can_view_dms_report",
+  "view_executive_report",
+  "view_workshop",
+  "view_service_advisor_report",
+  "view_technician_report",
+  "view_parts_and_inventory",
+  "view_warranty",
+  "view_quality_control",
+  "view_customer_and_crm",
+  "view_finance",
+  "view_compliance"
  ],
  "fields": [
   {
@@ -26,13 +38,96 @@
    "in_standard_filter": 1,
    "label": "Access Limited To",
    "options": "\nDMS\nCRM"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_view_dms_dashboard",
+   "fieldtype": "Check",
+   "label": "Can View DMS Dashboard"
+  },
+  {
+   "default": "0",
+   "description": "Master switch for Reports. If on and no section boxes below are ticked, all report sections are allowed. If any section box is ticked, only those sections are allowed.",
+   "fieldname": "can_view_dms_report",
+   "fieldtype": "Check",
+   "label": "Can View DMS Report"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_executive_report",
+   "fieldtype": "Check",
+   "label": "View Executive Report"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_workshop",
+   "fieldtype": "Check",
+   "label": "View Workshop"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_service_advisor_report",
+   "fieldtype": "Check",
+   "label": "View Service Advisor Report"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_technician_report",
+   "fieldtype": "Check",
+   "label": "View Technician report"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_parts_and_inventory",
+   "fieldtype": "Check",
+   "label": "View Parts and Inventory"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_warranty",
+   "fieldtype": "Check",
+   "label": "View Warranty"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_quality_control",
+   "fieldtype": "Check",
+   "label": "View Quality Control"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_customer_and_crm",
+   "fieldtype": "Check",
+   "label": "View Customer and CRM"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_finance",
+   "fieldtype": "Check",
+   "label": "View Finance"
+  },
+  {
+   "default": "0",
+   "depends_on": "can_view_dms_report",
+   "fieldname": "view_compliance",
+   "fieldtype": "Check",
+   "label": "View Compliance"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-10 01:48:05.611228",
+ "modified": "2026-08-12 02:59:28.076610",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS CRM User Detail",
