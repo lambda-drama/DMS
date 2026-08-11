@@ -56,10 +56,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <Toaster 
-            position="top-right" 
-            richColors 
+          <Toaster
+            position="top-right"
+            richColors
             closeButton
+            style={{ zIndex: 100000 }}
             toastOptions={{
               classNames: {
                 toast: 'font-sans',

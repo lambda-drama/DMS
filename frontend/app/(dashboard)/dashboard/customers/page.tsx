@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useCustomersPaginated } from "@/hooks/use-dms";
+import { usePermissions } from "@/contexts/permissions-context";
 import { PaginationControls } from "@/components/pagination-controls";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
+import { EditCustomerDialog } from "@/components/customers/edit-customer-dialog";
 import { useNavigation } from "@/contexts/navigation-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,21 +26,24 @@ import {
   Mail,
   Loader2,
   Car,
+  Pencil,
 } from "lucide-react";
 
 export default function CustomersPage() {
   const { navigate, viewParams } = useNavigation();
+  const { canWrite } = usePermissions();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     const id = viewParams.get("id");
     if (id) setSelectedId(id);
   }, [viewParams]);
 
-  const { data: result, isLoading, error } = useCustomersPaginated({
+  const { data: result, isLoading, error, mutate } = useCustomersPaginated({
     search: searchQuery || undefined,
     limit: pageSize,
     offset: (page - 1) * pageSize,
@@ -242,6 +247,27 @@ export default function CustomersPage() {
         subtitle={selectedId || undefined}
         badge={selectedCustomer?.customer_type ? { label: selectedCustomer.customer_type } : undefined}
         onOpenInDesk={() => window.open(`/app/customer/${selectedId}`, "_blank")}
+        footer={
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {canWrite("customers") && selectedCustomer ? (
+              <Button onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Customer
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                setSelectedId(null);
+                navigate("vehicles", { customer: selectedId! });
+              }}
+            >
+              <Car className="h-4 w-4" />
+              View Vehicles
+            </Button>
+          </div>
+        }
       >
         {selectedCustomer && (
           <>
@@ -261,22 +287,18 @@ export default function CustomersPage() {
                 value={selectedCustomer.creation ? new Date(selectedCustomer.creation).toLocaleDateString() : undefined}
               />
             </DetailSection>
-            <div className="pt-2">
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => {
-                  setSelectedId(null);
-                  navigate("vehicles", { customer: selectedId! });
-                }}
-              >
-                <Car className="h-4 w-4" />
-                View Vehicles
-              </Button>
-            </div>
           </>
         )}
       </DetailSheet>
+
+      <EditCustomerDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        customer={selectedCustomer || null}
+        onUpdated={() => {
+          void mutate();
+        }}
+      />
     </div>
   );
 }

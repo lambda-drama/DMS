@@ -42,7 +42,6 @@ import {
   Loader2,
   Package,
   Pencil,
-  Plus,
   Stethoscope,
   Trash2,
   Wrench,
@@ -74,8 +73,7 @@ import {
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
 import { AmountSummaryPopover } from "@/components/amount-summary-popover";
-import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
-import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
+import { AddLineButton } from "@/components/ui/add-line-button";
 import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import {
@@ -130,6 +128,24 @@ type EstimatePartRow = {
   unit_price: number;
 };
 
+function emptyLabourRow(): EstimateLabourRow {
+  return {
+    vehicle_service_item: "",
+    vehicle_service_item_name: "",
+    estimated_hours: 0,
+    rate_per_hour: 0,
+  };
+}
+
+function emptyPartRow(): EstimatePartRow {
+  return {
+    item_code: "",
+    item_name: "",
+    quantity_requested: 1,
+    unit_price: 0,
+  };
+}
+
 export default function ServiceEstimateDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
@@ -142,20 +158,8 @@ export default function ServiceEstimateDetailPage() {
   const [activeTab, setActiveTab] = useState("diagnosis");
   const [diagnosisFindings, setDiagnosisFindings] = useState("");
   const [recommendedRepairs, setRecommendedRepairs] = useState("");
-  const [labourRows, setLabourRows] = useState<EstimateLabourRow[]>([]);
-  const [partRows, setPartRows] = useState<EstimatePartRow[]>([]);
-  const [newLabour, setNewLabour] = useState<EstimateLabourRow>({
-    vehicle_service_item: "",
-    vehicle_service_item_name: "",
-    estimated_hours: 0,
-    rate_per_hour: 0,
-  });
-  const [newPart, setNewPart] = useState<EstimatePartRow>({
-    item_code: "",
-    item_name: "",
-    quantity_requested: 1,
-    unit_price: 0,
-  });
+  const [labourRows, setLabourRows] = useState<EstimateLabourRow[]>([emptyLabourRow()]);
+  const [partRows, setPartRows] = useState<EstimatePartRow[]>([emptyPartRow()]);
   const [serviceItemSearch, setServiceItemSearch] = useState("");
   const [sparePartSearch, setSparePartSearch] = useState("");
   const [vehicleModelFilter, setVehicleModelFilter] = useState("");
@@ -184,6 +188,8 @@ export default function ServiceEstimateDetailPage() {
   // Create dialogs state
   const [showCreateSparePartDialog, setShowCreateSparePartDialog] = useState(false);
   const [showCreateServiceItemDialog, setShowCreateServiceItemDialog] = useState(false);
+  const [createLabourIdx, setCreateLabourIdx] = useState(0);
+  const [createPartIdx, setCreatePartIdx] = useState(0);
   const [warrantyApplicationType, setWarrantyApplicationType] = useState("");
   const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>("none");
   const [labourDiscountInput, setLabourDiscountInput] = useState("");
@@ -217,24 +223,22 @@ export default function ServiceEstimateDetailPage() {
     );
     setDiagnosisFindings(estimate.diagnosis_findings || "");
     setRecommendedRepairs(estimate.recommended_repairs || "");
-    setLabourRows(
-      (estimate.labour || []).map((row) => ({
-        vehicle_service_item: row.vehicle_service_item || "",
-        vehicle_service_item_name:
-          row.service_name || row.vehicle_service_item || "",
-        estimated_hours: row.estimated_hours ?? 1,
-        rate_per_hour: row.rate_per_hour ?? 0,
-      }))
-    );
-    setPartRows(
-      (estimate.parts || []).map((row) => ({
-        item_code: row.item_code || "",
-        item_name: row.part_name || row.item_code || "",
-        bin_location: row.bin_location || "",
-        quantity_requested: row.quantity_requested ?? 1,
-        unit_price: row.unit_price ?? 0,
-      }))
-    );
+    const loadedLabour = (estimate.labour || []).map((row) => ({
+      vehicle_service_item: row.vehicle_service_item || "",
+      vehicle_service_item_name:
+        row.service_name || row.vehicle_service_item || "",
+      estimated_hours: row.estimated_hours ?? 1,
+      rate_per_hour: row.rate_per_hour ?? 0,
+    }));
+    const loadedParts = (estimate.parts || []).map((row) => ({
+      item_code: row.item_code || "",
+      item_name: row.part_name || row.item_code || "",
+      bin_location: row.bin_location || "",
+      quantity_requested: row.quantity_requested ?? 1,
+      unit_price: row.unit_price ?? 0,
+    }));
+    setLabourRows(loadedLabour.length ? loadedLabour : [emptyLabourRow()]);
+    setPartRows(loadedParts.length ? loadedParts : [emptyPartRow()]);
     setSelectedServicePackage(estimate.service_package || "");
     lastAppliedPackageRef.current = estimate.service_package || null;
     if (estimate.vehicle_model) {
@@ -304,23 +308,27 @@ export default function ServiceEstimateDetailPage() {
         vehicleModel: resolvedVehicleModel,
       });
       setLabourRows(
-        lines.labour.map((row) => ({
-          vehicle_service_item: row.vehicle_service_item,
-          vehicle_service_item_name: row.service_code
-            ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
-            : (row.service_name || row.vehicle_service_item),
-          estimated_hours: row.estimated_hours,
-          rate_per_hour: row.rate_per_hour,
-        }))
+        lines.labour.length
+          ? lines.labour.map((row) => ({
+              vehicle_service_item: row.vehicle_service_item,
+              vehicle_service_item_name: row.service_code
+                ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
+                : (row.service_name || row.vehicle_service_item),
+              estimated_hours: row.estimated_hours,
+              rate_per_hour: row.rate_per_hour,
+            }))
+          : [emptyLabourRow()]
       );
       setPartRows(
-        lines.parts.map((row) => ({
-          item_code: row.item_code,
-          item_name: row.item_name || row.item_code,
-          bin_location: row.bin_location,
-          quantity_requested: row.quantity_requested,
-          unit_price: row.unit_price,
-        }))
+        lines.parts.length
+          ? lines.parts.map((row) => ({
+              item_code: row.item_code,
+              item_name: row.item_name || row.item_code,
+              bin_location: row.bin_location,
+              quantity_requested: row.quantity_requested,
+              unit_price: row.unit_price,
+            }))
+          : [emptyPartRow()]
       );
 
       const pkgLabel = lines.package_name || packageName;
@@ -524,6 +532,8 @@ export default function ServiceEstimateDetailPage() {
 
   const saveEstimate = async () => {
     if (!id) return;
+    const filledLabour = labourRows.filter((r) => r.vehicle_service_item);
+    const filledParts = partRows.filter((r) => r.item_code);
     setBusy(true);
     try {
       await estimatesSvc.updateServiceEstimate(id, {
@@ -531,14 +541,14 @@ export default function ServiceEstimateDetailPage() {
         recommended_repairs: recommendedRepairs,
         service_package: selectedServicePackage || undefined,
         ...buildWarrantyPayload(),
-        labour: labourRows.map((row) => ({
+        labour: filledLabour.map((row) => ({
           vehicle_service_item: row.vehicle_service_item,
           service_name: row.vehicle_service_item_name,
           estimated_hours: row.estimated_hours,
           rate_per_hour: row.rate_per_hour,
           amount: (row.estimated_hours || 0) * (row.rate_per_hour || 0),
         })),
-        parts: partRows.map((row) => ({
+        parts: filledParts.map((row) => ({
           item_code: row.item_code,
           part_name: row.item_name,
           bin_location: row.bin_location,
@@ -571,8 +581,13 @@ export default function ServiceEstimateDetailPage() {
     }
   };
 
-  const handleServiceItemSelect = async (itemName: string) => {
-    if (!itemName) return;
+  const handleServiceItemSelect = async (idx: number, itemName: string) => {
+    if (!itemName) {
+      setLabourRows((prev) =>
+        prev.map((row, i) => (i === idx ? emptyLabourRow() : row))
+      );
+      return;
+    }
     const item = serviceItems?.find((i) => i.name === itemName);
     let rate = item?.custom_rate || 0;
     let estHours = vehicleServiceItemEstimatedHours(item);
@@ -597,18 +612,26 @@ export default function ServiceEstimateDetailPage() {
       }
     }
 
-    setNewLabour((prev) => ({
-      ...prev,
-      vehicle_service_item: itemName,
-      vehicle_service_item_name: serviceLabel,
-      estimated_hours: estHours > 0 ? estHours : prev.estimated_hours || 1,
-      rate_per_hour: rate || prev.rate_per_hour,
-    }));
+    setLabourRows((prev) =>
+      prev.map((row, i) =>
+        i === idx
+          ? {
+              ...row,
+              vehicle_service_item: itemName,
+              vehicle_service_item_name: serviceLabel,
+              estimated_hours: estHours > 0 ? estHours : row.estimated_hours || 1,
+              rate_per_hour: rate || row.rate_per_hour,
+            }
+          : row
+      )
+    );
   };
 
-  const handleSparePartSelect = async (partName: string) => {
+  const handleSparePartSelect = async (idx: number, partName: string) => {
     if (!partName) {
-      setNewPart({ item_code: "", item_name: "", bin_location: "", quantity_requested: 1, unit_price: 0 });
+      setPartRows((prev) =>
+        prev.map((row, i) => (i === idx ? emptyPartRow() : row))
+      );
       return;
     }
     const part = spareParts?.find((p) => p.name === partName);
@@ -618,31 +641,30 @@ export default function ServiceEstimateDetailPage() {
     } catch {
       toast.error("Could not load spare part unit price");
     }
-    setNewPart({
-      item_code: partName,
-      item_name: part?.item_name || partName,
-      bin_location: part?.bin_location || "",
-      quantity_requested: 1,
-      unit_price: unitPrice,
-    });
+    setPartRows((prev) =>
+      prev.map((row, i) =>
+        i === idx
+          ? {
+              ...row,
+              item_code: partName,
+              item_name: part?.item_name || partName,
+              bin_location: part?.bin_location || "",
+              unit_price: unitPrice,
+            }
+          : row
+      )
+    );
   };
 
   const addLabourRow = () => {
-    if (!newLabour.vehicle_service_item) {
-      toast.error("Please select a service item");
-      return;
-    }
-    setLabourRows((prev) => [...prev, { ...newLabour }]);
-    setNewLabour({
-      vehicle_service_item: "",
-      vehicle_service_item_name: "",
-      estimated_hours: 0,
-      rate_per_hour: 0,
-    });
+    setLabourRows((prev) => [...prev, emptyLabourRow()]);
   };
 
   const removeLabourRow = (idx: number) => {
-    setLabourRows((prev) => prev.filter((_, i) => i !== idx));
+    setLabourRows((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length ? next : [emptyLabourRow()];
+    });
   };
 
   const updateLabourRow = (idx: number, patch: Partial<EstimateLabourRow>) => {
@@ -652,16 +674,14 @@ export default function ServiceEstimateDetailPage() {
   };
 
   const addPartRow = () => {
-    if (!newPart.item_code) {
-      toast.error("Please select a spare part");
-      return;
-    }
-    setPartRows((prev) => [...prev, { ...newPart }]);
-    setNewPart({ item_code: "", item_name: "", bin_location: "", quantity_requested: 1, unit_price: 0 });
+    setPartRows((prev) => [...prev, emptyPartRow()]);
   };
 
   const removePartRow = (idx: number) => {
-    setPartRows((prev) => prev.filter((_, i) => i !== idx));
+    setPartRows((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length ? next : [emptyPartRow()];
+    });
   };
 
   const updatePartRow = (idx: number, patch: Partial<EstimatePartRow>) => {
@@ -694,11 +714,13 @@ export default function ServiceEstimateDetailPage() {
   }
 
   const status = estimate.status;
-  const labourTotal = labourRows.reduce(
+  const filledLabourRows = labourRows.filter((r) => r.vehicle_service_item);
+  const filledPartRows = partRows.filter((r) => r.item_code);
+  const labourTotal = filledLabourRows.reduce(
     (sum, row) => sum + (row.estimated_hours || 0) * (row.rate_per_hour || 0),
     0
   );
-  const partsTotal = partRows.reduce(
+  const partsTotal = filledPartRows.reduce(
     (sum, row) => sum + (row.quantity_requested || 0) * (row.unit_price || 0),
     0
   );
@@ -1009,18 +1031,11 @@ export default function ServiceEstimateDetailPage() {
               <CardDescription>Add labour operations for the repair estimate</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {labourRows.length > 0 && (
-                <EditableLabourLinesTable
-                  rows={labourRows}
-                  editable={canEditEstimate}
-                  onUpdateRow={updateLabourRow}
-                  onRemoveRow={removeLabourRow}
-                  subtotal={labourTotal}
-                />
-              )}
-
-              {canEditEstimate && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
+              {(canEditEstimate ? labourRows : filledLabourRows).map((row, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+                >
                   <div className="space-y-1 sm:col-span-4">
                     <Label className="text-xs">Service Item *</Label>
                     <SearchableSelect
@@ -1034,16 +1049,25 @@ export default function ServiceEstimateDetailPage() {
                                 si.estimated_hours ? `${si.estimated_hours}h` : null,
                               ]
                                 .filter(Boolean)
-                                .join(' · ')
+                                .join(" · ")
                             : undefined,
                         })) || []
                       }
-                      value={newLabour.vehicle_service_item}
-                      onValueChange={handleServiceItemSelect}
+                      value={row.vehicle_service_item}
+                      valueLabel={row.vehicle_service_item_name || undefined}
+                      onValueChange={(val) => void handleServiceItemSelect(idx, val)}
                       onSearchChange={setServiceItemSearch}
                       placeholder="Search items..."
                       isLoading={serviceItemsLoading}
-                      onCreateNew={() => setShowCreateServiceItemDialog(true)}
+                      disabled={!canEditEstimate}
+                      onCreateNew={
+                        canEditEstimate
+                          ? () => {
+                              setCreateLabourIdx(idx);
+                              setShowCreateServiceItemDialog(true);
+                            }
+                          : undefined
+                      }
                       createNewLabel="New Service Item"
                     />
                   </div>
@@ -1053,34 +1077,43 @@ export default function ServiceEstimateDetailPage() {
                       <DecimalInput
                         min={0}
                         placeholder="0"
-                        value={newLabour.estimated_hours}
+                        value={row.estimated_hours}
+                        disabled={!canEditEstimate}
                         onValueChange={(estimated_hours) =>
-                          setNewLabour((prev) => ({ ...prev, estimated_hours }))
+                          updateLabourRow(idx, { estimated_hours })
                         }
                       />
                     </div>
-                    <div className="space-y-1 sm:col-span-2">
+                    <div className="space-y-1 sm:col-span-3">
                       <Label className="text-xs">Rate/Hr</Label>
                       <DecimalInput
                         min={0}
                         placeholder="0"
-                        value={newLabour.rate_per_hour}
+                        value={row.rate_per_hour}
+                        disabled={!canEditEstimate}
                         onValueChange={(rate_per_hour) =>
-                          setNewLabour((prev) => ({ ...prev, rate_per_hour }))
+                          updateLabourRow(idx, { rate_per_hour })
                         }
                       />
                     </div>
                   </div>
-                  <div className="sm:col-span-2">
-                    <Button type="button" onClick={addLabourRow} className="w-full">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
+                  {canEditEstimate && (
+                    <div className="flex justify-end sm:col-span-3">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeLabourRow(idx)}
+                        className="h-8 w-8 text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {labourRows.length === 0 && !canEditEstimate && (
+              ))}
+              {canEditEstimate && <AddLineButton onClick={addLabourRow} />}
+              {!canEditEstimate && filledLabourRows.length === 0 && (
                 <p className="text-sm text-muted-foreground">No labour lines added yet.</p>
               )}
             </CardContent>
@@ -1092,29 +1125,30 @@ export default function ServiceEstimateDetailPage() {
               <CardDescription>Add spare parts needed for this estimate</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {partRows.length > 0 && (
-                <EditablePartsLinesTable
-                  rows={partRows}
-                  editable={canEditEstimate}
-                  quantityField="quantity_requested"
-                  onUpdateRow={updatePartRow}
-                  onRemoveRow={removePartRow}
-                  subtotal={partsTotal}
-                />
-              )}
-
-              {canEditEstimate && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
+              {(canEditEstimate ? partRows : filledPartRows).map((row, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+                >
                   <div className="space-y-1 sm:col-span-5">
                     <Label className="text-xs">Spare Part *</Label>
                     <SearchableSelect
-                  options={spareParts?.map(sparePartToSelectOption) || []}
-                      value={newPart.item_code}
-                      onValueChange={handleSparePartSelect}
+                      options={spareParts?.map(sparePartToSelectOption) || []}
+                      value={row.item_code}
+                      valueLabel={row.item_name || undefined}
+                      onValueChange={(val) => void handleSparePartSelect(idx, val)}
                       onSearchChange={setSparePartSearch}
                       placeholder="Search parts..."
                       isLoading={sparePartsLoading}
-                      onCreateNew={() => setShowCreateSparePartDialog(true)}
+                      disabled={!canEditEstimate}
+                      onCreateNew={
+                        canEditEstimate
+                          ? () => {
+                              setCreatePartIdx(idx);
+                              setShowCreateSparePartDialog(true);
+                            }
+                          : undefined
+                      }
                       createNewLabel="New Spare Part"
                     />
                   </div>
@@ -1124,9 +1158,10 @@ export default function ServiceEstimateDetailPage() {
                       <DecimalInput
                         min={0}
                         placeholder="1"
-                        value={newPart.quantity_requested}
+                        value={row.quantity_requested}
+                        disabled={!canEditEstimate}
                         onValueChange={(quantity_requested) =>
-                          setNewPart((prev) => ({ ...prev, quantity_requested }))
+                          updatePartRow(idx, { quantity_requested })
                         }
                       />
                     </div>
@@ -1135,23 +1170,31 @@ export default function ServiceEstimateDetailPage() {
                       <DecimalInput
                         min={0}
                         placeholder="0"
-                        value={newPart.unit_price}
+                        value={row.unit_price}
+                        disabled={!canEditEstimate}
                         onValueChange={(unit_price) =>
-                          setNewPart((prev) => ({ ...prev, unit_price }))
+                          updatePartRow(idx, { unit_price })
                         }
                       />
                     </div>
                   </div>
-                  <div className="sm:col-span-2">
-                    <Button type="button" onClick={addPartRow} className="w-full">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
+                  {canEditEstimate && (
+                    <div className="flex justify-end sm:col-span-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePartRow(idx)}
+                        className="h-8 w-8 text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {partRows.length === 0 && !canEditEstimate && (
+              ))}
+              {canEditEstimate && <AddLineButton onClick={addPartRow} />}
+              {!canEditEstimate && filledPartRows.length === 0 && (
                 <p className="text-sm text-muted-foreground">No parts added yet.</p>
               )}
             </CardContent>
@@ -1624,11 +1667,10 @@ export default function ServiceEstimateDetailPage() {
         open={showCreateSparePartDialog}
         onOpenChange={setShowCreateSparePartDialog}
         onCreated={(itemCode, itemName) => {
-          setNewPart((prev) => ({
-            ...prev,
+          updatePartRow(createPartIdx, {
             item_code: itemCode,
             item_name: itemName,
-          }));
+          });
           setSparePartSearch(itemCode);
           toast.success(`Spare part ${itemName} created and selected.`);
         }}
@@ -1637,10 +1679,7 @@ export default function ServiceEstimateDetailPage() {
         open={showCreateServiceItemDialog}
         onOpenChange={setShowCreateServiceItemDialog}
         onCreated={(serviceItemName) => {
-          setNewLabour((prev) => ({
-            ...prev,
-            vehicle_service_item: serviceItemName,
-          }));
+          void handleServiceItemSelect(createLabourIdx, serviceItemName);
           setServiceItemSearch(serviceItemName);
           toast.success(`Service item created and selected.`);
         }}

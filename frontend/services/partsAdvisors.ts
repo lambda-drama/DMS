@@ -44,3 +44,13 @@ export async function getPartsAdvisor(name: string): Promise<PartsAdvisorFull> {
     body: JSON.stringify({ name }),
   });
 }
+
+export async function updatePartsAdvisor(
+  name: string,
+  data: Record<string, unknown>
+): Promise<{ name: string; full_name?: string; status?: string }> {
+  return apiRequest(`/api/method/${API}.update_parts_advisor`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}

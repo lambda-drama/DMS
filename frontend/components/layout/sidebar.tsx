@@ -87,6 +87,9 @@ const navigation: NavSection[] = [
     items: [
       { name: 'Service Advisors', view: 'service-advisors', icon: Headphones },
       { name: 'Parts Advisors', view: 'parts-advisors', icon: Users },
+      { name: 'Spare Parts', view: 'spare-parts', icon: Package },
+      { name: 'Services', view: 'vehicle-services', icon: Wrench },
+      { name: 'Item Prices', view: 'item-prices', icon: Banknote },
     ],
   },
   {

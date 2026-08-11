@@ -34,6 +34,16 @@ export async function getTechnician(name: string): Promise<TechnicianFull> {
   });
 }
 
+export async function updateTechnician(
+  name: string,
+  data: Record<string, unknown>
+): Promise<{ name: string; full_name?: string; status?: string }> {
+  return apiRequest(`/api/method/${API}.update_technician`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
 export async function getTechnicianSchedule(
   name: string,
   date?: string

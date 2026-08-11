@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
 import { DecimalInput } from '@/components/ui/decimal-input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, CreditCard, Plus, Trash2 } from 'lucide-react';
+import { Loader2, CreditCard, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as invoicesSvc from '@/services/invoices';
 import type { SalesInvoiceDetail } from '@/types/dms';
@@ -243,13 +244,7 @@ export function CollectPaymentDialog({
 
             {canPay && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Label>Modes of payment *</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addRow}>
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add mode
-                  </Button>
-                </div>
+                <Label>Modes of payment *</Label>
 
                 {rows.map((row, index) => (
                   <div
@@ -322,6 +317,8 @@ export function CollectPaymentDialog({
                     </div>
                   </div>
                 ))}
+
+                <AddLineButton onClick={addRow} label="Add mode" />
 
                 <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm space-y-1">
                   <div className="flex justify-between gap-2">

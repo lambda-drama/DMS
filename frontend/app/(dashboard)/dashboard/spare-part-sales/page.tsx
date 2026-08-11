@@ -17,6 +17,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
 import { Button } from '@/components/ui/button';
+import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,7 +41,7 @@ import {
 import * as sparePartSalesSvc from '@/services/sparePartSales';
 import * as vehiclesSvc from '@/services/vehicles';
 import type { VINNo, VehicleModelOption } from '@/types/dms';
-import { Loader2, Package, Plus, Receipt, Trash2 } from 'lucide-react';
+import { Loader2, Package, Receipt, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type LineRow = {
@@ -518,13 +519,7 @@ export default function SparePartSalesPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Spare parts *</Label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add line
-              </Button>
-            </div>
+            <Label>Spare parts *</Label>
             {lines.map((line, idx) => (
               <div key={line.id} className="grid gap-3 md:grid-cols-12 items-end border rounded-lg p-3">
                 <div className="md:col-span-5 space-y-2">
@@ -618,6 +613,7 @@ export default function SparePartSalesPage() {
                 </div>
               </div>
             ))}
+            <AddLineButton onClick={() => setLines((p) => [...p, emptyLine()])} label="Add line" />
           </div>
 
           <GroupDiscountFields

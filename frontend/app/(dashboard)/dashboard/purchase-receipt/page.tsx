@@ -6,6 +6,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { StockItemLinkWithCreate } from '@/components/stock-item-link-with-create';
 import { SupplierLinkWithCreate } from '@/components/supplier-link-with-create';
 import { Button } from '@/components/ui/button';
+import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,7 +34,7 @@ import { PrintFormatDropdown } from '@/components/print-format-dropdown';
 import { useCurrencies } from '@/hooks/use-dms';
 import * as stockSvc from '@/services/stockOperations';
 import { formatDmsWarehouseLabel } from '@/services/stockOperations';
-import { Loader2, PackageCheck, Plus, Trash2 } from 'lucide-react';
+import { Loader2, PackageCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type LineRow = {
@@ -414,13 +415,7 @@ export default function PurchaseReceiptPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Items *</Label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add line
-              </Button>
-            </div>
+            <Label>Items *</Label>
             {lines.map((line, idx) => (
               <div key={line.id} className="grid gap-3 md:grid-cols-12 items-end border rounded-lg p-3">
                 <div className="md:col-span-5 space-y-2">
@@ -528,6 +523,7 @@ export default function PurchaseReceiptPage() {
                 </div>
               </div>
             ))}
+            <AddLineButton onClick={() => setLines((p) => [...p, emptyLine()])} label="Add line" />
           </div>
 
           <div className="space-y-2">

@@ -2,11 +2,13 @@
 
 import { useState, useMemo } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { usePermissions } from "@/contexts/permissions-context";
 import {
   useTechnicianDetail,
   useTechnicianSchedule,
   useTechnicianWeeklySchedule,
 } from "@/hooks/use-dms";
+import { CreateTechnicianDialog } from "@/components/technicians/create-technician-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +35,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
 import type { TechnicianScheduleJob } from "@/types/dms";
 
@@ -145,11 +148,13 @@ function ScheduleJobCard({ job, onNavigate }: { job: TechnicianScheduleJob; onNa
 
 export default function TechnicianDetailPage() {
   const { navigate, viewParams } = useNavigation();
+  const { canWrite } = usePermissions();
   const techId = viewParams.get("id");
   const [weekStart, setWeekStart] = useState(getTodayISO());
   const [selectedDate, setSelectedDate] = useState(getTodayISO());
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { data: tech, isLoading, error } = useTechnicianDetail(techId);
+  const { data: tech, isLoading, error, mutate } = useTechnicianDetail(techId);
   const { data: todaySchedule } = useTechnicianSchedule(techId, selectedDate);
   const { data: weeklySchedule } = useTechnicianWeeklySchedule(techId, weekStart);
 
@@ -218,7 +223,7 @@ export default function TechnicianDetailPage() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <h1 className="dms-stat-value text-xl">{tech.full_name}</h1>
                   <p className="text-sm text-muted-foreground">{tech.name}</p>
@@ -241,7 +246,14 @@ export default function TechnicianDetailPage() {
                     )}
                   </div>
                 </div>
-                <div className="text-right hidden sm:block">
+                <div className="flex flex-col items-end gap-2">
+                  {canWrite("technicians") ? (
+                    <Button size="sm" onClick={() => setEditOpen(true)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  ) : null}
+                  <div className="text-right hidden sm:block">
                   {tech.attendance_today && (
                     <Badge
                       variant="outline"
@@ -260,6 +272,7 @@ export default function TechnicianDetailPage() {
                       {tech.clock_out_time && ` • Out: ${formatTime(tech.clock_out_time)}`}
                     </p>
                   )}
+                  </div>
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -693,6 +706,15 @@ export default function TechnicianDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <CreateTechnicianDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        technician={tech}
+        onUpdated={() => {
+          void mutate();
+        }}
+      />
     </div>
   );
 }

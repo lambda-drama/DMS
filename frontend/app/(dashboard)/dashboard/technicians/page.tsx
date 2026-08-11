@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
+import { usePermissions } from "@/contexts/permissions-context";
 import { useTechniciansAvailability, useTechnicianDetail } from "@/hooks/use-dms";
 import { CreateTechnicianDialog } from "@/components/technicians/create-technician-dialog";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
@@ -34,6 +35,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
 import {
   addDaysISO,
@@ -76,14 +78,17 @@ function getSkillBadgeColor(level: string) {
 
 export default function TechniciansPage() {
   const { navigate } = useNavigation();
+  const { canWrite } = usePermissions();
   const [search, setSearch] = useState("");
   const [skillFilter, setSkillFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [viewDate, setViewDate] = useState(getTodayISO);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { data: technicians, isLoading, error } = useTechniciansAvailability(viewDate);
-  const { data: selectedTechnician, isLoading: detailLoading } = useTechnicianDetail(selectedId);
+  const { data: selectedTechnician, isLoading: detailLoading, mutate: mutateTechnician } =
+    useTechnicianDetail(selectedId);
 
   const filtered = useMemo(() => {
     if (!technicians) return [];
@@ -144,6 +149,14 @@ export default function TechniciansPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onCreated={(name) => setSelectedId(name)}
+      />
+      <CreateTechnicianDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        technician={selectedTechnician}
+        onUpdated={() => {
+          void mutateTechnician();
+        }}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -363,6 +376,12 @@ export default function TechniciansPage() {
                 </DetailSection>
               )}
             <div className="flex justify-end gap-2 pt-2">
+              {canWrite("technicians") ? (
+                <Button variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              ) : null}
               <Button
                 variant="outline"
                 onClick={() => {

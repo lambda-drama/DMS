@@ -245,7 +245,7 @@ export function CreateServiceItemDialog({
               <Label>Rate</Label>
               <Input
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 value={rate}
                 onChange={(e) => setRate(e.target.value)}

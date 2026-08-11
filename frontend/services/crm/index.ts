@@ -1258,6 +1258,23 @@ export async function createCustomer(
   });
 }
 
+export async function updateCustomer(
+  name: string,
+  data: Record<string, unknown>
+): Promise<{
+  ok?: boolean;
+  name?: string;
+  customer_name?: string;
+  customer_group?: string;
+  mobile_no?: string;
+  email_id?: string;
+}> {
+  return apiRequest(`/api/method/${CUSTOMERS}.update_customer`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
 const CALL_LOGS = 'dms.crm_api.call_logs';
 
 export type CallLogRow = {

@@ -88,6 +88,12 @@ export async function createStandaloneInvoice(data: {
   posting_date?: string;
   remarks?: string;
   submit?: boolean;
+  is_dms_invoice?: boolean;
+  vehicle_vin?: string;
+  vehicle_brand?: string;
+  vehicle_model?: string;
+  current_odometer?: number;
+  apply_taxes?: boolean;
 }): Promise<{
   name: string;
   docstatus: number;
@@ -161,6 +167,37 @@ export async function cancelSalesInvoice(salesInvoice: string): Promise<{
   return apiRequest(`/api/method/${API}.cancel_sales_invoice`, {
     method: 'POST',
     body: JSON.stringify({ sales_invoice: salesInvoice }),
+  });
+}
+
+export async function amendSalesInvoice(salesInvoice: string): Promise<SalesInvoiceDetail> {
+  return apiRequest<SalesInvoiceDetail>(`/api/method/${API}.amend_sales_invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ sales_invoice: salesInvoice }),
+  });
+}
+
+export async function updateDraftSalesInvoice(data: {
+  name: string;
+  remarks?: string;
+  posting_date?: string;
+  due_date?: string;
+  items?: Array<{
+    name: string;
+    qty?: number;
+    rate?: number;
+    dms_discount?: number;
+  }>;
+  discount_mode?: 'none' | 'percentage' | 'amount';
+  discount?: StandaloneInvoiceGroupDiscount;
+  additional_discount_percentage?: number;
+  discount_amount?: number;
+  apply_discount_on?: string;
+  submit?: boolean;
+}): Promise<SalesInvoiceDetail> {
+  return apiRequest<SalesInvoiceDetail>(`/api/method/${API}.update_draft_sales_invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
   });
 }
 

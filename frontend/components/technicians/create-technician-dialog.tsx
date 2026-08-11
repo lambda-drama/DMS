@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { quickCreateDoc } from '@/services/quickCreate';
+import * as techniciansSvc from '@/services/technicians';
+import type { TechnicianFull, TechnicianListItem } from '@/types/dms';
 
 const SKILL_LEVELS = [
   'Trainee',
@@ -43,22 +45,32 @@ const LABOR_RATE_GROUPS = [
   'Training',
 ] as const;
 
+const STATUSES = ['Active', 'On Leave', 'Inactive', 'Terminated'] as const;
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
+
+type TechnicianSeed = Partial<TechnicianFull | TechnicianListItem> & { name?: string };
 
 export interface CreateTechnicianDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: (name: string, label?: string) => void;
+  /** When set, dialog edits this technician instead of creating. */
+  technician?: TechnicianSeed | null;
+  onUpdated?: (name: string) => void;
 }
 
 export function CreateTechnicianDialog({
   open,
   onOpenChange,
   onCreated,
+  technician,
+  onUpdated,
 }: CreateTechnicianDialogProps) {
   const { mutate } = useSWRConfig();
+  const isEdit = Boolean(technician?.name);
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -66,16 +78,53 @@ export function CreateTechnicianDialog({
   const [dateOfJoining, setDateOfJoining] = useState(todayISO);
   const [skillLevel, setSkillLevel] = useState<string>('Junior');
   const [laborRateGroup, setLaborRateGroup] = useState<string>('Standard');
+  const [status, setStatus] = useState<string>('Active');
 
   useEffect(() => {
     if (!open) return;
+    if (technician?.name) {
+      setFirstName(technician.first_name || '');
+      setLastName(technician.last_name || '');
+      setPhone(technician.personal_phone || '');
+      setDateOfJoining(
+        technician.date_of_joining
+          ? String(technician.date_of_joining).slice(0, 10)
+          : todayISO()
+      );
+      setSkillLevel(technician.skill_level || 'Junior');
+      setLaborRateGroup(technician.labor_rate_group || 'Standard');
+      setStatus(technician.status || 'Active');
+      return;
+    }
     setFirstName('');
     setLastName('');
     setPhone('');
     setDateOfJoining(todayISO());
     setSkillLevel('Junior');
     setLaborRateGroup('Standard');
-  }, [open]);
+    setStatus('Active');
+  }, [open, technician]);
+
+  async function revalidateTechnicians() {
+    await mutate(
+      (key) => {
+        if (typeof key === 'string' && key === 'technicians') return true;
+        if (Array.isArray(key) && typeof key[0] === 'string') {
+          const k0 = key[0];
+          return (
+            k0 === 'technicians' ||
+            k0 === 'technicians-list' ||
+            k0 === 'technicians-availability' ||
+            k0 === 'technician' ||
+            k0 === 'technician-detail'
+          );
+        }
+        return false;
+      },
+      undefined,
+      { revalidate: true }
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -85,6 +134,23 @@ export function CreateTechnicianDialog({
     }
     setSaving(true);
     try {
+      if (isEdit && technician?.name) {
+        await techniciansSvc.updateTechnician(technician.name, {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          personal_phone: phone.trim(),
+          date_of_joining: dateOfJoining || todayISO(),
+          skill_level: skillLevel,
+          labor_rate_group: laborRateGroup,
+          status,
+        });
+        await revalidateTechnicians();
+        toast.success('Technician updated');
+        onUpdated?.(technician.name);
+        onOpenChange(false);
+        return;
+      }
+
       const res = await quickCreateDoc('Technician', {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -93,27 +159,18 @@ export function CreateTechnicianDialog({
         skill_level: skillLevel,
         labor_rate_group: laborRateGroup,
       });
-      await mutate(
-        (key) => {
-          if (typeof key === 'string' && key === 'technicians') return true;
-          if (Array.isArray(key) && typeof key[0] === 'string') {
-            const k0 = key[0];
-            return (
-              k0 === 'technicians' ||
-              k0 === 'technicians-list' ||
-              k0 === 'technicians-availability'
-            );
-          }
-          return false;
-        },
-        undefined,
-        { revalidate: true }
-      );
+      await revalidateTechnicians();
       toast.success(`Technician ${res.label || res.name} created`);
       onCreated?.(res.name, res.label);
       onOpenChange(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create technician');
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : isEdit
+            ? 'Failed to update technician'
+            : 'Failed to create technician'
+      );
     } finally {
       setSaving(false);
     }
@@ -124,9 +181,11 @@ export function CreateTechnicianDialog({
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>New technician</DialogTitle>
+            <DialogTitle>{isEdit ? 'Edit technician' : 'New technician'}</DialogTitle>
             <DialogDescription>
-              Add a technician for job cards, scheduling, and workshop assignments.
+              {isEdit
+                ? 'Update technician details used on job cards and scheduling.'
+                : 'Add a technician for job cards, scheduling, and workshop assignments.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-4">
@@ -188,6 +247,23 @@ export function CreateTechnicianDialog({
                 </Select>
               </div>
             </div>
+            {isEdit ? (
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -195,7 +271,7 @@ export function CreateTechnicianDialog({
             </Button>
             <Button type="submit" disabled={saving}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Create
+              {isEdit ? 'Save' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

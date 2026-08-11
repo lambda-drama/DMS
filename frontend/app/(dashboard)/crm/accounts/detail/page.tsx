@@ -11,6 +11,7 @@ import {
 } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import { Button } from '@/components/ui/button';
+import { AddLineButton } from '@/components/ui/add-line-button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
-import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 
 type Stakeholder = {
   contact?: string;
@@ -41,6 +42,30 @@ type FleetUnit = {
   replacement_cycle_years: string;
   notes: string;
 };
+
+function emptyStakeholder(): Stakeholder {
+  return {
+    person_name: '',
+    role: 'Other',
+    email: '',
+    phone: '',
+    is_primary: 0,
+    notes: '',
+  };
+}
+
+function emptyFleetUnit(): FleetUnit {
+  return {
+    vehicle_vin: '',
+    model: '',
+    model_name: '',
+    quantity: 1,
+    average_age_years: '',
+    average_mileage: '',
+    replacement_cycle_years: '',
+    notes: '',
+  };
+}
 
 function FleetModelSelect({
   value,
@@ -129,8 +154,8 @@ export default function CrmAccountDetailPage() {
     replacement_notes: '',
     notes: '',
   });
-  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
-  const [fleetUnits, setFleetUnits] = useState<FleetUnit[]>([]);
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([emptyStakeholder()]);
+  const [fleetUnits, setFleetUnits] = useState<FleetUnit[]>([emptyFleetUnit()]);
 
   useEffect(() => {
     if (!data) return;
@@ -154,37 +179,35 @@ export default function CrmAccountDetailPage() {
       replacement_notes: String(data.replacement_notes || ''),
       notes: String(data.notes || ''),
     });
-    setStakeholders(
-      (Array.isArray(data.stakeholders) ? data.stakeholders : []).map(
-        (row: Record<string, unknown>) => ({
-          contact: String(row.contact || ''),
-          person_name: String(row.person_name || ''),
-          role: String(row.role || 'Other'),
-          email: String(row.email || ''),
-          phone: String(row.phone || ''),
-          is_primary: Number(row.is_primary || 0),
-          notes: String(row.notes || ''),
-        })
-      )
+    const mappedStakeholders = (
+      Array.isArray(data.stakeholders) ? data.stakeholders : []
+    ).map((row: Record<string, unknown>) => ({
+      contact: String(row.contact || ''),
+      person_name: String(row.person_name || ''),
+      role: String(row.role || 'Other'),
+      email: String(row.email || ''),
+      phone: String(row.phone || ''),
+      is_primary: Number(row.is_primary || 0),
+      notes: String(row.notes || ''),
+    }));
+    setStakeholders(mappedStakeholders.length ? mappedStakeholders : [emptyStakeholder()]);
+    const mappedFleet = (Array.isArray(data.fleet_units) ? data.fleet_units : []).map(
+      (row: Record<string, unknown>) => ({
+        vehicle_vin: String(row.vehicle_vin || ''),
+        model: String(row.model || ''),
+        model_name: String(row.model_name || ''),
+        quantity: Number(row.quantity || 1),
+        average_age_years:
+          row.average_age_years != null ? String(row.average_age_years) : '',
+        average_mileage: row.average_mileage != null ? String(row.average_mileage) : '',
+        replacement_cycle_years:
+          row.replacement_cycle_years != null
+            ? String(row.replacement_cycle_years)
+            : '',
+        notes: String(row.notes || ''),
+      })
     );
-    setFleetUnits(
-      (Array.isArray(data.fleet_units) ? data.fleet_units : []).map(
-        (row: Record<string, unknown>) => ({
-          vehicle_vin: String(row.vehicle_vin || ''),
-          model: String(row.model || ''),
-          model_name: String(row.model_name || ''),
-          quantity: Number(row.quantity || 1),
-          average_age_years:
-            row.average_age_years != null ? String(row.average_age_years) : '',
-          average_mileage: row.average_mileage != null ? String(row.average_mileage) : '',
-          replacement_cycle_years:
-            row.replacement_cycle_years != null
-              ? String(row.replacement_cycle_years)
-              : '',
-          notes: String(row.notes || ''),
-        })
-      )
-    );
+    setFleetUnits(mappedFleet.length ? mappedFleet : [emptyFleetUnit()]);
   }, [data]);
 
   const selectOpts = (values?: string[]) =>
@@ -458,201 +481,163 @@ export default function CrmAccountDetailPage() {
       </Card>
 
       <Card className="border-border/70 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-base">Stakeholders</CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setStakeholders((prev) => [
-                ...prev,
-                {
-                  person_name: '',
-                  role: 'Other',
-                  email: '',
-                  phone: '',
-                  is_primary: 0,
-                  notes: '',
-                },
-              ])
-            }
-          >
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            Add
-          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          {stakeholders.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Add decision makers, procurement, finance, fleet and drivers.
-            </p>
-          ) : (
-            stakeholders.map((row, idx) => (
-              <div
-                key={idx}
-                className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
+          {stakeholders.map((row, idx) => (
+            <div
+              key={idx}
+              className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
+            >
+              <Input
+                className="sm:col-span-2"
+                placeholder="Name"
+                value={row.person_name}
+                onChange={(e) =>
+                  setStakeholders((prev) => {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], person_name: e.target.value };
+                    return next;
+                  })
+                }
+              />
+              <SearchableSelect
+                options={roleOptions}
+                value={row.role}
+                onValueChange={(v) =>
+                  setStakeholders((prev) => {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], role: v || 'Other' };
+                    return next;
+                  })
+                }
+              />
+              <Input
+                placeholder="Email"
+                value={row.email}
+                onChange={(e) =>
+                  setStakeholders((prev) => {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], email: e.target.value };
+                    return next;
+                  })
+                }
+              />
+              <Input
+                placeholder="Phone"
+                value={row.phone}
+                onChange={(e) =>
+                  setStakeholders((prev) => {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], phone: e.target.value };
+                    return next;
+                  })
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setStakeholders((prev) => {
+                    const next = prev.filter((_, i) => i !== idx);
+                    return next.length ? next : [emptyStakeholder()];
+                  })
+                }
               >
-                <Input
-                  className="sm:col-span-2"
-                  placeholder="Name"
-                  value={row.person_name}
-                  onChange={(e) =>
-                    setStakeholders((prev) => {
-                      const next = [...prev];
-                      next[idx] = { ...next[idx], person_name: e.target.value };
-                      return next;
-                    })
-                  }
-                />
-                <SearchableSelect
-                  options={roleOptions}
-                  value={row.role}
-                  onValueChange={(v) =>
-                    setStakeholders((prev) => {
-                      const next = [...prev];
-                      next[idx] = { ...next[idx], role: v || 'Other' };
-                      return next;
-                    })
-                  }
-                />
-                <Input
-                  placeholder="Email"
-                  value={row.email}
-                  onChange={(e) =>
-                    setStakeholders((prev) => {
-                      const next = [...prev];
-                      next[idx] = { ...next[idx], email: e.target.value };
-                      return next;
-                    })
-                  }
-                />
-                <Input
-                  placeholder="Phone"
-                  value={row.phone}
-                  onChange={(e) =>
-                    setStakeholders((prev) => {
-                      const next = [...prev];
-                      next[idx] = { ...next[idx], phone: e.target.value };
-                      return next;
-                    })
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setStakeholders((prev) => prev.filter((_, i) => i !== idx))
-                  }
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <AddLineButton
+            onClick={() => setStakeholders((prev) => [...prev, emptyStakeholder()])}
+            label="Add"
+          />
         </CardContent>
       </Card>
 
       <Card className="border-border/70 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-base">Existing fleet (by model)</CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setFleetUnits((prev) => [
-                ...prev,
-                {
-                  vehicle_vin: '',
-                  model: '',
-                  model_name: '',
-                  quantity: 1,
-                  average_age_years: '',
-                  average_mileage: '',
-                  replacement_cycle_years: '',
-                  notes: '',
-                },
-              ])
-            }
-          >
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            Add
-          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          {fleetUnits.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Capture fleet composition by model, age, mileage and replacement cycle.
-            </p>
-          ) : (
-            fleetUnits.map((row, idx) => (
-              <div
-                key={idx}
-                className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
+          {fleetUnits.map((row, idx) => (
+            <div
+              key={idx}
+              className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
+            >
+              <FleetModelSelect
+                value={row.model}
+                modelName={row.model_name}
+                onChange={(model, modelName) =>
+                  setFleetUnits((prev) => {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], model, model_name: modelName };
+                    return next;
+                  })
+                }
+              />
+              <Input
+                type="number"
+                placeholder="Qty"
+                value={row.quantity}
+                onChange={(e) =>
+                  setFleetUnits((prev) => {
+                    const next = [...prev];
+                    next[idx] = {
+                      ...next[idx],
+                      quantity: Number(e.target.value || 1),
+                    };
+                    return next;
+                  })
+                }
+              />
+              <Input
+                placeholder="Avg age (yrs)"
+                value={row.average_age_years}
+                onChange={(e) =>
+                  setFleetUnits((prev) => {
+                    const next = [...prev];
+                    next[idx] = {
+                      ...next[idx],
+                      average_age_years: e.target.value,
+                    };
+                    return next;
+                  })
+                }
+              />
+              <Input
+                placeholder="Avg mileage"
+                value={row.average_mileage}
+                onChange={(e) =>
+                  setFleetUnits((prev) => {
+                    const next = [...prev];
+                    next[idx] = {
+                      ...next[idx],
+                      average_mileage: e.target.value,
+                    };
+                    return next;
+                  })
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setFleetUnits((prev) => {
+                    const next = prev.filter((_, i) => i !== idx);
+                    return next.length ? next : [emptyFleetUnit()];
+                  })
+                }
               >
-                <FleetModelSelect
-                  value={row.model}
-                  modelName={row.model_name}
-                  onChange={(model, modelName) =>
-                    setFleetUnits((prev) => {
-                      const next = [...prev];
-                      next[idx] = { ...next[idx], model, model_name: modelName };
-                      return next;
-                    })
-                  }
-                />
-                <Input
-                  type="number"
-                  placeholder="Qty"
-                  value={row.quantity}
-                  onChange={(e) =>
-                    setFleetUnits((prev) => {
-                      const next = [...prev];
-                      next[idx] = {
-                        ...next[idx],
-                        quantity: Number(e.target.value || 1),
-                      };
-                      return next;
-                    })
-                  }
-                />
-                <Input
-                  placeholder="Avg age (yrs)"
-                  value={row.average_age_years}
-                  onChange={(e) =>
-                    setFleetUnits((prev) => {
-                      const next = [...prev];
-                      next[idx] = {
-                        ...next[idx],
-                        average_age_years: e.target.value,
-                      };
-                      return next;
-                    })
-                  }
-                />
-                <Input
-                  placeholder="Avg mileage"
-                  value={row.average_mileage}
-                  onChange={(e) =>
-                    setFleetUnits((prev) => {
-                      const next = [...prev];
-                      next[idx] = {
-                        ...next[idx],
-                        average_mileage: e.target.value,
-                      };
-                      return next;
-                    })
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setFleetUnits((prev) => prev.filter((_, i) => i !== idx))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <AddLineButton
+            onClick={() => setFleetUnits((prev) => [...prev, emptyFleetUnit()])}
+            label="Add"
+          />
         </CardContent>
       </Card>
 

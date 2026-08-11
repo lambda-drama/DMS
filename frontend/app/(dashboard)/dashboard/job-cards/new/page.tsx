@@ -43,6 +43,7 @@ import {
   DEFAULT_SYMPTOM_CATEGORY,
   SYMPTOM_CATEGORIES,
 } from "@/lib/customer-complaint-fields";
+import { AddLineButton } from "@/components/ui/add-line-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -74,8 +75,6 @@ import {
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
 import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
-import { EditableLabourLinesTable } from "@/components/labour-parts/editable-labour-lines-table";
-import { EditablePartsLinesTable } from "@/components/labour-parts/editable-parts-lines-table";
 import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import type { DMSJobCard, JobCardType, Priority, VINNo, VehicleWarrantySummary } from "@/types/dms";
@@ -126,6 +125,37 @@ interface PartRow {
   quantity_requested: number;
   unit_price: number;
   warehouse?: string;
+}
+
+function emptyJobItem(): JobItemRow {
+  return {
+    complaint_description: "",
+    symptom_category: DEFAULT_SYMPTOM_CATEGORY,
+    severity: DEFAULT_COMPLAINT_SEVERITY,
+    labor_operation: "",
+  };
+}
+
+function emptyLabourRow(): LabourRow {
+  return {
+    vehicle_service_item: "",
+    vehicle_service_item_name: "",
+    technician: "",
+    technician_name: "",
+    estimated_hours: 0,
+    rate_per_hour: 0,
+    complaint: "",
+  };
+}
+
+function emptyPartRow(warehouse?: string): PartRow {
+  return {
+    item_code: "",
+    item_name: "",
+    quantity_requested: 1,
+    unit_price: 0,
+    warehouse: warehouse || undefined,
+  };
 }
 
 export default function NewJobCardPage() {
@@ -277,43 +307,17 @@ export default function NewJobCardPage() {
   const { data: servicePackagesForVin, isLoading: servicePackagesLoading } =
     useServicePackagesForVin(vehicleVin || null, selectedVehicleModel);
 
-  // Child table: Job Items
-  const [jobItems, setJobItems] = useState<JobItemRow[]>([]);
-  const [newJobItem, setNewJobItem] = useState<JobItemRow>({
-    complaint_description: "",
-    symptom_category: DEFAULT_SYMPTOM_CATEGORY,
-    severity: DEFAULT_COMPLAINT_SEVERITY,
-    labor_operation: "",
-  });
-
-  // Child table: Labour
-  const [labourRows, setLabourRows] = useState<LabourRow[]>([]);
-  const [newLabour, setNewLabour] = useState<LabourRow>({
-    vehicle_service_item: "",
-    vehicle_service_item_name: "",
-    technician: "",
-    technician_name: "",
-    estimated_hours: 0,
-    rate_per_hour: 0,
-    complaint: "",
-  });
-
-  // Child table: Parts
-  const [partRows, setPartRows] = useState<PartRow[]>([]);
-  const [newPart, setNewPart] = useState<PartRow>({
-    item_code: "",
-    item_name: "",
-    quantity_requested: 1,
-    unit_price: 0,
-  });
+  // Child tables (Frappe-style: always start with one empty line)
+  const [jobItems, setJobItems] = useState<JobItemRow[]>([emptyJobItem()]);
+  const [labourRows, setLabourRows] = useState<LabourRow[]>([emptyLabourRow()]);
+  const [partRows, setPartRows] = useState<PartRow[]>([emptyPartRow()]);
+  const [createLabourIdx, setCreateLabourIdx] = useState(0);
+  const [createPartIdx, setCreatePartIdx] = useState(0);
 
   // Keep spare-part line warehouses in sync with the job card warehouse (per-line field on backend).
   useEffect(() => {
     if (!warehouse) return;
-    setPartRows((prev) =>
-      prev.map((row) => ({ ...row, warehouse }))
-    );
-    setNewPart((prev) => ({ ...prev, warehouse }));
+    setPartRows((prev) => prev.map((row) => ({ ...row, warehouse })));
   }, [warehouse]);
 
   // --- Auto-fill handlers ---
@@ -441,17 +445,11 @@ export default function NewJobCardPage() {
     } catch { /* ignore */ }
   };
 
-  const handleServiceItemSelect = async (itemName: string) => {
+  const handleServiceItemSelect = async (idx: number, itemName: string) => {
     if (!itemName) {
-      setNewLabour({
-        vehicle_service_item: "",
-        vehicle_service_item_name: "",
-        technician: "",
-        technician_name: "",
-        estimated_hours: 0,
-        rate_per_hour: 0,
-        complaint: "",
-      });
+      setLabourRows((prev) =>
+        prev.map((row, i) => (i === idx ? emptyLabourRow() : row))
+      );
       return;
     }
     const item = serviceItems?.find((i) => i.name === itemName);
@@ -476,25 +474,37 @@ export default function NewJobCardPage() {
       }
     }
 
-    setNewLabour((prev) => ({
-      ...prev,
-      vehicle_service_item: itemName,
-      vehicle_service_item_name: serviceLabel,
-      estimated_hours: estHours,
-      rate_per_hour: rate || prev.rate_per_hour,
-    }));
+    setLabourRows((prev) =>
+      prev.map((row, i) =>
+        i === idx
+          ? {
+              ...row,
+              vehicle_service_item: itemName,
+              vehicle_service_item_name: serviceLabel,
+              estimated_hours: estHours,
+              rate_per_hour: rate || row.rate_per_hour,
+            }
+          : row
+      )
+    );
   };
 
-  const handleSparePartSelect = async (partName: string) => {
+  const handleSparePartSelect = async (idx: number, partName: string) => {
     const part = spareParts?.find((p) => p.name === partName);
     if (!partName) {
-      setNewPart((prev) => ({
-        ...prev,
-        item_code: "",
-        item_name: "",
-        bin_location: undefined,
-        unit_price: 0,
-      }));
+      setPartRows((prev) =>
+        prev.map((row, i) =>
+          i === idx
+            ? {
+                ...row,
+                item_code: "",
+                item_name: "",
+                bin_location: undefined,
+                unit_price: 0,
+              }
+            : row
+        )
+      );
       return;
     }
 
@@ -508,54 +518,49 @@ export default function NewJobCardPage() {
       );
     }
 
-    setNewPart((prev) => ({
-      ...prev,
-      item_code: partName,
-      item_name: part?.item_name || partName,
-      bin_location: part?.bin_location,
-      unit_price: unitPrice,
-    }));
+    setPartRows((prev) =>
+      prev.map((row, i) =>
+        i === idx
+          ? {
+              ...row,
+              item_code: partName,
+              item_name: part?.item_name || partName,
+              bin_location: part?.bin_location,
+              unit_price: unitPrice,
+            }
+          : row
+      )
+    );
   };
 
   // --- Child table add/remove ---
 
   const addJobItem = () => {
-    if (!newJobItem.complaint_description) {
-      toast.error("Please enter a complaint description");
-      return;
-    }
-    setJobItems((prev) => [...prev, { ...newJobItem }]);
-    setNewJobItem({
-      complaint_description: "",
-      symptom_category: DEFAULT_SYMPTOM_CATEGORY,
-      severity: DEFAULT_COMPLAINT_SEVERITY,
-      labor_operation: "",
-    });
+    setJobItems((prev) => [...prev, emptyJobItem()]);
+  };
+
+  const updateJobItem = (idx: number, patch: Partial<JobItemRow>) => {
+    setJobItems((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
+    );
   };
 
   const removeJobItem = (idx: number) => {
-    setJobItems((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const addLabourRow = () => {
-    if (!newLabour.vehicle_service_item) {
-      toast.error("Please select a service item");
-      return;
-    }
-    setLabourRows((prev) => [...prev, { ...newLabour }]);
-    setNewLabour({
-      vehicle_service_item: "",
-      vehicle_service_item_name: "",
-      technician: "",
-      technician_name: "",
-      estimated_hours: 0,
-      rate_per_hour: 0,
-      complaint: "",
+    setJobItems((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length ? next : [emptyJobItem()];
     });
   };
 
+  const addLabourRow = () => {
+    setLabourRows((prev) => [...prev, emptyLabourRow()]);
+  };
+
   const removeLabourRow = (idx: number) => {
-    setLabourRows((prev) => prev.filter((_, i) => i !== idx));
+    setLabourRows((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length ? next : [emptyLabourRow()];
+    });
   };
 
   const updateLabourRow = (idx: number, patch: Partial<LabourRow>) => {
@@ -565,26 +570,14 @@ export default function NewJobCardPage() {
   };
 
   const addPartRow = () => {
-    if (!newPart.item_code) {
-      toast.error("Please select a spare part");
-      return;
-    }
-    setPartRows((prev) => [
-      ...prev,
-      { ...newPart, warehouse: newPart.warehouse || warehouse || undefined },
-    ]);
-    setNewPart({
-      item_code: "",
-      item_name: "",
-      bin_location: undefined,
-      quantity_requested: 1,
-      unit_price: 0,
-      warehouse: warehouse || undefined,
-    });
+    setPartRows((prev) => [...prev, emptyPartRow(warehouse)]);
   };
 
   const removePartRow = (idx: number) => {
-    setPartRows((prev) => prev.filter((_, i) => i !== idx));
+    setPartRows((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length ? next : [emptyPartRow(warehouse)];
+    });
   };
 
   const updatePartRow = (idx: number, patch: Partial<PartRow>) => {
@@ -607,29 +600,33 @@ export default function NewJobCardPage() {
           "";
 
         setLabourRows(
-          lines.labour.map((row) => ({
-            vehicle_service_item: row.vehicle_service_item,
-            vehicle_service_item_name:
-              row.service_code
-                ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
-                : (row.service_name || row.vehicle_service_item),
-            technician: leadTechnician || "",
-            technician_name: leadTechName,
-            estimated_hours: row.estimated_hours,
-            rate_per_hour: row.rate_per_hour,
-            complaint: row.notes || "",
-          }))
+          lines.labour.length
+            ? lines.labour.map((row) => ({
+                vehicle_service_item: row.vehicle_service_item,
+                vehicle_service_item_name:
+                  row.service_code
+                    ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
+                    : (row.service_name || row.vehicle_service_item),
+                technician: leadTechnician || "",
+                technician_name: leadTechName,
+                estimated_hours: row.estimated_hours,
+                rate_per_hour: row.rate_per_hour,
+                complaint: row.notes || "",
+              }))
+            : [emptyLabourRow()]
         );
 
         setPartRows(
-          lines.parts.map((row) => ({
-            item_code: row.item_code,
-            item_name: row.item_name || row.item_code,
-            bin_location: row.bin_location,
-            quantity_requested: row.quantity_requested,
-            unit_price: row.unit_price,
-            warehouse: warehouse || undefined,
-          }))
+          lines.parts.length
+            ? lines.parts.map((row) => ({
+                item_code: row.item_code,
+                item_name: row.item_name || row.item_code,
+                bin_location: row.bin_location,
+                quantity_requested: row.quantity_requested,
+                unit_price: row.unit_price,
+                warehouse: warehouse || undefined,
+              }))
+            : [emptyPartRow(warehouse)]
         );
 
         const pkgLabel = lines.package_name || packageName;
@@ -755,7 +752,7 @@ export default function NewJobCardPage() {
           rows.map((r) => r.complaint_description).join("\n\n")
         );
       } else {
-        setJobItems([]);
+        setJobItems([emptyJobItem()]);
         setCustomerComplaintSummary("");
         toast.info("This inspection has no customer complaint rows");
       }
@@ -855,21 +852,23 @@ export default function NewJobCardPage() {
     }
   }, [servicePackageOptions, selectedServicePackage]);
 
-  // --- Totals (include current row being edited) ---
+  // --- Totals ---
 
-  const labourRowsTotal = labourRows.reduce(
+  const filledLabourRows = labourRows.filter((r) => r.vehicle_service_item);
+  const filledPartRows = partRows.filter((r) => r.item_code);
+  const filledJobItems = jobItems.filter((r) =>
+    (r.complaint_description || "").trim()
+  );
+
+  const labourTotal = filledLabourRows.reduce(
     (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
     0
   );
-  const currentLabourAmount = newLabour.estimated_hours * newLabour.rate_per_hour;
-  const labourTotal = labourRowsTotal + currentLabourAmount;
 
-  const partsRowsTotal = partRows.reduce(
+  const partsTotal = filledPartRows.reduce(
     (sum, r) => sum + r.quantity_requested * r.unit_price,
     0
   );
-  const currentPartAmount = newPart.quantity_requested * newPart.unit_price;
-  const partsTotal = partsRowsTotal + currentPartAmount;
 
   const totalAmount = labourTotal + partsTotal;
 
@@ -928,7 +927,7 @@ export default function NewJobCardPage() {
         return;
       }
     }
-    if (jobItems.length === 0) {
+    if (filledJobItems.length === 0) {
       toast.error("Please add at least one job item");
       return;
     }
@@ -1007,21 +1006,21 @@ export default function NewJobCardPage() {
       appointment: appointmentId || undefined,
       skip_vehicle_inspection: skipVehicleInspection ? 1 : 0,
       inspection: skipVehicleInspection ? undefined : inspectionId || undefined,
-      job_items: jobItems.map((ji) => ({
+      job_items: filledJobItems.map((ji) => ({
         name: "",
         complaint_description: ji.complaint_description,
         symptom_category: ji.symptom_category || undefined,
         severity: ji.severity || undefined,
         labor_operation: ji.labor_operation || undefined,
       })),
-      labour: labourRows.map((lr) => ({
+      labour: filledLabourRows.map((lr) => ({
         vehicle_service_item: lr.vehicle_service_item,
         technician: lr.technician || undefined,
         estimated_hours: lr.estimated_hours,
         rate_per_hour: lr.rate_per_hour,
         complaint: lr.complaint || undefined,
       })),
-      parts: partRows.map((pr) => ({
+      parts: filledPartRows.map((pr) => ({
         item_code: pr.item_code,
         bin_location: pr.bin_location,
         quantity_requested: pr.quantity_requested,
@@ -1489,108 +1488,73 @@ export default function NewJobCardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {jobItems.length > 0 && (
-              <div className="border rounded-lg overflow-x-auto">
-                <table className="w-full min-w-[32rem] text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3">Complaint Description</th>
-                      <th className="text-left p-3">Symptom Category</th>
-                      <th className="text-left p-3">Severity</th>
-                      <th className="p-3 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobItems.map((ji, idx) => (
-                      <tr key={idx} className="border-t">
-                        <td className="p-3">{ji.complaint_description}</td>
-                        <td className="p-3">{ji.symptom_category || "—"}</td>
-                        <td className="p-3">{ji.severity || "—"}</td>
-                        <td className="p-3">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeJobItem(idx)}
-                            className="h-8 w-8 text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {jobItems.map((ji, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+              >
+                <div className="space-y-1 sm:col-span-5">
+                  <Label className="text-xs">Complaint Description *</Label>
+                  <Input
+                    placeholder="Customer complaint / work description"
+                    value={ji.complaint_description}
+                    onChange={(e) =>
+                      updateJobItem(idx, { complaint_description: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-3">
+                  <Label className="text-xs">Symptom Category</Label>
+                  <Select
+                    value={ji.symptom_category || DEFAULT_SYMPTOM_CATEGORY}
+                    onValueChange={(val) =>
+                      updateJobItem(idx, { symptom_category: val })
+                    }
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SYMPTOM_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 sm:col-span-3">
+                  <Label className="text-xs">Severity</Label>
+                  <Select
+                    value={ji.severity || DEFAULT_COMPLAINT_SEVERITY}
+                    onValueChange={(val) => updateJobItem(idx, { severity: val })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select severity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPLAINT_SEVERITY_OPTIONS.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end sm:col-span-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeJobItem(idx)}
+                    className="h-8 w-8 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
-              <div className="space-y-1 sm:col-span-5">
-                <Label className="text-xs">Complaint Description *</Label>
-                <Input
-                  placeholder="Customer complaint / work description"
-                  value={newJobItem.complaint_description}
-                  onChange={(e) =>
-                    setNewJobItem((prev) => ({
-                      ...prev,
-                      complaint_description: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-3">
-                <Label className="text-xs">Symptom Category</Label>
-                <Select
-                  value={newJobItem.symptom_category || DEFAULT_SYMPTOM_CATEGORY}
-                  onValueChange={(val) =>
-                    setNewJobItem((prev) => ({
-                      ...prev,
-                      symptom_category: val,
-                    }))
-                  }
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SYMPTOM_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label className="text-xs">Severity</Label>
-                <Select
-                  value={newJobItem.severity || DEFAULT_COMPLAINT_SEVERITY}
-                  onValueChange={(val) =>
-                    setNewJobItem((prev) => ({
-                      ...prev,
-                      severity: val,
-                    }))
-                  }
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select severity" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COMPLAINT_SEVERITY_OPTIONS.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="sm:col-span-2">
-                <Button type="button" onClick={addJobItem} className="w-full">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-            </div>
+            ))}
+            <AddLineButton onClick={addJobItem} />
           </CardContent>
         </Card>
 
@@ -1657,111 +1621,109 @@ export default function NewJobCardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {labourRows.length > 0 && (
-              <EditableLabourLinesTable
-                rows={labourRows}
-                showTechnician
-                onUpdateRow={updateLabourRow}
-                onRemoveRow={removeLabourRow}
-                minWidthClassName=""
-              />
-            )}
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
-              <div className="space-y-1 sm:col-span-3">
-                <Label className="text-xs">Service Item *</Label>
-                <SearchableSelect
-                  options={
-                    serviceItems?.map((si) => ({
-                      value: si.name,
-                      label: formatVehicleServiceItemLabel(si),
-                      description: si.custom_rate || si.estimated_hours
-                        ? [
-                            si.custom_rate ? `Rate: ${si.custom_rate}` : null,
-                            si.estimated_hours ? `${si.estimated_hours}h` : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')
-                        : undefined,
-                    })) || []
-                  }
-                  value={newLabour.vehicle_service_item}
-                  onValueChange={handleServiceItemSelect}
-                  onSearchChange={setServiceItemSearch}
-                  placeholder="Search items..."
-                  isLoading={serviceItemsLoading}
-                  onCreateNew={() => setShowCreateServiceItemDialog(true)}
-                  createNewLabel="New Service Item"
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-3">
-                <Label className="text-xs">Technician</Label>
-                <LinkWithCreate
-                  doctype="Technician"
-                  onCreated={(name, label) => {
-                    setNewLabour((prev) => ({
-                      ...prev,
-                      technician: name,
-                      technician_name: label || name,
-                    }));
-                  }}
-                >
+            {labourRows.map((row, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+              >
+                <div className="space-y-1 sm:col-span-3">
+                  <Label className="text-xs">Service Item *</Label>
                   <SearchableSelect
                     options={
-                      technicians?.map((t) => ({
-                        value: t.name,
-                        label: t.full_name,
+                      serviceItems?.map((si) => ({
+                        value: si.name,
+                        label: formatVehicleServiceItemLabel(si),
+                        description: si.custom_rate || si.estimated_hours
+                          ? [
+                              si.custom_rate ? `Rate: ${si.custom_rate}` : null,
+                              si.estimated_hours ? `${si.estimated_hours}h` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')
+                          : undefined,
                       })) || []
                     }
-                    value={newLabour.technician}
-                    onValueChange={(val) => {
-                      const tech = technicians?.find((t) => t.name === val);
-                      setNewLabour((prev) => ({
-                        ...prev,
-                        technician: val,
-                        technician_name: tech?.full_name || val,
-                      }));
+                    value={row.vehicle_service_item}
+                    onValueChange={(val) => handleServiceItemSelect(idx, val)}
+                    onSearchChange={setServiceItemSearch}
+                    placeholder="Search items..."
+                    isLoading={serviceItemsLoading}
+                    onCreateNew={() => {
+                      setCreateLabourIdx(idx);
+                      setShowCreateServiceItemDialog(true);
                     }}
-                    placeholder="Search technicians..."
-                    isLoading={techniciansLoading}
-                  />
-                </LinkWithCreate>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:contents">
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs">Hours</Label>
-                  <DecimalInput
-                    min={0}
-                    placeholder="0"
-                    value={newLabour.estimated_hours}
-                    onValueChange={(estimated_hours) =>
-                      setNewLabour((prev) => ({ ...prev, estimated_hours }))
-                    }
+                    createNewLabel="New Service Item"
                   />
                 </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs">Rate/Hr</Label>
-                  <DecimalInput
-                    min={0}
-                    placeholder="0"
-                    value={newLabour.rate_per_hour}
-                    onValueChange={(rate_per_hour) =>
-                      setNewLabour((prev) => ({ ...prev, rate_per_hour }))
-                    }
-                  />
+                <div className="space-y-1 sm:col-span-3">
+                  <Label className="text-xs">Technician</Label>
+                  <LinkWithCreate
+                    doctype="Technician"
+                    onCreated={(name, label) => {
+                      updateLabourRow(idx, {
+                        technician: name,
+                        technician_name: label || name,
+                      });
+                    }}
+                  >
+                    <SearchableSelect
+                      options={
+                        technicians?.map((t) => ({
+                          value: t.name,
+                          label: t.full_name,
+                        })) || []
+                      }
+                      value={row.technician}
+                      onValueChange={(val) => {
+                        const tech = technicians?.find((t) => t.name === val);
+                        updateLabourRow(idx, {
+                          technician: val,
+                          technician_name: tech?.full_name || val,
+                        });
+                      }}
+                      placeholder="Search technicians..."
+                      isLoading={techniciansLoading}
+                    />
+                  </LinkWithCreate>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:contents">
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Hours</Label>
+                    <DecimalInput
+                      min={0}
+                      placeholder="0"
+                      value={row.estimated_hours}
+                      onValueChange={(estimated_hours) =>
+                        updateLabourRow(idx, { estimated_hours })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Rate/Hr</Label>
+                    <DecimalInput
+                      min={0}
+                      placeholder="0"
+                      value={row.rate_per_hour}
+                      onValueChange={(rate_per_hour) =>
+                        updateLabourRow(idx, { rate_per_hour })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end sm:col-span-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLabourRow(idx)}
+                    className="h-8 w-8 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="sm:col-span-2">
-                <Button
-                  type="button"
-                  onClick={addLabourRow}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-            </div>
+            ))}
+            <AddLineButton onClick={addLabourRow} />
           </CardContent>
         </Card>
 
@@ -1772,60 +1734,65 @@ export default function NewJobCardPage() {
             <CardDescription>Add spare parts needed for this job</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {partRows.length > 0 && (
-              <EditablePartsLinesTable
-                rows={partRows}
-                quantityField="quantity_requested"
-                onUpdateRow={updatePartRow}
-                onRemoveRow={removePartRow}
-              />
-            )}
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end sm:gap-2">
-              <div className="space-y-1 sm:col-span-5">
-                <Label className="text-xs">Spare Part *</Label>
-                <SearchableSelect
-                  options={spareParts?.map(sparePartToSelectOption) || []}
-                  value={newPart.item_code}
-                  onValueChange={handleSparePartSelect}
-                  onSearchChange={setSparePartSearch}
-                  placeholder="Search parts..."
-                  isLoading={sparePartsLoading}
-                  onCreateNew={() => setShowCreateSparePartDialog(true)}
-                  createNewLabel="New Spare Part"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:contents">
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs">Quantity</Label>
-                  <DecimalInput
-                    min={0}
-                    placeholder="1"
-                    value={newPart.quantity_requested}
-                    onValueChange={(quantity_requested) =>
-                      setNewPart((prev) => ({ ...prev, quantity_requested }))
-                    }
+            {partRows.map((row, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+              >
+                <div className="space-y-1 sm:col-span-5">
+                  <Label className="text-xs">Spare Part *</Label>
+                  <SearchableSelect
+                    options={spareParts?.map(sparePartToSelectOption) || []}
+                    value={row.item_code}
+                    onValueChange={(val) => handleSparePartSelect(idx, val)}
+                    onSearchChange={setSparePartSearch}
+                    placeholder="Search parts..."
+                    isLoading={sparePartsLoading}
+                    onCreateNew={() => {
+                      setCreatePartIdx(idx);
+                      setShowCreateSparePartDialog(true);
+                    }}
+                    createNewLabel="New Spare Part"
                   />
                 </div>
-                <div className="space-y-1 sm:col-span-3">
-                  <Label className="text-xs">Unit Price (editable)</Label>
-                  <DecimalInput
-                    min={0}
-                    placeholder="0"
-                    value={newPart.unit_price}
-                    onValueChange={(unit_price) =>
-                      setNewPart((prev) => ({ ...prev, unit_price }))
-                    }
-                  />
+                <div className="grid grid-cols-2 gap-3 sm:contents">
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Quantity</Label>
+                    <DecimalInput
+                      min={0}
+                      placeholder="1"
+                      value={row.quantity_requested}
+                      onValueChange={(quantity_requested) =>
+                        updatePartRow(idx, { quantity_requested })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <Label className="text-xs">Unit Price (editable)</Label>
+                    <DecimalInput
+                      min={0}
+                      placeholder="0"
+                      value={row.unit_price}
+                      onValueChange={(unit_price) =>
+                        updatePartRow(idx, { unit_price })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end sm:col-span-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePartRow(idx)}
+                    className="h-8 w-8 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="sm:col-span-2">
-                <Button type="button" onClick={addPartRow} className="w-full">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-            </div>
+            ))}
+            <AddLineButton onClick={addPartRow} />
           </CardContent>
         </Card>
 
@@ -1965,11 +1932,10 @@ export default function NewJobCardPage() {
         open={showCreateSparePartDialog}
         onOpenChange={setShowCreateSparePartDialog}
         onCreated={(itemCode, itemName) => {
-          setNewPart((prev) => ({
-            ...prev,
+          updatePartRow(createPartIdx, {
             item_code: itemCode,
             item_name: itemName,
-          }));
+          });
           setSparePartSearch(itemCode);
           toast.success(`Spare part ${itemName} created and selected.`);
         }}
@@ -1978,10 +1944,7 @@ export default function NewJobCardPage() {
         open={showCreateServiceItemDialog}
         onOpenChange={setShowCreateServiceItemDialog}
         onCreated={(serviceItemName) => {
-          setNewLabour((prev) => ({
-            ...prev,
-            vehicle_service_item: serviceItemName,
-          }));
+          void handleServiceItemSelect(createLabourIdx, serviceItemName);
           setServiceItemSearch(serviceItemName);
           toast.success(`Service item created and selected.`);
         }}
