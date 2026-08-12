@@ -118,7 +118,7 @@ export async function createInvoiceFromJobCard(
     labourDiscount?: StandaloneInvoiceGroupDiscount;
     partsDiscount?: StandaloneInvoiceGroupDiscount;
     rateOverrides?: RateOverrides;
-    /** When true, keep party/company taxes and tax withholding. Default: false (blank). */
+    /** When true, apply DMS Settings Default Taxes and Charges Template. Default: false (blank). */
     applyTaxes?: boolean;
   }
 ): Promise<string> {

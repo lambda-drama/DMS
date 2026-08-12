@@ -144,17 +144,6 @@ function durationHoursSince(startTime?: string | null) {
   return Math.max(0, (Date.now() - start.getTime()) / 3600000);
 }
 
-function collectRepairTechnicians(jobCard: DMSJobCard): string[] {
-  const technicians: string[] = [];
-  const lead = (jobCard.lead_technician || "").trim();
-  if (lead) technicians.push(lead);
-  for (const row of jobCard.assistant_technicians || []) {
-    const tech = (row.technician || "").trim();
-    if (tech && !technicians.includes(tech)) technicians.push(tech);
-  }
-  return technicians;
-}
-
 function jobItemComplaintText(item: JobCardItem): string {
   return htmlToPlainText(item.complaint_description || item.complaint || "").trim();
 }
@@ -181,6 +170,7 @@ export default function JobCardDetailPage() {
   const [approvalReference, setApprovalReference] = useState("");
   const [approvedAmount, setApprovedAmount] = useState("");
   const [showPauseDialog, setShowPauseDialog] = useState(false);
+  const [showStartRepairAssignDialog, setShowStartRepairAssignDialog] = useState(false);
   const [pauseReason, setPauseReason] = useState<
     "Waiting Parts" | "Waiting Customer Approval" | "Other"
   >("Waiting Parts");
@@ -540,18 +530,34 @@ export default function JobCardDetailPage() {
   };
 
   const handleStartRepair = async () => {
-    if (!hasWorkshopWarehouse) {
-      toast.error(
-        jobCard.workshop
-          ? `Kindly add a warehouse on Workshop ${jobCard.workshop} before starting repair.`
-          : "Kindly add a warehouse on the Workshop before starting repair."
-      );
+    if (!leadTechnician || !assignedBay || !hasWorkshopWarehouse) {
+      setShowStartRepairAssignDialog(true);
       return;
     }
 
-    const technicians = collectRepairTechnicians(jobCard);
+    if (assignmentDirty) {
+      try {
+        if (["Open", "Estimation Approved", "Draft", "Assigned"].includes(status)) {
+          await partsRequestsSvc.assignJobCardWorkshop(id, leadTechnician, assignedBay);
+        } else {
+          await jobCardsSvc.updateJobCard(id, {
+            lead_technician: leadTechnician,
+            assigned_bay: assignedBay,
+          });
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to save assignment");
+        return;
+      }
+    }
+
+    const technicians = [
+      leadTechnician,
+      ...(assistantRows || []).map((row) => (row.technician || "").trim()).filter(Boolean),
+    ].filter((tech, index, list) => tech && list.indexOf(tech) === index);
+
     if (!technicians.length) {
-      toast.error("Assign a lead technician before starting repair.");
+      setShowStartRepairAssignDialog(true);
       return;
     }
 
@@ -573,6 +579,27 @@ export default function JobCardDetailPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleConfirmStartRepairAssignment = async () => {
+    if (!leadTechnician) {
+      toast.error("Lead technician is required");
+      return;
+    }
+    if (!assignedBay) {
+      toast.error("Assigned service bay is required");
+      return;
+    }
+    if (!hasWorkshopWarehouse) {
+      toast.error(
+        displayWorkshop
+          ? `Kindly add a warehouse on Workshop ${displayWorkshop} before starting repair.`
+          : "Kindly add a warehouse on the Workshop before starting repair."
+      );
+      return;
+    }
+    setShowStartRepairAssignDialog(false);
+    await handleStartRepair();
   };
 
   const savePartUnitPrice = async (rowName: string, unitPrice: number) => {
@@ -1198,7 +1225,7 @@ export default function JobCardDetailPage() {
                   )}
                   <Button
                     onClick={handleStartRepair}
-                    disabled={busy || needsWorkshopWarehouse}
+                    disabled={busy}
                   >
                     <Play className="h-4 w-4 mr-2" />
                     Start Repair
@@ -2556,6 +2583,58 @@ export default function JobCardDetailPage() {
       </Tabs>
 
       {/* ─── Dialogs ──────────────────────────────────────────── */}
+
+      <Dialog open={showStartRepairAssignDialog} onOpenChange={setShowStartRepairAssignDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign technician and bay</DialogTitle>
+            <DialogDescription>
+              Choose a lead technician and service bay before starting repair. The bay&apos;s
+              Workshop must have a warehouse.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Lead technician *</Label>
+              <SearchableSelect
+                options={technicianOptions}
+                value={leadTechnician}
+                onValueChange={setLeadTechnician}
+                placeholder="Search technicians..."
+                isLoading={techniciansLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Assigned service bay *</Label>
+              <SearchableSelect
+                options={bayOptions}
+                value={assignedBay}
+                onValueChange={(val) => void handleAssignedBayChange(val)}
+                placeholder="Search bays..."
+                isLoading={baysLoading}
+              />
+              {assignedBay ? (
+                <p className="text-xs text-muted-foreground">
+                  Workshop: {displayWorkshop || "Not linked"} · Warehouse:{" "}
+                  {displayWarehouse || "Not set — add on Workshop"}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowStartRepairAssignDialog(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button onClick={() => void handleConfirmStartRepairAssignment()} disabled={busy}>
+              {busy ? "Starting…" : "Start repair"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Mark Customer Approved Dialog */}
       {/* Approve Dialog */}

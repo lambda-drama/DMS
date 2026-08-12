@@ -290,18 +290,22 @@ def accept_estimate(
 
 	_require_and_record_terms_acceptance(doc, terms_accepted)
 
+	missing = []
+	if not lead_technician:
+		missing.append(_("Lead Technician"))
+	if not assigned_bay:
+		missing.append(_("Assigned Service Bay"))
 	if cint(start_repair):
-		missing = []
-		if not lead_technician:
-			missing.append(_("Lead Technician"))
 		if not schedule_start_time:
 			missing.append(_("Schedule Start Time"))
 		if not schedule_end_time:
 			missing.append(_("Schedule End Time"))
-		if missing:
-			frappe.throw(
-				_("Please fill in the following before starting repair: {0}").format(", ".join(missing))
+	if missing:
+		frappe.throw(
+			_("Please fill in the following before creating the job card: {0}").format(
+				", ".join(missing)
 			)
+		)
 
 	existing_jc = linked_job_card_for_estimate(doc.name)
 	if existing_jc and frappe.db.exists("DMS Job Card", existing_jc):

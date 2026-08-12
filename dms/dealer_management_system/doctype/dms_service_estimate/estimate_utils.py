@@ -134,16 +134,19 @@ def make_dms_job_card_from_estimate(
 					break
 			if tech_rows and not lead_technician:
 				lead_technician = tech_rows[0].technician
-
-		if lead_technician:
-			jc.lead_technician = lead_technician
 	else:
 		jc.priority = "Normal"
 		jc.promised_delivery_date_time = add_to_date(now_datetime(), hours=48)
-		if assigned_bay:
-			jc.assigned_bay = assigned_bay
-		if lead_technician:
-			jc.lead_technician = lead_technician
+
+	if lead_technician:
+		jc.lead_technician = lead_technician
+	if assigned_bay:
+		jc.assigned_bay = assigned_bay
+
+	from dms.api.job_cards import _sync_workshop_warehouse_from_bay
+
+	if jc.assigned_bay:
+		_sync_workshop_warehouse_from_bay(jc, jc.assigned_bay)
 
 	if schedule_start_time:
 		jc.schedule_start_time = schedule_start_time

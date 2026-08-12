@@ -5,7 +5,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, getdate, today
+from frappe.utils import cint, flt, getdate, strip_html, today
 
 from frappe.model.naming import make_autoname
 from datetime import datetime
@@ -245,7 +245,7 @@ def _apply_dms_settings_dimensions_to_sales_invoice(si, company: str):
 				tax.set(df.fieldname, val)
 
 
-def _clear_sales_invoice_taxes(si) -> None:
+def _clear_sales_invoice_taxes(si, prevent_reapply: bool = True) -> None:
 	"""Remove auto-applied taxes / tax withholding so the invoice stays blank."""
 	si.taxes_and_charges = None
 	si.set("taxes", [])
@@ -272,14 +272,71 @@ def _clear_sales_invoice_taxes(si) -> None:
 		if sii_meta.has_field("item_tax_rate"):
 			item.item_tax_rate = None
 
-	# Prevent AccountsController.validate from re-appending company/item tax templates.
+	if prevent_reapply:
+		_prevent_erpnext_tax_reapply(si)
+
+
+def get_dms_default_taxes_and_charges_template(company: str | None = None) -> str:
+	"""Sales Taxes and Charges Template from DMS Settings."""
+	name = (
+		frappe.db.get_single_value("DMS Settings", "default_taxes_and_charges_template") or ""
+	).strip()
+	if not name:
+		frappe.throw(
+			_("Set Default Taxes and Charges Template on DMS Settings before including taxes."),
+			title=_("Taxes and Charges"),
+		)
+	if not frappe.db.exists("Sales Taxes and Charges Template", name):
+		frappe.throw(
+			_("Taxes and Charges Template {0} was not found.").format(frappe.bold(name)),
+			title=_("Taxes and Charges"),
+		)
+
+	meta = frappe.get_meta("Sales Taxes and Charges Template")
+	if meta.has_field("disabled") and frappe.db.get_value(
+		"Sales Taxes and Charges Template", name, "disabled"
+	):
+		frappe.throw(
+			_("Taxes and Charges Template {0} is disabled.").format(frappe.bold(name)),
+			title=_("Taxes and Charges"),
+		)
+	if company and meta.has_field("company"):
+		tmpl_company = frappe.db.get_value("Sales Taxes and Charges Template", name, "company")
+		if tmpl_company and tmpl_company != company:
+			frappe.throw(
+				_(
+					"DMS default Taxes and Charges Template {0} belongs to company {1}, not {2}."
+				).format(frappe.bold(name), frappe.bold(tmpl_company), frappe.bold(company)),
+				title=_("Taxes and Charges"),
+			)
+	return name
+
+
+def _apply_dms_default_taxes_and_charges(si) -> None:
+	"""Use only the DMS Settings tax template — not customer, company, or item defaults."""
+	template = get_dms_default_taxes_and_charges_template(getattr(si, "company", None))
+	_clear_sales_invoice_taxes(si, prevent_reapply=False)
+
+	si.taxes_and_charges = template
+	from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+	for tax in get_taxes_and_charges("Sales Taxes and Charges Template", template) or []:
+		si.append("taxes", tax)
+
+	_prevent_erpnext_tax_reapply(si)
+
+
+def _prevent_erpnext_tax_reapply(si) -> None:
+	"""Stop AccountsController from swapping in company / customer / item templates."""
 	si.set_taxes_and_charges = lambda *args, **kwargs: None
 	si.set_taxes = lambda *args, **kwargs: None
+	si.append_taxes_from_item_tax_template = lambda *args, **kwargs: None
 
 
 def _apply_sales_invoice_tax_choice(si, apply_taxes: bool) -> None:
-	"""Keep party/company taxes when requested; otherwise leave taxes blank."""
+	"""Apply DMS Settings tax template when requested; otherwise leave taxes blank."""
 	if apply_taxes:
+		_apply_dms_default_taxes_and_charges(si)
 		return
 	_clear_sales_invoice_taxes(si)
 
@@ -717,6 +774,49 @@ def _generate_invoice_no(company):
 	return f"{base_name}-{current_year}"
 
 
+def _vehicle_service_item_name_and_code(vsi: str) -> tuple[str, str]:
+	vsi = (vsi or "").strip()
+	if not vsi:
+		return "", ""
+	meta = frappe.get_meta("Vehicle Service Item")
+	name = ""
+	if meta.has_field("custom_item_name"):
+		name = (frappe.db.get_value("Vehicle Service Item", vsi, "custom_item_name") or "").strip()
+	if not name:
+		name = (frappe.db.get_value("Vehicle Service Item", vsi, "service_item") or "").strip()
+	code = ""
+	if meta.has_field("custom_service_code"):
+		code = (frappe.db.get_value("Vehicle Service Item", vsi, "custom_service_code") or "").strip()
+	return name or vsi, code
+
+
+def _format_service_name_then_code(name: str, code: str) -> str:
+	name = (name or "").strip()
+	code = (code or "").strip()
+	if name and code and name != code:
+		return f"{name}: {code}"
+	return name or code
+
+
+def _labour_row_service_name(row) -> str:
+	"""Service name first, then code — not complaint / diagnosis."""
+	vsi = (getattr(row, "vehicle_service_item", None) or "").strip()
+	name, code = _vehicle_service_item_name_and_code(vsi)
+	if not name:
+		name = strip_html(getattr(row, "service_name", None) or "").strip()
+	return _format_service_name_then_code(name, code)
+
+
+def _labour_row_issue_text(row) -> str:
+	"""Complaint / diagnosis / correction — for hover only, not the line label."""
+	parts = []
+	for attr in ("complaint", "diagnosis", "correction"):
+		text = strip_html(getattr(row, attr, None) or "").strip()
+		if text:
+			parts.append(text[:1200])
+	return "\n".join(parts)
+
+
 def _append_preview_line(
 	lines: list[dict],
 	*,
@@ -727,6 +827,7 @@ def _append_preview_line(
 	base_rate: float,
 	warranty_application_type: str,
 	source_row: str | None = None,
+	issue: str | None = None,
 ) -> None:
 	pricing = resolve_invoice_line_pricing(
 		line_type, base_rate, qty, warranty_application_type
@@ -739,6 +840,7 @@ def _append_preview_line(
 			"line_type": line_type,
 			"item_code": item_code,
 			"description": description[:4096],
+			"issue": (issue or "")[:4096] or None,
 			"qty": qty,
 			"rate": pricing["rate"],
 			"amount": pricing["amount"],
@@ -780,22 +882,16 @@ def _build_preview_lines(
 				base_rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
 			base_rate = _line_base_rate(base_rate, row.name, overrides)
 
-			desc_parts = []
-			for attr in ("complaint", "diagnosis", "correction"):
-				text = getattr(row, attr, None)
-				if text:
-					desc_parts.append((text or "")[:1200])
-			description = "\n".join(desc_parts) or row.vehicle_service_item
-
 			_append_preview_line(
 				lines,
 				line_type="Labour",
 				item_code=item_code,
-				description=description,
+				description=_labour_row_service_name(row) or row.vehicle_service_item,
 				qty=qty,
 				base_rate=base_rate,
 				warranty_application_type=warranty_application_type,
 				source_row=row.name,
+				issue=_labour_row_issue_text(row),
 			)
 	else:
 		for ji in jc.get("job_items") or []:
@@ -805,16 +901,20 @@ def _build_preview_lines(
 				frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0
 			)
 			base_rate = _line_base_rate(base_rate, ji.name, overrides)
-			desc = getattr(ji, "complaint_description", None) or ji.labor_operation
+			item_name = (
+				frappe.db.get_value("Item", ji.labor_operation, "item_name") or ji.labor_operation
+			)
+			issue = strip_html(getattr(ji, "complaint_description", None) or "").strip()
 			_append_preview_line(
 				lines,
 				line_type="Labour",
 				item_code=ji.labor_operation,
-				description=(desc or ""),
+				description=item_name,
 				qty=1,
 				base_rate=base_rate,
 				warranty_application_type=warranty_application_type,
 				source_row=ji.name,
+				issue=issue,
 			)
 
 	for part in jc.get("parts") or []:
@@ -1175,12 +1275,7 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 					"discount_percentage": pricing["discount_percentage"],
 				},
 			)
-			desc_parts = []
-			for attr in ("complaint", "diagnosis", "correction"):
-				text = getattr(row, attr, None)
-				if text:
-					desc_parts.append((text or "")[:1200])
-			child.description = "\n".join(desc_parts)[:4096]
+			child.description = (_labour_row_service_name(row) or item_code)[:4096]
 
 	else:
 		for ji in jc.get("job_items") or []:
@@ -1206,8 +1301,10 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 					"discount_percentage": pricing["discount_percentage"],
 				},
 			)
-			desc = getattr(ji, "complaint_description", None)
-			child.description = (desc or "")[:4096]
+			item_name = (
+				frappe.db.get_value("Item", ji.labor_operation, "item_name") or ji.labor_operation
+			)
+			child.description = (item_name or "")[:4096]
 
 	for part in jc.get("parts") or []:
 		if not part.item_code:

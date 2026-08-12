@@ -916,7 +916,8 @@ export default function NewInvoicePage() {
                   </Label>
                 </div>
                 <p className="text-xs text-muted-foreground pl-6">
-                  Leave unchecked to create the invoice without taxes or tax withholding.
+                  Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked
+                  to create the invoice without taxes.
                 </p>
               </div>
             </CardContent>

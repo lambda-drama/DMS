@@ -104,6 +104,10 @@ def get_service_estimate(name):
 		result["vehicle_model"] = vm
 		result["vehicle_model_label"] = vm_label
 	enrich_estimate_row(result)
+	if doc.appointment:
+		result["assigned_bay"] = frappe.db.get_value(
+			"Service Appointment", doc.appointment, "assigned_bay"
+		)
 	return result
 
 

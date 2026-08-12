@@ -461,7 +461,10 @@ export function CreateInvoiceDialog({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={line.description}>
+                      <TableCell
+                        className="max-w-[200px] truncate"
+                        title={line.issue || line.description}
+                      >
                         {line.description}
                       </TableCell>
                       <TableCell className="text-right">{line.qty}</TableCell>
@@ -619,8 +622,8 @@ export function CreateInvoiceDialog({
                 </Label>
               </div>
               <p className="text-xs text-muted-foreground pl-6">
-                Leave unchecked to create the invoice without taxes or tax withholding. Check
-                only when the customer&apos;s tax template should apply.
+                Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked
+                to create the invoice without taxes.
               </p>
             </div>
           </>

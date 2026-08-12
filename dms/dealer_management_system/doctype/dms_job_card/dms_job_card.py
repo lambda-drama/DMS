@@ -580,12 +580,48 @@ def _validate_required_for_repair_submit(doc):
 	missing = []
 	if not doc.lead_technician:
 		missing.append(_("Lead Technician"))
+	if not doc.assigned_bay:
+		missing.append(_("Assigned Service Bay"))
 	if not doc.service_advisor:
 		missing.append(_("Service Advisor"))
 	if missing:
 		frappe.throw(
 			_("Please fill in the following before starting repair: {0}").format(", ".join(missing))
 		)
+
+
+def _assert_workshop_warehouse_for_repair(doc):
+	from dms.api.job_cards import _sync_workshop_warehouse_from_bay
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+		resolve_workshop_warehouse,
+	)
+
+	if (doc.assigned_bay or "").strip() and not (doc.warehouse or "").strip():
+		_sync_workshop_warehouse_from_bay(doc, doc.assigned_bay)
+		if doc.name and doc.docstatus == 1 and ((doc.workshop or "").strip() or (doc.warehouse or "").strip()):
+			updates = {}
+			if doc.workshop:
+				updates["workshop"] = doc.workshop
+			if doc.warehouse:
+				updates["warehouse"] = doc.warehouse
+			if updates:
+				frappe.db.set_value("DMS Job Card", doc.name, updates, update_modified=False)
+
+	if resolve_workshop_warehouse(doc):
+		return
+
+	workshop = (doc.workshop or "").strip()
+	if workshop:
+		frappe.throw(
+			_("Kindly add a warehouse on Workshop {0} before starting repair.").format(
+				frappe.bold(workshop)
+			),
+			title=_("Warehouse required"),
+		)
+	frappe.throw(
+		_("Assign a service bay linked to a Workshop with a warehouse before starting repair."),
+		title=_("Warehouse required"),
+	)
 
 
 def _ensure_job_card_submitted_for_repair(doc):
@@ -624,6 +660,7 @@ def _ensure_job_card_submitted_for_repair(doc):
 def start_repair(job_card, time_logs=None):
 	doc = frappe.get_doc("DMS Job Card", job_card)
 	doc.check_permission("write")
+	_assert_workshop_warehouse_for_repair(doc)
 	doc = _ensure_job_card_submitted_for_repair(doc)
 
 	if isinstance(time_logs, str):
