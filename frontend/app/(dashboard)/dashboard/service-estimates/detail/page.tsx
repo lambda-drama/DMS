@@ -57,8 +57,9 @@ import {
   sparePartToSelectOption,
   formatVehicleServiceItemLabel,
   vehicleServiceItemEstimatedHours,
+  fetchServiceBayDetail,
 } from "@/services/common";
-import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems, useServicePackagesForVin } from "@/hooks/use-dms";
+import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems, useServicePackagesForVin, useServiceBays } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
 import {
   AlertDialog,
@@ -181,9 +182,13 @@ export default function ServiceEstimateDetailPage() {
   const [startRepair, setStartRepair] = useState(false);
   const [showStartRepairDialog, setShowStartRepairDialog] = useState(false);
   const [acceptLeadTechnician, setAcceptLeadTechnician] = useState("");
+  const [acceptAssignedBay, setAcceptAssignedBay] = useState("");
+  const [acceptBayWorkshop, setAcceptBayWorkshop] = useState("");
+  const [acceptBayWarehouse, setAcceptBayWarehouse] = useState("");
   const [acceptScheduleStart, setAcceptScheduleStart] = useState("");
   const [acceptScheduleEnd, setAcceptScheduleEnd] = useState("");
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
+  const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
   
   // Create dialogs state
   const [showCreateSparePartDialog, setShowCreateSparePartDialog] = useState(false);
@@ -432,6 +437,7 @@ export default function ServiceEstimateDetailPage() {
     async (payload: {
       customer_signature: string;
       lead_technician?: string;
+      assigned_bay?: string;
       schedule_start_time?: string;
       schedule_end_time?: string;
       start_repair?: boolean;
@@ -458,11 +464,29 @@ export default function ServiceEstimateDetailPage() {
     [id, navigate, isSupplementary, estimate?.parent_job_card]
   );
 
+  const applyAcceptBay = async (bayName: string) => {
+    setAcceptAssignedBay(bayName);
+    if (!bayName) {
+      setAcceptBayWorkshop("");
+      setAcceptBayWarehouse("");
+      return;
+    }
+    try {
+      const detail = await fetchServiceBayDetail(bayName);
+      setAcceptBayWorkshop(detail.workshop || detail.branch || "");
+      setAcceptBayWarehouse(detail.warehouse || "");
+    } catch {
+      setAcceptBayWorkshop("");
+      setAcceptBayWarehouse("");
+    }
+  };
+
   const openStartRepairDialog = () => {
     const start = defaultScheduleStartLocal();
     setAcceptScheduleStart(start);
     setAcceptScheduleEnd(defaultScheduleEndLocal(start));
     setAcceptLeadTechnician("");
+    void applyAcceptBay(estimate?.assigned_bay || "");
     setShowStartRepairDialog(true);
   };
 
@@ -475,15 +499,15 @@ export default function ServiceEstimateDetailPage() {
       toast.error("Customer signature is required");
       return;
     }
-    if (startRepair) {
-      openStartRepairDialog();
+    if (isSupplementary) {
+      void acceptEstimateAndNavigate({
+        customer_signature: acceptSignature,
+        start_repair: false,
+        terms_accepted: true,
+      });
       return;
     }
-    void acceptEstimateAndNavigate({
-      customer_signature: acceptSignature,
-      start_repair: false,
-      terms_accepted: true,
-    });
+    openStartRepairDialog();
   };
 
   const handleConfirmAcceptWithRepair = () => {
@@ -495,24 +519,39 @@ export default function ServiceEstimateDetailPage() {
       toast.error("Lead technician is required");
       return;
     }
-    if (!acceptScheduleStart) {
-      toast.error("Schedule start time is required");
+    if (!acceptAssignedBay) {
+      toast.error("Assigned service bay is required");
       return;
     }
-    if (!acceptScheduleEnd) {
-      toast.error("Schedule end time is required");
+    if (!acceptBayWarehouse) {
+      toast.error(
+        acceptBayWorkshop
+          ? `Kindly add a warehouse on Workshop ${acceptBayWorkshop} before starting repair.`
+          : "Kindly add a warehouse on the Workshop before starting repair."
+      );
       return;
     }
-    if (new Date(acceptScheduleEnd) <= new Date(acceptScheduleStart)) {
-      toast.error("Schedule end must be after schedule start");
-      return;
+    if (startRepair) {
+      if (!acceptScheduleStart) {
+        toast.error("Schedule start time is required");
+        return;
+      }
+      if (!acceptScheduleEnd) {
+        toast.error("Schedule end time is required");
+        return;
+      }
+      if (new Date(acceptScheduleEnd) <= new Date(acceptScheduleStart)) {
+        toast.error("Schedule end must be after schedule start");
+        return;
+      }
     }
     void acceptEstimateAndNavigate({
       customer_signature: acceptSignature,
       lead_technician: acceptLeadTechnician,
-      schedule_start_time: toFrappeDatetime(acceptScheduleStart),
-      schedule_end_time: toFrappeDatetime(acceptScheduleEnd),
-      start_repair: true,
+      assigned_bay: acceptAssignedBay,
+      schedule_start_time: startRepair ? toFrappeDatetime(acceptScheduleStart) : undefined,
+      schedule_end_time: startRepair ? toFrappeDatetime(acceptScheduleEnd) : undefined,
+      start_repair: startRepair,
       terms_accepted: true,
     });
   };
@@ -1578,10 +1617,10 @@ export default function ServiceEstimateDetailPage() {
       <Dialog open={showStartRepairDialog} onOpenChange={setShowStartRepairDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Start repair on job card</DialogTitle>
+            <DialogTitle>Assign technician and bay</DialogTitle>
             <DialogDescription>
-              Assign a lead technician and schedule before the job card is submitted and repair
-              begins.
+              Choose a lead technician and service bay before the job card is created. The bay&apos;s
+              Workshop must have a warehouse.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1601,37 +1640,65 @@ export default function ServiceEstimateDetailPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="accept-schedule-start">Schedule start *</Label>
-              <Input
-                id="accept-schedule-start"
-                type="datetime-local"
-                value={acceptScheduleStart}
-                onChange={(e) => setAcceptScheduleStart(e.target.value)}
+              <Label>Assigned service bay *</Label>
+              <SearchableSelect
+                options={
+                  serviceBays?.map((b) => ({
+                    value: b.name,
+                    label: b.bay_name || b.bay_number || b.name,
+                    description: b.branch || undefined,
+                  })) || []
+                }
+                value={acceptAssignedBay}
+                onValueChange={(val) => void applyAcceptBay(val)}
+                placeholder="Search bays..."
+                isLoading={baysLoading}
               />
+              {acceptAssignedBay ? (
+                <p className="text-xs text-muted-foreground">
+                  Workshop: {acceptBayWorkshop || "Not linked"} · Warehouse:{" "}
+                  {acceptBayWarehouse || "Not set — add on Workshop"}
+                </p>
+              ) : null}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="accept-schedule-end">Schedule end *</Label>
-              <Input
-                id="accept-schedule-end"
-                type="datetime-local"
-                value={acceptScheduleEnd}
-                onChange={(e) => setAcceptScheduleEnd(e.target.value)}
-              />
-            </div>
+            {startRepair ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="accept-schedule-start">Schedule start *</Label>
+                  <Input
+                    id="accept-schedule-start"
+                    type="datetime-local"
+                    value={acceptScheduleStart}
+                    onChange={(e) => setAcceptScheduleStart(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accept-schedule-end">Schedule end *</Label>
+                  <Input
+                    id="accept-schedule-end"
+                    type="datetime-local"
+                    value={acceptScheduleEnd}
+                    onChange={(e) => setAcceptScheduleEnd(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStartRepairDialog(false)} disabled={busy}>
               Cancel
             </Button>
             <Button onClick={handleConfirmAcceptWithRepair} disabled={busy}>
-              {busy ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating…
-                </>
-              ) : (
-                "Accept & start repair"
-              )}
+                {busy ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating…
+                  </>
+                ) : startRepair ? (
+                  "Accept & start repair"
+                ) : (
+                  "Accept & create job card"
+                )}
             </Button>
           </DialogFooter>
         </DialogContent>

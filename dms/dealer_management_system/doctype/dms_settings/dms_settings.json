@@ -15,6 +15,7 @@
   "column_break_kpou",
   "default_vat_rate",
   "default_service_fee",
+  "default_taxes_and_charges_template",
   "serial_vin_no_section",
   "auto_create_vin_from_serial",
   "company",
@@ -194,10 +195,9 @@
    "label": "Print Formats"
   },
   {
-   "description": "Print formats used in the DMS UI. Each format is applied to its DocType (Sales Invoice, Service Appointment, Follow Up, etc.). If only one format matches the document being printed, it prints directly without a dropdown.",
    "fieldname": "sales_print_format",
    "fieldtype": "Table MultiSelect",
-   "label": "Print Formats",
+   "label": "Sales Print Format",
    "options": "Print Format TB"
   },
   {
@@ -260,13 +260,20 @@
    "fieldname": "after_repair_probation_period",
    "fieldtype": "Int",
    "label": "After Repair Probation Period (Days)"
+  },
+  {
+   "description": "Used on DMS Sales Invoices when Include taxes / tax withholding is checked. Customer, company, and item tax templates are not used.",
+   "fieldname": "default_taxes_and_charges_template",
+   "fieldtype": "Link",
+   "label": "Default Taxes and Charges Template",
+   "options": "Sales Taxes and Charges Template"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-13 00:10:00.000000",
+ "modified": "2026-08-13 01:50:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

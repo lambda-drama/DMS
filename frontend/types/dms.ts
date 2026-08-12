@@ -489,6 +489,7 @@ export interface DMSServiceEstimate {
   currency?: string;
   inspection?: string;
   appointment?: string;
+  assigned_bay?: string;
   job_card?: string;
   diagnostic_invoice?: string;
   customer: string;
@@ -1306,6 +1307,8 @@ export interface InvoicePreviewLine {
   line_type: 'Labour' | 'Parts';
   item_code: string;
   description: string;
+  /** Complaint / diagnosis — show on hover, not as the line label. */
+  issue?: string | null;
   qty: number;
   rate: number;
   amount: number;
