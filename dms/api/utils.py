@@ -9,7 +9,7 @@ LIST_ORDER_LATEST_CREATED = "creation desc"
 
 
 def get_dms_sales_print_formats():
-	"""Print formats allowed for Sales Invoice in the DMS UI (DMS Settings)."""
+	"""Print formats listed on DMS Settings (Print Formats table)."""
 	rows = frappe.get_all(
 		"Print Format TB",
 		filters={
@@ -34,6 +34,43 @@ def get_dms_purchase_receipt_print_formats():
 	if doc_type and doc_type != "Purchase Receipt":
 		return []
 	return [pf]
+
+
+def get_dms_configured_print_formats(doctype):
+	"""DMS Settings print formats whose Print Format DocType matches `doctype`."""
+	if not doctype:
+		return []
+
+	names = list(get_dms_sales_print_formats())
+	if doctype == "Purchase Receipt":
+		names.extend(get_dms_purchase_receipt_print_formats())
+
+	ordered = []
+	seen = set()
+	for name in names:
+		if name and name not in seen:
+			ordered.append(name)
+			seen.add(name)
+	if not ordered:
+		return []
+
+	meta = {
+		row.name: row
+		for row in frappe.get_all(
+			"Print Format",
+			filters={"name": ["in", ordered], "disabled": 0},
+			fields=["name", "doc_type"],
+		)
+	}
+	matched = []
+	for name in ordered:
+		row = meta.get(name)
+		if not row:
+			continue
+		if row.doc_type != doctype:
+			continue
+		matched.append(name)
+	return matched
 
 
 def get_vehicle_customer_groups():

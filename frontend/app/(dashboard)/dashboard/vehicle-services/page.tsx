@@ -224,6 +224,7 @@ export default function VehicleServicesPage() {
                           <ListRowActions
                             doctype="Vehicle Service Item"
                             docName={serviceItemId(row)}
+                            showPrint={false}
                           >
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

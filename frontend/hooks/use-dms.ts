@@ -198,6 +198,14 @@ export function useCreateJobCard() {
   );
 }
 
+export function useJobCardTerms(search?: string) {
+  return useSWR(
+    ['job-card-terms', search || ''],
+    () => jobCardsSvc.fetchJobCardTerms(search),
+    { dedupingInterval: 60000 }
+  );
+}
+
 export function useUpdateJobCard(name: string) {
   return useSWRMutation(
     ['jobcard', name],

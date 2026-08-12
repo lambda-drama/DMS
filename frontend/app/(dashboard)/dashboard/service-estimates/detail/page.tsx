@@ -808,7 +808,7 @@ export default function ServiceEstimateDetailPage() {
               },
             ]}
           />
-          <PrintFormatDropdown doctype="DMS Service Estimate" docName={id} />
+          <PrintFormatDropdown variant="icon" doctype="DMS Service Estimate" docName={id} />
           {estimate.job_card && (
             <Button variant="outline" size="sm" onClick={() => navigate("job-card-detail", { id: estimate.job_card! })}>
               View Job Card

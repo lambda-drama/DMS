@@ -19,6 +19,7 @@ import {
   useDmsCustomerDefaults,
   useCurrencies,
   useServicePackagesForVin,
+  useJobCardTerms,
 } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
@@ -181,6 +182,7 @@ export default function NewJobCardPage() {
   // Lookup hooks
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
   const { data: serviceAdvisors, isLoading: advisorsLoading } = useServiceAdvisors();
+  const { data: jobCardTerms, isLoading: termsLoading } = useJobCardTerms();
   const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
   const { data: serviceBays, isLoading: baysLoading } = useServiceBays();
   const { data: serviceItems, isLoading: serviceItemsLoading } = useVehicleServiceItems(
@@ -291,6 +293,7 @@ export default function NewJobCardPage() {
   const [customerComplaintSummary, setCustomerComplaintSummary] = useState("");
   const [serviceAdvisorNotes, setServiceAdvisorNotes] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
+  const [terms, setTerms] = useState("");
 
   const [appointmentId, setAppointmentId] = useState(viewParams.get("appointment") || "");
   const [inspectionId, setInspectionId] = useState(viewParams.get("inspection") || "");
@@ -319,6 +322,12 @@ export default function NewJobCardPage() {
     if (!warehouse) return;
     setPartRows((prev) => prev.map((row) => ({ ...row, warehouse })));
   }, [warehouse]);
+
+  useEffect(() => {
+    if (terms) return;
+    const defaultTerms = jobCardTerms?.find((row) => Boolean(row.is_default));
+    if (defaultTerms?.name) setTerms(defaultTerms.name);
+  }, [jobCardTerms, terms]);
 
   // --- Auto-fill handlers ---
 
@@ -1003,6 +1012,7 @@ export default function NewJobCardPage() {
       customer_complaint_summary: customerComplaintSummary || undefined,
       service_advisor_notes: serviceAdvisorNotes || undefined,
       internal_notes: internalNotes || undefined,
+      terms: terms || undefined,
       appointment: appointmentId || undefined,
       skip_vehicle_inspection: skipVehicleInspection ? 1 : 0,
       inspection: skipVehicleInspection ? undefined : inspectionId || undefined,
@@ -1882,6 +1892,25 @@ export default function NewJobCardPage() {
             <CardTitle>Notes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Terms & Conditions</Label>
+              <SearchableSelect
+                options={
+                  jobCardTerms?.map((row) => ({
+                    value: row.name,
+                    label: row.is_default ? `${row.title} (Default)` : row.title,
+                  })) || []
+                }
+                value={terms}
+                onValueChange={setTerms}
+                placeholder="Select terms..."
+                emptyMessage="No job card terms found"
+                isLoading={termsLoading}
+                valueLabel={
+                  jobCardTerms?.find((row) => row.name === terms)?.title || terms
+                }
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="service_advisor_notes">
                 Service Advisor Notes

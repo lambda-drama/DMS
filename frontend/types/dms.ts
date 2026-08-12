@@ -777,6 +777,8 @@ export interface DMSJobCard {
   next_service_due_date?: string;
   service_advisor_notes?: string;
   internal_notes?: string;
+  terms?: string;
+  terms_and_conditions?: string;
   customer_satisfaction?: string;
   
   // Display / List

@@ -170,7 +170,7 @@ export default function ItemPricesPage() {
                           : "—"}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <ListRowActions doctype="Item Price" docName={row.name}>
+                        <ListRowActions doctype="Item Price" docName={row.name} showPrint={false}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Printer } from "lucide-react";
 import { fetchPrintFormats } from "@/services/common";
 import { Button } from "@/components/ui/button";
@@ -48,67 +48,110 @@ export function PrintFormatDropdown({
   className,
   variant = "default",
 }: PrintFormatDropdownProps) {
-  const [open, setOpen] = useState(false);
-  const [formats, setFormats] = useState<string[]>(["Standard"]);
+  const [formats, setFormats] = useState<string[] | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open || !doctype) return;
-    setLoading(true);
+    if (!doctype) {
+      setFormats(["Standard"]);
+      return;
+    }
+    let cancelled = false;
     fetchPrintFormats(doctype)
-      .then(setFormats)
-      .catch(() => setFormats(["Standard"]))
-      .finally(() => setLoading(false));
-  }, [open, doctype]);
+      .then((list) => {
+        if (!cancelled) setFormats(list.length ? list : ["Standard"]);
+      })
+      .catch(() => {
+        if (!cancelled) setFormats(["Standard"]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [doctype]);
 
-  const handleSelectFormat = (format: string) => {
+  const printWith = (format: string) => {
+    if (!doctype || !docName) return;
     openDocumentPrintView(doctype, docName, format, { noLetterhead, triggerPrint });
-    setOpen(false);
+  };
+
+  const handlePrintClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (loading || !doctype || !docName) return;
+    setLoading(true);
+    try {
+      let list = formats;
+      if (!list) {
+        const fetched = await fetchPrintFormats(doctype);
+        list = fetched.length ? fetched : ["Standard"];
+        setFormats(list);
+      }
+      if (list.length <= 1) {
+        printWith(list[0] || "Standard");
+        return;
+      }
+      setMenuOpen(true);
+    } catch {
+      printWith("Standard");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isIcon = variant === "icon";
+  const buttonProps = {
+    type: "button" as const,
+    variant: (isIcon ? "ghost" : "outline") as "ghost" | "outline",
+    size: (isIcon ? "icon" : "sm") as "icon" | "sm",
+    className,
+    "aria-label": "Print",
+    title: "Print",
+    disabled: loading,
+  };
 
-  return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant={isIcon ? "ghost" : "outline"}
-          size={isIcon ? "icon" : "sm"}
-          className={className}
-          aria-label="Print"
-          title="Print"
+  // Multiple formats: show a dropdown. One format: the button prints that format directly.
+  if (formats && formats.length > 1) {
+    return (
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button {...buttonProps} onClick={(e) => e.stopPropagation()}>
+            <Printer className={isIcon ? "h-4 w-4" : "h-4 w-4 mr-2"} />
+            {!isIcon && "Print"}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          side="bottom"
+          sideOffset={4}
+          collisionPadding={8}
+          className="min-w-[180px] z-[9999]"
           onClick={(e) => e.stopPropagation()}
         >
-          <Printer className={isIcon ? "h-4 w-4" : "h-4 w-4 mr-2"} />
-          {!isIcon && "Print"}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        side="bottom"
-        sideOffset={4}
-        collisionPadding={8}
-        className="min-w-[180px] z-[9999]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-          Print format
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {loading ? (
-          <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading…</div>
-        ) : (
-          formats.map((format) => (
+          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+            Print format
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {formats.map((format) => (
             <DropdownMenuItem
               key={format}
-              onSelect={() => handleSelectFormat(format)}
+              onSelect={() => {
+                printWith(format);
+                setMenuOpen(false);
+              }}
             >
               {format}
             </DropdownMenuItem>
-          ))
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <Button {...buttonProps} onClick={handlePrintClick}>
+      <Printer className={isIcon ? "h-4 w-4" : "h-4 w-4 mr-2"} />
+      {!isIcon && "Print"}
+    </Button>
   );
 }
