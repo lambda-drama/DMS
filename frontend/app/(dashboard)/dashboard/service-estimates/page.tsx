@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { FileSpreadsheet, Search, User, Car, Pencil, Trash2 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
+import { ListRowActions } from '@/components/list-row-actions';
 import * as estimatesSvc from '@/services/serviceEstimates';
 import type { DMSServiceEstimate, ServiceEstimateStatus } from '@/types/dms';
 import { format } from 'date-fns';
@@ -192,7 +193,7 @@ export default function ServiceEstimatesPage() {
                             {(est.diagnostic_fee || 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-0.5">
+                            <ListRowActions doctype="DMS Service Estimate" docName={est.name}>
                               {showEdit ? (
                                 <Button
                                   variant="ghost"
@@ -217,7 +218,7 @@ export default function ServiceEstimatesPage() {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               ) : null}
-                            </div>
+                            </ListRowActions>
                           </TableCell>
                         </TableRow>
                       );
@@ -265,33 +266,32 @@ export default function ServiceEstimatesPage() {
                           {format(new Date(est.posting_date), 'dd MMM yyyy')}
                         </p>
                       )}
-                      {(showEdit || showDelete) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {showEdit ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                navigate('estimate-detail', { id: est.name, tab: 'estimation' })
-                              }
-                            >
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit
-                            </Button>
-                          ) : null}
-                          {showDelete ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setDeleteTarget(est)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </Button>
-                          ) : null}
-                        </div>
-                      )}
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {showEdit ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigate('estimate-detail', { id: est.name, tab: 'estimation' })
+                            }
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </Button>
+                        ) : null}
+                        {showDelete ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(est)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        ) : null}
+                        <ListRowActions doctype="DMS Service Estimate" docName={est.name} />
+                      </div>
                     </div>
                   );
                 })}

@@ -246,6 +246,19 @@ export async function customerApprovedDuringRepair(name: string): Promise<void> 
   await resumeRepair(name);
 }
 
+export interface JobCardTermsOption {
+  name: string;
+  title: string;
+  is_default?: number | boolean;
+}
+
+export async function fetchJobCardTerms(search?: string): Promise<JobCardTermsOption[]> {
+  return apiRequest<JobCardTermsOption[]>(`/api/method/${API}.get_job_card_terms`, {
+    method: 'POST',
+    body: JSON.stringify({ search: search || null }),
+  });
+}
+
 export async function startRoadTest(name: string): Promise<void> {
   await setFieldValue(name, 'status', 'Road Test In Progress');
 }

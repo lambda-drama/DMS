@@ -134,7 +134,10 @@
   "qc_checked_date",
   "more_information_tab",
   "wip_material_transfer",
-  "material_issue"
+  "material_issue",
+  "tab_5_tab",
+  "terms",
+  "terms_and_conditions"
  ],
  "fields": [
   {
@@ -992,13 +995,30 @@
    "label": "Material Issue",
    "options": "Stock Entry",
    "read_only": 1
+  },
+  {
+   "fieldname": "tab_5_tab",
+   "fieldtype": "Tab Break",
+   "label": "Terms & Conditions"
+  },
+  {
+   "fieldname": "terms",
+   "fieldtype": "Link",
+   "label": "Terms",
+   "options": "DMS Job Card Terms"
+  },
+  {
+   "fetch_from": "terms.terms_and_conditions",
+   "fieldname": "terms_and_conditions",
+   "fieldtype": "Text Editor",
+   "label": "Terms and Conditions"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-24 12:08:43.722318",
+ "modified": "2026-08-13 00:40:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

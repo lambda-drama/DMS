@@ -205,7 +205,7 @@ export default function SparePartsPage() {
                         )}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <ListRowActions doctype="Spare Part" docName={row.name || row.oem_part_number || ""}>
+                        <ListRowActions doctype="Spare Part" docName={row.name || row.oem_part_number || ""} showPrint={false}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button

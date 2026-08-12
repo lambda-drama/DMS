@@ -678,11 +678,15 @@ def get_branches(search=None, company=None, limit=50):
 
 @frappe.whitelist()
 def get_print_formats(doctype):
-	"""Return print format names for the given doctype (Frappe printview dropdown)."""
+	"""Return print format names for the given doctype (Frappe printview dropdown).
+
+	If DMS Settings lists print format(s) whose DocType matches, only those are
+	returned so the UI can print them directly (or show a short dropdown).
+	"""
 	if not doctype:
 		return ["Standard"]
 
-	from dms.api.utils import get_dms_purchase_receipt_print_formats, get_dms_sales_print_formats
+	from dms.api.utils import get_dms_configured_print_formats
 
 	formats = frappe.get_all(
 		"Print Format",
@@ -691,19 +695,13 @@ def get_print_formats(doctype):
 		order_by="name",
 	)
 
-	if doctype == "Sales Invoice":
-		allowed = get_dms_sales_print_formats()
-		if allowed:
-			valid = set(formats)
-			filtered = [name for name in allowed if name in valid]
-			return filtered if filtered else ["Standard"]
-
-	if doctype == "Purchase Receipt":
-		allowed = get_dms_purchase_receipt_print_formats()
-		if allowed:
-			valid = set(formats)
-			filtered = [name for name in allowed if name in valid]
-			return filtered if filtered else ["Standard"]
+	allowed = get_dms_configured_print_formats(doctype)
+	if allowed:
+		valid = set(formats)
+		filtered = [name for name in allowed if name in valid]
+		if filtered:
+			return filtered
+		return ["Standard"]
 
 	result = ["Standard"]
 	seen = {"Standard"}

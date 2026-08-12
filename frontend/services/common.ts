@@ -404,13 +404,19 @@ export async function fetchServiceBayDetail(bayName: string): Promise<{
   });
 }
 
+const printFormatCache = new Map<string, string[]>();
+
 export async function fetchPrintFormats(doctype: string): Promise<string[]> {
   if (!doctype) return ['Standard'];
+  const cached = printFormatCache.get(doctype);
+  if (cached) return cached;
   const formats = await apiRequest<string[]>(`/api/method/${API}.get_print_formats`, {
     method: 'POST',
     body: JSON.stringify({ doctype }),
   });
-  return Array.isArray(formats) && formats.length ? formats : ['Standard'];
+  const resolved = Array.isArray(formats) && formats.length ? formats : ['Standard'];
+  printFormatCache.set(doctype, resolved);
+  return resolved;
 }
 
 /** Upload a file to Frappe (returns file_url for Attach / Attach Image fields). */

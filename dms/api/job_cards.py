@@ -403,6 +403,8 @@ def create_repeat_job_card(source_job_card, customer_complaint_summary=None, lab
 		"skip_vehicle_inspection": 1,
 		"status": "Open",
 		"service_advisor_notes": advisor_notes,
+		"terms": source.terms,
+		"terms_and_conditions": source.terms_and_conditions,
 	})
 
 	# Prefer an explicit complaint row when the user typed one in the dialog.
@@ -680,6 +682,7 @@ def create_job_card(data):
 		"warranty_application_type": data.get("warranty_application_type"),
 		"service_advisor_notes": data.get("service_advisor_notes"),
 		"internal_notes": data.get("internal_notes"),
+		"terms": data.get("terms"),
 		"schedule_start_time": data.get("schedule_start_time"),
 		"schedule_end_time": data.get("schedule_end_time"),
 	})
@@ -813,6 +816,7 @@ def update_job_card(name, data):
 		"estimated_duration_hours", "promised_delivery_date_time",
 		"warranty_status", "warranty_expiry_date", "warranty_application_type",
 		"service_advisor_notes", "internal_notes",
+		"terms",
 		"schedule_start_time", "schedule_end_time", "workshop", "warehouse",
 		"current_odometer",
 		"license_plate",
@@ -1348,3 +1352,37 @@ def cancel_job_card(name, reason=None):
 		"docstatus": doc.docstatus,
 		"cancelled_stock_entries": cancelled_stock,
 	}
+
+
+@frappe.whitelist()
+def get_job_card_terms(search=None, limit=50):
+	"""List DMS Job Card Terms for the job card UI (default first)."""
+	if not frappe.db.exists("DocType", "DMS Job Card Terms"):
+		return []
+
+	filters = {}
+	or_filters = None
+	if search:
+		or_filters = {
+			"name": ["like", f"%{search}%"],
+			"title": ["like", f"%{search}%"],
+		}
+
+	rows = frappe.get_all(
+		"DMS Job Card Terms",
+		filters=filters or None,
+		or_filters=or_filters,
+		fields=["name", "title", "default"],
+		limit=int(limit),
+		order_by="title asc",
+	)
+	rows.sort(key=lambda row: (0 if cint(row.get("default")) else 1, (row.title or row.name or "").lower()))
+	return [
+		{
+			"name": row.name,
+			"title": row.title or row.name,
+			"is_default": cint(row.get("default")),
+		}
+		for row in rows
+	]
+

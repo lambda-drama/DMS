@@ -194,9 +194,10 @@
    "label": "Print Formats"
   },
   {
+   "description": "Print formats used in the DMS UI. Each format is applied to its DocType (Sales Invoice, Service Appointment, Follow Up, etc.). If only one format matches the document being printed, it prints directly without a dropdown.",
    "fieldname": "sales_print_format",
    "fieldtype": "Table MultiSelect",
-   "label": "Sales Print Format",
+   "label": "Print Formats",
    "options": "Print Format TB"
   },
   {
@@ -265,7 +266,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-07-24 12:24:57.731425",
+ "modified": "2026-08-13 00:10:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

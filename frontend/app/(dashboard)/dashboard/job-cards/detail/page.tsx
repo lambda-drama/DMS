@@ -1825,12 +1825,23 @@ export default function JobCardDetailPage() {
             </Card>
 
             {/* Notes */}
-            {(jobCard.service_advisor_notes || jobCard.internal_notes) && (
+            {(jobCard.service_advisor_notes || jobCard.internal_notes || jobCard.terms) && (
               <Card className="md:col-span-2">
                 <CardHeader>
                   <CardTitle>Notes</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {jobCard.terms ? (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">
+                        Terms & Conditions
+                      </p>
+                      <p className="text-sm font-medium">{jobCard.terms}</p>
+                      {jobCard.terms_and_conditions
+                        ? richTextBlock(jobCard.terms_and_conditions)
+                        : null}
+                    </div>
+                  ) : null}
                   {jobCard.service_advisor_notes && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">Service Advisor Notes</p>

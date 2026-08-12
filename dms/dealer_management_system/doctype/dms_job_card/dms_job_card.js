@@ -181,6 +181,19 @@ frappe.ui.form.on("DMS Job Card", {
     // refresh: wire up all UI logic
     // ----------------------------------------------------------
     refresh(frm) {
+        if (frm.is_new() && !frm.doc.terms) {
+            frappe.db
+                .get_list("DMS Job Card Terms", {
+                    filters: { default: 1 },
+                    fields: ["name"],
+                    limit: 1,
+                })
+                .then((rows) => {
+                    if (frm.doc.terms || !rows?.length) return;
+                    frm.set_value("terms", rows[0].name);
+                });
+        }
+
         if (frm._dms_prev_qc_template === undefined) {
             frm._dms_prev_qc_template = frm.doc.qc_checklist_template || "";
         }

@@ -108,6 +108,11 @@ class DMSJobCard(Document):
 
 			clear_split_discount_fields(self)
 
+		from dms.dealer_management_system.doctype.dms_job_card_terms.dms_job_card_terms import (
+			apply_job_card_terms,
+		)
+
+		apply_job_card_terms(self)
 		self.apply_job_card_warehouse_to_parts()
 		self.ensure_qc_results_from_template()
 		self.validate_qc_measurements()
