@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
+import { ListRowActions } from '@/components/list-row-actions';
 import { useCompanies, useAutofillSingleCompany } from '@/hooks/use-dms';
 import * as stockSvc from '@/services/stockOperations';
 import { formatDmsWarehouseLabel } from '@/services/stockOperations';
@@ -412,6 +413,7 @@ export default function StockEntryPage() {
                   <TableHead>Company</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right w-[52px]">Print</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -425,6 +427,9 @@ export default function StockEntryPage() {
                       <Badge variant={row.docstatus === 1 ? 'default' : 'secondary'}>
                         {docStatusLabel(row.docstatus)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ListRowActions doctype="Stock Entry" docName={row.name} />
                     </TableCell>
                   </TableRow>
                 ))}
