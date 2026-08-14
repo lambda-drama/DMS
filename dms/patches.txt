@@ -25,3 +25,4 @@ dms.patches.add_test_drive_checklist_template
 dms.patches.add_delivery_readiness_template
 dms.patches.setup_crm_loyalty_programs
 dms.patches.enable_crm_brd_scoring_and_merge
+dms.patches.restore_dealer_management_workspace

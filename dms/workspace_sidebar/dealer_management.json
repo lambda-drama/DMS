@@ -1,0 +1,72 @@
+{
+ "app": "dms",
+ "creation": "2026-05-09 00:25:46.271244",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "header_icon": "tool",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Home",
+   "link_to": "Dealer Management",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "DMS Job Card",
+   "link_to": "DMS Job Card",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Service Appointment",
+   "link_to": "Service Appointment",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Vehicle Inspection",
+   "link_to": "Vehicle Inspection",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Vehicle Delivery Note",
+   "link_to": "Vehicle Delivery Note",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-08-14 19:28:02.210019",
+ "modified_by": "Administrator",
+ "module": "Dealer Management System",
+ "name": "Dealer Management",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "Dealer Management"
+}
