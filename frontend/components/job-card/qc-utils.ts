@@ -2,6 +2,45 @@ import type { JobCardQCResult } from "@/types/dms";
 
 export type QCResultValue = "Pass" | "Fail" | "N/A";
 
+export const QC_SECTION_ORDER = [
+  "Job Card Documentation",
+  "Vehicle Conditions",
+  "Visual Inspection at the Lift",
+  "Visual Inspection-Engine Compartment",
+  "Visual Inspection During the Drive",
+] as const;
+
+export type QCGroupedSection<T = JobCardQCResult> = {
+  section: string;
+  items: Array<{ row: T; index: number }>;
+};
+
+export function groupQCResultsBySection<T extends { section_classification?: string }>(
+  rows: T[]
+): QCGroupedSection<T>[] {
+  const groups = new Map<string, Array<{ row: T; index: number }>>();
+
+  rows.forEach((row, index) => {
+    const section = (row.section_classification || "").trim() || "Other";
+    const items = groups.get(section);
+    if (items) items.push({ row, index });
+    else groups.set(section, [{ row, index }]);
+  });
+
+  const ordered: QCGroupedSection<T>[] = [];
+  for (const key of QC_SECTION_ORDER) {
+    const items = groups.get(key);
+    if (items?.length) {
+      ordered.push({ section: key, items });
+      groups.delete(key);
+    }
+  }
+  for (const [section, items] of groups) {
+    ordered.push({ section, items });
+  }
+  return ordered;
+}
+
 export function evaluateMeasurementResult(
   row: JobCardQCResult
 ): QCResultValue | null {

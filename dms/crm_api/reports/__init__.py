@@ -12,10 +12,10 @@ from dms.crm_api.reports.common import ensure_report_access, parse_crm_filters
 
 
 def _all_handlers():
-	from dms.crm_api.reports import aftersales, call_campaign, executive, sales
+	from dms.crm_api.reports import aftersales, call_campaign, executive, kpis, sales
 
 	handlers = {}
-	for mod in (executive, sales, aftersales, call_campaign):
+	for mod in (executive, sales, aftersales, call_campaign, kpis):
 		handlers.update(getattr(mod, "REPORT_HANDLERS", {}))
 	return handlers
 

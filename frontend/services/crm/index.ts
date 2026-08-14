@@ -12,6 +12,8 @@ const CASES = 'dms.crm_api.cases';
 const CAMPAIGNS = 'dms.crm_api.campaigns';
 const CONTACTS = 'dms.crm_api.contacts';
 const CUSTOMERS = 'dms.crm_api.customers';
+const VEHICLES = 'dms.crm_api.vehicles';
+const SALES_APT = 'dms.crm_api.sales_appointments';
 
 export interface CrmDashboardData {
   stats: {
@@ -30,6 +32,7 @@ export interface CrmDashboardData {
     lead_target: number;
     leads_this_month: number;
     lead_target_remaining: number;
+    appendix_b?: Record<string, number>;
   };
   my_leads: Array<{
     name: string;
@@ -141,6 +144,39 @@ export async function fetchCrmBranches(company?: string): Promise<Array<{ name: 
     method: 'POST',
     body: JSON.stringify({ company: company || null, limit: 500 }),
   });
+}
+
+export async function fetchCrmTerritories(search?: string, isGroup: 0 | 1 | 'all' = 0) {
+  return apiRequest<Array<{ name: string; label?: string; parent_territory?: string }>>(
+    '/api/method/dms.crm_api.common.get_territories',
+    {
+      method: 'POST',
+      body: JSON.stringify({ search: search || null, limit: 50, is_group: isGroup }),
+    }
+  );
+}
+
+export async function quickCreateTerritory(territoryName: string, parentTerritory?: string) {
+  return apiRequest<{ name: string; label?: string }>(
+    '/api/method/dms.crm_api.common.quick_create_territory',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        territory_name: territoryName,
+        parent_territory: parentTerritory || null,
+      }),
+    }
+  );
+}
+
+export async function quickCreateBrand(brand: string) {
+  return apiRequest<{ name: string; label?: string }>(
+    '/api/method/dms.crm_api.common.quick_create_brand',
+    {
+      method: 'POST',
+      body: JSON.stringify({ brand }),
+    }
+  );
 }
 
 export async function fetchCrmBrands(search?: string) {
@@ -271,6 +307,53 @@ export async function updateSalesAppointment(
   data: Record<string, unknown>
 ) {
   return apiRequest(`/api/method/${OPP}.update_sales_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function listSalesAppointments(options?: {
+  status?: string;
+  search?: string;
+  customer?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest(`/api/method/${SALES_APT}.get_appointments`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      customer: options?.customer || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getSalesAppointment(name: string) {
+  return apiRequest(`/api/method/${SALES_APT}.get_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function fetchSalesAppointmentFormOptions() {
+  return apiRequest(`/api/method/${SALES_APT}.get_form_options`, { method: 'POST' });
+}
+
+export async function createStandaloneSalesAppointment(data: Record<string, unknown>) {
+  return apiRequest(`/api/method/${SALES_APT}.create_appointment`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateStandaloneSalesAppointment(
+  name: string,
+  data: Record<string, unknown>
+) {
+  return apiRequest(`/api/method/${SALES_APT}.update_appointment`, {
     method: 'POST',
     body: JSON.stringify({ name, data }),
   });
@@ -1127,6 +1210,7 @@ export interface Customer360Data {
   activities: Record<string, unknown>[];
   cases: Record<string, unknown>[];
   appointments: Record<string, unknown>[];
+  sales_appointments: Record<string, unknown>[];
   job_cards: Record<string, unknown>[];
   estimates: Record<string, unknown>[];
   follow_ups: Record<string, unknown>[];
@@ -1171,6 +1255,132 @@ export async function fetchCustomer360(customer: string): Promise<Customer360Dat
   return apiRequest(`/api/method/${CUSTOMERS}.get_customer_360`, {
     method: 'POST',
     body: JSON.stringify({ customer }),
+  });
+}
+
+export interface Vehicle360Data {
+  vehicle: {
+    name: string;
+    vin_number?: string;
+    plate_number?: string;
+    brand?: string;
+    brand_label?: string;
+    model?: string;
+    model_name?: string;
+    model_year?: string | number;
+    engine_number?: string;
+    fuel_type?: string;
+    transmission?: string;
+    exterior_color?: string;
+    current_customer?: string;
+    customer_name?: string;
+    owner_mobile?: string;
+    owner_email?: string;
+    current_odometer?: number;
+    odometer_unit?: string;
+    warranty_status?: string;
+    warranty_end_date?: string;
+    vehicle_status?: string;
+    next_service_due_date?: string;
+    next_service_due_km?: number;
+    last_service_date?: string;
+    delivery_date?: string;
+    is_fleet_vehicle?: number;
+    fleet_company?: string;
+    company?: string;
+    [key: string]: unknown;
+  };
+  owner: {
+    name: string;
+    customer_name?: string;
+    mobile_no?: string;
+    email_id?: string;
+    tax_id?: string;
+    customer_group?: string;
+    territory?: string;
+    customer_type?: string;
+  } | null;
+  ownership_history: Record<string, unknown>[];
+  warranty: Record<string, unknown>;
+  summary: {
+    buyer?: string;
+    vehicle_status?: string;
+    warranty_status?: string;
+    odometer?: number;
+    next_service_due_date?: string | null;
+    owners: number;
+    opportunities_total: number;
+    opportunities_open: number;
+    pipeline_value: number;
+    sales_appointments: number;
+    test_drives: number;
+    bookings: number;
+    appointments: number;
+    job_cards: number;
+    inspections: number;
+    estimates: number;
+    follow_ups: number;
+    service_dues: number;
+    deliveries: number;
+    cases_total: number;
+    cases_open: number;
+    activities_open: number;
+    outstanding: number;
+    aftersales_revenue: number;
+    retention_status?: string;
+    open_follow_ups: number;
+  };
+  opportunities: Record<string, unknown>[];
+  bookings: Record<string, unknown>[];
+  test_drives: Record<string, unknown>[];
+  delivery_readiness: Record<string, unknown>[];
+  sales_appointments: Record<string, unknown>[];
+  appointments: Record<string, unknown>[];
+  job_cards: Record<string, unknown>[];
+  estimates: Record<string, unknown>[];
+  follow_ups: Record<string, unknown>[];
+  deliveries: Record<string, unknown>[];
+  inspections: Record<string, unknown>[];
+  service_dues: Record<string, unknown>[];
+  cases: Record<string, unknown>[];
+  activities: Record<string, unknown>[];
+  finance: {
+    invoices: Record<string, unknown>[];
+    outstanding: number;
+    invoiced_total: number;
+    paid_total: number;
+    overdue_count: number;
+  };
+}
+
+export async function listCrmVehicles(options?: {
+  search?: string;
+  customer?: string;
+  vehicle_status?: string;
+  warranty_status?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest<{ data: Record<string, unknown>[]; total: number }>(
+    `/api/method/${VEHICLES}.get_vehicles`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        search: options?.search || null,
+        customer: options?.customer || null,
+        vehicle_status: options?.vehicle_status || null,
+        warranty_status: options?.warranty_status || null,
+        limit: options?.limit ?? 50,
+        offset: options?.offset ?? 0,
+      }),
+    }
+  );
+}
+
+export async function fetchVehicle360(vin: string): Promise<Vehicle360Data> {
+  return apiRequest(`/api/method/${VEHICLES}.get_vehicle_360`, {
+    method: 'POST',
+    body: JSON.stringify({ vin }),
   });
 }
 
@@ -1442,6 +1652,7 @@ export async function fetchAccountFormOptions(): Promise<{
   growth_potentials: string[];
   relationship_health: string[];
   stakeholder_roles: string[];
+  territories: string[];
 }> {
   return apiRequest(`/api/method/${ACCOUNTS}.get_account_form_options`);
 }

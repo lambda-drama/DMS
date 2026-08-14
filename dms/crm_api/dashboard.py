@@ -84,6 +84,13 @@ def get_dashboard():
 			flt(r.expected_value) * flt(r.probability) / 100.0 for r in rows
 		)
 
+	try:
+		from dms.crm_api.reports.kpis import compute_appendix_b_kpis
+
+		stats["appendix_b"] = compute_appendix_b_kpis(None).get("summary") or {}
+	except Exception:
+		stats["appendix_b"] = {}
+
 	if frappe.db.exists("DocType", ACT):
 		from frappe.utils import now_datetime
 

@@ -279,7 +279,14 @@ def get_account_form_options():
 		"stakeholder_roles": _select_options(
 			frappe.get_meta("DMS CRM Account Stakeholder"), "role"
 		),
+		"territories": _territory_names(),
 	}
+
+
+def _territory_names():
+	from dms.crm_api.common import get_territories
+
+	return [row["name"] for row in get_territories(limit=200)]
 
 
 def _select_options(meta, fieldname):

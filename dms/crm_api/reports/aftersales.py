@@ -7,6 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, getdate, nowdate
 
+from dms.crm_api.reports.kpis import compute_appendix_b_kpis
 from dms.crm_api.reports.common import (
 	ACCOUNT,
 	ACTIVITY,
@@ -130,6 +131,17 @@ def get_crm_aftersales_dashboard(filters=None):
 
 	summary["csat_avg"] = round(sum(scores) / len(scores), 2) if scores else 0
 
+	pack = compute_appendix_b_kpis(filters)
+	for key in (
+		"appointment_show_rate_pct",
+		"service_retention_pct",
+		"reminder_booking_rate_pct",
+		"lapsed_recovery_rate_pct",
+		"complaint_sla_compliance_pct",
+		"first_contact_resolution_pct",
+	):
+		summary[key] = (pack.get("summary") or {}).get(key) or 0
+
 	return {
 		"section_id": "crm_aftersales",
 		"title": _("Aftersales CRM"),
@@ -144,7 +156,7 @@ def get_crm_aftersales_dashboard(filters=None):
 def _service_due_report(filters=None):
 	f = parse_crm_filters(filters)
 	help_text = _(
-		"Service Due classifications: Upcoming / Due / Overdue / Severely Overdue / Lapsed. "
+		"Service Due classifications: Upcoming / Due / Overdue / Severely Overdue / Lapsed / Recovered / Inactive / Vehicle Sold / Unreachable. "
 		"Filter by branch and model when present."
 	)
 	rows = []
@@ -226,8 +238,8 @@ def _service_due_report(filters=None):
 def _reminder_conversion_report(filters=None):
 	f = parse_crm_filters(filters)
 	help_text = _(
-		"Reminder → booking conversion = reminders linked to a Service Due that has "
-		"service_appointment set ÷ reminders sent in period. Status Sent/Delivered count as contacted."
+		"Appendix B Reminder Booking Rate = appointments booked / customers successfully contacted × 100. "
+		"Contacted = reminder status Sent/Delivered/Completed; booked = that customer has a service appointment."
 	)
 	rows = []
 	booked = 0
@@ -290,16 +302,21 @@ def _reminder_conversion_report(filters=None):
 				}
 			)
 	total = len(rows) or 1
+	from dms.crm_api.reports.kpis import compute_appendix_b_kpis
+
+	pack = compute_appendix_b_kpis(filters)
+	kpi = next((k for k in pack["kpis"] if k["id"] == "reminder_booking_rate_pct"), {})
 	return result(
 		"crm_reminder_conversion",
 		_("Reminder → Booking"),
 		f,
 		{
 			"total": len(rows),
-			"contacted": contacted,
-			"booked": booked,
+			"contacted": kpi.get("denominator") or contacted,
+			"booked": kpi.get("numerator") or booked,
 			"contact_rate_pct": round(100.0 * contacted / total, 1) if rows else 0,
-			"booking_conversion_pct": round(100.0 * booked / total, 1) if rows else 0,
+			"booking_conversion_pct": kpi.get("value") or 0,
+			"reminder_booking_rate_pct": kpi.get("value") or 0,
 			"by_channel": group_count(rows, "channel"),
 			"by_status": group_count(rows, "status"),
 		},
@@ -318,17 +335,19 @@ def _reminder_conversion_report(filters=None):
 		rows,
 		help_text=help_text,
 		definitions={
-			"contact_rate_pct": "Reminders with status Sent/Delivered/Completed ÷ total reminders",
-			"booking_conversion_pct": "Reminders whose Service Due has service_appointment ÷ total",
+			"reminder_booking_rate_pct": "Customers with appointment / customers successfully contacted × 100",
+			"booking_conversion_pct": "Same as Appendix B reminder booking rate",
 		},
 	)
 
 
 def _appointment_capacity_report(filters=None):
 	f = parse_crm_filters(filters)
+	pack = compute_appendix_b_kpis(filters)
+	show = next((k for k in pack["kpis"] if k["id"] == "appointment_show_rate_pct"), {})
 	help_text = _(
-		"Appointment capacity from Service Appointment (slot_duration_minutes) when present; "
-		"else CRM Activities typed Appointment. Cancellation / no-show from status."
+		"Appendix B Appointment Show Rate = arrived appointments / confirmed appointments × 100 "
+		"(Service Appointment + CRM Sales Appointment). Capacity minutes come from slot duration."
 	)
 	rows = []
 	dt = None
@@ -403,6 +422,9 @@ def _appointment_capacity_report(filters=None):
 			"no_shows": no_shows,
 			"no_show_pct": round(100.0 * no_shows / len(rows), 1) if rows else 0,
 			"cancel_pct": round(100.0 * cancelled / len(rows), 1) if rows else 0,
+			"appointment_show_rate_pct": show.get("value") or 0,
+			"arrived": show.get("numerator") or 0,
+			"confirmed": show.get("denominator") or 0,
 			"scheduled_minutes": total_mins,
 			"by_status": group_count(rows, "status"),
 			"by_branch": group_count(rows, "branch"),
@@ -419,6 +441,9 @@ def _appointment_capacity_report(filters=None):
 		],
 		rows,
 		help_text=help_text,
+		definitions={
+			"appointment_show_rate_pct": "Arrived / confirmed appointments × 100",
+		},
 	)
 
 
@@ -544,8 +569,9 @@ def _workshop_followup_report(filters=None):
 def _service_retention_cohort_report(filters=None):
 	f = parse_crm_filters(filters)
 	help_text = _(
-		"Retention cohort by due-month × model × branch. Retained = classification Upcoming/Due "
-		"or has service_appointment; Lapsed/Overdue counted separately."
+		"Retention cohort by due-month × model × branch. "
+		"Appendix B: retained = eligible due vehicles that returned (appointment / Recovered) "
+		"÷ eligible vehicles due (Upcoming / Due / Overdue / Severely Overdue)."
 	)
 	rows = []
 	if dt_exists(SERVICE_DUE):
@@ -584,11 +610,13 @@ def _service_retention_cohort_report(filters=None):
 					"booked": 0,
 				},
 			)
-			b["total"] += 1
 			cls = r.get("classification") or ""
-			if cls in ("Upcoming", "Due"):
-				b["retained"] += 1
-			elif cls in ("Overdue", "Severely Overdue"):
+			returned = bool(r.get("service_appointment")) or cls == "Recovered"
+			if cls in ("Upcoming", "Due", "Overdue", "Severely Overdue"):
+				b["total"] += 1
+				if returned:
+					b["retained"] += 1
+			if cls in ("Overdue", "Severely Overdue"):
 				b["overdue"] += 1
 			elif cls == "Lapsed":
 				b["lapsed"] += 1
@@ -599,18 +627,20 @@ def _service_retention_cohort_report(filters=None):
 			rows.append(b)
 		rows.sort(key=lambda x: (x["cohort"], x["branch"], x["model"]))
 
+	pack = compute_appendix_b_kpis(filters)
+	retention = next((k for k in pack["kpis"] if k["id"] == "service_retention_pct"), {})
 	return result(
 		"crm_service_retention_cohort",
 		_("Service Retention Cohort"),
 		f,
 		{
 			"total_cohorts": len(rows),
-			"vehicles": sum(r["total"] for r in rows),
-			"avg_retention_pct": round(
-				sum(r["retention_pct"] for r in rows) / len(rows), 1
-			)
-			if rows
-			else 0,
+			"vehicles": retention.get("denominator") or sum(r["total"] for r in rows),
+			"retained": retention.get("numerator") or sum(r["retained"] for r in rows),
+			"avg_retention_pct": retention.get("value") or (
+				round(sum(r["retention_pct"] for r in rows) / len(rows), 1) if rows else 0
+			),
+			"service_retention_pct": retention.get("value") or 0,
 		},
 		[
 			col("cohort", "Cohort (month)"),
@@ -625,19 +655,23 @@ def _service_retention_cohort_report(filters=None):
 		],
 		rows,
 		help_text=help_text,
+		definitions={
+			"service_retention_pct": "Eligible vehicles returning / eligible vehicles due × 100",
+		},
 	)
 
 
 def _lapsed_recovery_report(filters=None):
 	f = parse_crm_filters(filters)
 	help_text = _(
-		"Lapsed Service Due records and recovery actions (reminders / activities in period). "
-		"Recovered = classification moved off Lapsed or service_appointment set."
+		"Appendix B: Recovered customers / lapsed customers targeted × 100. "
+		"Recovered = classification Recovered (or Lapsed with a service appointment). "
+		"Targeted = lapsed/recovered records that were reminded."
 	)
 	rows = []
 	if dt_exists(SERVICE_DUE):
 		meta = frappe.get_meta(SERVICE_DUE)
-		filt = {"classification": "Lapsed"}
+		filt = {"classification": ["in", ["Lapsed", "Recovered"]]}
 		_branch_filter(f, meta, filt)
 		fields = _fields_present(
 			SERVICE_DUE,
@@ -649,6 +683,7 @@ def _lapsed_recovery_report(filters=None):
 				"branch",
 				"model",
 				"status",
+				"classification",
 				"service_appointment",
 				"last_reminder_on",
 				"last_reminder_step",
@@ -670,7 +705,9 @@ def _lapsed_recovery_report(filters=None):
 				reminder_by_due.setdefault(rem.service_due, []).append(rem)
 		for r in lapsed:
 			rems = reminder_by_due.get(r.name) or []
-			recovered = bool(r.get("service_appointment"))
+			recovered = (r.get("classification") or "") == "Recovered" or bool(
+				r.get("service_appointment")
+			)
 			rows.append(
 				{
 					"name": r.name,
@@ -687,7 +724,11 @@ def _lapsed_recovery_report(filters=None):
 					"_drill": {"view": "crm-service-due-detail", "params": {"name": r.name}},
 				}
 			)
-	recovered_n = sum(1 for r in rows if r["recovered"] == "Yes")
+	from dms.crm_api.reports.kpis import compute_appendix_b_kpis
+
+	pack = compute_appendix_b_kpis(filters)
+	kpi = next((k for k in pack["kpis"] if k["id"] == "lapsed_recovery_rate_pct"), {})
+	recovered_n = kpi.get("numerator") or sum(1 for r in rows if r["recovered"] == "Yes")
 	return result(
 		"crm_lapsed_recovery",
 		_("Lapsed Customer Recovery"),
@@ -696,7 +737,9 @@ def _lapsed_recovery_report(filters=None):
 			"total": len(rows),
 			"with_reminders": sum(1 for r in rows if r["reminders"]),
 			"recovered": recovered_n,
-			"recovery_pct": round(100.0 * recovered_n / len(rows), 1) if rows else 0,
+			"targeted": kpi.get("denominator") or len(rows),
+			"recovery_pct": kpi.get("value") or 0,
+			"lapsed_recovery_rate_pct": kpi.get("value") or 0,
 		},
 		[
 			col("name", "Service Due"),
@@ -939,9 +982,12 @@ def _csat_nps_report(filters=None):
 
 def _complaint_aging_report(filters=None):
 	f = parse_crm_filters(filters)
+	pack = compute_appendix_b_kpis(filters)
+	sla = next((k for k in pack["kpis"] if k["id"] == "complaint_sla_compliance_pct"), {})
+	fcr = next((k for k in pack["kpis"] if k["id"] == "first_contact_resolution_pct"), {})
 	help_text = _(
-		"Open Cases aged from opened_on/creation. SLA breach when sla_breached / "
-		"response_breached / resolution_breached is set."
+		"Appendix B Complaint SLA = cases resolved within SLA / resolved cases × 100. "
+		"Table lists open Cases aged from opened_on/creation for operational follow-up."
 	)
 	rows = []
 	today = getdate(nowdate())
@@ -1003,6 +1049,10 @@ def _complaint_aging_report(filters=None):
 			"total": len(rows),
 			"breached": sum(1 for r in rows if r["sla_breached"] == "Yes"),
 			"avg_age_days": round(sum(r["age_days"] for r in rows) / len(rows), 1) if rows else 0,
+			"complaint_sla_compliance_pct": sla.get("value") or 0,
+			"first_contact_resolution_pct": fcr.get("value") or 0,
+			"resolved_within_sla": sla.get("numerator") or 0,
+			"resolved_cases": sla.get("denominator") or 0,
 			"by_age_bucket": group_count(rows, "age_bucket"),
 			"by_priority": group_count(rows, "priority"),
 		},
@@ -1020,6 +1070,10 @@ def _complaint_aging_report(filters=None):
 		],
 		rows,
 		help_text=help_text,
+		definitions={
+			"complaint_sla_compliance_pct": "Resolved within SLA / resolved cases × 100",
+			"first_contact_resolution_pct": "Resolved without escalation / total cases × 100",
+		},
 	)
 
 

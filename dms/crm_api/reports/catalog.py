@@ -14,6 +14,11 @@ def report_catalog():
 			"icon": "gauge",
 			"reports": [
 				{
+					"id": "crm_appendix_b_kpis",
+					"title": _("Appendix B KPIs"),
+					"description": _("Recommended KPI formulas: response, conversion, retention, SLA and ROI."),
+				},
+				{
 					"id": "crm_exec_pipeline",
 					"title": _("Pipeline & Lead SLA"),
 					"description": _("New leads, response SLA, qualified leads and open pipeline."),
@@ -46,7 +51,7 @@ def report_catalog():
 				{
 					"id": "crm_exec_complaints",
 					"title": _("Complaints Overview"),
-					"description": _("Open complaints, SLA breaches and resolution satisfaction."),
+					"description": _("Open complaints, SLA compliance and first-contact resolution."),
 				},
 				{
 					"id": "crm_exec_campaigns",
@@ -67,13 +72,15 @@ def report_catalog():
 			"icon": "handshake",
 			"reports": [
 				{"id": "crm_lead_source", "title": _("Lead Source Performance"), "description": _("Leads and conversion by source.")},
-				{"id": "crm_lead_response", "title": _("Lead Response Time"), "description": _("First response SLA and average response hours.")},
+				{"id": "crm_lead_response", "title": _("Lead Response Time"), "description": _("First meaningful response − lead creation.")},
+				{"id": "crm_lead_contact_rate", "title": _("Lead Contact Rate"), "description": _("Contacted leads / assigned leads.")},
+				{"id": "crm_qualification_rate", "title": _("Qualification Rate"), "description": _("Qualified leads / contacted leads.")},
 				{"id": "crm_lead_aging", "title": _("Lead Aging & Stale"), "description": _("Open leads by age bucket.")},
 				{"id": "crm_sales_funnel", "title": _("Sales Funnel Conversion"), "description": _("Stage-to-stage conversion.")},
 				{"id": "crm_opportunity_pipeline", "title": _("Opportunity Pipeline & Forecast"), "description": _("Open pipeline with weighted forecast.")},
 				{"id": "crm_salesperson_performance", "title": _("Salesperson Performance"), "description": _("Leads, opportunities, wins and cycle by owner.")},
-				{"id": "crm_test_drive_conversion", "title": _("Test-Drive Conversion"), "description": _("Test drives to opportunity / booking.")},
-				{"id": "crm_quotation_conversion", "title": _("Quotation Conversion"), "description": _("Quotations to booking / won.")},
+				{"id": "crm_test_drive_conversion", "title": _("Test-Drive Conversion"), "description": _("Won sales from completed test drives / completed test drives.")},
+				{"id": "crm_quotation_conversion", "title": _("Quotation Conversion"), "description": _("Won opportunities / quotations issued.")},
 				{"id": "crm_lost_opportunity", "title": _("Lost Opportunity Analysis"), "description": _("Lost deals by reason and stage.")},
 				{"id": "crm_discount_approval", "title": _("Discount & Approval"), "description": _("Approval requests for discounts and exceptions.")},
 				{"id": "crm_booking_cancellation", "title": _("Booking & Cancellation"), "description": _("Bookings created vs cancelled.")},
@@ -90,14 +97,14 @@ def report_catalog():
 			"icon": "wrench",
 			"reports": [
 				{"id": "crm_service_due", "title": _("Service Due & Overdue"), "description": _("Due, overdue and lapsed service.")},
-				{"id": "crm_reminder_conversion", "title": _("Reminder → Booking"), "description": _("Reminder contact and booking conversion.")},
+				{"id": "crm_reminder_conversion", "title": _("Reminder → Booking"), "description": _("Appointments booked / customers successfully contacted.")},
 				{"id": "crm_appointment_capacity", "title": _("Appointment Capacity"), "description": _("Capacity, cancellation and no-show.")},
 				{"id": "crm_workshop_followup", "title": _("Workshop Follow-Up"), "description": _("Post-workshop customer follow-up.")},
 				{"id": "crm_service_retention_cohort", "title": _("Service Retention Cohort"), "description": _("Retention by cohort / model / branch.")},
 				{"id": "crm_lapsed_recovery", "title": _("Lapsed Customer Recovery"), "description": _("Lapsed customers and recovery actions.")},
 				{"id": "crm_deferred_work", "title": _("Deferred-Work Conversion"), "description": _("Deferred work quoted vs converted.")},
 				{"id": "crm_csat_nps", "title": _("CSAT / NPS / CSI"), "description": _("Customer satisfaction scores.")},
-				{"id": "crm_complaint_aging", "title": _("Complaint Aging & SLA"), "description": _("Case aging and SLA breach.")},
+				{"id": "crm_complaint_aging", "title": _("Complaint Aging & SLA"), "description": _("Resolved within SLA / resolved cases; open-case aging.")},
 				{"id": "crm_repeat_complaint", "title": _("Repeat Complaint / Comeback"), "description": _("Repeat complaints and comeback trend.")},
 				{"id": "crm_next_service_at_delivery", "title": _("Next-Service at Delivery"), "description": _("Next service booked at delivery.")},
 				{"id": "crm_fleet_maintenance", "title": _("Fleet Maintenance Compliance"), "description": _("Fleet units due / overdue.")},

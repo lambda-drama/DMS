@@ -87,32 +87,30 @@ fixtures = [
         ]
     },
 
-    {
-        "doctype": "Vehicle Service Type"
-    },
+    # {
+    #     "doctype": "Vehicle Service Type"
+    # },
 
     {
         "doctype": "QC Checklist Template"
     },
 
-    {
-        "doctype": "QC Checklist Item Master"
-    },
-    {
-        "doctype": "Road Test Template"
-    },
-    {
-        "doctype": "Delivery Checklist Template"
-    },
+    # {
+    #     "doctype": "QC Checklist Item Master"
+    # },
+    # {
+    #     "doctype": "Road Test Template"
+    # },
+    
     {
         "doctype": "Bay Type"
     },
     {
         "doctype":"Working Time"
     },
-    {
-       "doctype": "Delivery Checklist Template"
-    },
+    # {
+    #    "doctype": "Delivery Checklist Template"
+    # },
     {
         "doctype": "Print Format",
         "filters": [

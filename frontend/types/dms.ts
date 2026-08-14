@@ -26,6 +26,9 @@ export type Priority =
 
 export type AppointmentStatus = 
   | 'Draft'
+  | 'Requested'
+  | 'Scheduled'
+  | 'Confirmed'
   | 'Booked' 
   | 'Reminder Sent' 
   | 'Arrived' 
@@ -633,6 +636,7 @@ export interface JobCardQCResult {
   name?: string;
   check_item_text?: string;
   category?: string;
+  section_classification?: string;
   is_mandatory?: number | boolean;
   requires_photo?: number | boolean;
   requires_measurement?: number | boolean;

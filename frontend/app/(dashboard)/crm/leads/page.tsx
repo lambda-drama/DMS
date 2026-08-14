@@ -73,9 +73,11 @@ export default function CrmLeadsPage() {
               <option value="Contact Attempted">Contact Attempted</option>
               <option value="Contacted">Contacted</option>
               <option value="Qualified">Qualified</option>
+              <option value="Disqualified">Disqualified</option>
               <option value="Converted">Converted</option>
               <option value="Nurture">Nurture</option>
-              <option value="Disqualified">Disqualified</option>
+              <option value="Duplicate">Duplicate</option>
+              <option value="Invalid">Invalid</option>
             </select>
           </div>
         </CardHeader>

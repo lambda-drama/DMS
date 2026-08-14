@@ -30,6 +30,9 @@ import type { JobCardStatus } from '@/types/dms';
 
 function getAppointmentStatusColor(status: string) {
   const colors: Record<string, string> = {
+    Requested: 'bg-sky-500/10 text-sky-800 border-sky-500/20',
+    Scheduled: 'bg-chart-3/10 text-chart-3 border-chart-3/20',
+    Confirmed: 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20',
     Booked: 'bg-chart-3/10 text-chart-3 border-chart-3/20',
     'Reminder Sent': 'bg-chart-3/10 text-chart-3 border-chart-3/20',
     Arrived: 'bg-chart-1/10 text-chart-1 border-chart-1/20',

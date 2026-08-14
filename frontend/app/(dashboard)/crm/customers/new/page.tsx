@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
+import { CrmTerritoryLink } from '@/components/crm/crm-territory-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Loader2 } from 'lucide-react';
@@ -64,10 +65,6 @@ export default function CrmCustomerNewPage() {
   );
   const groupOptions = useMemo(
     () => (options?.customer_groups || []).map((g) => ({ value: g, label: g })),
-    [options]
-  );
-  const territoryOptions = useMemo(
-    () => (options?.territories || []).map((t) => ({ value: t, label: t })),
     [options]
   );
   const countryOptions = useMemo(
@@ -211,12 +208,9 @@ export default function CrmCustomerNewPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Territory</label>
-            <SearchableSelect
-              options={territoryOptions}
+            <CrmTerritoryLink
               value={form.territory}
               onValueChange={(v) => set('territory', v)}
-              placeholder="Search territory…"
-              isLoading={optionsLoading}
             />
           </div>
           <div className="space-y-2">

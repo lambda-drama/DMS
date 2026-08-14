@@ -466,6 +466,7 @@ function populate_qc_results_from_template(frm, opts = {}) {
                 const row = frm.add_child("qc_results");
                 row.check_item_text = text || "";
                 row.category = item.category;
+                row.section_classification = item.section_classification || "";
                 row.is_mandatory = item.is_mandatory;
                 row.requires_photo = item.requires_photo;
                 row.requires_measurement = item.requires_measurement;

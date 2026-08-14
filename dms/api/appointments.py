@@ -13,7 +13,20 @@ _TERMINAL_STATUSES = frozenset({
 _ARRIVED_STATUSES = frozenset({
 	"Arrived", "In Inspection", "In Workshop", "Ready for Pickup", "Completed",
 })
-_REMINDER_STATUSES = frozenset({"Booked", "Rescheduled"})
+_PRE_ARRIVAL_STATUSES = frozenset({
+	"Requested", "Scheduled", "Confirmed", "Booked", "Reminder Sent", "Rescheduled",
+})
+_REMINDER_STATUSES = frozenset({
+	"Requested", "Scheduled", "Confirmed", "Booked", "Rescheduled",
+})
+
+
+def _apply_confirm_status(doc):
+	"""Map to Appendix A Confirmed when already requested/scheduled; keep Booked for drafts."""
+	if doc.status in ("Draft", None, ""):
+		doc.status = "Booked"
+	elif doc.status in ("Requested", "Scheduled"):
+		doc.status = "Confirmed"
 
 
 def _append_status_history(doc, message):
@@ -287,8 +300,7 @@ def create_appointment(data):
 
 	if confirm:
 		doc.check_permission("submit")
-		if doc.status == "Draft":
-			doc.status = "Booked"
+		_apply_confirm_status(doc)
 		doc.customer_confirmed = "Confirmed"
 		doc.confirmation_sent = 1
 		doc.confirmation_sent_datetime = now_datetime()
@@ -360,8 +372,7 @@ def confirm_appointment(name):
 		frappe.throw(_("Cannot confirm a {0} appointment").format(doc.status))
 
 	doc.check_permission("submit")
-	if doc.status == "Draft":
-		doc.status = "Booked"
+	_apply_confirm_status(doc)
 	doc.customer_confirmed = "Confirmed"
 	doc.confirmation_sent = 1
 	doc.confirmation_sent_datetime = now_datetime()
@@ -441,7 +452,7 @@ def mark_arrived(name):
 		frappe.throw(_("Cannot mark a {0} appointment as arrived").format(doc.status))
 	if doc.status in _ARRIVED_STATUSES:
 		frappe.throw(_("Appointment is already marked as arrived"))
-	if doc.status not in ("Booked", "Reminder Sent", "Rescheduled"):
+	if doc.status not in _PRE_ARRIVAL_STATUSES:
 		frappe.throw(_("Cannot mark as arrived from status {0}").format(doc.status))
 
 	doc.check_permission("write")

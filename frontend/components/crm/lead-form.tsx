@@ -7,10 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchableSelect } from '@/components/searchable-select';
+import { CrmBrandLink } from '@/components/crm/crm-brand-link';
+import { CrmColorLink } from '@/components/crm/crm-color-link';
 import {
   fetchCrmBranches,
-  fetchCrmBrands,
-  fetchCrmColors,
   fetchCrmCompanyCurrency,
   fetchCrmVehicleModels,
   type LeadFormOptions,
@@ -306,26 +306,14 @@ type Props = {
 };
 
 export function LeadFormSections({ form, setForm, options, showStatus, readOnlyMeta }: Props) {
-  const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
-  const [colorSearch, setColorSearch] = useState('');
 
   const { data: branches } = useSWR(['crm-branches', form.company], () =>
     fetchCrmBranches(form.company),
   );
-  const { data: brands, isLoading: brandsLoading } = useSWR(
-    ['crm-brands', brandSearch],
-    () => fetchCrmBrands(brandSearch),
-    { keepPreviousData: true },
-  );
   const { data: models, isLoading: modelsLoading } = useSWR(
     ['crm-vehicle-models', modelSearch, form.brand],
     () => fetchCrmVehicleModels(modelSearch, form.brand || undefined),
-    { keepPreviousData: true },
-  );
-  const { data: colors, isLoading: colorsLoading } = useSWR(
-    ['crm-colors', colorSearch],
-    () => fetchCrmColors(colorSearch),
     { keepPreviousData: true },
   );
   const { data: companyCurrency } = useSWR(
@@ -536,17 +524,7 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div>
                 <FieldLabel>Brand</FieldLabel>
-                <SearchableSelect
-                  options={(brands || []).map((b) => ({
-                    value: b.name,
-                    label: b.label || b.name,
-                  }))}
-                  value={form.brand}
-                  onValueChange={(v) => onBrandChange(v || '')}
-                  onSearchChange={setBrandSearch}
-                  placeholder="Search brand…"
-                  isLoading={brandsLoading}
-                />
+                <CrmBrandLink value={form.brand} onValueChange={onBrandChange} />
               </div>
               <div>
                 <FieldLabel>Model</FieldLabel>
@@ -592,18 +570,12 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
               </div>
               <div>
                 <FieldLabel>Preferred Color</FieldLabel>
-                <SearchableSelect
-                  options={(colors || []).map((c) => ({
-                    value: c.name,
-                    label: c.label || c.name,
-                  }))}
+                <CrmColorLink
                   value={form.preferred_color}
-                  onValueChange={(v) => set('preferred_color', v || '')}
-                  onSearchChange={setColorSearch}
-                  placeholder="Search color…"
-                  isLoading={colorsLoading}
+                  onValueChange={(v) => set('preferred_color', v)}
                 />
-              </div>              <div>
+              </div>
+              <div>
                 <FieldLabel>Intended Use</FieldLabel>
                 <Input value={form.intended_use} onChange={(e) => set('intended_use', e.target.value)} />
               </div>

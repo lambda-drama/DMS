@@ -84,7 +84,9 @@ function canConfirmAppointment(apt: ServiceAppointment) {
 function canMarkArrived(apt: ServiceAppointment) {
   return (
     normalizeDocstatus(apt.docstatus) === 1 &&
-    ['Booked', 'Reminder Sent', 'Rescheduled'].includes(apt.status)
+    ['Requested', 'Scheduled', 'Confirmed', 'Booked', 'Reminder Sent', 'Rescheduled'].includes(
+      apt.status
+    )
   );
 }
 
@@ -103,6 +105,9 @@ function canCancel(apt: ServiceAppointment) {
 function getStatusConfig(status: AppointmentStatus | string | undefined) {
   const configs: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
     'Draft': { color: 'bg-muted text-muted-foreground border-muted-foreground/20', icon: Clock },
+    'Requested': { color: 'bg-sky-500/10 text-sky-800 border-sky-500/20', icon: Calendar },
+    'Scheduled': { color: 'bg-chart-1/10 text-chart-1 border-chart-1/20', icon: Calendar },
+    'Confirmed': { color: 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20', icon: CheckCircle2 },
     'Booked': { color: 'bg-chart-1/10 text-chart-1 border-chart-1/20', icon: Calendar },
     'Reminder Sent': { color: 'bg-chart-4/10 text-chart-4 border-chart-4/20', icon: Clock },
     'Arrived': { color: 'bg-chart-3/10 text-chart-3 border-chart-3/20', icon: CheckCircle2 },
@@ -210,7 +215,11 @@ export default function AppointmentsPage() {
   const pendingCount = (appointments || []).filter(
     (apt) =>
       normalizeDocstatus(apt.docstatus) === 0 &&
-      (apt.status === 'Draft' || apt.status === 'Booked')
+      (apt.status === 'Draft' ||
+        apt.status === 'Requested' ||
+        apt.status === 'Scheduled' ||
+        apt.status === 'Confirmed' ||
+        apt.status === 'Booked')
   ).length;
 
   const handleConfirm = async () => {
@@ -356,12 +365,19 @@ export default function AppointmentsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Requested">Requested</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="Confirmed">Confirmed</SelectItem>
                   <SelectItem value="Booked">Booked</SelectItem>
+                  <SelectItem value="Reminder Sent">Reminder Sent</SelectItem>
                   <SelectItem value="Arrived">Arrived</SelectItem>
                   <SelectItem value="In Inspection">In Inspection</SelectItem>
+                  <SelectItem value="In Workshop">In Workshop</SelectItem>
+                  <SelectItem value="Ready for Pickup">Ready for Pickup</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="No-Show">No-Show</SelectItem>
+                  <SelectItem value="Rescheduled">Rescheduled</SelectItem>
                   <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  <SelectItem value="No-Show">No-Show</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>

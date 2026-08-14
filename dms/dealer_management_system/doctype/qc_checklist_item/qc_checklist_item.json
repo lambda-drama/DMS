@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-05-08 01:27:25.369963",
+ "creation": "2026-08-14 16:51:01.189689",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -11,6 +11,7 @@
   "is_mandatory",
   "requires_photo",
   "requires_measurement",
+  "section_classification",
   "column_break_cbdn",
   "measurement_unit",
   "min_value",
@@ -116,13 +117,19 @@
   {
    "fieldname": "section_break_lqgf",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_classification",
+   "fieldtype": "Select",
+   "label": "Section Classification",
+   "options": "\nJob Card Documentation\nVehicle Conditions\nVisual Inspection at the Lift\nVisual Inspection-Engine Compartment\nVisual Inspection During the Drive"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-09 21:17:39.456423",
+ "modified": "2026-08-14 18:27:05.322545",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "QC Checklist Item",

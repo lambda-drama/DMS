@@ -37,8 +37,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Deal",
-   "options": "DMS CRM Opportunity",
-   "reqd": 1
+   "options": "DMS CRM Opportunity"
   },
   {
    "fieldname": "customer",
@@ -72,7 +71,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Scheduled\nConfirmed\nCompleted\nNo-Show\nCancelled\nRescheduled",
+   "options": "Requested\nScheduled\nConfirmed\nArrived\nCompleted\nRescheduled\nCancelled\nNo-Show",
    "reqd": 1
   },
   {
@@ -134,7 +133,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 0,
  "links": [],
- "modified": "2026-07-31 16:55:00.000000",
+ "modified": "2026-08-14 16:37:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Sales Appointment",
@@ -168,6 +167,6 @@
  "sort_field": "appointment_datetime",
  "sort_order": "DESC",
  "states": [],
- "title_field": "opportunity",
+ "title_field": "customer",
  "track_changes": 1
 }

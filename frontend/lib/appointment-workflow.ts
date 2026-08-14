@@ -8,7 +8,13 @@ const ARRIVED_STATUSES = new Set([
   'Ready for Pickup',
   'Completed',
 ]);
-const REMINDER_STATUSES = new Set(['Booked', 'Rescheduled']);
+const REMINDER_STATUSES = new Set([
+  'Requested',
+  'Scheduled',
+  'Confirmed',
+  'Booked',
+  'Rescheduled',
+]);
 
 export function normalizeDocstatus(docstatus?: number | string | null): number {
   const n = Number(docstatus);

@@ -84,7 +84,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Classification",
-   "options": "Upcoming\nDue\nOverdue\nSeverely Overdue\nLapsed\nInactive"
+   "options": "Upcoming\nDue\nOverdue\nSeverely Overdue\nLapsed\nRecovered\nInactive\nVehicle Sold\nUnreachable"
   },
   {
    "default": "Open",

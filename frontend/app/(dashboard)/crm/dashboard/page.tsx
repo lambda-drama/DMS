@@ -121,7 +121,7 @@ export default function CrmDashboardPage() {
 
   const summary = [
     {
-      label: 'Contacts',
+      label: 'Masters',
       value: stats?.contacts ?? 0,
       icon: Users,
       tone: 'bg-primary/10 text-foreground',
@@ -190,6 +190,9 @@ export default function CrmDashboardPage() {
           <Button variant="outline" onClick={() => navigate('crm-opportunity-new')}>
             New Deal
           </Button>
+          <Button variant="outline" onClick={() => navigate('crm-sales-appointment-new')}>
+            New Appointment
+          </Button>
         </div>
       </div>
 
@@ -252,6 +255,59 @@ export default function CrmDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {stats?.appendix_b ? (
+        <Card className="border-border/70 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-base font-medium">Appendix B KPIs</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-foreground"
+              onClick={() =>
+                navigate('crm-reports', { section: 'crm_executive', report: 'crm_appendix_b_kpis' })
+              }
+            >
+              Formulas <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {(
+                [
+                  ['lead_response_hours', 'Lead response (h)'],
+                  ['lead_contact_rate_pct', 'Contact rate'],
+                  ['qualification_rate_pct', 'Qualification rate'],
+                  ['lead_to_sale_pct', 'Lead-to-sale'],
+                  ['test_drive_conversion_pct', 'Test-drive conversion'],
+                  ['quotation_conversion_pct', 'Quotation conversion'],
+                  ['avg_sales_cycle_days', 'Avg sales cycle (d)'],
+                  ['weighted_pipeline', 'Weighted pipeline'],
+                  ['appointment_show_rate_pct', 'Appointment show rate'],
+                  ['service_retention_pct', 'Service retention'],
+                  ['reminder_booking_rate_pct', 'Reminder booking'],
+                  ['lapsed_recovery_rate_pct', 'Lapsed recovery'],
+                  ['complaint_sla_compliance_pct', 'Complaint SLA'],
+                  ['first_contact_resolution_pct', 'First-contact resolution'],
+                  ['campaign_roi_pct', 'Campaign ROI'],
+                  ['customer_lifetime_value', 'Customer LTV'],
+                ] as const
+              ).map(([key, label]) => {
+                const raw = Number((stats.appendix_b as Record<string, number>)[key] ?? 0);
+                const display = key.includes('pct')
+                  ? `${raw.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`
+                  : raw.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                return (
+                  <div key={key} className="rounded-lg border border-border/60 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className="text-lg font-semibold tracking-tight">{display}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {summary.map((item) => (
