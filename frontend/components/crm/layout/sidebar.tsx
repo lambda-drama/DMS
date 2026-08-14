@@ -70,6 +70,7 @@ const navigation: NavSection[] = [
       { name: 'Deals', view: 'crm-opportunities', icon: Handshake },
       { name: 'Appointments', view: 'crm-sales-appointments', icon: CalendarDays },
       { name: 'Bookings', view: 'crm-bookings', icon: FileText },
+      { name: 'Quotations', view: 'crm-quotations', icon: FileText },
       { name: 'Test Drives', view: 'crm-test-drives', icon: Gauge },
       { name: 'Delivery Readiness', view: 'crm-delivery-readiness', icon: ClipboardCheck },
       { name: 'Approvals', view: 'crm-approvals', icon: ClipboardCheck },

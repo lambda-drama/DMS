@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import {
   createQuotationFromOpportunity,
-  fetchTestVehicleOptions,
   getTestDrive,
   updateTestDrive,
 } from '@/services/crm';
@@ -14,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SearchableSelect } from '@/components/searchable-select';
+import { CrmVinLink } from '@/components/crm/crm-vin-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -37,12 +36,6 @@ export default function CrmTestDriveDetailPage() {
   const [saving, setSaving] = useState(false);
   const [creatingQuotation, setCreatingQuotation] = useState(false);
   const { error, success, showError, showSuccess, clear } = useCrmFeedback();
-  const [vehicleSearch, setVehicleSearch] = useState('');
-  const { data: vehicles, isLoading: vehiclesLoading } = useSWR(
-    ['crm-test-drive-vins', vehicleSearch, form.company],
-    () => fetchTestVehicleOptions(vehicleSearch, String(form.company || '') || undefined),
-    { keepPreviousData: true }
-  );
 
   useEffect(() => {
     if (data) setForm(data as Record<string, unknown>);
@@ -56,11 +49,35 @@ export default function CrmTestDriveDetailPage() {
     set('checklist', next);
   };
 
+  // When every mandatory checklist row is done + outcome/VIN exist, flip Status to Completed
+  // so the Deal next-step button advances past "Complete Test Drive Checklist".
+  useEffect(() => {
+    const status = String(form.status || '');
+    if (['Completed', 'Failed', 'No-Show', 'Cancelled'].includes(status)) return;
+    if (!checklist.length) return;
+    const ready = checklist.every(
+      (row) =>
+        !row.is_mandatory ||
+        (Boolean(row.is_completed) &&
+          row.result &&
+          row.result !== 'Pending' &&
+          row.result !== 'Fail')
+    );
+    if (!ready) return;
+    if (!String(form.outcome || '').trim() || !String(form.vehicle_vin || '').trim()) return;
+    setForm((prev) => ({
+      ...prev,
+      status: 'Completed',
+      id_verified: 1,
+      customer_consent: 1,
+    }));
+  }, [checklist, form.outcome, form.vehicle_vin, form.status]);
+
   const onSave = async () => {
     setSaving(true);
     clear();
     try {
-      await updateTestDrive(id, {
+      const saved = await updateTestDrive(id, {
         scheduled_datetime: form.scheduled_datetime,
         status: form.status,
         vehicle_vin: form.vehicle_vin,
@@ -88,7 +105,12 @@ export default function CrmTestDriveDetailPage() {
         checklist,
       });
       await mutate();
-      showSuccess('Test Drive saved.');
+      const nextStatus = String((saved as { status?: string })?.status || form.status || '');
+      showSuccess(
+        nextStatus === 'Completed'
+          ? 'Test Drive completed. Deal can continue to Quotation.'
+          : 'Test Drive saved.'
+      );
     } catch (e: unknown) {
       showError(e, 'Failed to update Test Drive');
     } finally {
@@ -181,17 +203,10 @@ export default function CrmTestDriveDetailPage() {
             </select>
           </Field>
           <Field label="Test Vehicle VIN">
-            <SearchableSelect
-              options={(vehicles || []).map((vehicle: Record<string, unknown>) => ({
-                value: String(vehicle.name),
-                label: String(vehicle.vin_number || vehicle.name),
-                description: [vehicle.linked_item, vehicle.plate_number].filter(Boolean).join(' · '),
-              }))}
+            <CrmVinLink
               value={String(form.vehicle_vin || '')}
               onValueChange={(value) => set('vehicle_vin', value || '')}
-              onSearchChange={setVehicleSearch}
-              isLoading={vehiclesLoading}
-              placeholder="Search VIN or vehicle…"
+              customer={String(form.customer || '') || undefined}
             />
           </Field>
           <Field label="Driver Name">
@@ -286,9 +301,17 @@ export default function CrmTestDriveDetailPage() {
                 <input
                   type="checkbox"
                   checked={Boolean(row.is_completed)}
-                  onChange={(event) =>
-                    updateRow(index, { is_completed: event.target.checked ? 1 : 0 })
-                  }
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    updateRow(index, {
+                      is_completed: checked ? 1 : 0,
+                      result: checked
+                        ? row.result === 'Pending' || !row.result
+                          ? 'Pass'
+                          : row.result
+                        : 'Pending',
+                    });
+                  }}
                 />
                 <span>
                   {row.check_item}

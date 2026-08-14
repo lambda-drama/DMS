@@ -253,6 +253,49 @@ def get_lead(name):
 		order_by="creation desc",
 		limit_page_length=100,
 	)
+	# Used by lead path UI — keep Contact Attempted / Contacted progress if calls exist
+	call_log_count = 0
+	completed_call_log_count = 0
+	if frappe.db.exists("DocType", "DMS CRM Call Log"):
+		call_log_count = frappe.db.count(
+			"DMS CRM Call Log",
+			filters={"reference_doctype": DOCTYPE, "reference_docname": doc.name},
+		)
+		completed_call_log_count = frappe.db.count(
+			"DMS CRM Call Log",
+			filters={
+				"reference_doctype": DOCTYPE,
+				"reference_docname": doc.name,
+				"status": "Completed",
+			},
+		)
+		if not call_log_count:
+			# Dynamic Link child table used by some call-log versions
+			try:
+				linked = frappe.db.sql(
+					"""
+					select count(distinct parent) from `tabDynamic Link`
+					where link_doctype=%s and link_name=%s and parenttype=%s
+					""",
+					(DOCTYPE, doc.name, "DMS CRM Call Log"),
+				)
+				call_log_count = int((linked[0][0] if linked else 0) or 0)
+				completed = frappe.db.sql(
+					"""
+					select count(distinct dl.parent)
+					from `tabDynamic Link` dl
+					inner join `tabDMS CRM Call Log` cl on cl.name = dl.parent
+					where dl.link_doctype=%s and dl.link_name=%s
+						and dl.parenttype=%s and cl.status=%s
+					""",
+					(DOCTYPE, doc.name, "DMS CRM Call Log", "Completed"),
+				)
+				completed_call_log_count = int((completed[0][0] if completed else 0) or 0)
+			except Exception:
+				call_log_count = 0
+				completed_call_log_count = 0
+	data["call_log_count"] = call_log_count
+	data["completed_call_log_count"] = completed_call_log_count
 	return data
 
 

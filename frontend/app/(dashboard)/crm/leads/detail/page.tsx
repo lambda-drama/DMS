@@ -18,6 +18,7 @@ import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { PipelinePath } from '@/components/crm/pipeline-path';
 import { NoteDialog } from '@/components/crm/note-task-dialogs';
+import { CallLogDialog } from '@/components/crm/call-log-dialog';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import {
   LeadFormSections,
@@ -26,7 +27,7 @@ import {
   leadPayload,
   type LeadFormState,
 } from '@/components/crm/lead-form';
-import { Loader2, MessageSquarePlus } from 'lucide-react';
+import { Loader2, MessageSquarePlus, PhoneCall } from 'lucide-react';
 
 const LEAD_PATH = ['New', 'Assigned', 'Contact Attempted', 'Contacted', 'Qualified', 'Converted'];
 
@@ -43,14 +44,34 @@ export default function CrmLeadDetailPage() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
   const [showConvert, setShowConvert] = useState(false);
+  const [callLogOpen, setCallLogOpen] = useState(false);
   const [conversionCustomer, setConversionCustomer] = useState('');
   const [createCustomer, setCreateCustomer] = useState(true);
+  /** Farthest pipeline stage reached — keeps Contact Attempted colored if user clicks Assigned. */
+  const [reachedStatus, setReachedStatus] = useState('New');
   const { error, success, showError, showSuccess, clear } = useCrmFeedback();
 
   useEffect(() => {
     if (data) {
       setForm(leadFromDoc(data as Record<string, unknown>));
       setConversionCustomer(String((data as Record<string, unknown>).customer || ''));
+      const saved = String((data as Record<string, unknown>).status || 'New');
+      const hasCalls = Number((data as Record<string, unknown>).call_log_count || 0) > 0;
+      const hasCompletedCalls =
+        Number((data as Record<string, unknown>).completed_call_log_count || 0) > 0;
+      setReachedStatus((prev) => {
+        let best = prev;
+        const fromCalls = hasCompletedCalls
+          ? 'Contacted'
+          : hasCalls
+            ? 'Contact Attempted'
+            : '';
+        for (const candidate of [saved, fromCalls]) {
+          if (!candidate) continue;
+          if (LEAD_PATH.indexOf(candidate) > LEAD_PATH.indexOf(best)) best = candidate;
+        }
+        return best;
+      });
     }
   }, [data]);
 
@@ -167,8 +188,28 @@ export default function CrmLeadDetailPage() {
           <PipelinePath
             stages={LEAD_PATH}
             current={currentStatus}
+            reached={reachedStatus}
             terminal={terminal}
-            onSelect={(status) => setForm((prev) => ({ ...prev, status }))}
+            onSelect={(status) => {
+              setForm((prev) => ({ ...prev, status }));
+              const idx = LEAD_PATH.indexOf(status);
+              const reachedIdx = LEAD_PATH.indexOf(reachedStatus);
+              if (idx > reachedIdx) setReachedStatus(status);
+            }}
+            trailing={
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0 rounded-full"
+                title="Log call"
+                aria-label="Log call"
+                onClick={() => setCallLogOpen(true)}
+                disabled={busy}
+              >
+                <PhoneCall className="h-4 w-4" />
+              </Button>
+            }
           />
           {!LEAD_PATH.includes(currentStatus) ? (
             <span className="inline-flex rounded-full bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
@@ -286,6 +327,16 @@ export default function CrmLeadDetailPage() {
           Save Changes
         </Button>
       </FormActionsBar>
+
+      <CallLogDialog
+        open={callLogOpen}
+        onOpenChange={setCallLogOpen}
+        leadName={id}
+        leadLabel={String(doc.lead_name || doc.name || 'Lead')}
+        leadMobile={String(doc.mobile_no || doc.phone || '')}
+        defaultCaller={String(doc.lead_owner || doc.owner || '')}
+        onSaved={() => void mutate()}
+      />
     </div>
   );
 }

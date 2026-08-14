@@ -8,6 +8,7 @@ from frappe import _
 
 from dms.crm_api.common import ensure_crm_read, paginate
 
+
 GATE = "DMS CRM Lead"
 
 
@@ -71,6 +72,39 @@ def get_contacts(search=None, limit=50, offset=0):
 		"limit": limit,
 		"offset": offset,
 	}
+
+
+@frappe.whitelist()
+def quick_create_contact(first_name=None, last_name=None, mobile_no=None, email_id=None, company_name=None):
+	"""Create an ERPNext Contact from a CRM link + button."""
+	ensure_crm_read(GATE)
+	frappe.has_permission("Contact", "create", throw=True)
+	first_name = (first_name or "").strip()
+	last_name = (last_name or "").strip()
+	mobile_no = (mobile_no or "").strip() or None
+	email_id = (email_id or "").strip() or None
+	company_name = (company_name or "").strip() or None
+	if not first_name and not last_name:
+		frappe.throw(_("First name or last name is required."))
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Contact",
+			"first_name": first_name or last_name,
+			"last_name": last_name if first_name else None,
+			"mobile_no": mobile_no,
+			"email_id": email_id,
+			"company_name": company_name,
+		}
+	)
+	if email_id:
+		doc.append("email_ids", {"email_id": email_id, "is_primary": 1})
+	if mobile_no:
+		doc.append("phone_nos", {"phone": mobile_no, "is_primary_mobile_no": 1})
+	doc.insert()
+	frappe.db.commit()
+	label = " ".join(p for p in [doc.first_name, doc.last_name] if p).strip() or doc.name
+	return {"name": doc.name, "label": label, "mobile": mobile_no or ""}
 
 
 @frappe.whitelist()

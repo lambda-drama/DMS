@@ -18,6 +18,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect } from '@/components/searchable-select';
 import { NoteDialog, TaskDialog } from '@/components/crm/note-task-dialogs';
+import { CrmLeadLink } from '@/components/crm/crm-lead-link';
+import { CrmContactLink } from '@/components/crm/crm-contact-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import {
   ArrowLeft,
@@ -74,8 +76,10 @@ export default function CrmCallLogDetailPage() {
       caller: String(call.caller || ''),
       receiver: String(call.receiver || ''),
       recording_url: String(call.recording_url || ''),
-      reference_doctype: String(call.reference_doctype || 'DMS CRM Lead'),
-      reference_docname: String(call.reference_docname || ''),
+      lead: String(call._lead || (call.reference_doctype === 'DMS CRM Lead' ? call.reference_docname : '') || ''),
+      lead_label: String(call._lead_label || ''),
+      contact: String(call._contact || (call.reference_doctype === 'Contact' ? call.reference_docname : '') || ''),
+      contact_label: String(call._contact_label || ''),
     });
     setEditing(true);
   }
@@ -86,10 +90,18 @@ export default function CrmCallLogDetailPage() {
     clear();
     try {
       await updateCallLog(id, {
-        ...form,
+        from: form.from,
+        to: form.to,
+        type: form.type,
+        status: form.status,
         duration: form.duration ? Number(form.duration) : 0,
         start_time: form.start_time || null,
         end_time: form.end_time || null,
+        caller: form.caller || null,
+        receiver: form.receiver || null,
+        recording_url: form.recording_url || null,
+        lead: form.lead || null,
+        contact: form.contact || null,
       });
       setEditing(false);
       await mutate();
@@ -302,9 +314,12 @@ export default function CrmCallLogDetailPage() {
                     className="text-primary underline-offset-2 hover:underline"
                     onClick={() => navigate('crm-lead-detail', { id: String(call._lead) })}
                   >
-                    {call._lead}
+                    {String(call._lead_label || call._lead)}
                   </button>
                 </DetailRow>
+              ) : null}
+              {call._contact ? (
+                <DetailRow label="Contact">{String(call._contact_label || call._contact)}</DetailRow>
               ) : null}
               {call._deal ? (
                 <DetailRow label="Deal">
@@ -315,7 +330,7 @@ export default function CrmCallLogDetailPage() {
                       navigate('crm-opportunity-detail', { id: String(call._deal) })
                     }
                   >
-                    {call._deal}
+                    {String(call._deal_label || call._deal)}
                   </button>
                 </DetailRow>
               ) : null}
@@ -383,19 +398,45 @@ export default function CrmCallLogDetailPage() {
                   onChange={(e) => setForm((p) => ({ ...p, end_time: e.target.value }))}
                 />
               </Field>
+              <Field label="Lead (optional)">
+                <CrmLeadLink
+                  value={form.lead || ''}
+                  valueLabel={form.lead_label}
+                  presetOptions={options?.leads}
+                  onValueChange={(v, label, meta) =>
+                    setForm((p) => ({
+                      ...p,
+                      lead: v || '',
+                      lead_label: label || '',
+                      contact: v ? '' : p.contact,
+                      contact_label: v ? '' : p.contact_label,
+                      to: meta?.mobile || p.to,
+                    }))
+                  }
+                  placeholder="Select a lead…"
+                />
+              </Field>
+              <Field label="Contact">
+                <CrmContactLink
+                  value={form.contact || ''}
+                  valueLabel={form.contact_label}
+                  onValueChange={(v, label, meta) =>
+                    setForm((p) => ({
+                      ...p,
+                      contact: v || '',
+                      contact_label: label || '',
+                      lead: v ? '' : p.lead,
+                      lead_label: v ? '' : p.lead_label,
+                      to: meta?.mobile || p.to,
+                    }))
+                  }
+                  placeholder="Or link a contact…"
+                />
+              </Field>
               <Field label="Recording URL">
                 <Input
                   value={form.recording_url}
                   onChange={(e) => setForm((p) => ({ ...p, recording_url: e.target.value }))}
-                />
-              </Field>
-              <Field label="Reference">
-                <Input
-                  value={form.reference_docname}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, reference_docname: e.target.value }))
-                  }
-                  placeholder="Lead / Deal name"
                 />
               </Field>
             </div>
