@@ -93,6 +93,190 @@ def _default_company():
 	return companies[0] if companies else None
 
 
+def _quotation_items_from_opportunity_or_vin(doc) -> tuple[list[dict], dict | None]:
+	"""Use explicit deal lines first, otherwise derive the sellable Item from its test-drive VIN."""
+	items = [
+		{
+			"item_code": row.item_code,
+			"item_name": row.item_name,
+			"description": row.description,
+			"qty": flt(row.qty) or 1,
+			"uom": row.uom,
+			"rate": flt(row.rate),
+			"discount_percentage": flt(row.discount_percentage),
+		}
+		for row in (doc.items or [])
+		if (row.item_code or "").strip()
+	]
+	if items:
+		return items, None
+
+	if not doc.test_drive or not frappe.db.exists("DMS CRM Test Drive", doc.test_drive):
+		frappe.throw(_("Add an Item to the deal, or complete a Test Drive with a VIN."))
+
+	vin_name = frappe.db.get_value("DMS CRM Test Drive", doc.test_drive, "vehicle_vin")
+	if not vin_name or not frappe.db.exists("VIN No", vin_name):
+		frappe.throw(_("The completed Test Drive has no VIN / stock unit selected."))
+
+	vin = frappe.db.get_value(
+		"VIN No",
+		vin_name,
+		["name", "vin_number", "linked_item", "model_name"],
+		as_dict=True,
+	)
+	item_code = (vin.linked_item or "").strip()
+	if not item_code or not frappe.db.exists("Item", item_code):
+		frappe.throw(
+			_(
+				"VIN / stock unit {0} has no valid ERPNext Item. Set Linked Item on the VIN record first."
+			).format(vin.vin_number or vin.name)
+		)
+
+	item = frappe.db.get_value(
+		"Item",
+		item_code,
+		["item_code", "item_name", "description", "stock_uom", "standard_rate"],
+		as_dict=True,
+	)
+	return (
+		[
+			{
+				"item_code": item.item_code or item_code,
+				"item_name": item.item_name or item_code,
+				"description": item.description,
+				"qty": 1,
+				"uom": item.stock_uom,
+				"rate": flt(item.standard_rate),
+				"discount_percentage": 0,
+			}
+		],
+		{
+			"name": vin.name,
+			"vin_number": vin.vin_number or vin.name,
+			"model_name": vin.model_name,
+			"linked_item": item.item_code or item_code,
+		},
+	)
+
+
+def _store_derived_vin_item(doc, items: list[dict], vin: dict | None):
+	"""Persist a VIN-derived item on the deal so downstream booking uses the same vehicle item."""
+	if not vin or doc.items:
+		return
+	for item in items:
+		doc.append(
+			"items",
+			{
+				"item_code": item["item_code"],
+				"item_name": item.get("item_name"),
+				"description": item.get("description"),
+				"qty": item.get("qty") or 1,
+				"uom": item.get("uom"),
+				"rate": item.get("rate") or 0,
+				"discount_percentage": item.get("discount_percentage") or 0,
+			},
+		)
+
+
+def _apply_dms_taxes_to_quotation(quotation, apply_taxes: bool):
+	"""Match DMS invoice behaviour: only DMS Settings tax template, never customer/company defaults."""
+	quotation.set("taxes", [])
+	quotation.taxes_and_charges = None
+	if quotation.meta.has_field("tax_category"):
+		quotation.tax_category = None
+	if quotation.meta.has_field("tax_withholding_category"):
+		quotation.tax_withholding_category = None
+	if quotation.meta.has_field("apply_tds"):
+		quotation.apply_tds = 0
+
+	# Stop AccountsController from re-applying company / customer / item templates
+	quotation.set_taxes_and_charges = lambda *args, **kwargs: None
+	quotation.set_taxes = lambda *args, **kwargs: None
+	if hasattr(quotation, "append_taxes_from_item_tax_template"):
+		quotation.append_taxes_from_item_tax_template = lambda *args, **kwargs: None
+
+	if not apply_taxes:
+		return None
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		get_dms_default_taxes_and_charges_template,
+	)
+	from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+	template = get_dms_default_taxes_and_charges_template(getattr(quotation, "company", None))
+	quotation.taxes_and_charges = template
+	for tax in get_taxes_and_charges("Sales Taxes and Charges Template", template) or []:
+		quotation.append("taxes", tax)
+	return template
+
+
+def _build_quotation_totals_preview(doc, items: list[dict], apply_taxes: bool) -> dict:
+	"""In-memory Quotation totals so the UI can show VAT before create."""
+	currency = doc.currency or frappe.db.get_value("Company", doc.company, "default_currency")
+	quotation = frappe.new_doc("Quotation")
+	quotation.quotation_to = "Customer"
+	quotation.party_name = doc.customer
+	quotation.company = doc.company
+	quotation.currency = currency
+	quotation.conversion_rate = 1
+	quotation.transaction_date = getdate(doc.transaction_date) or today()
+	quotation.order_type = "Sales"
+	for row in items:
+		quotation.append(
+			"items",
+			{
+				"item_code": row["item_code"],
+				"item_name": row.get("item_name"),
+				"description": row.get("description"),
+				"qty": flt(row.get("qty")) or 1,
+				"uom": row.get("uom"),
+				"rate": flt(row.get("rate")),
+				"discount_percentage": flt(row.get("discount_percentage")),
+			},
+		)
+
+	template = None
+	try:
+		quotation.run_method("set_missing_values")
+		# Apply / clear AFTER set_missing_values so customer/company defaults cannot stick.
+		template = _apply_dms_taxes_to_quotation(quotation, apply_taxes)
+		quotation.run_method("calculate_taxes_and_totals")
+	except Exception as e:
+		# Still return net if tax template is missing / misconfigured
+		net = sum(
+			(flt(r.get("qty")) or 1)
+			* flt(r.get("rate"))
+			* (1 - flt(r.get("discount_percentage")) / 100)
+			for r in items
+		)
+		return {
+			"currency": currency,
+			"net_total": net,
+			"total_taxes_and_charges": 0,
+			"grand_total": net,
+			"taxes_and_charges": None,
+			"apply_taxes": cint(apply_taxes),
+			"tax_error": str(e) if cint(apply_taxes) else None,
+		}
+
+	return {
+		"currency": currency,
+		"net_total": flt(quotation.net_total),
+		"total_taxes_and_charges": flt(quotation.total_taxes_and_charges),
+		"grand_total": flt(quotation.grand_total),
+		"taxes_and_charges": template or quotation.taxes_and_charges,
+		"apply_taxes": cint(apply_taxes),
+		"taxes": [
+			{
+				"description": row.description,
+				"rate": flt(row.rate),
+				"tax_amount": flt(row.tax_amount),
+			}
+			for row in (quotation.taxes or [])
+		],
+	}
+
+
 def _apply_payload(doc, payload: dict, *, allow_readonly=False):
 	allowed = {
 		df.fieldname
@@ -315,6 +499,48 @@ def update_opportunity(name, data=None):
 
 
 @frappe.whitelist()
+def get_quotation_preview(name, apply_taxes=0):
+	"""Show the VIN, ERPNext item and expected amount before creating a Quotation."""
+	ensure_crm_read(DOCTYPE)
+	if not name:
+		frappe.throw(_("Opportunity name is required."))
+	doc = frappe.get_doc(DOCTYPE, name)
+	items, vin = _quotation_items_from_opportunity_or_vin(doc)
+	rows = []
+	for row in items:
+		qty = flt(row.get("qty")) or 1
+		rate = flt(row.get("rate"))
+		discount = flt(row.get("discount_percentage"))
+		amount = qty * rate
+		rows.append(
+			{
+				**row,
+				"amount": amount,
+				"discount_amount": amount * discount / 100,
+				"net_amount": amount * (1 - discount / 100),
+			}
+		)
+	totals = _build_quotation_totals_preview(doc, items, cint(apply_taxes))
+	dms_tax_template = (
+		frappe.db.get_single_value("DMS Settings", "default_taxes_and_charges_template") or ""
+	)
+	return {
+		"currency": totals.get("currency"),
+		"vin": vin,
+		"items": rows,
+		"net_total": totals.get("net_total"),
+		"total_taxes_and_charges": totals.get("total_taxes_and_charges"),
+		"grand_total": totals.get("grand_total"),
+		"taxes_and_charges": totals.get("taxes_and_charges"),
+		"taxes": totals.get("taxes") or [],
+		"apply_taxes": cint(apply_taxes),
+		"tax_error": totals.get("tax_error"),
+		"dms_taxes_and_charges_template": dms_tax_template,
+		"source": "Test Drive VIN" if vin else "Deal items",
+	}
+
+
+@frappe.whitelist()
 def get_opportunity_form_options():
 	"""Stages, statuses, companies for CRM opportunity forms."""
 	ensure_crm_read(DOCTYPE)
@@ -456,12 +682,13 @@ def update_sales_appointment(name, data=None):
 
 
 @frappe.whitelist()
-def create_quotation_from_opportunity(name, mark_won=0, force=0):
+def create_quotation_from_opportunity(name, mark_won=0, force=0, apply_taxes=0):
 	"""Create a standard ERPNext Quotation from a DMS CRM Opportunity.
 
 	Allowed when stage is Won (or Negotiation / Booking / Quotation Submitted /
 	Order Confirmed), or when status is Won. Customer and Items are required.
 	Pass mark_won=1 to set stage/status to Won before creating.
+	Pass apply_taxes=1 to use DMS Settings Default Taxes and Charges Template.
 	"""
 	ensure_crm_write(DOCTYPE)
 	frappe.has_permission("Quotation", "create", throw=True)
@@ -473,6 +700,7 @@ def create_quotation_from_opportunity(name, mark_won=0, force=0):
 	doc = frappe.get_doc(DOCTYPE, name)
 	mark_won = cint(mark_won)
 	force = cint(force)
+	apply_taxes = cint(apply_taxes)
 
 	if mark_won:
 		frappe.msgprint(
@@ -557,38 +785,26 @@ def create_quotation_from_opportunity(name, mark_won=0, force=0):
 	if doc.contact_mobile:
 		quotation.contact_mobile = doc.contact_mobile
 
-	items = list(doc.items or [])
-	if not items:
-		frappe.throw(
-			_("Add at least one Item on the opportunity before creating a Quotation.")
-		)
+	items, vin = _quotation_items_from_opportunity_or_vin(doc)
+	_store_derived_vin_item(doc, items, vin)
 
 	for row in items:
 		quotation.append(
 			"items",
 			{
-				"item_code": row.item_code,
-				"item_name": row.item_name,
-				"description": row.description,
-				"qty": flt(row.qty) or 1,
-				"uom": row.uom,
-				"rate": flt(row.rate) or 0,
-				"discount_percentage": flt(row.discount_percentage) or 0,
+				"item_code": row["item_code"],
+				"item_name": row.get("item_name"),
+				"description": row.get("description"),
+				"qty": flt(row.get("qty")) or 1,
+				"uom": row.get("uom"),
+				"rate": flt(row.get("rate")),
+				"discount_percentage": flt(row.get("discount_percentage")),
 			},
 		)
 
-	try:
-		from erpnext.controllers.accounts_controller import get_default_taxes_and_charges
-
-		taxes = get_default_taxes_and_charges(
-			"Sales Taxes and Charges Template", company=quotation.company
-		)
-		if taxes.get("taxes"):
-			quotation.update(taxes)
-	except Exception:
-		pass
-
+	_apply_dms_taxes_to_quotation(quotation, False)
 	quotation.run_method("set_missing_values")
+	_apply_dms_taxes_to_quotation(quotation, apply_taxes)
 	quotation.run_method("calculate_taxes_and_totals")
 	quotation.insert()
 
@@ -679,6 +895,63 @@ def reissue_quotation(name, valid_till=None):
 	}
 
 
+def _crm_default_warehouse(company: str | None = None) -> str:
+	"""Warehouse from DMS CRM Settings for Sales Order / Invoice stock lines."""
+	warehouse = (frappe.db.get_single_value("DMS CRM Settings", "default_warehouse") or "").strip()
+	if not warehouse:
+		frappe.throw(
+			_(
+				"Set Default Warehouse on DMS CRM Settings before creating a Sales Order for stock items."
+			)
+		)
+	if not frappe.db.exists("Warehouse", warehouse):
+		frappe.throw(_("DMS CRM Settings Default Warehouse {0} was not found.").format(warehouse))
+	if company:
+		wh_company = frappe.db.get_value("Warehouse", warehouse, "company")
+		if wh_company and wh_company != company:
+			frappe.throw(
+				_("DMS CRM Settings Default Warehouse {0} belongs to company {1}, not {2}.").format(
+					warehouse, wh_company, company
+				)
+			)
+	return warehouse
+
+
+def _apply_crm_default_warehouse(order):
+	"""Fill missing warehouses on stock Sales Order / Invoice items from CRM Settings."""
+	needs_warehouse = False
+	for row in order.items or []:
+		if not row.item_code:
+			continue
+		is_stock = cint(frappe.db.get_value("Item", row.item_code, "is_stock_item"))
+		if not is_stock:
+			continue
+		if (getattr(row, "warehouse", None) or "").strip():
+			continue
+		needs_warehouse = True
+		break
+
+	if not needs_warehouse:
+		# Still set header default if present and empty
+		if order.meta.has_field("set_warehouse") and not (order.get("set_warehouse") or "").strip():
+			try:
+				order.set_warehouse = _crm_default_warehouse(order.company)
+			except Exception:
+				pass
+		return
+
+	warehouse = _crm_default_warehouse(order.company)
+	if order.meta.has_field("set_warehouse") and not (order.get("set_warehouse") or "").strip():
+		order.set_warehouse = warehouse
+	for row in order.items or []:
+		if not row.item_code:
+			continue
+		if not cint(frappe.db.get_value("Item", row.item_code, "is_stock_item")):
+			continue
+		if not (getattr(row, "warehouse", None) or "").strip():
+			row.warehouse = warehouse
+
+
 @frappe.whitelist()
 def create_sales_order_from_opportunity(name, booking_data=None):
 	"""Submit the linked quotation and create the draft booking Sales Order."""
@@ -709,6 +982,7 @@ def create_sales_order_from_opportunity(name, booking_data=None):
 	order.delivery_date = getdate(doc.expected_close_date) if doc.expected_close_date else add_days(today(), 7)
 	for row in order.items:
 		row.delivery_date = order.delivery_date
+	_apply_crm_default_warehouse(order)
 	order.insert()
 	vehicle_vin = booking_data.get("vehicle_vin") or frappe.db.get_value(
 		"DMS CRM Test Drive", doc.test_drive, "vehicle_vin"
@@ -842,6 +1116,7 @@ def create_sales_invoice_from_opportunity(name):
 				).format(invoice.currency, doc.company)
 			)
 		invoice.debit_to = matching_receivable
+	_apply_crm_default_warehouse(invoice)
 	# Only enable stock update when every stock item already has a warehouse.
 	stock_rows = [
 		row

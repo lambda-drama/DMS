@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { SearchableSelect } from '@/components/searchable-select';
+import { CrmLeadLink } from '@/components/crm/crm-lead-link';
+import { CrmContactLink } from '@/components/crm/crm-contact-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft } from 'lucide-react';
 
@@ -28,6 +30,9 @@ export default function CrmCallLogNewPage() {
     receiver: '',
     recording_url: '',
     lead: '',
+    lead_label: '',
+    contact: '',
+    contact_label: '',
     note_title: '',
     note_content: '',
   });
@@ -65,6 +70,7 @@ export default function CrmCallLogNewPage() {
         receiver: form.type === 'Incoming' ? form.receiver || null : null,
         recording_url: form.recording_url || null,
         lead: form.lead || null,
+        contact: form.contact || null,
         note_title: form.note_title || null,
         note_content: form.note_content || null,
         telephony_medium: 'Manual',
@@ -99,7 +105,42 @@ export default function CrmCallLogNewPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">New Call Log</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        <CardContent className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+          <Field label="Lead (optional)">
+            <CrmLeadLink
+              value={form.lead}
+              valueLabel={form.lead_label}
+              presetOptions={options?.leads}
+              onValueChange={(v, label, meta) => {
+                setForm((prev) => ({
+                  ...prev,
+                  lead: v || '',
+                  lead_label: label || '',
+                  contact: v ? '' : prev.contact,
+                  contact_label: v ? '' : prev.contact_label,
+                  to: meta?.mobile || prev.to,
+                }));
+              }}
+              placeholder="Select a lead…"
+            />
+          </Field>
+          <Field label="Contact">
+            <CrmContactLink
+              value={form.contact}
+              valueLabel={form.contact_label}
+              onValueChange={(v, label, meta) => {
+                setForm((prev) => ({
+                  ...prev,
+                  contact: v || '',
+                  contact_label: label || '',
+                  lead: v ? '' : prev.lead,
+                  lead_label: v ? '' : prev.lead_label,
+                  to: meta?.mobile || prev.to,
+                }));
+              }}
+              placeholder="Or pick a contact…"
+            />
+          </Field>
           <Field label="From number *">
             <Input value={form.from} onChange={(e) => set('from', e.target.value)} />
           </Field>
@@ -142,13 +183,6 @@ export default function CrmCallLogNewPage() {
                 form.type === 'Incoming' ? set('receiver', v || '') : set('caller', v || '')
               }
               placeholder="Select user…"
-            />
-          </Field>
-          <Field label="Lead (optional)">
-            <Input
-              value={form.lead}
-              onChange={(e) => set('lead', e.target.value)}
-              placeholder="DMS CRM Lead name"
             />
           </Field>
           <Field label="Recording URL">

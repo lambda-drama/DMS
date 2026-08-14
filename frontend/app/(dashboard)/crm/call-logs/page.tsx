@@ -95,6 +95,7 @@ export default function CrmCallLogsPage() {
                 <thead>
                   <tr className="border-b text-left text-xs text-muted-foreground">
                     <th className="pb-2 font-medium">Type</th>
+                    <th className="pb-2 font-medium">Lead / Contact</th>
                     <th className="pb-2 font-medium">From</th>
                     <th className="pb-2 font-medium">To</th>
                     <th className="pb-2 font-medium">Caller / Receiver</th>
@@ -106,7 +107,7 @@ export default function CrmCallLogsPage() {
                 <tbody>
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-muted-foreground">
+                      <td colSpan={8} className="py-10 text-center text-muted-foreground">
                         No call logs yet. Log your first call.
                       </td>
                     </tr>
@@ -134,6 +135,20 @@ export default function CrmCallLogsPage() {
                               )}
                               {row.type}
                             </span>
+                          </td>
+                          <td className="py-3">
+                            <div className="truncate font-medium">
+                              {row._lead_label || row._contact_label || row._deal_label || '—'}
+                            </div>
+                            <div className="truncate text-xs text-muted-foreground">
+                              {row._lead
+                                ? 'Lead'
+                                : row._contact
+                                  ? 'Contact'
+                                  : row._deal
+                                    ? 'Deal'
+                                    : ''}
+                            </div>
                           </td>
                           <td className="py-3 font-medium">{row.from || '—'}</td>
                           <td className="py-3 text-muted-foreground">{row.to || '—'}</td>

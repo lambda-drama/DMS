@@ -1,6 +1,6 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import add_to_date, now_datetime
+from frappe.utils import add_to_date, cint, now_datetime
 
 
 class DMSCRMTestDrive(Document):
@@ -8,6 +8,8 @@ class DMSCRMTestDrive(Document):
 		self._set_default_template()
 		self._load_template_checklist()
 		self._stamp_acceptance_and_consent()
+		self._sync_flags_from_checklist()
+		self._auto_complete_if_ready()
 
 	def validate(self):
 		from dms.api.utils import assert_dms_company_access
@@ -100,6 +102,51 @@ class DMSCRMTestDrive(Document):
 			self.accepted_by = frappe.session.user
 		if self.customer_consent and not self.consent_on:
 			self.consent_on = now_datetime()
+
+	def _row_done(self, row) -> bool:
+		result = (row.result or "Pending").strip()
+		return bool(cint(row.is_completed)) and result not in ("", "Pending") and result != "Fail"
+
+	def _sync_flags_from_checklist(self):
+		"""Header ID/consent flags follow matching checklist ticks."""
+		for row in self.checklist or []:
+			if not self._row_done(row):
+				continue
+			item = (row.check_item or "").lower()
+			if "licence" in item or "license" in item or " id " in f" {item} " or item.startswith("id "):
+				self.id_verified = 1
+			if "consent" in item:
+				self.customer_consent = 1
+
+	def _checklist_ready_for_complete(self) -> bool:
+		rows = list(self.checklist or [])
+		if not rows:
+			return False
+		for row in rows:
+			if not cint(row.is_mandatory):
+				continue
+			if not cint(row.is_completed) or (row.result or "Pending") == "Pending":
+				return False
+			if (row.result or "") == "Fail":
+				return False
+		return True
+
+	def _auto_complete_if_ready(self):
+		"""If the checklist and outcome are done, mark Completed (Deal next-step uses this)."""
+		if (self.status or "") in ("Completed", "Failed", "No-Show", "Cancelled"):
+			return
+		if not self._checklist_ready_for_complete():
+			return
+		if not (self.outcome or "").strip():
+			return
+		if not (self.vehicle_vin or "").strip():
+			return
+		# Checklist already covers verification / consent — ensure header flags match.
+		self.id_verified = 1
+		self.customer_consent = 1
+		self.status = "Completed"
+		if not self.completed_on:
+			self.completed_on = now_datetime()
 
 	def _create_follow_up_activity(self):
 		activity_type = (

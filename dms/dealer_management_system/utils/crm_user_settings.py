@@ -13,6 +13,7 @@ SETTINGS_DOCTYPE = "DMS CRM User Settings"
 DETAIL_DOCTYPE = "DMS CRM User Detail"
 
 FULL_ACCESS_ROLES = frozenset({"System Manager", "Dealer Manager"})
+DESK_ACCESS_ROLES = frozenset({*FULL_ACCESS_ROLES, "Administrator"})
 
 # Report catalog section id → DMS CRM User Detail checkbox
 REPORT_SECTION_FIELDS: dict[str, str] = {
@@ -52,6 +53,45 @@ def _has_full_access(user: str | None = None) -> bool:
 	if user == "Administrator":
 		return True
 	return bool(FULL_ACCESS_ROLES & set(frappe.get_roles(user)))
+
+
+def can_open_desk(user: str | None = None) -> bool:
+	"""Open Desk in DMS / CRM UI is limited to Dealer Manager, System Manager, Administrator."""
+	user = user or frappe.session.user
+	if not user or user in ("Guest", ""):
+		return False
+	if user == "Administrator":
+		return True
+	return bool(DESK_ACCESS_ROLES & set(frappe.get_roles(user)))
+
+
+def get_lead_sales_persons() -> list[str]:
+	"""Users ticked Lead Sales Person on DMS CRM User Detail — Lead Owner dropdown."""
+	if not _settings_ready():
+		return []
+	if "lead_sales_person" not in _detail_meta_fieldnames():
+		return []
+	rows = frappe.get_all(
+		DETAIL_DOCTYPE,
+		filters={
+			"parent": SETTINGS_DOCTYPE,
+			"parenttype": SETTINGS_DOCTYPE,
+			"lead_sales_person": 1,
+			"user": ["not in", ["", "Guest"]],
+		},
+		pluck="user",
+	)
+	# Keep only enabled system users, preserve listing order uniqueness
+	seen: set[str] = set()
+	out: list[str] = []
+	for name in rows:
+		if not name or name in seen:
+			continue
+		if not frappe.db.get_value("User", name, "enabled"):
+			continue
+		seen.add(name)
+		out.append(name)
+	return out
 
 
 def get_audited_users() -> list[str]:
@@ -200,6 +240,7 @@ def get_workspace_access(user: str | None = None) -> dict:
 			"can_view_dms_dashboard": True,
 			"can_view_dms_report": True,
 			"allowed_dms_report_sections": None,
+			"can_open_desk": True,
 		}
 
 	row = get_user_access_row(user)
@@ -214,6 +255,7 @@ def get_workspace_access(user: str | None = None) -> dict:
 			"can_view_dms_dashboard": False,
 			"can_view_dms_report": False,
 			"allowed_dms_report_sections": [],
+			"can_open_desk": can_open_desk(user),
 		}
 
 	limited = (row.get("access_limited_to") or "").strip()
@@ -229,6 +271,7 @@ def get_workspace_access(user: str | None = None) -> dict:
 		"can_view_dms_dashboard": bool(cint(row.get("can_view_dms_dashboard"))),
 		"can_view_dms_report": bool(cint(row.get("can_view_dms_report"))),
 		"allowed_dms_report_sections": allowed_sections,
+		"can_open_desk": can_open_desk(user),
 	}
 
 

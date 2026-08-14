@@ -1,12 +1,13 @@
 {
  "actions": [],
- "creation": "2026-07-27 22:00:00",
+ "creation": "2026-08-14 16:51:07.935355",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "section_general",
   "default_company",
   "default_lead_owner_role",
+  "default_warehouse",
   "column_break_1",
   "hot_response_minutes",
   "warm_response_minutes",
@@ -394,11 +395,17 @@
    "fieldname": "call_center_queues",
    "fieldtype": "Small Text",
    "label": "Call Center Queues"
+  },
+  {
+   "fieldname": "default_warehouse",
+   "fieldtype": "Link",
+   "label": "Default Warehouse",
+   "options": "Warehouse"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-12 03:07:53.825884",
+ "modified": "2026-08-15 01:34:34.164201",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Settings",

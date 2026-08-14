@@ -26,6 +26,7 @@ const DEFAULT_ACCESS: WorkspaceAccess = {
   can_switch_workspace: true,
   can_view_dms_dashboard: false,
   can_view_dms_report: false,
+  can_open_desk: false,
   allowed_dms_report_sections: [],
 };
 
@@ -41,6 +42,7 @@ interface WorkspaceContextType {
   canAccessCrm: boolean;
   canViewStaffAudit: boolean;
   canSwitchWorkspace: boolean;
+  canOpenDesk: boolean;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
@@ -55,6 +57,7 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   canAccessCrm: true,
   canViewStaffAudit: false,
   canSwitchWorkspace: true,
+  canOpenDesk: false,
 });
 
 function readStored(): AppWorkspace {
@@ -148,6 +151,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       canAccessCrm: access.can_access_crm,
       canViewStaffAudit: access.can_view_staff_audit,
       canSwitchWorkspace: access.can_switch_workspace,
+      canOpenDesk: Boolean(access.can_open_desk),
     }),
     [
       workspace,

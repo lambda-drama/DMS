@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,10 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchableSelect } from '@/components/searchable-select';
 import { CrmBrandLink } from '@/components/crm/crm-brand-link';
 import { CrmColorLink } from '@/components/crm/crm-color-link';
+import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
 import {
   fetchCrmBranches,
   fetchCrmCompanyCurrency,
-  fetchCrmVehicleModels,
   type LeadFormOptions,
 } from '@/services/crm';
 
@@ -306,15 +306,8 @@ type Props = {
 };
 
 export function LeadFormSections({ form, setForm, options, showStatus, readOnlyMeta }: Props) {
-  const [modelSearch, setModelSearch] = useState('');
-
   const { data: branches } = useSWR(['crm-branches', form.company], () =>
     fetchCrmBranches(form.company),
-  );
-  const { data: models, isLoading: modelsLoading } = useSWR(
-    ['crm-vehicle-models', modelSearch, form.brand],
-    () => fetchCrmVehicleModels(modelSearch, form.brand || undefined),
-    { keepPreviousData: true },
   );
   const { data: companyCurrency } = useSWR(
     ['crm-company-currency', form.company || options?.default_company || null],
@@ -341,13 +334,15 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
     });
   };
 
-  const onModelChange = (v: string) => {
-    const selected = (models || []).find((m) => m.name === v);
+  const onModelChange = (
+    v: string,
+    meta?: { model_name?: string; variant?: string; brand?: string },
+  ) => {
     setForm((prev) => ({
       ...prev,
       model: v || '',
-      brand: prev.brand || selected?.brand || '',
-      variant: prev.variant || selected?.variant || '',
+      brand: prev.brand || meta?.brand || '',
+      variant: meta?.variant || (v ? prev.variant : ''),
     }));
   };
 
@@ -441,7 +436,7 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
                   options={options?.users || []}
                   value={form.lead_owner}
                   onValueChange={(v) => set('lead_owner', v || '')}
-                  placeholder="Blank = round-robin when enabled…"
+                  placeholder="Lead sales persons only…"
                 />
               </div>
               <div>
@@ -528,18 +523,10 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
               </div>
               <div>
                 <FieldLabel>Model</FieldLabel>
-                <SearchableSelect
-                  options={(models || []).map((vm) => ({
-                    value: vm.name,
-                    label: vm.model_code || vm.name,
-                    description:
-                      [vm.model_name, vm.variant].filter(Boolean).join(' ') || undefined,
-                  }))}
+                <CrmVehicleModelLink
                   value={form.model}
-                  onValueChange={(v) => onModelChange(v || '')}
-                  onSearchChange={setModelSearch}
-                  placeholder="Search vehicle models…"
-                  isLoading={modelsLoading}
+                  brand={form.brand || undefined}
+                  onValueChange={onModelChange}
                 />
               </div>
               <div>

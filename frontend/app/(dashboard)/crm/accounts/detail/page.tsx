@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
   fetchAccountFormOptions,
-  fetchCrmVehicleModels,
   getAccount,
   getFleetAftersales,
   updateAccount,
@@ -20,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { CrmTerritoryLink } from '@/components/crm/crm-territory-link';
+import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 
@@ -77,46 +77,13 @@ function FleetModelSelect({
   modelName?: string;
   onChange: (model: string, modelName: string) => void;
 }) {
-  const [search, setSearch] = useState('');
-  const { data: models, isLoading } = useSWR(
-    ['crm-account-fleet-models', search],
-    () => fetchCrmVehicleModels(search || undefined),
-    { dedupingInterval: 4000 }
-  );
-
-  const options = useMemo(() => {
-    const rows = (models || []).map((vm) => ({
-      value: vm.name,
-      label: vm.model_name || vm.model_code || vm.name,
-      description: [vm.brand_label || vm.brand, vm.variant, vm.model_code]
-        .filter(Boolean)
-        .join(' · '),
-    }));
-    // Keep current selection visible even if not in the latest search page
-    if (value && !rows.some((r) => r.value === value)) {
-      rows.unshift({
-        value,
-        label: modelName || value,
-        description: 'Current selection',
-      });
-    }
-    return rows;
-  }, [models, value, modelName]);
-
   return (
     <div className="sm:col-span-2">
-      <SearchableSelect
-        options={options}
+      <CrmVehicleModelLink
         value={value}
         valueLabel={modelName || undefined}
-        onValueChange={(v) => {
-          const hit = options.find((o) => o.value === v);
-          onChange(v || '', hit?.label || modelName || '');
-        }}
-        onSearchChange={setSearch}
+        onValueChange={(v, meta) => onChange(v || '', meta?.model_name || modelName || '')}
         placeholder="Search vehicle models…"
-        emptyMessage="No vehicle models found"
-        isLoading={isLoading}
       />
     </div>
   );

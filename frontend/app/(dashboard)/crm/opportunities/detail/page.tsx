@@ -17,11 +17,9 @@ import {
   searchAllocatableVins,
   recordExperienceScore,
   fetchCrmBranches,
-  fetchCrmItems,
-  fetchCrmVehicleModels,
   fetchOpportunityFormOptions,
-  fetchTestVehicleOptions,
   getOpportunity,
+  getQuotationPreview,
   listAccounts,
   listTenders,
   markOpportunityWon,
@@ -33,6 +31,9 @@ import { useNavigation } from '@/contexts/navigation-context';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { CrmBrandLink } from '@/components/crm/crm-brand-link';
 import { CrmColorLink } from '@/components/crm/crm-color-link';
+import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
+import { CrmItemLink } from '@/components/crm/crm-item-link';
+import { CrmVinLink } from '@/components/crm/crm-vin-link';
 import { Button } from '@/components/ui/button';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -247,6 +248,7 @@ export default function CrmOpportunityDetailPage() {
   const [pipelinePanel, setPipelinePanel] = useState<
     '' | 'appointment' | 'test-drive' | 'quotation' | 'booking' | 'invoice'
   >('');
+  const [applyQuotationTaxes, setApplyQuotationTaxes] = useState(false);
   const [appointmentForm, setAppointmentForm] = useState({
     appointment_datetime: '',
     appointment_type: 'Showroom Appointment',
@@ -274,9 +276,6 @@ export default function CrmOpportunityDetailPage() {
   const [switchVin, setSwitchVin] = useState('');
   const [experienceScore, setExperienceScore] = useState('');
   const { error, success, showError, showSuccess, clear } = useCrmFeedback();
-  const [modelSearch, setModelSearch] = useState('');
-  const [itemSearch, setItemSearch] = useState('');
-  const [testVehicleSearch, setTestVehicleSearch] = useState('');
 
   useEffect(() => {
     if (data) setForm(formFromDoc(data as Record<string, unknown>));
@@ -295,25 +294,16 @@ export default function CrmOpportunityDetailPage() {
     [options]
   );
 
-  const { data: models, isLoading: modelsLoading } = useSWR(
-    ['crm-opp-detail-models', modelSearch, form.brand],
-    () => fetchCrmVehicleModels(modelSearch, form.brand || undefined),
-    { keepPreviousData: true }
-  );
   const { data: branches } = useSWR(
     ['crm-opp-detail-branches', form.company],
     () => fetchCrmBranches(form.company || undefined),
     { keepPreviousData: true }
   );
-  const { data: items, isLoading: itemsLoading } = useSWR(
-    ['crm-opp-items', itemSearch],
-    () => fetchCrmItems(itemSearch),
-    { keepPreviousData: true }
-  );
-  const { data: testVehicles, isLoading: testVehiclesLoading } = useSWR(
-    ['crm-test-vehicles', testVehicleSearch, form.company],
-    () => fetchTestVehicleOptions(testVehicleSearch, form.company || undefined),
-    { keepPreviousData: true }
+  const { data: quotationPreview, isLoading: quotationPreviewLoading } = useSWR(
+    id && pipelinePanel === 'quotation'
+      ? ['crm-quotation-preview', id, applyQuotationTaxes]
+      : null,
+    () => getQuotationPreview(id, applyQuotationTaxes)
   );
   const { data: allocatableVins, isLoading: allocatableLoading } = useSWR(
     ['crm-opp-allocate-vins', allocateSearch, form.company, form.model],
@@ -466,7 +456,7 @@ export default function CrmOpportunityDetailPage() {
       if (linked.testDrive) navigate('crm-test-drive-detail', { id: linked.testDrive });
       else setPipelinePanel('test-drive');
     } else if (stage === 'Quotation Submitted') {
-      if (linked.quotation) openDeskDoc('Quotation', linked.quotation);
+      if (linked.quotation) navigate('crm-quotation-detail', { id: linked.quotation });
       else setPipelinePanel('quotation');
     } else if (stage === 'Negotiation') {
       if (!linked.quotation) setPipelinePanel('quotation');
@@ -513,7 +503,14 @@ export default function CrmOpportunityDetailPage() {
         return;
       } else if (action === 'quotation') {
         await updateOpportunity(id, payload());
-        await createQuotationFromOpportunity(id, false);
+        const result = await createQuotationFromOpportunity(id, false, applyQuotationTaxes);
+        const quotation = String((result as { quotation?: string })?.quotation || '');
+        await mutate();
+        setPipelinePanel('');
+        if (quotation) {
+          navigate('crm-quotation-detail', { id: quotation });
+          return;
+        }
       } else if (action === 'negotiation') {
         await updateOpportunity(id, { ...payload(), stage: 'Negotiation', status: 'Open' });
       } else if (action === 'booking') {
@@ -738,6 +735,7 @@ export default function CrmOpportunityDetailPage() {
           <PipelinePath
             stages={DEAL_PATH}
             current={form.stage}
+            checked={testDriveStatus === 'Completed' ? ['Test Drive'] : []}
             terminal={form.stage === 'Lost' || form.status === 'Lost'}
             onSelect={onPipelineStageClick}
           />
@@ -760,7 +758,10 @@ export default function CrmOpportunityDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Button variant="outline" onClick={() => openDeskDoc('Quotation', linked.quotation)}>
+              <Button
+                variant="outline"
+                onClick={() => navigate('crm-quotation-detail', { id: linked.quotation })}
+              >
                 Open {linked.quotation}
               </Button>
               <span className="rounded-full bg-muted px-3 py-1">
@@ -1092,21 +1093,12 @@ export default function CrmOpportunityDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">Test Vehicle VIN</label>
-                  <SearchableSelect
-                    options={(testVehicles || []).map((vehicle: Record<string, unknown>) => ({
-                      value: String(vehicle.name),
-                      label: String(vehicle.vin_number || vehicle.name),
-                      description: [vehicle.linked_item, vehicle.plate_number]
-                        .filter(Boolean)
-                        .join(' · '),
-                    }))}
+                  <CrmVinLink
                     value={testDriveForm.vehicle_vin}
                     onValueChange={(value) =>
                       setTestDriveForm((prev) => ({ ...prev, vehicle_vin: value || '' }))
                     }
-                    onSearchChange={setTestVehicleSearch}
-                    isLoading={testVehiclesLoading}
-                    placeholder="Search VIN or vehicle…"
+                    customer={form.customer || undefined}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1126,6 +1118,97 @@ export default function CrmOpportunityDetailPage() {
                       setTestDriveForm((prev) => ({ ...prev, driver_license: event.target.value }))
                     }
                   />
+                </div>
+              </div>
+            ) : pipelinePanel === 'quotation' ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Review the vehicle and ERPNext item before creating the draft quotation.
+                </p>
+                {quotationPreviewLoading ? (
+                  <Skeleton className="h-28 w-full" />
+                ) : quotationPreview ? (
+                  <div className="overflow-hidden rounded-lg border border-border/70">
+                    {quotationPreview.vin ? (
+                      <div className="border-b border-border/70 bg-muted/30 px-3 py-2 text-sm">
+                        <span className="font-medium">Vehicle VIN: </span>
+                        {quotationPreview.vin.vin_number}
+                        {quotationPreview.vin.model_name
+                          ? ` · ${quotationPreview.vin.model_name}`
+                          : ''}
+                      </div>
+                    ) : null}
+                    <div className="space-y-2 p-3 text-sm">
+                      {quotationPreview.items.map((item) => (
+                        <div
+                          key={item.item_code}
+                          className="grid gap-1 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-4"
+                        >
+                          <div>
+                            <div className="font-medium">{item.item_name || item.item_code}</div>
+                            <div className="text-xs text-muted-foreground">{item.item_code}</div>
+                          </div>
+                          <div className="text-muted-foreground">
+                            {item.qty} × {item.rate.toLocaleString()}
+                          </div>
+                          <div className="font-medium">
+                            {quotationPreview.currency || ''} {item.net_amount.toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-1 border-t border-border/70 bg-muted/30 px-3 py-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Net total</span>
+                        <span>
+                          {quotationPreview.currency || ''}{' '}
+                          {Number(quotationPreview.net_total || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      {applyQuotationTaxes ? (
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Taxes / VAT</span>
+                          <span>
+                            {quotationPreview.currency || ''}{' '}
+                            {Number(quotationPreview.total_taxes_and_charges || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="flex justify-between font-semibold">
+                        <span>Estimated total</span>
+                        <span>
+                          {quotationPreview.currency || ''}{' '}
+                          {Number(
+                            quotationPreview.grand_total ?? quotationPreview.net_total ?? 0
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Unable to load the quotation preview.
+                  </p>
+                )}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={applyQuotationTaxes}
+                      onChange={(event) => setApplyQuotationTaxes(event.target.checked)}
+                    />
+                    Include taxes / tax withholding
+                  </label>
+                  <p className="pl-6 text-xs text-muted-foreground">
+                    Uses the Default Taxes and Charges Template from DMS Settings
+                    {quotationPreview?.dms_taxes_and_charges_template
+                      ? ` (${quotationPreview.dms_taxes_and_charges_template})`
+                      : ''}
+                    . Leave unchecked to create the quotation without taxes.
+                  </p>
+                  {applyQuotationTaxes && quotationPreview?.tax_error ? (
+                    <p className="pl-6 text-xs text-destructive">{quotationPreview.tax_error}</p>
+                  ) : null}
                 </div>
               </div>
             ) : pipelinePanel === 'booking' ? (
@@ -1216,7 +1299,10 @@ export default function CrmOpportunityDetailPage() {
                 disabled={
                   busy ||
                   (pipelinePanel === 'appointment' && !appointmentForm.appointment_datetime) ||
-                  (pipelinePanel === 'test-drive' && !testDriveForm.scheduled_datetime)
+                  (pipelinePanel === 'test-drive' && !testDriveForm.scheduled_datetime) ||
+                  (pipelinePanel === 'quotation' &&
+                    applyQuotationTaxes &&
+                    Boolean(quotationPreview?.tax_error))
                 }
               >
                 {pipelineBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -1360,25 +1446,16 @@ export default function CrmOpportunityDetailPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Model</label>
-            <SearchableSelect
-              options={(models || []).map((vm) => ({
-                value: vm.name,
-                label: vm.model_code || vm.name,
-                description:
-                  [vm.model_name, vm.variant].filter(Boolean).join(' ') || undefined,
-              }))}
+            <CrmVehicleModelLink
               value={form.model}
-              onValueChange={(v) => {
-                const selected = (models || []).find((m) => m.name === v);
+              brand={form.brand || undefined}
+              onValueChange={(v, meta) =>
                 setForm((prev) => ({
                   ...prev,
                   model: v || '',
-                  brand: prev.brand || selected?.brand || '',
-                }));
-              }}
-              onSearchChange={setModelSearch}
-              placeholder="Model…"
-              isLoading={modelsLoading}
+                  brand: prev.brand || meta?.brand || '',
+                }))
+              }
             />
           </div>
           <div className="space-y-2">
@@ -1426,25 +1503,18 @@ export default function CrmOpportunityDetailPage() {
               className="grid gap-2 rounded-md border border-border/60 p-3 sm:grid-cols-12"
             >
               <div className="sm:col-span-5">
-                <SearchableSelect
-                  options={(items || []).map((it) => ({
-                    value: it.name,
-                    label: it.label || it.item_name || it.name,
-                  }))}
+                <CrmItemLink
                   value={row.item_code}
-                  onValueChange={(v) => {
-                    const selected = (items || []).find((it) => it.name === v);
+                  valueLabel={row.item_name || row.item_code}
+                  onValueChange={(v, meta) =>
                     updateItem(index, {
                       item_code: v || '',
-                      item_name: selected?.item_name || '',
-                      uom: selected?.uom || '',
-                      rate: Number(selected?.rate || row.rate || 0),
-                    });
-                  }}
-                  onSearchChange={setItemSearch}
+                      item_name: meta?.item_name || '',
+                      uom: meta?.uom || '',
+                      rate: Number(meta?.rate || row.rate || 0),
+                    })
+                  }
                   placeholder="Search item…"
-                  isLoading={itemsLoading}
-                  valueLabel={row.item_name || row.item_code}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -1635,18 +1705,19 @@ export default function CrmOpportunityDetailPage() {
                 key={idx}
                 className="grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6"
               >
-                <Input
-                  className="sm:col-span-2"
-                  placeholder="Model (Vehicle Model name)"
-                  value={row.model}
-                  onChange={(e) =>
-                    setForm((prev) => {
-                      const next = [...prev.fleet_requirements];
-                      next[idx] = { ...next[idx], model: e.target.value };
-                      return { ...prev, fleet_requirements: next };
-                    })
-                  }
-                />
+                <div className="sm:col-span-2">
+                  <CrmVehicleModelLink
+                    value={row.model}
+                    onValueChange={(v) =>
+                      setForm((prev) => {
+                        const next = [...prev.fleet_requirements];
+                        next[idx] = { ...next[idx], model: v || '' };
+                        return { ...prev, fleet_requirements: next };
+                      })
+                    }
+                    placeholder="Model…"
+                  />
+                </div>
                 <Input
                   className="sm:col-span-2"
                   placeholder="Specification"
@@ -1769,7 +1840,7 @@ export default function CrmOpportunityDetailPage() {
               if (nextAction.action === 'open-test-drive') {
                 navigate('crm-test-drive-detail', { id: linked.testDrive });
               } else if (nextAction.action === 'open-quotation') {
-                openDeskDoc('Quotation', linked.quotation);
+                navigate('crm-quotation-detail', { id: linked.quotation });
               } else if (nextAction.action === 'allocate') {
                 // Allocation panel is already visible when booking exists.
               } else if (nextAction.action === 'delivery-readiness') {

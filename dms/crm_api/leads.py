@@ -129,13 +129,18 @@ def get_lead_form_options():
 	countries = []
 	if frappe.db.exists("DocType", "Country"):
 		countries = frappe.get_all("Country", pluck="name", order_by="name asc", limit_page_length=500)
-	users = frappe.get_all(
-		"User",
-		filters={"enabled": 1, "user_type": "System User"},
-		fields=["name", "full_name"],
-		order_by="full_name asc",
-		limit_page_length=200,
-	)
+	from dms.dealer_management_system.utils.crm_user_settings import get_lead_sales_persons
+
+	sales_person_ids = get_lead_sales_persons()
+	users = []
+	if sales_person_ids:
+		users = frappe.get_all(
+			"User",
+			filters={"name": ["in", sales_person_ids], "enabled": 1},
+			fields=["name", "full_name"],
+			order_by="full_name asc",
+			limit_page_length=200,
+		)
 	from dms.dealer_management_system.utils.company_permissions import get_dms_companies
 
 	companies = get_dms_companies()
@@ -248,6 +253,49 @@ def get_lead(name):
 		order_by="creation desc",
 		limit_page_length=100,
 	)
+	# Used by lead path UI — keep Contact Attempted / Contacted progress if calls exist
+	call_log_count = 0
+	completed_call_log_count = 0
+	if frappe.db.exists("DocType", "DMS CRM Call Log"):
+		call_log_count = frappe.db.count(
+			"DMS CRM Call Log",
+			filters={"reference_doctype": DOCTYPE, "reference_docname": doc.name},
+		)
+		completed_call_log_count = frappe.db.count(
+			"DMS CRM Call Log",
+			filters={
+				"reference_doctype": DOCTYPE,
+				"reference_docname": doc.name,
+				"status": "Completed",
+			},
+		)
+		if not call_log_count:
+			# Dynamic Link child table used by some call-log versions
+			try:
+				linked = frappe.db.sql(
+					"""
+					select count(distinct parent) from `tabDynamic Link`
+					where link_doctype=%s and link_name=%s and parenttype=%s
+					""",
+					(DOCTYPE, doc.name, "DMS CRM Call Log"),
+				)
+				call_log_count = int((linked[0][0] if linked else 0) or 0)
+				completed = frappe.db.sql(
+					"""
+					select count(distinct dl.parent)
+					from `tabDynamic Link` dl
+					inner join `tabDMS CRM Call Log` cl on cl.name = dl.parent
+					where dl.link_doctype=%s and dl.link_name=%s
+						and dl.parenttype=%s and cl.status=%s
+					""",
+					(DOCTYPE, doc.name, "DMS CRM Call Log", "Completed"),
+				)
+				completed_call_log_count = int((completed[0][0] if completed else 0) or 0)
+			except Exception:
+				call_log_count = 0
+				completed_call_log_count = 0
+	data["call_log_count"] = call_log_count
+	data["completed_call_log_count"] = completed_call_log_count
 	return data
 
 
@@ -289,6 +337,8 @@ def create_lead(data=None):
 
 	if not doc.status:
 		doc.status = "New"
+	if (doc.status or "").strip() == "New":
+		doc.status = "New"
 	if not doc.source:
 		frappe.throw(_("Lead source is required."))
 
@@ -316,8 +366,12 @@ def accept_lead(name):
 	from dms.crm_api.assignment import mark_accepted
 
 	mark_accepted(doc)
-	if doc.status == "New":
+	if (doc.status or "").strip() in ("", "New"):
 		doc.status = "Assigned"
+	if not doc.next_action:
+		doc.next_action = "First contact call"
+	if not doc.next_action_due:
+		doc.next_action_due = doc.response_by or now_datetime()
 	doc.flags.ignore_permissions = True
 	doc.save()
 	frappe.db.commit()

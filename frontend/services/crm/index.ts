@@ -179,6 +179,54 @@ export async function quickCreateBrand(brand: string) {
   );
 }
 
+export async function quickCreateItem(data: {
+  item_code?: string;
+  item_name?: string;
+  brand?: string;
+  standard_rate?: number;
+}) {
+  return apiRequest<{ name: string; label?: string }>(
+    '/api/method/dms.crm_api.common.quick_create_item',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export async function quickCreateVehicleModel(data: {
+  model_name: string;
+  brand?: string;
+  model_code?: string;
+  fuel_type?: string;
+  transmission?: string;
+  variant?: string;
+}) {
+  return apiRequest<{ name: string; label?: string }>(
+    '/api/method/dms.crm_api.common.quick_create_vehicle_model',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export async function quickCreateContact(data: {
+  first_name?: string;
+  last_name?: string;
+  mobile_no?: string;
+  email_id?: string;
+  company_name?: string;
+}) {
+  return apiRequest<{ name: string; label?: string; mobile?: string }>(
+    '/api/method/dms.crm_api.contacts.quick_create_contact',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
 export async function fetchCrmBrands(search?: string) {
   return apiRequest<Array<{ name: string; label?: string }>>('/api/method/dms.crm_api.common.get_brands', {
     method: 'POST',
@@ -263,14 +311,92 @@ export async function updateOpportunity(name: string, data: Record<string, unkno
   });
 }
 
-export async function createQuotationFromOpportunity(name: string, markWon = false) {
+export async function createQuotationFromOpportunity(
+  name: string,
+  markWon = false,
+  applyTaxes = false
+) {
   return apiRequest<{
     quotation: string;
     opportunity?: Record<string, unknown>;
     already_exists?: boolean;
   }>(`/api/method/${OPP}.create_quotation_from_opportunity`, {
     method: 'POST',
-    body: JSON.stringify({ name, mark_won: markWon ? 1 : 0 }),
+    body: JSON.stringify({
+      name,
+      mark_won: markWon ? 1 : 0,
+      apply_taxes: applyTaxes ? 1 : 0,
+    }),
+  });
+}
+
+export async function getQuotationPreview(name: string, applyTaxes = false) {
+  return apiRequest<{
+    currency?: string;
+    source: string;
+    vin?: { name: string; vin_number: string; model_name?: string; linked_item: string } | null;
+    items: Array<{
+      item_code: string;
+      item_name?: string;
+      qty: number;
+      rate: number;
+      discount_percentage?: number;
+      net_amount: number;
+    }>;
+    net_total: number;
+    total_taxes_and_charges?: number;
+    grand_total?: number;
+    taxes_and_charges?: string | null;
+    dms_taxes_and_charges_template?: string;
+    tax_error?: string | null;
+    taxes?: Array<{ description?: string; rate?: number; tax_amount?: number }>;
+    apply_taxes?: number;
+  }>(`/api/method/${OPP}.get_quotation_preview`, {
+    method: 'POST',
+    body: JSON.stringify({ name, apply_taxes: applyTaxes ? 1 : 0 }),
+  });
+}
+
+const QUOTATIONS = 'dms.crm_api.quotations';
+
+export async function listQuotations(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return apiRequest<{
+    data: Array<Record<string, unknown>>;
+    total: number;
+  }>(`/api/method/${QUOTATIONS}.get_quotations`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getQuotation(name: string) {
+  return apiRequest<Record<string, unknown>>(`/api/method/${QUOTATIONS}.get_quotation`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function submitQuotation(name: string) {
+  return apiRequest<Record<string, unknown>>(`/api/method/${QUOTATIONS}.submit_quotation`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateQuotationItems(name: string, data: Record<string, unknown>) {
+  return apiRequest<Record<string, unknown>>(`/api/method/${QUOTATIONS}.update_quotation_items`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
   });
 }
 
@@ -1514,7 +1640,11 @@ export type CallLogRow = {
   _caller?: { label?: string; image?: string };
   _receiver?: { label?: string; image?: string };
   _lead?: string;
+  _lead_label?: string;
+  _contact?: string;
+  _contact_label?: string;
   _deal?: string;
+  _deal_label?: string;
   _notes?: Array<Record<string, unknown>>;
   _tasks?: Array<Record<string, unknown>>;
 };
@@ -1595,6 +1725,7 @@ export async function fetchCallLogFormOptions(): Promise<{
   telephony_mediums: string[];
   users: Array<{ value: string; label: string }>;
   reference_doctypes: string[];
+  leads: Array<{ value: string; label: string; description?: string; mobile?: string }>;
 }> {
   return apiRequest(`/api/method/${CALL_LOGS}.get_call_log_form_options`);
 }

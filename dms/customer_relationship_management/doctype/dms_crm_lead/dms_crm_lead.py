@@ -208,7 +208,8 @@ class DMSCRMLead(Document):
 		apply_lead_score(self)
 
 	def _enforce_next_action(self):
-		if self.status in CLOSED_STATUSES or self.status == "New":
+		status = (self.status or "New").strip()
+		if status in CLOSED_STATUSES or status == "New":
 			return
 		settings = _get_settings()
 		require = cint(getattr(settings, "require_next_action_on_lead", None) or 1)

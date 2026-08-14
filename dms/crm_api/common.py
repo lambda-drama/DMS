@@ -7,7 +7,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
 
 
 def parse_json(value):
@@ -64,6 +64,7 @@ def get_branches(search=None, company=None, limit=50):
 @frappe.whitelist()
 def get_brands(search=None, limit=40):
 	"""ERPNext Brand master for CRM link fields."""
+	ensure_crm_read("DMS CRM Lead")
 	filters = {}
 	or_filters = None
 	search = (search or "").strip()
@@ -78,6 +79,7 @@ def get_brands(search=None, limit=40):
 		fields=["name", "brand"],
 		limit=cint(limit) or 40,
 		order_by="name asc",
+		ignore_permissions=True,
 	)
 	return [
 		{"name": row.name, "label": row.brand or row.name}
@@ -124,8 +126,9 @@ def get_territories(search=None, limit=50, is_group=0):
 
 
 @frappe.whitelist()
-def get_vehicle_models(search=None, brand=None, limit=30):
-	"""Vehicle Model master — same shape as DMS vehicle model dropdown."""
+def get_vehicle_models(search=None, brand=None, limit=50):
+	"""Vehicle Model master for CRM Lead / Deal Interest pickers."""
+	ensure_crm_read("DMS CRM Lead")
 	from dms.api.common import get_vehicle_models as _get_vehicle_models
 
 	return _get_vehicle_models(search=search, brand=brand, limit=limit)
@@ -293,3 +296,107 @@ def quick_create_brand(brand):
 	doc.insert()
 	frappe.db.commit()
 	return {"name": doc.name, "label": doc.brand or doc.name}
+
+
+@frappe.whitelist()
+def quick_create_item(item_code=None, item_name=None, brand=None, standard_rate=None):
+	"""Create a sellable Item from a CRM link + button (deal / quotation lines)."""
+	ensure_crm_create("Item")
+	item_code = (item_code or item_name or "").strip()
+	item_name = (item_name or item_code).strip()
+	if not item_code:
+		frappe.throw(_("Item code is required."))
+	if frappe.db.exists("Item", item_code):
+		existing = frappe.db.get_value("Item", item_code, ["name", "item_name"], as_dict=True)
+		return {"name": existing.name, "label": existing.item_name or existing.name}
+
+	item_group = frappe.db.get_value("Item Group", {"name": "Products"}, "name") or frappe.db.get_value(
+		"Item Group", {"is_group": 0}, "name"
+	)
+	if not item_group:
+		frappe.throw(_("Configure at least one Item Group before creating Items."))
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Item",
+			"item_code": item_code,
+			"item_name": item_name,
+			"item_group": item_group,
+			"stock_uom": "Nos",
+			"is_stock_item": 1,
+			"is_sales_item": 1,
+			"brand": (brand or "").strip() or None,
+			"standard_rate": flt(standard_rate),
+		}
+	)
+	doc.insert()
+	frappe.db.commit()
+	return {"name": doc.name, "label": doc.item_name or doc.name}
+
+
+@frappe.whitelist()
+def quick_create_vehicle_model(
+	model_name=None,
+	brand=None,
+	model_code=None,
+	fuel_type=None,
+	transmission=None,
+	variant=None,
+):
+	"""Create Vehicle Model (+ linked Item when needed) from CRM link + button."""
+	ensure_crm_create("Vehicle Model")
+	model_name = (model_name or "").strip()
+	if not model_name:
+		frappe.throw(_("Model name is required."))
+
+	brand = (brand or "").strip() or None
+	model_code = (model_code or "").strip() or model_name
+	fuel_type = (fuel_type or "Petrol").strip() or "Petrol"
+	transmission = (transmission or "Automatic (AT)").strip() or "Automatic (AT)"
+	variant = (variant or "").strip() or None
+
+	# Vehicle Model is named by its Item link field `model`
+	item_code = model_code
+	if not frappe.db.exists("Item", item_code):
+		ensure_crm_create("Item")
+		item_group = frappe.db.get_value("Item Group", {"name": "Products"}, "name") or frappe.db.get_value(
+			"Item Group", {"is_group": 0}, "name"
+		)
+		if not item_group:
+			frappe.throw(_("Configure at least one Item Group before creating vehicle models."))
+		frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": item_code,
+				"item_name": model_name,
+				"item_group": item_group,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"is_sales_item": 1,
+				"brand": brand,
+			}
+		).insert()
+
+	if frappe.db.exists("Vehicle Model", item_code):
+		return {
+			"name": item_code,
+			"label": frappe.db.get_value("Vehicle Model", item_code, "model_name") or item_code,
+		}
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Vehicle Model",
+			"model": item_code,
+			"model_code": model_code,
+			"model_name": model_name,
+			"brand": brand,
+			"fuel_type": fuel_type,
+			"transmission": transmission,
+			"variant": variant,
+			"is_active": 1,
+		}
+	)
+	doc.insert()
+	frappe.db.commit()
+	return {"name": doc.name, "label": doc.model_name or doc.name}
+

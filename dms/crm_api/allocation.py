@@ -30,22 +30,27 @@ def search_allocatable_vins(search=None, company=None, model=None, preferred_col
 			"plate_number": ["like", q],
 			"linked_item": ["like", q],
 		}
+	meta = frappe.get_meta("VIN No")
+	fields = [
+		"name",
+		"vin_number",
+		"plate_number",
+		"linked_item",
+		"model",
+		"model_name",
+		"status",
+		"vehicle_status",
+		"company",
+	]
+	for optional in ("branch", "exterior_color", "color", "location"):
+		if meta.has_field(optional):
+			fields.append(optional)
+
 	rows = frappe.get_all(
 		"VIN No",
 		filters=filters,
 		or_filters=or_filters,
-		fields=[
-			"name",
-			"vin_number",
-			"plate_number",
-			"linked_item",
-			"model",
-			"model_name",
-			"status",
-			"vehicle_status",
-			"company",
-			"branch",
-		],
+		fields=fields,
 		order_by="modified desc",
 		limit_page_length=min(cint(limit) or 40, 100),
 	)
@@ -65,7 +70,8 @@ def search_allocatable_vins(search=None, company=None, model=None, preferred_col
 	for row in rows:
 		if row.name in reserved:
 			continue
-		if preferred_color and getattr(row, "color", None) and row.color != preferred_color:
+		vin_color = getattr(row, "exterior_color", None) or getattr(row, "color", None)
+		if preferred_color and vin_color and vin_color != preferred_color:
 			continue
 		location = None
 		if row.status:
@@ -90,22 +96,26 @@ def get_allocation_snapshot(booking):
 	doc = frappe.get_doc(BOOKING, booking)
 	vin = {}
 	if doc.vehicle_vin and frappe.db.exists("VIN No", doc.vehicle_vin):
+		meta = frappe.get_meta("VIN No")
+		vin_fields = [
+			"name",
+			"vin_number",
+			"plate_number",
+			"linked_item",
+			"model",
+			"model_name",
+			"vehicle_status",
+			"status",
+			"current_customer",
+			"company",
+		]
+		for optional in ("branch", "exterior_color", "color"):
+			if meta.has_field(optional):
+				vin_fields.append(optional)
 		vin = frappe.db.get_value(
 			"VIN No",
 			doc.vehicle_vin,
-			[
-				"name",
-				"vin_number",
-				"plate_number",
-				"linked_item",
-				"model",
-				"model_name",
-				"vehicle_status",
-				"status",
-				"current_customer",
-				"company",
-				"branch",
-			],
+			vin_fields,
 			as_dict=True,
 		) or {}
 		if vin.get("status"):

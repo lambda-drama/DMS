@@ -2,7 +2,7 @@ import re
 
 import frappe
 from frappe import _
-from frappe.utils import strip_html
+from frappe.utils import cint, strip_html
 from dms.api.utils import get_dms_companies, get_dms_default_customer, get_dms_default_customer_group, get_vehicle_customer_groups
 
 _COLOR_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
@@ -232,23 +232,38 @@ def get_vehicle_models(search=None, brand=None, limit=30):
 	if brand:
 		filters["brand"] = (brand or "").strip()
 
-	or_filters = {}
+	or_filters = None
 	if search and str(search).strip():
 		q = f"%{search.strip()}%"
-		or_filters = {
-			"name": ["like", q],
-			"model_name": ["like", q],
-			"model_code": ["like", q],
-		}
+		or_filters = [
+			["name", "like", q],
+			["model_name", "like", q],
+			["model_code", "like", q],
+		]
 
 	rows = frappe.get_all(
 		"Vehicle Model",
 		filters=filters or None,
-		or_filters=or_filters if or_filters else None,
+		or_filters=or_filters,
 		fields=["name", "model_name", "model_code", "brand", "model_year", "variant"],
-		limit=int(limit),
+		limit=cint(limit) or 30,
 		order_by="model_name asc",
+		ignore_permissions=True,
 	)
+
+	# If brand filter matched nothing (name mismatch), fall back to all active models
+	# so CRM Interest dropdown is never falsely empty when models exist.
+	if brand and not rows:
+		filters.pop("brand", None)
+		rows = frappe.get_all(
+			"Vehicle Model",
+			filters=filters or None,
+			or_filters=or_filters,
+			fields=["name", "model_name", "model_code", "brand", "model_year", "variant"],
+			limit=cint(limit) or 30,
+			order_by="model_name asc",
+			ignore_permissions=True,
+		)
 
 	for row in rows:
 		if row.get("brand"):

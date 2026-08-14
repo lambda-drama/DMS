@@ -149,8 +149,8 @@ def apply_round_robin(lead, *, force: bool = False, exclude_user: str | None = N
 	lead.assignment_pool = pool_name
 	lead.assigned_on = now_datetime()
 	lead.accepted_on = None
-	if lead.status in (None, "", "New"):
-		lead.status = "Assigned"
+	# Keep status New until the owner accepts (§5.3). Flipping to Assigned here
+	# made create fail: "Open leads require a Next Action…" while the UI still showed New.
 	return True
 
 

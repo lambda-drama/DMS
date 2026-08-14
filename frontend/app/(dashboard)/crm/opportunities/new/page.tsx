@@ -1,17 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import useSWR from 'swr';
 import {
   createOpportunity,
   fetchCrmBranches,
-  fetchCrmVehicleModels,
   fetchOpportunityFormOptions,
 } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { CrmBrandLink } from '@/components/crm/crm-brand-link';
 import { CrmColorLink } from '@/components/crm/crm-color-link';
+import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,6 +17,8 @@ import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import useSWR from 'swr';
 
 const FALLBACK_STAGES = [
   'New',
@@ -35,7 +35,6 @@ export default function CrmOpportunityNewPage() {
   const { navigate } = useNavigation();
   const [saving, setSaving] = useState(false);
   const { error, success, showError, clear } = useCrmFeedback();
-  const [modelSearch, setModelSearch] = useState('');
   const [form, setForm] = useState({
     title: '',
     customer: '',
@@ -66,11 +65,6 @@ export default function CrmOpportunityNewPage() {
     }
   }, [options, form.company]);
 
-  const { data: models, isLoading: modelsLoading } = useSWR(
-    ['crm-opp-models', modelSearch, form.brand],
-    () => fetchCrmVehicleModels(modelSearch, form.brand || undefined),
-    { keepPreviousData: true }
-  );
   const { data: branches } = useSWR(
     ['crm-opp-branches', form.company],
     () => fetchCrmBranches(form.company || undefined),
@@ -208,25 +202,16 @@ export default function CrmOpportunityNewPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Model</label>
-            <SearchableSelect
-              options={(models || []).map((vm) => ({
-                value: vm.name,
-                label: vm.model_code || vm.name,
-                description:
-                  [vm.model_name, vm.variant].filter(Boolean).join(' ') || undefined,
-              }))}
+            <CrmVehicleModelLink
               value={form.model}
-              onValueChange={(v) => {
-                const selected = (models || []).find((m) => m.name === v);
+              brand={form.brand || undefined}
+              onValueChange={(v, meta) =>
                 setForm((prev) => ({
                   ...prev,
                   model: v || '',
-                  brand: prev.brand || selected?.brand || '',
-                }));
-              }}
-              onSearchChange={setModelSearch}
-              placeholder="Search vehicle models…"
-              isLoading={modelsLoading}
+                  brand: prev.brand || meta?.brand || '',
+                }))
+              }
             />
           </div>
           <div className="space-y-2">
