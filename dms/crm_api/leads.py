@@ -129,13 +129,18 @@ def get_lead_form_options():
 	countries = []
 	if frappe.db.exists("DocType", "Country"):
 		countries = frappe.get_all("Country", pluck="name", order_by="name asc", limit_page_length=500)
-	users = frappe.get_all(
-		"User",
-		filters={"enabled": 1, "user_type": "System User"},
-		fields=["name", "full_name"],
-		order_by="full_name asc",
-		limit_page_length=200,
-	)
+	from dms.dealer_management_system.utils.crm_user_settings import get_lead_sales_persons
+
+	sales_person_ids = get_lead_sales_persons()
+	users = []
+	if sales_person_ids:
+		users = frappe.get_all(
+			"User",
+			filters={"name": ["in", sales_person_ids], "enabled": 1},
+			fields=["name", "full_name"],
+			order_by="full_name asc",
+			limit_page_length=200,
+		)
 	from dms.dealer_management_system.utils.company_permissions import get_dms_companies
 
 	companies = get_dms_companies()
@@ -289,6 +294,8 @@ def create_lead(data=None):
 
 	if not doc.status:
 		doc.status = "New"
+	if (doc.status or "").strip() == "New":
+		doc.status = "New"
 	if not doc.source:
 		frappe.throw(_("Lead source is required."))
 
@@ -316,8 +323,12 @@ def accept_lead(name):
 	from dms.crm_api.assignment import mark_accepted
 
 	mark_accepted(doc)
-	if doc.status == "New":
+	if (doc.status or "").strip() in ("", "New"):
 		doc.status = "Assigned"
+	if not doc.next_action:
+		doc.next_action = "First contact call"
+	if not doc.next_action_due:
+		doc.next_action_due = doc.response_by or now_datetime()
 	doc.flags.ignore_permissions = True
 	doc.save()
 	frappe.db.commit()

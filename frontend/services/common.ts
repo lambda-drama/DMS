@@ -217,6 +217,7 @@ export interface WorkspaceAccess {
   can_switch_workspace: boolean;
   can_view_dms_dashboard?: boolean;
   can_view_dms_report?: boolean;
+  can_open_desk?: boolean;
   /** null = all sections; [] = none; string[] = only these section ids */
   allowed_dms_report_sections?: string[] | null;
 }

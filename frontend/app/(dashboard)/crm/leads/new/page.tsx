@@ -59,7 +59,7 @@ export default function CrmLeadNewPage() {
   return (
     <div className="dms-form-page space-y-4">
       <CrmFeedback error={error} success={success} onDismiss={clear} />
-      <LeadFormSections form={form} setForm={setForm} options={options} />
+      <LeadFormSections form={form} setForm={setForm} options={options} showStatus />
       <FormActionsBar>
         <Button variant="outline" onClick={() => navigate('crm-leads')} disabled={saving}>
           Cancel

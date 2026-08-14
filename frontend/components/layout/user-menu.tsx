@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/auth-context';
+import { useWorkspace } from '@/contexts/workspace-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ function getInitials(name?: string): string {
 
 export function UserMenu() {
   const { user, logout } = useAuth();
+  const { canOpenDesk } = useWorkspace();
   const { theme, setTheme } = useTheme();
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -89,11 +91,15 @@ export function UserMenu() {
             <ThemeIcon className="mr-2 h-4 w-4" />
             Theme: {themeLabel}
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleOpenDesk}>
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Open Desk
-          </DropdownMenuItem>
+          {canOpenDesk ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleOpenDesk}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open Desk
+              </DropdownMenuItem>
+            </>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleLogout}

@@ -441,7 +441,7 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
                   options={options?.users || []}
                   value={form.lead_owner}
                   onValueChange={(v) => set('lead_owner', v || '')}
-                  placeholder="Blank = round-robin when enabled…"
+                  placeholder="Lead sales persons only…"
                 />
               </div>
               <div>
