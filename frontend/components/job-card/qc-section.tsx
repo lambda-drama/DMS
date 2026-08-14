@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import type { DMSJobCard, JobCardQCResult } from "@/types/dms";
 import * as jobCardsSvc from "@/services/jobCards";
 import { uploadFile } from "@/services/common";
-import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { QCSectionHeader } from "./qc-grouped-list";
 import {
   evaluateMeasurementResult,
@@ -293,43 +293,49 @@ export function QCSection({ jobCard, onSaved, onChecklistState }: QCSectionProps
                                   <span className="ml-1 text-destructive">*</span>
                                 ) : null}
                               </p>
-                              <ToggleGroup
-                                type="single"
-                                variant="outline"
-                                size="sm"
-                                value={row.result || "Pass"}
-                                onValueChange={(value) => {
-                                  if (value) {
-                                    updateRow(index, { result: value as QCResultValue });
-                                  }
-                                }}
-                                className="shrink-0"
-                              >
-                                <ToggleGroupItem
-                                  value="Pass"
-                                  className={cn(
-                                    "px-2.5 text-[11px] font-semibold",
-                                    "data-[state=on]:border-emerald-600 data-[state=on]:bg-emerald-600 data-[state=on]:text-white"
-                                  )}
-                                >
+                              <div className="flex shrink-0 items-center gap-3">
+                                <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold">
+                                  <Checkbox
+                                    checked={row.result === "Pass"}
+                                    onCheckedChange={(checked) =>
+                                      updateRow(index, {
+                                        result: checked ? "Pass" : "",
+                                      })
+                                    }
+                                  />
                                   OK
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                  value="Fail"
-                                  className={cn(
-                                    "px-2.5 text-[11px] font-semibold",
-                                    "data-[state=on]:border-destructive data-[state=on]:bg-destructive data-[state=on]:text-white"
-                                  )}
-                                >
+                                </label>
+                                <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold">
+                                  <Checkbox
+                                    checked={row.result === "Fail"}
+                                    onCheckedChange={(checked) =>
+                                      updateRow(index, {
+                                        result: checked ? "Fail" : "",
+                                      })
+                                    }
+                                    className="data-[state=checked]:border-destructive data-[state=checked]:bg-destructive dark:data-[state=checked]:bg-destructive"
+                                  />
                                   NOT OK
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                  value="N/A"
-                                  className="px-2.5 text-[11px] font-semibold"
+                                </label>
+                                <ToggleGroup
+                                  type="single"
+                                  variant="outline"
+                                  size="sm"
+                                  value={row.result === "N/A" ? "N/A" : ""}
+                                  onValueChange={(value) =>
+                                    updateRow(index, {
+                                      result: (value === "N/A" ? "N/A" : "") as QCResultValue,
+                                    })
+                                  }
                                 >
-                                  N/A
-                                </ToggleGroupItem>
-                              </ToggleGroup>
+                                  <ToggleGroupItem
+                                    value="N/A"
+                                    className="px-2.5 text-[11px] font-semibold"
+                                  >
+                                    N/A
+                                  </ToggleGroupItem>
+                                </ToggleGroup>
+                              </div>
                             </div>
                             <Input
                               placeholder={
