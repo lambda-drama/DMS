@@ -138,7 +138,7 @@ const TITLES: Record<Customer360RecordKind, string> = {
   payment: 'Payment',
   vehicle: 'Vehicle',
   account: 'Account',
-  contact: 'Master',
+  contact: 'Contact',
   referral: 'Referral',
   test_drive: 'Test drive',
   booking: 'Booking',

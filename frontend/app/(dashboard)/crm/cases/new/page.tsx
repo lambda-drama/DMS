@@ -172,7 +172,7 @@ export default function CrmCaseNewPage() {
               onValueChange={(v) => set('responsible_department', v || '')}
             />
           </div>
-          <div className="space-y-2 sm:col-span-2">
+          <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">
               Next action *
             </label>
@@ -194,7 +194,7 @@ export default function CrmCaseNewPage() {
               disabled={form.parked_in_nurture}
             />
           </div>
-          <div className="flex items-end pb-1">
+          <div className="flex items-end pb-1 sm:col-span-2">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
