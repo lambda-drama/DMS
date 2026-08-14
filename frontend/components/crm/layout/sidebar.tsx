@@ -55,11 +55,11 @@ const navigation: NavSection[] = [
     items: [{ name: 'Dashboard', view: 'crm-dashboard', icon: LayoutDashboard }],
   },
   {
-    title: 'People',
+    title: 'Masters',
     items: [
       { name: 'Customers', view: 'crm-customers', icon: Users },
       { name: 'Vehicles', view: 'crm-vehicles', icon: Car },
-      { name: 'Masters', view: 'crm-contacts', icon: Contact },
+      { name: 'Contacts', view: 'crm-contacts', icon: Contact },
       { name: 'Accounts', view: 'crm-accounts', icon: Building2 },
     ],
   },
@@ -148,7 +148,7 @@ const SECTION_VIEWS: Record<string, string[]> = Object.fromEntries(
 
 const DEFAULT_OPEN: Record<string, boolean> = {
   Overview: true,
-  People: false,
+  Masters: false,
   Sales: true,
   Activities: false,
   'Call Center': false,

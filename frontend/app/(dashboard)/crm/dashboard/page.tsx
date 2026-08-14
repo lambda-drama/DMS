@@ -121,7 +121,7 @@ export default function CrmDashboardPage() {
 
   const summary = [
     {
-      label: 'Masters',
+      label: 'Contacts',
       value: stats?.contacts ?? 0,
       icon: Users,
       tone: 'bg-primary/10 text-foreground',

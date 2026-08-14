@@ -79,6 +79,10 @@ def _ensure_sidebar(title: str, workspace: str, module: str, header_icon: str, e
 		doc.title = title
 	doc.header_icon = header_icon
 	doc.module = module
+	if hasattr(doc, "app"):
+		doc.app = "dms"
+	if hasattr(doc, "standard"):
+		doc.standard = 1
 	doc.set("items", [])
 	doc.append(
 		"items",

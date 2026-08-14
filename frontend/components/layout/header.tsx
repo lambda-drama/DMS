@@ -74,7 +74,7 @@ const viewTitles: Record<string, string> = {
   'crm-sales-appointments': 'Appointments',
   'crm-sales-appointment-new': 'New Appointment',
   'crm-sales-appointment-detail': 'Appointment',
-  'crm-contacts': 'Masters',
+  'crm-contacts': 'Contacts',
   'crm-customers': 'Customers',
   'crm-customer-new': 'New Customer',
   'crm-customer-detail': 'Customer 360',

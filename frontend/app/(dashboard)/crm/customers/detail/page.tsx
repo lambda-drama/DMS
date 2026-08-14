@@ -447,12 +447,12 @@ function OrganizationsTab({ data }: { data: Customer360Data }) {
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Masters ({contacts.length})</CardTitle>
+          <CardTitle className="text-base">Contacts ({contacts.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <LinkedTable
             kind="contact"
-            empty="No linked masters."
+            empty="No linked contacts."
             rows={contacts}
             columns={[
               {
@@ -1620,7 +1620,7 @@ export default function CrmCustomerDetailPage() {
           </span>
           <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1">
             <UserRound className="h-3.5 w-3.5" />
-            {summary.contacts} masters
+            {summary.contacts} contacts
           </span>
           </div>
         </div>
