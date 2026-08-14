@@ -20,6 +20,14 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
+function toLocalInput(value?: string | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function CrmCaseDetailPage() {
   const { navigate, viewParams } = useNavigation();
   const id = viewParams.get('id') || '';
@@ -38,6 +46,9 @@ export default function CrmCaseDetailPage() {
     source: '',
     responsible_department: '',
     escalation_level: '',
+    next_action: '',
+    next_action_due: '',
+    parked_in_nurture: false,
     safety_impact: false,
     accident_related: false,
     legal_allegation: false,
@@ -73,6 +84,9 @@ export default function CrmCaseDetailPage() {
       source: String(data.source || ''),
       responsible_department: String(data.responsible_department || ''),
       escalation_level: String(data.escalation_level || 'None'),
+      next_action: String(data.next_action || ''),
+      next_action_due: toLocalInput(data.next_action_due as string),
+      parked_in_nurture: Boolean(data.parked_in_nurture),
       safety_impact: Boolean(data.safety_impact),
       accident_related: Boolean(data.accident_related),
       legal_allegation: Boolean(data.legal_allegation),
@@ -127,6 +141,12 @@ export default function CrmCaseDetailPage() {
       );
       return;
     }
+    const open =
+      form.status !== 'Resolved' && form.status !== 'Closed' && !form.parked_in_nurture;
+    if (open && (!form.next_action.trim() || !form.next_action_due)) {
+      showError('Open cases need a next action and due date, or tick Park in nurture.');
+      return;
+    }
     setSaving(true);
     try {
       await updateCase(id, {
@@ -138,6 +158,7 @@ export default function CrmCaseDetailPage() {
         public_media_risk: form.public_media_risk ? 1 : 0,
         vehicle_off_road: form.vehicle_off_road ? 1 : 0,
         vip_fleet: form.vip_fleet ? 1 : 0,
+        parked_in_nurture: form.parked_in_nurture ? 1 : 0,
         customer_accepted: form.customer_accepted ? 1 : 0,
         goodwill_compensation: form.goodwill_compensation
           ? Number(form.goodwill_compensation)
@@ -281,6 +302,38 @@ export default function CrmCaseDetailPage() {
               value={form.escalation_level}
               onValueChange={(v) => set('escalation_level', v || 'None')}
             />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Next action
+            </label>
+            <Input
+              value={form.next_action}
+              onChange={(e) => set('next_action', e.target.value)}
+              placeholder="What you will do next"
+              disabled={form.parked_in_nurture || form.status === 'Resolved' || form.status === 'Closed'}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Next action due
+            </label>
+            <Input
+              type="datetime-local"
+              value={form.next_action_due}
+              onChange={(e) => set('next_action_due', e.target.value)}
+              disabled={form.parked_in_nurture || form.status === 'Resolved' || form.status === 'Closed'}
+            />
+          </div>
+          <div className="flex items-end pb-1">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.parked_in_nurture}
+                onChange={(e) => set('parked_in_nurture', e.target.checked)}
+              />
+              Park in nurture
+            </label>
           </div>
           <div className="flex flex-wrap gap-4 sm:col-span-2">
             {(

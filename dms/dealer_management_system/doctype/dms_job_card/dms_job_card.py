@@ -321,6 +321,7 @@ class DMSJobCard(Document):
 				{
 					"check_item_text": display or "",
 					"category": item.get("category"),
+					"section_classification": item.get("section_classification") or "",
 					"is_mandatory": item.get("is_mandatory"),
 					"requires_photo": item.get("requires_photo"),
 					"requires_measurement": item.get("requires_measurement"),

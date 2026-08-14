@@ -6,11 +6,11 @@ import { toast } from "sonner";
 import type { DMSJobCard, JobCardQCResult } from "@/types/dms";
 import * as jobCardsSvc from "@/services/jobCards";
 import { uploadFile } from "@/services/common";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -18,18 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { QCSectionHeader } from "./qc-grouped-list";
 import {
   evaluateMeasurementResult,
+  groupQCResultsBySection,
   hasMandatoryQCFails,
   isQCChecklistComplete,
+  isQCRowComplete,
   type QCResultValue,
 } from "./qc-utils";
 
@@ -191,6 +187,7 @@ export function QCSection({ jobCard, onSaved, onChecklistState }: QCSectionProps
       const payload = rows.map((row) => ({
         check_item_text: row.check_item_text,
         category: row.category,
+        section_classification: row.section_classification,
         is_mandatory: row.is_mandatory,
         requires_photo: row.requires_photo,
         requires_measurement: row.requires_measurement,
@@ -212,6 +209,7 @@ export function QCSection({ jobCard, onSaved, onChecklistState }: QCSectionProps
   };
 
   const checklistComplete = isQCChecklistComplete(rows);
+  const groupedRows = groupQCResultsBySection(rows);
 
   useEffect(() => {
     onChecklistState?.(rows, {
@@ -265,105 +263,119 @@ export function QCSection({ jobCard, onSaved, onChecklistState }: QCSectionProps
 
         {rows.length > 0 && (
           <>
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Check item</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Mandatory</TableHead>
-                    <TableHead>Result</TableHead>
-                    <TableHead>Measurement</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Photo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row, index) => {
-                    const needsMeasurement =
-                      row.requires_measurement === 1 || row.requires_measurement === true;
-                    const needsPhoto =
-                      (row.requires_photo === 1 || row.requires_photo === true) &&
-                      row.result === "Fail";
-                    return (
-                      <TableRow key={row.name || `qc-${index}`}>
-                        <TableCell className="font-medium min-w-[160px]">
-                          {row.check_item_text || "–"}
-                        </TableCell>
-                        <TableCell>{row.category || "–"}</TableCell>
-                        <TableCell>
-                          {row.is_mandatory === 1 || row.is_mandatory === true ? "Yes" : "No"}
-                        </TableCell>
-                        <TableCell className="min-w-[120px]">
-                          <Select
-                            value={row.result || "Pass"}
-                            onValueChange={(value) =>
-                              updateRow(index, { result: value as QCResultValue })
-                            }
+            <div className="space-y-3">
+              {groupedRows.map((group) => {
+                const done = group.items.filter(({ row }) => isQCRowComplete(row)).length;
+                return (
+                  <div key={group.section} className="overflow-hidden rounded-lg border">
+                    <QCSectionHeader
+                      title={group.section}
+                      count={`${done}/${group.items.length}`}
+                    />
+                    <div className="grid md:grid-cols-2">
+                      {group.items.map(({ row, index }) => {
+                        const needsMeasurement =
+                          row.requires_measurement === 1 || row.requires_measurement === true;
+                        const needsPhoto =
+                          (row.requires_photo === 1 || row.requires_photo === true) &&
+                          row.result === "Fail";
+                        const mandatory =
+                          row.is_mandatory === 1 || row.is_mandatory === true;
+                        return (
+                          <div
+                            key={row.name || `qc-${index}`}
+                            className="space-y-1.5 border-b border-border/60 p-2.5 last:border-b-0 md:odd:border-r md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
                           >
-                            <SelectTrigger className="h-9">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Pass">Pass</SelectItem>
-                              <SelectItem value="Fail">Fail</SelectItem>
-                              <SelectItem value="N/A">N/A</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="min-w-[140px]">
-                          {needsMeasurement ? (
-                            <div className="space-y-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="text-[13px] font-normal leading-snug text-muted-foreground">
+                                {row.check_item_text || "–"}
+                                {mandatory ? (
+                                  <span className="ml-1 text-destructive">*</span>
+                                ) : null}
+                              </p>
+                              <ToggleGroup
+                                type="single"
+                                variant="outline"
+                                size="sm"
+                                value={row.result || "Pass"}
+                                onValueChange={(value) => {
+                                  if (value) {
+                                    updateRow(index, { result: value as QCResultValue });
+                                  }
+                                }}
+                                className="shrink-0"
+                              >
+                                <ToggleGroupItem
+                                  value="Pass"
+                                  className={cn(
+                                    "px-2.5 text-[11px] font-semibold",
+                                    "data-[state=on]:border-emerald-600 data-[state=on]:bg-emerald-600 data-[state=on]:text-white"
+                                  )}
+                                >
+                                  OK
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
+                                  value="Fail"
+                                  className={cn(
+                                    "px-2.5 text-[11px] font-semibold",
+                                    "data-[state=on]:border-destructive data-[state=on]:bg-destructive data-[state=on]:text-white"
+                                  )}
+                                >
+                                  NOT OK
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
+                                  value="N/A"
+                                  className="px-2.5 text-[11px] font-semibold"
+                                >
+                                  N/A
+                                </ToggleGroupItem>
+                              </ToggleGroup>
+                            </div>
+                            <Input
+                              placeholder={
+                                row.result === "Fail" ? "Comments (required)" : "Comments"
+                              }
+                              value={row.notes || ""}
+                              onChange={(e) => updateRow(index, { notes: e.target.value })}
+                            />
+                            {needsMeasurement ? (
                               <Input
                                 type="number"
                                 step="any"
                                 placeholder={
                                   row.min_value != null && row.max_value != null
-                                    ? `${row.min_value} – ${row.max_value}`
-                                    : "Value"
+                                    ? `Measurement (${row.min_value} – ${row.max_value})`
+                                    : "Measurement"
                                 }
                                 value={row.measurement_value ?? ""}
-                                onChange={(e) => handleMeasurementChange(index, e.target.value)}
+                                onChange={(e) =>
+                                  handleMeasurementChange(index, e.target.value)
+                                }
                               />
-                            </div>
-                          ) : (
-                            "–"
-                          )}
-                        </TableCell>
-                        <TableCell className="min-w-[180px]">
-                          <Textarea
-                            rows={2}
-                            placeholder={row.result === "Fail" ? "Required for Fail" : "Optional"}
-                            value={row.notes || ""}
-                            onChange={(e) => updateRow(index, { notes: e.target.value })}
-                            className="min-h-[60px]"
-                          />
-                        </TableCell>
-                        <TableCell className="min-w-[140px]">
-                          {needsPhoto ? (
-                            <div className="space-y-1">
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                disabled={uploadingPhotoIndex === index}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) void handlePhotoUpload(index, file);
-                                }}
-                              />
-                              {row.photo && (
-                                <p className="text-xs text-muted-foreground truncate">Uploaded</p>
-                              )}
-                            </div>
-                          ) : (
-                            "–"
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                            ) : null}
+                            {needsPhoto ? (
+                              <div className="space-y-1">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  disabled={uploadingPhotoIndex === index}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) void handlePhotoUpload(index, file);
+                                  }}
+                                />
+                                {row.photo ? (
+                                  <p className="text-xs text-muted-foreground">Photo uploaded</p>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

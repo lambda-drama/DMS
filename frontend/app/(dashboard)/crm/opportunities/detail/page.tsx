@@ -16,9 +16,7 @@ import {
   requestAllocationSwitch,
   searchAllocatableVins,
   recordExperienceScore,
-  fetchCrmBrands,
   fetchCrmBranches,
-  fetchCrmColors,
   fetchCrmItems,
   fetchCrmVehicleModels,
   fetchOpportunityFormOptions,
@@ -33,6 +31,8 @@ import {
 } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
+import { CrmBrandLink } from '@/components/crm/crm-brand-link';
+import { CrmColorLink } from '@/components/crm/crm-color-link';
 import { Button } from '@/components/ui/button';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -274,9 +274,7 @@ export default function CrmOpportunityDetailPage() {
   const [switchVin, setSwitchVin] = useState('');
   const [experienceScore, setExperienceScore] = useState('');
   const { error, success, showError, showSuccess, clear } = useCrmFeedback();
-  const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
-  const [colorSearch, setColorSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
   const [testVehicleSearch, setTestVehicleSearch] = useState('');
 
@@ -297,19 +295,9 @@ export default function CrmOpportunityDetailPage() {
     [options]
   );
 
-  const { data: brands, isLoading: brandsLoading } = useSWR(
-    ['crm-opp-detail-brands', brandSearch],
-    () => fetchCrmBrands(brandSearch),
-    { keepPreviousData: true }
-  );
   const { data: models, isLoading: modelsLoading } = useSWR(
     ['crm-opp-detail-models', modelSearch, form.brand],
     () => fetchCrmVehicleModels(modelSearch, form.brand || undefined),
-    { keepPreviousData: true }
-  );
-  const { data: colors, isLoading: colorsLoading } = useSWR(
-    ['crm-opp-detail-colors', colorSearch],
-    () => fetchCrmColors(colorSearch),
     { keepPreviousData: true }
   );
   const { data: branches } = useSWR(
@@ -471,8 +459,9 @@ export default function CrmOpportunityDetailPage() {
 
   const onPipelineStageClick = (stage: string) => {
     if (stage === 'Appointment Scheduled') {
-      if (linked.appointment) openDeskDoc('DMS CRM Sales Appointment', linked.appointment);
-      else setPipelinePanel('appointment');
+      if (linked.appointment) {
+        navigate('crm-sales-appointment-detail', { id: linked.appointment });
+      } else setPipelinePanel('appointment');
     } else if (stage === 'Test Drive') {
       if (linked.testDrive) navigate('crm-test-drive-detail', { id: linked.testDrive });
       else setPipelinePanel('test-drive');
@@ -502,10 +491,19 @@ export default function CrmOpportunityDetailPage() {
     setPipelineBusy(true);
     try {
       if (action === 'appointment') {
-        await createSalesAppointment(id, {
+        const result = await createSalesAppointment(id, {
           ...appointmentForm,
           duration_minutes: Number(appointmentForm.duration_minutes || 60),
         });
+        const appointment = String(
+          (result as Record<string, unknown>)?.appointment
+            ? ((result as Record<string, unknown>).appointment as Record<string, unknown>).name
+            : ''
+        );
+        await mutate();
+        setPipelinePanel('');
+        if (appointment) navigate('crm-sales-appointment-detail', { id: appointment });
+        return;
       } else if (action === 'test-drive') {
         const result = await createTestDrive({ opportunity: id, ...testDriveForm });
         const testDrive = String((result as Record<string, unknown>)?.name || '');
@@ -1349,22 +1347,15 @@ export default function CrmOpportunityDetailPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Brand</label>
-            <SearchableSelect
-              options={(brands || []).map((b) => ({
-                value: b.name,
-                label: b.label || b.name,
-              }))}
+            <CrmBrandLink
               value={form.brand}
               onValueChange={(v) =>
                 setForm((prev) => ({
                   ...prev,
-                  brand: v || '',
+                  brand: v,
                   model: v && prev.brand && v !== prev.brand ? '' : prev.model,
                 }))
               }
-              onSearchChange={setBrandSearch}
-              placeholder="Brand…"
-              isLoading={brandsLoading}
             />
           </div>
           <div className="space-y-2">
@@ -1392,16 +1383,9 @@ export default function CrmOpportunityDetailPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Color</label>
-            <SearchableSelect
-              options={(colors || []).map((c) => ({
-                value: c.name,
-                label: c.label || c.name,
-              }))}
+            <CrmColorLink
               value={form.preferred_color}
-              onValueChange={(v) => set('preferred_color', v || '')}
-              onSearchChange={setColorSearch}
-              placeholder="Color…"
-              isLoading={colorsLoading}
+              onValueChange={(v) => set('preferred_color', v)}
             />
           </div>
           <div className="space-y-2">

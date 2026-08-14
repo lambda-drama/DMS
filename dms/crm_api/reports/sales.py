@@ -72,6 +72,7 @@ def _quotation_opp_field() -> str | None:
 		"dms_opportunity",
 		"custom_opportunity",
 		"dms_crm_opportunity",
+		"opportunity",
 	):
 		if meta.has_field(candidate):
 			return candidate
@@ -144,6 +145,23 @@ def get_crm_sales_dashboard(filters=None):
 		if meta.has_field("company") and f.get("company"):
 			bk_filters["company"] = f["company"]
 		summary["bookings"] = frappe.db.count(BOOKING, bk_filters)
+
+	from dms.crm_api.reports.kpis import compute_appendix_b_kpis
+
+	pack = compute_appendix_b_kpis(filters)
+	for key in (
+		"lead_response_hours",
+		"lead_contact_rate_pct",
+		"qualification_rate_pct",
+		"lead_to_sale_pct",
+		"test_drive_conversion_pct",
+		"quotation_conversion_pct",
+		"avg_sales_cycle_days",
+		"weighted_pipeline",
+	):
+		summary[key] = (pack.get("summary") or {}).get(key) or 0
+	if summary.get("weighted_pipeline"):
+		summary["weighted_forecast"] = summary["weighted_pipeline"]
 
 	return {
 		"section_id": "crm_sales",
@@ -322,6 +340,132 @@ def _lead_response(filters=None):
 		columns,
 		rows,
 		help_text=help_text,
+	)
+
+
+def _lead_contact_rate(filters=None):
+	from dms.crm_api.reports.kpis import compute_appendix_b_kpis
+
+	f = parse_crm_filters(filters)
+	pack = compute_appendix_b_kpis(filters)
+	kpi = next((k for k in pack["kpis"] if k["id"] == "lead_contact_rate_pct"), {})
+	columns = [
+		col("name", "Lead"),
+		col("lead_name", "Name"),
+		col("status", "Status"),
+		col("assigned", "Assigned"),
+		col("contacted", "Contacted"),
+		col("owner", "Owner"),
+		col("source", "Source"),
+		col("created", "Created"),
+	]
+	rows = []
+	if dt_exists(LEAD):
+		fields = _meta_fields(
+			LEAD,
+			["name", "status", "creation"],
+			["lead_name", "assigned_on", "lead_owner", "source", "branch"],
+		)
+		for r in frappe.get_all(
+			LEAD,
+			filters={"creation": creation_between(f), **dim_filters(f)},
+			fields=fields,
+			limit=2000,
+		):
+			status = r.status or ""
+			if status in ("Duplicate", "Invalid"):
+				continue
+			assigned = bool(r.get("assigned_on") or status not in ("New", ""))
+			contacted = status in ("Contacted", "Qualified", "Converted", "Disqualified", "Nurture")
+			rows.append(
+				{
+					"name": r.name,
+					"lead_name": r.get("lead_name"),
+					"status": status,
+					"assigned": _("Yes") if assigned else _("No"),
+					"contacted": _("Yes") if contacted else _("No"),
+					"owner": r.get("lead_owner"),
+					"source": r.get("source"),
+					"created": str(r.creation)[:16] if r.creation else "",
+					"_drill": {"view": "crm-lead-detail", "params": {"name": r.name}},
+				}
+			)
+	return result(
+		"crm_lead_contact_rate",
+		_("Lead Contact Rate"),
+		f,
+		{
+			"assigned": kpi.get("denominator") or 0,
+			"contacted": kpi.get("numerator") or 0,
+			"lead_contact_rate_pct": kpi.get("value") or 0,
+		},
+		columns,
+		rows,
+		help_text=_("Appendix B: Leads contacted / leads assigned × 100. Contacted excludes Contact Attempted."),
+		definitions={"lead_contact_rate_pct": "Contacted / Assigned × 100"},
+	)
+
+
+def _qualification_rate(filters=None):
+	from dms.crm_api.reports.kpis import compute_appendix_b_kpis
+
+	f = parse_crm_filters(filters)
+	pack = compute_appendix_b_kpis(filters)
+	kpi = next((k for k in pack["kpis"] if k["id"] == "qualification_rate_pct"), {})
+	columns = [
+		col("name", "Lead"),
+		col("lead_name", "Name"),
+		col("status", "Status"),
+		col("contacted", "Contacted"),
+		col("qualified", "Qualified"),
+		col("owner", "Owner"),
+		col("source", "Source"),
+		col("created", "Created"),
+	]
+	rows = []
+	if dt_exists(LEAD):
+		fields = _meta_fields(
+			LEAD,
+			["name", "status", "creation"],
+			["lead_name", "qualified_on", "lead_owner", "source", "branch"],
+		)
+		for r in frappe.get_all(
+			LEAD,
+			filters={"creation": creation_between(f), **dim_filters(f)},
+			fields=fields,
+			limit=2000,
+		):
+			status = r.status or ""
+			if status in ("Duplicate", "Invalid"):
+				continue
+			contacted = status in ("Contacted", "Qualified", "Converted", "Disqualified", "Nurture")
+			qualified = status in ("Qualified", "Converted") or bool(r.get("qualified_on"))
+			rows.append(
+				{
+					"name": r.name,
+					"lead_name": r.get("lead_name"),
+					"status": status,
+					"contacted": _("Yes") if contacted else _("No"),
+					"qualified": _("Yes") if qualified else _("No"),
+					"owner": r.get("lead_owner"),
+					"source": r.get("source"),
+					"created": str(r.creation)[:16] if r.creation else "",
+					"_drill": {"view": "crm-lead-detail", "params": {"name": r.name}},
+				}
+			)
+	return result(
+		"crm_qualification_rate",
+		_("Qualification Rate"),
+		f,
+		{
+			"contacted": kpi.get("denominator") or 0,
+			"qualified": kpi.get("numerator") or 0,
+			"qualification_rate_pct": kpi.get("value") or 0,
+		},
+		columns,
+		rows,
+		help_text=_("Appendix B: Qualified leads / contacted leads × 100."),
+		definitions={"qualification_rate_pct": "Qualified / Contacted × 100"},
 	)
 
 
@@ -653,8 +797,8 @@ def _salesperson_performance(filters=None):
 def _test_drive_conversion(filters=None):
 	f = parse_crm_filters(filters)
 	help_text = _(
-		"Test drives in period. Converted when linked opportunity is Won/Booked or booking exists / "
-		"outcome is Interested or Quotation Requested."
+		"Appendix B: Test-drive conversion = sales from customers who completed a test drive "
+		"/ completed test drives × 100. Only status Completed is counted."
 	)
 	columns = [
 		col("name", "Test Drive"),
@@ -692,7 +836,7 @@ def _test_drive_conversion(filters=None):
 	if meta.has_field("lead"):
 		fields.append("lead")
 
-	filt = {"creation": creation_between(f)}
+	filt = {"creation": creation_between(f), "status": "Completed"}
 	if meta.has_field("branch") and f.get("branch"):
 		filt["branch"] = f["branch"]
 	if meta.has_field("company") and f.get("company"):
@@ -729,10 +873,8 @@ def _test_drive_conversion(filters=None):
 		)
 		outcome = (d.get("outcome") or "").strip()
 		is_converted = bool(
-			booking
-			or opp_status == "Won"
-			or (opp and (opp.get("stage") or "") in ("Booking / Deposit", "Order Confirmed", "Won"))
-			or outcome in ("Interested", "Quotation Requested", "Booked")
+			opp_status == "Won"
+			or (opp and (opp.get("stage") or "") == "Won")
 		)
 		if is_converted:
 			converted += 1
@@ -771,8 +913,7 @@ def _test_drive_conversion(filters=None):
 def _quotation_conversion(filters=None):
 	f = parse_crm_filters(filters)
 	help_text = _(
-		"Quotations linked to DMS CRM Opportunity via custom_dms_crm_opportunity (or similar). "
-		"Converted when opportunity is Won / has booking, or Quotation status is Ordered."
+		"Appendix B: Quotation conversion = Won opportunities / quotations issued × 100."
 	)
 	columns = [
 		col("name", "Quotation"),
@@ -830,10 +971,7 @@ def _quotation_conversion(filters=None):
 		for q in quotes:
 			opp_name = q.get(opp_field)
 			opp = opp_map.get(opp_name) if opp_name else None
-			converted = bool(
-				(opp and (opp.status == "Won" or opp.get("booking")))
-				or (q.status or "") == "Ordered"
-			)
+			converted = bool(opp and opp.status == "Won")
 			row = {
 				"name": q.name,
 				"customer": q.get("customer_name") or q.get("party_name"),
@@ -866,7 +1004,7 @@ def _quotation_conversion(filters=None):
 			limit=2000,
 		)
 		for o in opps:
-			converted = o.status == "Won" or bool(o.get("booking"))
+			converted = o.status == "Won"
 			rows.append(
 				{
 					"name": o.quotation,
@@ -1564,6 +1702,8 @@ def _fleet_pipeline(filters=None):
 REPORT_HANDLERS = {
 	"crm_lead_source": _lead_source,
 	"crm_lead_response": _lead_response,
+	"crm_lead_contact_rate": _lead_contact_rate,
+	"crm_qualification_rate": _qualification_rate,
 	"crm_lead_aging": _lead_aging,
 	"crm_sales_funnel": _sales_funnel,
 	"crm_opportunity_pipeline": _opportunity_pipeline,

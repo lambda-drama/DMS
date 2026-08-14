@@ -40,6 +40,19 @@ EXCLUDED_VEHICLE_STATUSES = {
 	"Allocated",
 	"In Transit",
 }
+SOLD_VEHICLE_STATUSES = {"Scrapped", "Total Loss"}
+INACTIVE_VEHICLE_STATUSES = {"In Stock", "Allocated", "In Transit"}
+RETENTION_CLASSIFICATIONS = (
+	"Upcoming",
+	"Due",
+	"Overdue",
+	"Severely Overdue",
+	"Lapsed",
+	"Recovered",
+	"Inactive",
+	"Vehicle Sold",
+	"Unreachable",
+)
 
 
 def _settings():
@@ -189,9 +202,14 @@ def compute_due_snapshot(vin_name: str | None = None, vin_row=None) -> dict:
 		trigger_basis = "Mileage"
 
 	classification = _classify(effective, settings)
-	excluded = (vin_row.get("vehicle_status") or "") in EXCLUDED_VEHICLE_STATUSES
-	if excluded:
+	vehicle_status = vin_row.get("vehicle_status") or ""
+	excluded = vehicle_status in EXCLUDED_VEHICLE_STATUSES
+	if vehicle_status in SOLD_VEHICLE_STATUSES:
+		classification = "Vehicle Sold"
+		excluded = True
+	elif vehicle_status in INACTIVE_VEHICLE_STATUSES:
 		classification = "Inactive"
+		excluded = True
 
 	lifecycle = "Periodic Maintenance"
 	if vin_row.get("delivery_date"):
@@ -243,6 +261,24 @@ def _classify(effective_due, settings) -> str:
 	if overdue_days >= severe:
 		return "Severely Overdue"
 	return "Overdue"
+
+
+def _retention_overrides(classification, existing=None):
+	"""Apply Recovered / Unreachable on top of date-based classification (Appendix A5)."""
+	if not existing or classification in ("Vehicle Sold", "Inactive"):
+		return classification
+	prev = existing.classification
+	if prev == "Lapsed" and (
+		existing.status in ("Booked", "In Service", "Completed")
+		or classification in ("Upcoming", "Due")
+	):
+		return "Recovered"
+	if classification in ("Overdue", "Severely Overdue", "Lapsed") and frappe.db.exists(
+		REMINDER_LOG,
+		{"service_due": existing.name, "status": "Failed"},
+	):
+		return "Unreachable"
+	return classification
 
 
 @frappe.whitelist()
@@ -323,6 +359,7 @@ def sync_service_due(limit=200):
 		}
 		if existing:
 			doc = frappe.get_doc(SERVICE_DUE, existing)
+			payload["classification"] = _retention_overrides(payload["classification"], doc)
 			# Preserve manual adjustments
 			for key, value in payload.items():
 				if key in ("due_date", "due_km", "effective_due_date") and (
@@ -341,6 +378,24 @@ def sync_service_due(limit=200):
 			doc = frappe.get_doc({"doctype": SERVICE_DUE, "vin": row.name, **payload})
 			doc.insert(ignore_permissions=True)
 		synced += 1
+
+	# Mark existing dues whose VIN is no longer in the ownership cycle
+	for due in frappe.get_all(
+		SERVICE_DUE,
+		filters={"status": ["in", ["Open", "Booked", "In Service"]]},
+		fields=["name", "vin"],
+		limit_page_length=5000,
+	):
+		vs = frappe.db.get_value("VIN No", due.vin, "vehicle_status")
+		if vs in SOLD_VEHICLE_STATUSES:
+			frappe.db.set_value(
+				SERVICE_DUE,
+				due.name,
+				{"classification": "Vehicle Sold", "status": "Excluded"},
+				update_modified=False,
+			)
+			synced += 1
+
 	frappe.db.commit()
 	return {"synced": synced}
 
@@ -389,14 +444,7 @@ def get_service_due_list(classification=None, status=None, search=None, limit=50
 		row["vin_number"] = frappe.db.get_value("VIN No", row.vin, "vin_number") or row.vin
 	# Summary counts
 	summary = {}
-	for cls in (
-		"Upcoming",
-		"Due",
-		"Overdue",
-		"Severely Overdue",
-		"Lapsed",
-		"Inactive",
-	):
+	for cls in RETENTION_CLASSIFICATIONS:
 		summary[cls] = frappe.db.count(
 			SERVICE_DUE, {"classification": cls, "status": ["in", ["Open", "Booked"]]}
 		)
@@ -475,7 +523,7 @@ def run_reminder_sequence(limit=200):
 		SERVICE_DUE,
 		filters={
 			"status": ["in", ["Open", "Booked"]],
-			"classification": ["not in", ["Inactive"]],
+			"classification": ["not in", ["Inactive", "Vehicle Sold", "Unreachable"]],
 		},
 		fields=["name", "vin", "customer", "effective_due_date", "classification", "is_fleet"],
 		limit_page_length=cint(limit) or 200,

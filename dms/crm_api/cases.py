@@ -146,6 +146,10 @@ def create_case(data=None):
 	_apply_payload(doc, payload, allow_readonly=True)
 	if not doc.case_owner:
 		doc.case_owner = frappe.session.user
+	if not doc.next_action:
+		doc.next_action = "Acknowledge and investigate"
+	if not doc.next_action_due:
+		doc.next_action_due = now_datetime()
 	doc.insert()
 	frappe.db.commit()
 	return get_case(doc.name)

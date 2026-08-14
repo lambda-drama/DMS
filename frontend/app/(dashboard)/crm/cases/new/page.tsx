@@ -11,8 +11,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
+import { CrmVinLink } from '@/components/crm/crm-vin-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
+
+function localDatetimeInHours(hours: number) {
+  const d = new Date(Date.now() + hours * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export default function CrmCaseNewPage() {
   const { navigate } = useNavigation();
@@ -28,6 +35,9 @@ export default function CrmCaseNewPage() {
     status: 'New',
     vehicle_vin: '',
     responsible_department: '',
+    next_action: 'Acknowledge and investigate',
+    next_action_due: localDatetimeInHours(4),
+    parked_in_nurture: false,
     safety_impact: false,
     accident_related: false,
     legal_allegation: false,
@@ -55,6 +65,10 @@ export default function CrmCaseNewPage() {
       showError('Subject is required.');
       return;
     }
+    if (!form.parked_in_nurture && (!form.next_action.trim() || !form.next_action_due)) {
+      showError('Open cases need a next action and due date, or tick Park in nurture.');
+      return;
+    }
     setSaving(true);
     try {
       const result = await createCase({
@@ -66,6 +80,9 @@ export default function CrmCaseNewPage() {
         status: form.status,
         vehicle_vin: form.vehicle_vin || null,
         responsible_department: form.responsible_department || null,
+        next_action: form.parked_in_nurture ? form.next_action || null : form.next_action.trim(),
+        next_action_due: form.parked_in_nurture ? form.next_action_due || null : form.next_action_due,
+        parked_in_nurture: form.parked_in_nurture ? 1 : 0,
         safety_impact: form.safety_impact ? 1 : 0,
         accident_related: form.accident_related ? 1 : 0,
         legal_allegation: form.legal_allegation ? 1 : 0,
@@ -107,6 +124,23 @@ export default function CrmCaseNewPage() {
             />
           </div>
           <div className="space-y-2">
+            <label className="block text-xs font-medium text-muted-foreground">Vehicle (VIN)</label>
+            <CrmVinLink
+              value={form.vehicle_vin}
+              customer={form.customer}
+              onValueChange={(vin, picked) => {
+                setForm((prev) => ({
+                  ...prev,
+                  vehicle_vin: vin || '',
+                  customer: prev.customer || picked?.customer || '',
+                }));
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Pick from this customer's vehicles, or type a VIN / plate to search all units.
+            </p>
+          </div>
+          <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Category</label>
             <SearchableSelect
               options={categoryOptions}
@@ -138,13 +172,37 @@ export default function CrmCaseNewPage() {
               onValueChange={(v) => set('responsible_department', v || '')}
             />
           </div>
-          <div className="space-y-2">
-            <label className="block text-xs font-medium text-muted-foreground">Vehicle (VIN)</label>
+          <div className="space-y-2 sm:col-span-2">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Next action *
+            </label>
             <Input
-              value={form.vehicle_vin}
-              onChange={(e) => set('vehicle_vin', e.target.value)}
-              placeholder="VIN doc name"
+              value={form.next_action}
+              onChange={(e) => set('next_action', e.target.value)}
+              placeholder="e.g. Call customer, inspect vehicle, raise job card…"
+              disabled={form.parked_in_nurture}
             />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Next action due *
+            </label>
+            <Input
+              type="datetime-local"
+              value={form.next_action_due}
+              onChange={(e) => set('next_action_due', e.target.value)}
+              disabled={form.parked_in_nurture}
+            />
+          </div>
+          <div className="flex items-end pb-1">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.parked_in_nurture}
+                onChange={(e) => set('parked_in_nurture', e.target.checked)}
+              />
+              Park in nurture (no due date yet)
+            </label>
           </div>
           <div className="flex flex-wrap gap-4 sm:col-span-2 pt-1">
             {(

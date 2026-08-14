@@ -211,6 +211,7 @@ def get_job_card(name):
 	data["repeat_repair_eligibility"] = eligibility
 	# Synthetic for UI — JC stores complaints on job_items, not a summary field.
 	data["customer_complaint_summary"] = _job_card_complaint_text(doc)
+	_attach_qc_section_classification(data.get("qc_results") or [], data.get("qc_checklist_template"))
 
 	return data
 
@@ -1069,6 +1070,56 @@ def _resolve_qc_check_item_text(check_item_link):
 	)
 
 
+def _qc_section_map_from_template(template_name):
+	if not template_name or not frappe.db.exists("QC Checklist Template", template_name):
+		return {}
+	template = frappe.get_doc("QC Checklist Template", template_name)
+	mapping = {}
+	for item in template.checklist_items or []:
+		text = _resolve_qc_check_item_text(item.check_item)
+		section = item.get("section_classification") or ""
+		if text and section:
+			mapping[text] = section
+	return mapping
+
+
+def _attach_qc_section_classification(qc_results, template_name):
+	"""Fill missing section_classification from the template so existing job cards group correctly."""
+	if not qc_results:
+		return qc_results
+	mapping = _qc_section_map_from_template(template_name)
+	if not mapping:
+		return qc_results
+	for row in qc_results:
+		if row.get("section_classification"):
+			continue
+		text = row.get("check_item_text") or ""
+		if text in mapping:
+			row["section_classification"] = mapping[text]
+	return qc_results
+
+
+def _qc_result_dict_from_template_item(item):
+	req_m = cint(item.requires_measurement)
+	return {
+		"check_item_text": _resolve_qc_check_item_text(item.check_item),
+		"category": item.category,
+		"section_classification": item.get("section_classification") or "",
+		"is_mandatory": item.is_mandatory,
+		"requires_photo": item.requires_photo,
+		"requires_measurement": item.requires_measurement,
+		"min_value": item.min_value if req_m else None,
+		"max_value": item.max_value if req_m else None,
+		"result": "Pass",
+	}
+
+
+def _serialize_qc_results(doc):
+	results = [row.as_dict() for row in (doc.qc_results or [])]
+	_attach_qc_section_classification(results, doc.qc_checklist_template)
+	return results
+
+
 @frappe.whitelist()
 def get_qc_checklist_templates():
 	"""List active QC checklist templates for the frontend picker."""
@@ -1106,27 +1157,14 @@ def apply_qc_checklist_template(name, template, force=0):
 	doc.qc_checklist_template = template
 	doc.set("qc_results", [])
 	for item in items:
-		req_m = cint(item.requires_measurement)
-		doc.append(
-			"qc_results",
-			{
-				"check_item_text": _resolve_qc_check_item_text(item.check_item),
-				"category": item.category,
-				"is_mandatory": item.is_mandatory,
-				"requires_photo": item.requires_photo,
-				"requires_measurement": item.requires_measurement,
-				"min_value": item.min_value if req_m else None,
-				"max_value": item.max_value if req_m else None,
-				"result": "Pass",
-			},
-		)
+		doc.append("qc_results", _qc_result_dict_from_template_item(item))
 
 	doc.save()
 	frappe.db.commit()
 
 	return {
 		"qc_checklist_template": doc.qc_checklist_template,
-		"qc_results": doc.qc_results,
+		"qc_results": _serialize_qc_results(doc),
 	}
 
 
@@ -1156,6 +1194,7 @@ def save_qc_results(name, qc_checklist_template=None, results=None):
 			{
 				"check_item_text": row.get("check_item_text") or "",
 				"category": row.get("category"),
+				"section_classification": row.get("section_classification") or "",
 				"is_mandatory": row.get("is_mandatory"),
 				"requires_photo": row.get("requires_photo"),
 				"requires_measurement": row.get("requires_measurement"),
@@ -1173,7 +1212,7 @@ def save_qc_results(name, qc_checklist_template=None, results=None):
 
 	return {
 		"qc_checklist_template": doc.qc_checklist_template,
-		"qc_results": doc.qc_results,
+		"qc_results": _serialize_qc_results(doc),
 	}
 
 

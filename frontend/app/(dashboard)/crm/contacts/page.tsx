@@ -23,7 +23,7 @@ export default function CrmContactsPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
-              placeholder="Search contacts…"
+              placeholder="Search masters…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -47,7 +47,7 @@ export default function CrmContactsPage() {
                   {rows.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-10 text-center text-muted-foreground">
-                        No contacts found.
+                        No masters found.
                       </td>
                     </tr>
                   ) : (

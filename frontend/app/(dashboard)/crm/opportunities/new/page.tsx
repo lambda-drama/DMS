@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
   createOpportunity,
-  fetchCrmBrands,
   fetchCrmBranches,
-  fetchCrmColors,
   fetchCrmVehicleModels,
   fetchOpportunityFormOptions,
 } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
+import { CrmBrandLink } from '@/components/crm/crm-brand-link';
+import { CrmColorLink } from '@/components/crm/crm-color-link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,9 +35,7 @@ export default function CrmOpportunityNewPage() {
   const { navigate } = useNavigation();
   const [saving, setSaving] = useState(false);
   const { error, success, showError, clear } = useCrmFeedback();
-  const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
-  const [colorSearch, setColorSearch] = useState('');
   const [form, setForm] = useState({
     title: '',
     customer: '',
@@ -68,19 +66,9 @@ export default function CrmOpportunityNewPage() {
     }
   }, [options, form.company]);
 
-  const { data: brands, isLoading: brandsLoading } = useSWR(
-    ['crm-opp-brands', brandSearch],
-    () => fetchCrmBrands(brandSearch),
-    { keepPreviousData: true }
-  );
   const { data: models, isLoading: modelsLoading } = useSWR(
     ['crm-opp-models', modelSearch, form.brand],
     () => fetchCrmVehicleModels(modelSearch, form.brand || undefined),
-    { keepPreviousData: true }
-  );
-  const { data: colors, isLoading: colorsLoading } = useSWR(
-    ['crm-opp-colors', colorSearch],
-    () => fetchCrmColors(colorSearch),
     { keepPreviousData: true }
   );
   const { data: branches } = useSWR(
@@ -207,22 +195,15 @@ export default function CrmOpportunityNewPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Brand</label>
-            <SearchableSelect
-              options={(brands || []).map((b) => ({
-                value: b.name,
-                label: b.label || b.name,
-              }))}
+            <CrmBrandLink
               value={form.brand}
               onValueChange={(v) =>
                 setForm((prev) => ({
                   ...prev,
-                  brand: v || '',
+                  brand: v,
                   model: v && prev.brand && v !== prev.brand ? '' : prev.model,
                 }))
               }
-              onSearchChange={setBrandSearch}
-              placeholder="Search brand…"
-              isLoading={brandsLoading}
             />
           </div>
           <div className="space-y-2">
@@ -250,16 +231,9 @@ export default function CrmOpportunityNewPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Color</label>
-            <SearchableSelect
-              options={(colors || []).map((c) => ({
-                value: c.name,
-                label: c.label || c.name,
-              }))}
+            <CrmColorLink
               value={form.preferred_color}
-              onValueChange={(v) => set('preferred_color', v || '')}
-              onSearchChange={setColorSearch}
-              placeholder="Preferred color…"
-              isLoading={colorsLoading}
+              onValueChange={(v) => set('preferred_color', v)}
             />
           </div>
           <div className="sm:col-span-2 space-y-2">

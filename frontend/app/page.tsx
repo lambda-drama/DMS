@@ -61,10 +61,17 @@ const CrmLeadDetailPage = dynamic(() => import('./(dashboard)/crm/leads/detail/p
 const CrmOpportunitiesPage = dynamic(() => import('./(dashboard)/crm/opportunities/page'));
 const CrmOpportunityNewPage = dynamic(() => import('./(dashboard)/crm/opportunities/new/page'));
 const CrmOpportunityDetailPage = dynamic(() => import('./(dashboard)/crm/opportunities/detail/page'));
+const CrmSalesAppointmentsPage = dynamic(() => import('./(dashboard)/crm/appointments/page'));
+const CrmSalesAppointmentNewPage = dynamic(() => import('./(dashboard)/crm/appointments/new/page'));
+const CrmSalesAppointmentDetailPage = dynamic(
+  () => import('./(dashboard)/crm/appointments/detail/page')
+);
 const CrmContactsPage = dynamic(() => import('./(dashboard)/crm/contacts/page'));
 const CrmCustomersPage = dynamic(() => import('./(dashboard)/crm/customers/page'));
 const CrmCustomerNewPage = dynamic(() => import('./(dashboard)/crm/customers/new/page'));
 const CrmCustomerDetailPage = dynamic(() => import('./(dashboard)/crm/customers/detail/page'));
+const CrmVehiclesPage = dynamic(() => import('./(dashboard)/crm/vehicles/page'));
+const CrmVehicleDetailPage = dynamic(() => import('./(dashboard)/crm/vehicles/detail/page'));
 const CrmActivitiesPage = dynamic(() => import('./(dashboard)/crm/activities/page'));
 const CrmActivityNewPage = dynamic(() => import('./(dashboard)/crm/activities/new/page'));
 const CrmActivityDetailPage = dynamic(
@@ -226,10 +233,15 @@ function AppContent() {
       case 'crm-opportunities':  return <CrmOpportunitiesPage />;
       case 'crm-opportunity-new': return <CrmOpportunityNewPage />;
       case 'crm-opportunity-detail': return <CrmOpportunityDetailPage />;
+      case 'crm-sales-appointments': return <CrmSalesAppointmentsPage />;
+      case 'crm-sales-appointment-new': return <CrmSalesAppointmentNewPage />;
+      case 'crm-sales-appointment-detail': return <CrmSalesAppointmentDetailPage />;
       case 'crm-contacts':       return <CrmContactsPage />;
       case 'crm-customers':      return <CrmCustomersPage />;
       case 'crm-customer-new':   return <CrmCustomerNewPage />;
       case 'crm-customer-detail': return <CrmCustomerDetailPage />;
+      case 'crm-vehicles': return <CrmVehiclesPage />;
+      case 'crm-vehicle-detail': return <CrmVehicleDetailPage />;
       case 'crm-activities':     return <CrmActivitiesPage />;
       case 'crm-activity-new':   return <CrmActivityNewPage />;
       case 'crm-activity-detail': return <CrmActivityDetailPage />;

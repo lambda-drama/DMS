@@ -86,6 +86,44 @@ def get_brands(search=None, limit=40):
 
 
 @frappe.whitelist()
+def get_territories(search=None, limit=50, is_group=0):
+	"""ERPNext Territory master for CRM link fields (Customer, Account, etc.)."""
+	if not frappe.db.exists("DocType", "Territory"):
+		return []
+	filters = {}
+	if frappe.get_meta("Territory").has_field("is_group") and str(is_group) != "all":
+		filters["is_group"] = cint(is_group)
+	or_filters = None
+	search = (search or "").strip()
+	if search:
+		q = f"%{search}%"
+		or_filters = {"name": ["like", q]}
+		if frappe.get_meta("Territory").has_field("territory_name"):
+			or_filters["territory_name"] = ["like", q]
+	fields = ["name"]
+	if frappe.get_meta("Territory").has_field("territory_name"):
+		fields.append("territory_name")
+	if frappe.get_meta("Territory").has_field("parent_territory"):
+		fields.append("parent_territory")
+	rows = frappe.get_all(
+		"Territory",
+		filters=filters or None,
+		or_filters=or_filters,
+		fields=fields,
+		limit=cint(limit) or 50,
+		order_by="name asc",
+	)
+	return [
+		{
+			"name": row.name,
+			"label": row.get("territory_name") or row.name,
+			"parent_territory": row.get("parent_territory"),
+		}
+		for row in rows
+	]
+
+
+@frappe.whitelist()
 def get_vehicle_models(search=None, brand=None, limit=30):
 	"""Vehicle Model master — same shape as DMS vehicle model dropdown."""
 	from dms.api.common import get_vehicle_models as _get_vehicle_models
@@ -215,3 +253,43 @@ def get_csrf_token():
 @frappe.whitelist()
 def ping():
 	return {"ok": 1, "module": "crm"}
+
+
+@frappe.whitelist()
+def quick_create_territory(territory_name, parent_territory=None):
+	"""Create a leaf Territory from a CRM link + button."""
+	ensure_crm_create("Territory")
+	territory_name = (territory_name or "").strip()
+	if not territory_name:
+		frappe.throw(_("Territory name is required."))
+	if frappe.db.exists("Territory", territory_name):
+		frappe.throw(_("Territory {0} already exists.").format(territory_name))
+	parent = (parent_territory or "").strip() or None
+	if not parent and frappe.get_meta("Territory").has_field("parent_territory"):
+		parent = frappe.db.get_value("Territory", {"is_group": 1}, "name")
+	doc = frappe.get_doc(
+		{
+			"doctype": "Territory",
+			"territory_name": territory_name,
+			"parent_territory": parent,
+			"is_group": 0,
+		}
+	)
+	doc.insert()
+	frappe.db.commit()
+	return {"name": doc.name, "label": doc.territory_name or doc.name}
+
+
+@frappe.whitelist()
+def quick_create_brand(brand):
+	"""Create a Brand from a CRM link + button."""
+	ensure_crm_create("Brand")
+	brand = (brand or "").strip()
+	if not brand:
+		frappe.throw(_("Brand name is required."))
+	if frappe.db.exists("Brand", brand):
+		return {"name": brand, "label": brand}
+	doc = frappe.get_doc({"doctype": "Brand", "brand": brand})
+	doc.insert()
+	frappe.db.commit()
+	return {"name": doc.name, "label": doc.brand or doc.name}

@@ -24,11 +24,17 @@ import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2, RefreshCw, Search } from 'lucide-react';
 
 function tone(classification?: string) {
-  if (classification === 'Overdue' || classification === 'Severely Overdue') {
+  if (
+    classification === 'Overdue' ||
+    classification === 'Severely Overdue' ||
+    classification === 'Unreachable'
+  ) {
     return 'destructive' as const;
   }
-  if (classification === 'Lapsed') return 'destructive' as const;
-  if (classification === 'Due') return 'secondary' as const;
+  if (classification === 'Lapsed' || classification === 'Vehicle Sold') {
+    return 'destructive' as const;
+  }
+  if (classification === 'Due' || classification === 'Recovered') return 'secondary' as const;
   return 'outline' as const;
 }
 
@@ -142,8 +148,18 @@ export default function CrmServiceRetentionPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {['Upcoming', 'Due', 'Overdue', 'Severely Overdue', 'Lapsed', 'Inactive'].map((key) => (
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
+        {[
+          'Upcoming',
+          'Due',
+          'Overdue',
+          'Severely Overdue',
+          'Lapsed',
+          'Recovered',
+          'Inactive',
+          'Vehicle Sold',
+          'Unreachable',
+        ].map((key) => (
           <Card
             key={key}
             className={`cursor-pointer border-border/70 shadow-sm ${

@@ -11,6 +11,25 @@ import {
   type MetricLink,
 } from '@/components/reports/dashboards/shared';
 
+const APPENDIX_B_PREFER = [
+  'lead_response_hours',
+  'lead_contact_rate_pct',
+  'qualification_rate_pct',
+  'lead_to_sale_pct',
+  'test_drive_conversion_pct',
+  'quotation_conversion_pct',
+  'avg_sales_cycle_days',
+  'weighted_pipeline',
+  'appointment_show_rate_pct',
+  'service_retention_pct',
+  'reminder_booking_rate_pct',
+  'lapsed_recovery_rate_pct',
+  'complaint_sla_compliance_pct',
+  'first_contact_resolution_pct',
+  'campaign_roi_pct',
+  'customer_lifetime_value',
+];
+
 const SKIP = [
   'by_status',
   'by_month',
@@ -39,6 +58,66 @@ const LINKS: Record<string, MetricLink> = {
   lead_to_sale_pct: {
     view: 'crm-reports',
     params: { section: 'crm_executive', report: 'crm_exec_conversion' },
+  },
+  avg_sales_cycle_days: {
+    view: 'crm-reports',
+    params: { section: 'crm_executive', report: 'crm_exec_conversion' },
+  },
+  lead_response_hours: {
+    view: 'crm-reports',
+    params: { section: 'crm_sales', report: 'crm_lead_response' },
+  },
+  lead_contact_rate_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_sales', report: 'crm_lead_contact_rate' },
+  },
+  qualification_rate_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_sales', report: 'crm_qualification_rate' },
+  },
+  test_drive_conversion_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_sales', report: 'crm_test_drive_conversion' },
+  },
+  quotation_conversion_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_sales', report: 'crm_quotation_conversion' },
+  },
+  appointment_show_rate_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_aftersales', report: 'crm_appointment_capacity' },
+  },
+  service_retention_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_aftersales', report: 'crm_service_retention_cohort' },
+  },
+  reminder_booking_rate_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_aftersales', report: 'crm_reminder_conversion' },
+  },
+  lapsed_recovery_rate_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_aftersales', report: 'crm_lapsed_recovery' },
+  },
+  complaint_sla_compliance_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_aftersales', report: 'crm_complaint_aging' },
+  },
+  first_contact_resolution_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_executive', report: 'crm_exec_complaints' },
+  },
+  campaign_roi_pct: {
+    view: 'crm-reports',
+    params: { section: 'crm_call_campaign', report: 'crm_revenue_attribution' },
+  },
+  customer_lifetime_value: {
+    view: 'crm-reports',
+    params: { section: 'crm_executive', report: 'crm_exec_customer_value' },
+  },
+  weighted_pipeline: {
+    view: 'crm-reports',
+    params: { section: 'crm_sales', report: 'crm_opportunity_pipeline' },
   },
   deliveries: {
     view: 'crm-reports',
@@ -96,7 +175,14 @@ export function CrmSectionDashboard({ data }: { data: SectionDashboard }) {
 
   return (
     <DashboardShell>
-      <KpiCards summary={summary} skip={SKIP} max={8} links={LINKS} onNavigate={go} />
+      <KpiCards
+        summary={summary}
+        skip={SKIP}
+        prefer={APPENDIX_B_PREFER}
+        max={16}
+        links={LINKS}
+        onNavigate={go}
+      />
       <div className="grid gap-3 lg:grid-cols-2">
         {statusData.length > 0 ? (
           <StatusPieChart

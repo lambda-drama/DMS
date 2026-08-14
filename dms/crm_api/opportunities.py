@@ -400,7 +400,10 @@ def create_sales_appointment(name, data=None):
 		frappe.throw(_("Link a Customer before scheduling an appointment."))
 	if not doc.company:
 		frappe.throw(_("Select the operating Company on the deal first."))
-	if not payload.get("appointment_datetime"):
+	dt = str(payload.get("appointment_datetime") or "").replace("T", " ").strip()
+	if len(dt) == 16:
+		dt += ":00"
+	if not dt:
 		frappe.throw(_("Appointment date and time are required."))
 
 	appointment = frappe.get_doc(
@@ -408,7 +411,7 @@ def create_sales_appointment(name, data=None):
 			"doctype": "DMS CRM Sales Appointment",
 			"opportunity": doc.name,
 			"customer": doc.customer,
-			"appointment_datetime": payload.get("appointment_datetime"),
+			"appointment_datetime": dt,
 			"duration_minutes": cint(payload.get("duration_minutes") or 60),
 			"status": "Scheduled",
 			"appointment_type": payload.get("appointment_type") or "Showroom Appointment",

@@ -13,6 +13,11 @@ import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
 import { useCrmFeedback } from '@/components/crm/form-feedback';
 import { EditCustomerDialog } from '@/components/customers/edit-customer-dialog';
+import {
+  Customer360RecordProvider,
+  useCustomer360OpenRecord,
+  type Customer360RecordKind,
+} from '@/components/crm/customer-360-record-sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +32,7 @@ import {
   MapPin,
   Phone,
   Pencil,
+  Plus,
   Target,
   UserRound,
   Wrench,
@@ -90,10 +96,12 @@ function DataTable({
   columns,
   rows,
   empty,
+  onRowClick,
 }: {
   columns: { key: string; label: string; render?: (row: Record<string, unknown>) => ReactNode }[];
   rows: Record<string, unknown>[];
   empty: string;
+  onRowClick?: (row: Record<string, unknown>) => void;
 }) {
   if (!rows.length) return <EmptyState label={empty} />;
   return (
@@ -112,7 +120,24 @@ function DataTable({
           {rows.map((row, idx) => (
             <tr
               key={String(row.name || row.key || idx)}
-              className="border-b border-border/60 last:border-0"
+              className={
+                onRowClick
+                  ? 'cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40'
+                  : 'border-b border-border/60 last:border-0'
+              }
+              role={onRowClick ? 'link' : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    }
+                  : undefined
+              }
             >
               {columns.map((c) => (
                 <td key={c.key} className="py-3 align-top">
@@ -130,6 +155,30 @@ function DataTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function LinkedTable({
+  kind,
+  nameKey = 'name',
+  ...props
+}: {
+  kind: Customer360RecordKind;
+  nameKey?: string;
+  columns: { key: string; label: string; render?: (row: Record<string, unknown>) => ReactNode }[];
+  rows: Record<string, unknown>[];
+  empty: string;
+}) {
+  const openRecord = useCustomer360OpenRecord();
+  return (
+    <DataTable
+      {...props}
+      onRowClick={(row) => {
+        const name = String(row[nameKey] || row.name || '').trim();
+        if (!name) return;
+        openRecord({ kind, name, row });
+      }}
+    />
   );
 }
 
@@ -171,22 +220,32 @@ function StatCard({
 }
 
 function OverviewTab({ data }: { data: Customer360Data }) {
+  const openRecord = useCustomer360OpenRecord();
   const { customer, summary, activities, opportunities, cases, retention, loyalty } = data;
   const recent = [
     ...activities.slice(0, 5).map((a) => ({
       key: `act-${a.name}`,
+      kind: 'activity' as const,
+      name: String(a.name),
+      row: a,
       title: String(a.subject || a.name),
       meta: `${a.activity_type || 'Activity'} · ${a.status || '—'}`,
       when: String(a.due_datetime || a.modified || ''),
     })),
     ...opportunities.slice(0, 3).map((o) => ({
       key: `opp-${o.name}`,
+      kind: 'opportunity' as const,
+      name: String(o.name),
+      row: o,
       title: String(o.title || o.name),
       meta: `Deal · ${o.stage || o.status || '—'}`,
       when: String(o.modified || ''),
     })),
     ...cases.slice(0, 3).map((c) => ({
       key: `case-${c.name}`,
+      kind: 'case' as const,
+      name: String(c.name),
+      row: c,
       title: String(c.subject || c.name),
       meta: `Case · ${c.status || '—'}`,
       when: String(c.modified || ''),
@@ -281,7 +340,18 @@ function OverviewTab({ data }: { data: Customer360Data }) {
                 {recent.map((item) => (
                   <li
                     key={item.key}
-                    className="flex items-start justify-between gap-3 border-b border-border/50 pb-3 last:border-0 last:pb-0"
+                    className="flex cursor-pointer items-start justify-between gap-3 border-b border-border/50 pb-3 last:border-0 last:pb-0 hover:bg-muted/30"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() =>
+                      openRecord({ kind: item.kind, name: item.name, row: item.row })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openRecord({ kind: item.kind, name: item.name, row: item.row });
+                      }
+                    }}
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium">{item.title}</p>
@@ -355,7 +425,8 @@ function OrganizationsTab({ data }: { data: Customer360Data }) {
           <CardTitle className="text-base">Organizations ({organizations.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="account"
             empty="No organization relationships."
             rows={organizations}
             columns={[
@@ -376,11 +447,12 @@ function OrganizationsTab({ data }: { data: Customer360Data }) {
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Contacts ({contacts.length})</CardTitle>
+          <CardTitle className="text-base">Masters ({contacts.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
-            empty="No linked contacts."
+          <LinkedTable
+            kind="contact"
+            empty="No linked masters."
             rows={contacts}
             columns={[
               {
@@ -410,7 +482,12 @@ function OrganizationsTab({ data }: { data: Customer360Data }) {
 }
 
 function VehiclesTab({ data }: { data: Customer360Data }) {
+  const { navigate } = useNavigation();
   const { vehicles, vehicle_history } = data;
+  const openVin = (row: Record<string, unknown>) => {
+    const id = String(row.vin_number || row.vin || row.name || '').trim();
+    if (id) navigate('crm-vehicle-detail', { id });
+  };
   return (
     <div className="space-y-4">
       <Card className="border-border/70 shadow-sm">
@@ -421,6 +498,7 @@ function VehiclesTab({ data }: { data: Customer360Data }) {
           <DataTable
             empty="No vehicles linked to this customer."
             rows={vehicles}
+            onRowClick={openVin}
             columns={[
               {
                 key: 'vin',
@@ -469,6 +547,7 @@ function VehiclesTab({ data }: { data: Customer360Data }) {
           <DataTable
             empty="No previous ownership records."
             rows={vehicle_history}
+            onRowClick={openVin}
             columns={[
               {
                 key: 'vin',
@@ -501,8 +580,9 @@ function VehiclesTab({ data }: { data: Customer360Data }) {
   );
 }
 
-function SalesTab({ data }: { data: Customer360Data }) {
-  const { leads, opportunities, deliveries } = data;
+function SalesTab({ data, customerId }: { data: Customer360Data; customerId: string }) {
+  const { navigate } = useNavigation();
+  const { leads, opportunities, deliveries, sales_appointments = [] } = data;
   return (
     <div className="space-y-4">
       <Card className="border-border/70 shadow-sm">
@@ -510,7 +590,8 @@ function SalesTab({ data }: { data: Customer360Data }) {
           <CardTitle className="text-base">Opportunities ({opportunities.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="opportunity"
             empty="No opportunities."
             rows={opportunities}
             columns={[
@@ -554,11 +635,54 @@ function SalesTab({ data }: { data: Customer360Data }) {
       </Card>
 
       <Card className="border-border/70 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">
+            Sales appointments ({sales_appointments.length})
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate('crm-sales-appointment-new', { customer: customerId })}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            New
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <LinkedTable
+            kind="sales_appointment"
+            empty="No sales appointments."
+            rows={sales_appointments}
+            columns={[
+              {
+                key: 'appointment_datetime',
+                label: 'When',
+                render: (a) => fmtDate(String(a.appointment_datetime || '')),
+              },
+              { key: 'appointment_type', label: 'Type' },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (a) => statusBadge(String(a.status || '')),
+              },
+              { key: 'opportunity', label: 'Deal' },
+              {
+                key: 'assigned_to',
+                label: 'Assigned',
+                render: (a) => String(a.owner_name || a.assigned_to || '—'),
+              },
+            ]}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Leads ({leads.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="lead"
             empty="No leads linked."
             rows={leads}
             columns={[
@@ -596,7 +720,8 @@ function SalesTab({ data }: { data: Customer360Data }) {
           <CardTitle className="text-base">Deliveries ({deliveries.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="delivery"
             empty="No vehicle deliveries."
             rows={deliveries}
             columns={[
@@ -651,7 +776,8 @@ function AftersalesTab({ data }: { data: Customer360Data }) {
           <CardTitle className="text-base">Job cards ({job_cards.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="job_card"
             empty="No job cards."
             rows={job_cards}
             columns={[
@@ -692,7 +818,12 @@ function AftersalesTab({ data }: { data: Customer360Data }) {
                   </div>
                 ),
               },
-              { key: 'service_advisor', label: 'Advisor' },
+              {
+                key: 'service_advisor',
+                label: 'Advisor',
+                render: (j) =>
+                  String(j.service_advisor_name || j.service_advisor || '—'),
+              },
             ]}
           />
         </CardContent>
@@ -700,10 +831,11 @@ function AftersalesTab({ data }: { data: Customer360Data }) {
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Appointments ({appointments.length})</CardTitle>
+          <CardTitle className="text-base">Service appointments ({appointments.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="appointment"
             empty="No service appointments."
             rows={appointments}
             columns={[
@@ -718,7 +850,12 @@ function AftersalesTab({ data }: { data: Customer360Data }) {
                 render: (a) => fmtDate(String(a.appointment_date_time || '')),
               },
               { key: 'vehicle', label: 'Vehicle' },
-              { key: 'assigned_service_advisor', label: 'Advisor' },
+              {
+                key: 'assigned_service_advisor',
+                label: 'Advisor',
+                render: (a) =>
+                  String(a.assigned_service_advisor_name || a.assigned_service_advisor || '—'),
+              },
               {
                 key: 'status',
                 label: 'Status',
@@ -735,7 +872,8 @@ function AftersalesTab({ data }: { data: Customer360Data }) {
             <CardTitle className="text-base">Estimates ({estimates.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <DataTable
+            <LinkedTable
+              kind="estimate"
               empty="No service estimates."
               rows={estimates}
               columns={[
@@ -766,7 +904,8 @@ function AftersalesTab({ data }: { data: Customer360Data }) {
             <CardTitle className="text-base">Follow-ups ({follow_ups.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <DataTable
+            <LinkedTable
+              kind="follow_up"
               empty="No follow-ups."
               rows={follow_ups}
               columns={[
@@ -806,7 +945,8 @@ function CommunicationsTab({ data }: { data: Customer360Data }) {
           <CardTitle className="text-base">CRM activities ({activities.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="activity"
             empty="No activities."
             rows={activities}
             columns={[
@@ -840,7 +980,8 @@ function CommunicationsTab({ data }: { data: Customer360Data }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="communication"
             empty="No linked communications yet."
             rows={communications}
             columns={[
@@ -869,7 +1010,8 @@ function CommunicationsTab({ data }: { data: Customer360Data }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="follow_up"
             empty="No follow-up contact notes."
             rows={follow_ups}
             columns={[
@@ -902,7 +1044,8 @@ function CasesTab({ data }: { data: Customer360Data }) {
         <CardTitle className="text-base">Cases ({cases.length})</CardTitle>
       </CardHeader>
       <CardContent>
-        <DataTable
+        <LinkedTable
+          kind="case"
           empty="No cases."
           rows={cases}
           columns={[
@@ -960,7 +1103,9 @@ function CampaignsTab({ data }: { data: Customer360Data }) {
         {campaigns.length === 0 ? (
           <EmptyState label="No campaign membership yet." />
         ) : (
-          <DataTable
+          <LinkedTable
+            kind="campaign"
+            nameKey="campaign"
             empty="No campaign membership."
             rows={campaigns}
             columns={[
@@ -1036,7 +1181,8 @@ function FinanceTab({ data }: { data: Customer360Data }) {
           <CardTitle className="text-base">Invoices ({finance.invoices.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="invoice"
             empty="No sales invoices."
             rows={finance.invoices}
             columns={[
@@ -1084,7 +1230,8 @@ function FinanceTab({ data }: { data: Customer360Data }) {
           <CardTitle className="text-base">Payments ({finance.payments.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <LinkedTable
+            kind="payment"
             empty="No payment entries."
             rows={finance.payments}
             columns={[
@@ -1180,7 +1327,8 @@ function LoyaltyTab({ data }: { data: Customer360Data }) {
             <CardTitle className="text-base">Referrals ({loyalty.referrals.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <DataTable
+            <LinkedTable
+              kind="referral"
               empty="No referrals recorded yet."
               rows={loyalty.referrals}
               columns={[
@@ -1410,6 +1558,7 @@ export default function CrmCustomerDetailPage() {
   const duplicates = dupData?.duplicates || [];
 
   return (
+    <Customer360RecordProvider customerId={customerId}>
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
@@ -1471,7 +1620,7 @@ export default function CrmCustomerDetailPage() {
           </span>
           <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1">
             <UserRound className="h-3.5 w-3.5" />
-            {summary.contacts} contacts
+            {summary.contacts} masters
           </span>
           </div>
         </div>
@@ -1505,7 +1654,7 @@ export default function CrmCustomerDetailPage() {
           <VehiclesTab data={data} />
         </TabsContent>
         <TabsContent value="sales">
-          <SalesTab data={data} />
+          <SalesTab data={data} customerId={customerId} />
         </TabsContent>
         <TabsContent value="aftersales">
           <AftersalesTab data={data} />
@@ -1549,5 +1698,6 @@ export default function CrmCustomerDetailPage() {
         }}
       />
     </div>
+    </Customer360RecordProvider>
   );
 }

@@ -18,6 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { htmlToPlainText } from "@/lib/plain-text";
 import type { DMSJobCard, JobCardItem } from "@/types/dms";
+import { QCResultsGroupedList } from "@/components/job-card/qc-grouped-list";
 
 function jobItemComplaintText(item: JobCardItem): string {
   return htmlToPlainText(item.complaint_description || item.complaint || "").trim();
@@ -177,32 +178,7 @@ export function JobCardDetailSheetContent({
           </div>
 
           {jobCard.qc_results && jobCard.qc_results.length > 0 ? (
-            <div className="rounded-lg border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Check item</TableHead>
-                    <TableHead>Result</TableHead>
-                    <TableHead>Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobCard.qc_results.map((row, idx) => (
-                    <TableRow key={row.name || idx}>
-                      <TableCell className="font-medium text-sm">
-                        {row.check_item_text || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={resultBadgeVariant(row.result)}>{row.result || "—"}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {row.notes || "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <QCResultsGroupedList rows={jobCard.qc_results} />
           ) : (
             <p className="text-sm text-muted-foreground py-6 text-center">
               No QC checklist recorded yet.

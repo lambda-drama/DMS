@@ -7,9 +7,9 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, getdate, nowdate, time_diff_in_hours
 
+from dms.crm_api.reports.kpis import compute_appendix_b_kpis
 from dms.crm_api.reports.common import (
 	ACTIVITY,
-	BOOKING,
 	CAMPAIGN,
 	CASE,
 	DELIVERY,
@@ -28,29 +28,34 @@ from dms.crm_api.reports.common import (
 
 def get_crm_executive_dashboard(filters=None):
 	f = parse_crm_filters(filters)
+	pack = compute_appendix_b_kpis(filters)
 	summary = {
+		"lead_response_hours": 0,
+		"lead_contact_rate_pct": 0,
+		"qualification_rate_pct": 0,
+		"lead_to_sale_pct": 0,
+		"test_drive_conversion_pct": 0,
+		"quotation_conversion_pct": 0,
+		"avg_sales_cycle_days": 0,
+		"weighted_pipeline": 0,
+		"appointment_show_rate_pct": 0,
+		"service_retention_pct": 0,
+		"reminder_booking_rate_pct": 0,
+		"lapsed_recovery_rate_pct": 0,
+		"complaint_sla_compliance_pct": 0,
+		"first_contact_resolution_pct": 0,
+		"campaign_roi_pct": 0,
+		"customer_lifetime_value": 0,
 		"new_leads": 0,
-		"response_sla_met_pct": 0,
 		"qualified_leads": 0,
 		"open_pipeline_value": 0,
-		"weighted_forecast": 0,
-		"lead_to_sale_pct": 0,
-		"avg_sales_cycle_days": 0,
 		"deliveries": 0,
-		"avg_satisfaction": 0,
-		"service_upcoming": 0,
-		"service_overdue": 0,
-		"service_lapsed": 0,
-		"appointments": 0,
-		"no_shows": 0,
 		"open_complaints": 0,
-		"sla_breaches": 0,
-		"campaign_leads": 0,
-		"campaign_roi_pct": 0,
 		"by_status": [],
 		"by_month": [],
 		"by_branch": [],
 	}
+	summary.update(pack.get("summary") or {})
 
 	if dt_exists(LEAD):
 		lead_filters = {"creation": creation_between(f), **dim_filters(f)}
@@ -96,26 +101,6 @@ def get_crm_executive_dashboard(filters=None):
 		)
 		open_opps = [o for o in opps if (o.get("status") or "") not in ("Won",)]
 		summary["open_pipeline_value"] = round(sum(flt(o.get("expected_value")) for o in open_opps), 2)
-		summary["weighted_forecast"] = round(
-			sum(flt(o.get("expected_value")) * flt(o.get("probability") or 0) / 100.0 for o in open_opps),
-			2,
-		)
-		won = frappe.get_all(
-			OPP,
-			filters={
-				"status": "Won",
-				"modified": creation_between(f),
-				**dim_filters(f, owner_field="opportunity_owner", include_source=False),
-			},
-			fields=["name", "creation", "modified"],
-			limit=2000,
-		)
-		summary["lead_to_sale_pct"] = (
-			round(100.0 * len(won) / max(summary["new_leads"], 1), 1) if summary["new_leads"] else 0
-		)
-		if won:
-			cycles = [date_diff(getdate(w.modified), getdate(w.creation)) for w in won if w.creation]
-			summary["avg_sales_cycle_days"] = round(sum(cycles) / len(cycles), 1) if cycles else 0
 
 	if dt_exists(DELIVERY):
 		d_meta = frappe.get_meta(DELIVERY)
@@ -175,7 +160,7 @@ def get_crm_executive_dashboard(filters=None):
 	if dt_exists(CAMPAIGN):
 		c_meta = frappe.get_meta(CAMPAIGN)
 		c_fields = ["name"]
-		for optional in ("leads_generated", "revenue", "cost", "roi_pct"):
+		for optional in ("leads_generated", "response_count", "campaign_revenue", "budget", "roi_pct"):
 			if c_meta.has_field(optional):
 				c_fields.append(optional)
 		camps = frappe.get_all(
@@ -184,9 +169,11 @@ def get_crm_executive_dashboard(filters=None):
 			fields=c_fields,
 			limit=500,
 		)
-		summary["campaign_leads"] = sum(cint(c.get("leads_generated")) for c in camps)
-		rois = [flt(c.get("roi_pct")) for c in camps if c.get("roi_pct") is not None]
-		summary["campaign_roi_pct"] = round(sum(rois) / len(rois), 1) if rois else 0
+		summary["campaign_leads"] = sum(cint(c.get("leads_generated") or c.get("response_count")) for c in camps)
+
+	# Appendix B formulas always win over convenience counts
+	summary.update(pack.get("summary") or {})
+	summary["weighted_forecast"] = summary.get("weighted_pipeline") or 0
 
 	return {
 		"section_id": "crm_executive",
@@ -346,10 +333,19 @@ def _forecast_report(filters=None):
 
 def _conversion_report(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _("Lead-to-sale % = Won opportunities in period ÷ New leads in period. Cycle = Won modified − creation.")
-	leads = frappe.db.count(LEAD, {"creation": creation_between(f), **dim_filters(f)}) if dt_exists(LEAD) else 0
+	pack = compute_appendix_b_kpis(filters)
+	sale = next((k for k in pack["kpis"] if k["id"] == "lead_to_sale_pct"), {})
+	cycle = next((k for k in pack["kpis"] if k["id"] == "avg_sales_cycle_days"), {})
+	help_text = _(
+		"Appendix B: Lead-to-sale = Won opportunities / valid leads × 100 "
+		"(valid excludes Duplicate and Invalid). "
+		"Average sales cycle = days from lead creation to won date."
+	)
 	won = []
 	if dt_exists(OPP):
+		fields = ["name", "title", "creation", "modified", "opportunity_owner", "branch", "expected_value"]
+		if frappe.get_meta(OPP).has_field("lead"):
+			fields.append("lead")
 		won = frappe.get_all(
 			OPP,
 			filters={
@@ -357,12 +353,18 @@ def _conversion_report(filters=None):
 				"modified": creation_between(f),
 				**dim_filters(f, owner_field="opportunity_owner", include_source=False),
 			},
-			fields=["name", "title", "creation", "modified", "opportunity_owner", "branch", "expected_value"],
+			fields=fields,
 			limit=2000,
 		)
+	lead_created = {}
+	lead_ids = [w.lead for w in won if w.get("lead")]
+	if lead_ids and dt_exists(LEAD):
+		for row in frappe.get_all(LEAD, filters={"name": ["in", lead_ids]}, fields=["name", "creation"]):
+			lead_created[row.name] = row.creation
 	rows = []
 	for w in won:
-		cycle = date_diff(getdate(w.modified), getdate(w.creation)) if w.creation else None
+		start = lead_created.get(w.get("lead")) or w.creation
+		cycle_days = date_diff(getdate(w.modified), getdate(start)) if start else None
 		rows.append(
 			{
 				"name": w.name,
@@ -370,20 +372,19 @@ def _conversion_report(filters=None):
 				"owner": w.opportunity_owner,
 				"branch": w.branch,
 				"value": flt(w.expected_value),
-				"cycle_days": cycle,
+				"cycle_days": cycle_days,
 				"_drill": {"view": "crm-opportunity-detail", "params": {"name": w.name}},
 			}
 		)
-	avg_cycle = round(sum(r["cycle_days"] or 0 for r in rows) / len(rows), 1) if rows else 0
 	return result(
 		"crm_exec_conversion",
 		_("Lead-to-Sale Conversion"),
 		f,
 		{
-			"new_leads": leads,
-			"won": len(rows),
-			"lead_to_sale_pct": round(100.0 * len(rows) / leads, 1) if leads else 0,
-			"avg_sales_cycle_days": avg_cycle,
+			"valid_leads": sale.get("denominator") or 0,
+			"won": sale.get("numerator") or len(rows),
+			"lead_to_sale_pct": sale.get("value") or 0,
+			"avg_sales_cycle_days": cycle.get("value") or 0,
 		},
 		[
 			col("name", "Opportunity"),
@@ -395,6 +396,10 @@ def _conversion_report(filters=None):
 		],
 		rows,
 		help_text=help_text,
+		definitions={
+			"lead_to_sale_pct": "Won opportunities / valid leads × 100",
+			"avg_sales_cycle_days": "Average days from lead creation to won date",
+		},
 	)
 
 
@@ -442,7 +447,7 @@ def _delivery_report(filters=None):
 
 def _service_retention_overview(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _("Service due classifications: Upcoming / Overdue / Lapsed from DMS CRM Service Due.")
+	help_text = _("Service due classifications: Upcoming / Due / Overdue / Severely Overdue / Lapsed / Recovered / Inactive / Vehicle Sold / Unreachable from DMS CRM Service Due.")
 	rows = []
 	if dt_exists(SERVICE_DUE):
 		for r in frappe.get_all(
@@ -487,7 +492,13 @@ def _service_retention_overview(filters=None):
 
 def _appointments_overview(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _("CRM Activities typed Appointment/Meeting/Call; no-show from disposition or status.")
+	pack = compute_appendix_b_kpis(filters)
+	show = next((k for k in pack["kpis"] if k["id"] == "appointment_show_rate_pct"), {})
+	help_text = _(
+		"Appendix B show rate = Arrived appointments / confirmed appointments × 100. "
+		"Uses Service Appointment (workshop) plus DMS CRM Sales Appointment. "
+		"Confirmed includes Confirmed/Booked/Reminder Sent/Arrived/Completed/No-Show."
+	)
 	rows = []
 	dt = ACTIVITY if dt_exists(ACTIVITY) else None
 	# Prefer sales appointments when present
@@ -525,7 +536,14 @@ def _appointments_overview(filters=None):
 		"crm_exec_appointments",
 		_("Appointments Overview"),
 		f,
-		{"total": len(rows), "no_shows": no_shows, "no_show_pct": round(100.0 * no_shows / len(rows), 1) if rows else 0},
+		{
+			"total": len(rows),
+			"no_shows": no_shows,
+			"no_show_pct": round(100.0 * no_shows / len(rows), 1) if rows else 0,
+			"appointment_show_rate_pct": show.get("value") or 0,
+			"arrived": show.get("numerator") or 0,
+			"confirmed": show.get("denominator") or 0,
+		},
 		[
 			col("name", "Ref"),
 			col("subject", "Subject"),
@@ -542,7 +560,14 @@ def _appointments_overview(filters=None):
 
 def _complaints_overview(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _("Open Cases; SLA breach when sla_status is Breached; satisfaction from resolution fields when present.")
+	pack = compute_appendix_b_kpis(filters)
+	sla = next((k for k in pack["kpis"] if k["id"] == "complaint_sla_compliance_pct"), {})
+	fcr = next((k for k in pack["kpis"] if k["id"] == "first_contact_resolution_pct"), {})
+	help_text = _(
+		"Appendix B Complaint SLA = cases resolved within SLA / resolved cases × 100. "
+		"First Contact Resolution = cases resolved without follow-up escalation / total cases × 100. "
+		"Open-case counts remain operational."
+	)
 	rows = []
 	if dt_exists(CASE):
 		meta = frappe.get_meta(CASE)
@@ -575,6 +600,10 @@ def _complaints_overview(filters=None):
 			"total": len(rows),
 			"open": sum(1 for r in rows if r["status"] not in ("Resolved", "Closed")),
 			"breached": sum(1 for r in rows if (r.get("sla_status") or "") in ("Breached", "Breach")),
+			"complaint_sla_compliance_pct": sla.get("value") or 0,
+			"first_contact_resolution_pct": fcr.get("value") or 0,
+			"resolved_within_sla": sla.get("numerator") or 0,
+			"resolved_cases": sla.get("denominator") or 0,
 		},
 		[
 			col("name", "Case"),
@@ -588,32 +617,51 @@ def _complaints_overview(filters=None):
 		],
 		rows,
 		help_text=help_text,
+		definitions={
+			"complaint_sla_compliance_pct": "Resolved within SLA / resolved cases × 100",
+			"first_contact_resolution_pct": "Resolved without escalation / total cases × 100",
+		},
 	)
 
 
 def _campaigns_overview(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _("Campaign leads / revenue / cost / ROI from DMS CRM Campaign metrics fields.")
+	pack = compute_appendix_b_kpis(filters)
+	roi = next((k for k in pack["kpis"] if k["id"] == "campaign_roi_pct"), {})
+	help_text = _(
+		"Appendix B Campaign ROI = (attributed gross benefit − campaign cost) / campaign cost × 100. "
+		"Benefit = campaign_revenue (member attributed sales); cost = budget."
+	)
 	rows = []
 	if dt_exists(CAMPAIGN):
 		meta = frappe.get_meta(CAMPAIGN)
 		fields = ["name", "campaign_name", "status", "creation"]
-		for optional in ("leads_generated", "revenue", "cost", "roi_pct", "channel", "branch"):
+		for optional in (
+			"leads_generated",
+			"campaign_revenue",
+			"budget",
+			"roi_pct",
+			"channel",
+			"branch",
+		):
 			if meta.has_field(optional):
 				fields.append(optional)
 		filt = {"creation": creation_between(f)}
 		if f.get("campaign"):
 			filt["name"] = f["campaign"]
 		for r in frappe.get_all(CAMPAIGN, filters=filt, fields=fields, limit=500):
+			benefit = flt(r.get("campaign_revenue"))
+			cost = flt(r.get("budget"))
+			row_roi = round(100.0 * (benefit - cost) / cost, 1) if cost else flt(r.get("roi_pct"))
 			rows.append(
 				{
 					"name": r.name,
 					"campaign_name": r.get("campaign_name") or r.name,
 					"status": r.status,
 					"leads": cint(r.get("leads_generated")),
-					"revenue": flt(r.get("revenue")),
-					"cost": flt(r.get("cost")),
-					"roi_pct": flt(r.get("roi_pct")),
+					"revenue": benefit,
+					"cost": cost,
+					"roi_pct": row_roi,
 					"channel": r.get("channel"),
 					"_drill": {"view": "crm-campaign-detail", "params": {"name": r.name}},
 				}
@@ -627,44 +675,60 @@ def _campaigns_overview(filters=None):
 			"leads": sum(r["leads"] for r in rows),
 			"revenue": round(sum(r["revenue"] for r in rows), 2),
 			"cost": round(sum(r["cost"] for r in rows), 2),
+			"campaign_roi_pct": roi.get("value") or 0,
 		},
 		[
 			col("name", "Campaign"),
 			col("campaign_name", "Name"),
 			col("status", "Status"),
 			col("leads", "Leads"),
-			col("revenue", "Revenue"),
-			col("cost", "Cost"),
+			col("revenue", "Attributed Benefit"),
+			col("cost", "Cost (Budget)"),
 			col("roi_pct", "ROI %"),
 			col("channel", "Channel"),
 		],
 		rows,
 		help_text=help_text,
+		definitions={"campaign_roi_pct": "(attributed benefit − budget) / budget × 100"},
 	)
 
 
 def _customer_value_overview(filters=None):
 	f = parse_crm_filters(filters)
+	pack = compute_appendix_b_kpis(filters)
+	ltv = next((k for k in pack["kpis"] if k["id"] == "customer_lifetime_value"), {})
 	help_text = _(
-		"Top customers by invoiced + aftersales revenue in period (Sales Invoice + DMS Job Card). "
-		"Repurchase flag when open Opportunity exists."
+		"Appendix B Customer Lifetime Value is accumulated (all-time) invoiced contribution "
+		"per customer. Aftersales is shown separately from job cards and is not added into LTV "
+		"to avoid double-counting invoiced workshop work."
 	)
 	rows = []
-	# Approximate LTV from SI in period
 	if frappe.db.exists("DocType", "Sales Invoice"):
 		si_rows = frappe.db.sql(
 			"""
 			SELECT customer, SUM(base_grand_total) AS revenue, COUNT(*) AS invoices
 			FROM `tabSales Invoice`
 			WHERE docstatus = 1 AND is_return = 0
-			  AND posting_date BETWEEN %s AND %s
 			GROUP BY customer
 			ORDER BY revenue DESC
 			LIMIT 200
 			""",
-			(str(f["from_date"]), str(f["to_date"])),
 			as_dict=True,
 		)
+		jc_by_customer = {}
+		if frappe.db.exists("DocType", "DMS Job Card"):
+			jc_meta = frappe.get_meta("DMS Job Card")
+			if jc_meta.has_field("customer") and jc_meta.has_field("total_amount"):
+				for jc in frappe.db.sql(
+					"""
+					SELECT customer, SUM(total_amount) AS aftersales
+					FROM `tabDMS Job Card`
+					WHERE docstatus < 2 AND customer IS NOT NULL AND customer != ''
+					GROUP BY customer
+					""",
+					as_dict=True,
+				):
+					jc_by_customer[jc.customer] = flt(jc.aftersales)
 		open_opp_customers = set()
 		if dt_exists(OPP):
 			open_opp_customers = {
@@ -679,11 +743,14 @@ def _customer_value_overview(filters=None):
 			}
 		for r in si_rows:
 			cname = frappe.db.get_value("Customer", r.customer, "customer_name") or r.customer
+			aftersales = jc_by_customer.get(r.customer) or 0
 			rows.append(
 				{
 					"customer": r.customer,
 					"customer_name": cname,
 					"revenue": round(flt(r.revenue), 2),
+					"aftersales": round(aftersales, 2),
+					"lifetime_value": round(flt(r.revenue), 2),
 					"invoices": cint(r.invoices),
 					"repurchase_opportunity": "Yes" if r.customer in open_opp_customers else "No",
 					"_drill": {"view": "crm-customer-detail", "params": {"name": r.customer}},
@@ -693,16 +760,24 @@ def _customer_value_overview(filters=None):
 		"crm_exec_customer_value",
 		_("Customer Lifetime Value"),
 		f,
-		{"total": len(rows), "revenue": round(sum(r["revenue"] for r in rows), 2)},
+		{
+			"total": len(rows),
+			"revenue": round(sum(r["lifetime_value"] for r in rows), 2),
+			"customer_lifetime_value": ltv.get("value") or 0,
+			"customers": ltv.get("denominator") or 0,
+		},
 		[
 			col("customer", "Customer"),
 			col("customer_name", "Name"),
-			col("revenue", "Period Revenue"),
+			col("revenue", "Sales"),
+			col("aftersales", "Aftersales"),
+			col("lifetime_value", "Lifetime Value"),
 			col("invoices", "Invoices"),
 			col("repurchase_opportunity", "Repurchase Opp"),
 		],
 		rows,
 		help_text=help_text,
+		definitions={"customer_lifetime_value": "Accumulated invoiced sales / customers"},
 	)
 
 

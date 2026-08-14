@@ -39,6 +39,18 @@ def _safe_all(doctype: str, *, filters=None, fields=None, order_by=None, limit=5
 	)
 
 
+def _advisor_names(ids) -> dict[str, str]:
+	unique = list({str(n).strip() for n in ids if n and str(n).strip()})
+	if not unique or not frappe.db.exists("DocType", "Service Advisor"):
+		return {}
+	rows = frappe.get_all(
+		"Service Advisor",
+		filters={"name": ["in", unique]},
+		fields=["name", "full_name"],
+	)
+	return {r.name: (r.full_name or r.name).strip() or r.name for r in rows}
+
+
 def _fields_present(doctype: str, wanted: list[str]) -> list[str]:
 	if not frappe.db.exists("DocType", doctype):
 		return ["name"] if "name" in wanted else []
@@ -194,13 +206,17 @@ def _job_cards(customer: str) -> list[dict]:
 			"creation",
 		],
 	)
-	return _safe_all(
+	rows = _safe_all(
 		"DMS Job Card",
 		filters={"customer": customer},
 		fields=fields,
 		order_by="modified desc",
 		limit=40,
 	)
+	names = _advisor_names(r.get("service_advisor") for r in rows)
+	for r in rows:
+		r["service_advisor_name"] = names.get(r.get("service_advisor")) or r.get("service_advisor")
+	return rows
 
 
 def _service_estimates(customer: str) -> list[dict]:
@@ -296,13 +312,45 @@ def _appointments(customer: str) -> list[dict]:
 		if meta.has_field("appointment_date_time")
 		else "modified desc"
 	)
-	return frappe.get_all(
+	rows = frappe.get_all(
 		"Service Appointment",
 		filters={"customer": customer},
 		fields=fields,
 		order_by=order_by,
 		limit_page_length=20,
 	)
+	names = _advisor_names(r.get("assigned_service_advisor") for r in rows)
+	for r in rows:
+		r["assigned_service_advisor_name"] = names.get(r.get("assigned_service_advisor")) or r.get(
+			"assigned_service_advisor"
+		)
+	return rows
+
+
+def _sales_appointments(customer: str) -> list[dict]:
+	rows = _safe_all(
+		"DMS CRM Sales Appointment",
+		filters={"customer": customer},
+		fields=[
+			"name",
+			"opportunity",
+			"appointment_datetime",
+			"duration_minutes",
+			"status",
+			"appointment_type",
+			"assigned_to",
+			"agenda",
+			"modified",
+		],
+		order_by="appointment_datetime desc",
+		limit=30,
+	)
+	for r in rows:
+		if r.get("assigned_to"):
+			r["owner_name"] = frappe.db.get_value("User", r.assigned_to, "full_name") or r.assigned_to
+		else:
+			r["owner_name"] = None
+	return rows
 
 
 def _finance_summary(customer: str) -> dict:
@@ -1108,6 +1156,7 @@ def get_customer_360(customer: str):
 	vehicle_history = _vehicle_ownership_history(customer)
 	contacts = _customer_contacts(customer)
 	appointments = _appointments(customer)
+	sales_appointments = _sales_appointments(customer)
 	job_cards = _job_cards(customer)
 	estimates = _service_estimates(customer)
 	follow_ups = _follow_ups(customer)
@@ -1166,6 +1215,7 @@ def get_customer_360(customer: str):
 		"cases_total": len(cases),
 		"cases_open": sum(1 for r in cases if (r.get("status") or "") in OPEN_CASE_STATUSES),
 		"appointments": len(appointments),
+		"sales_appointments": len(sales_appointments),
 		"job_cards": len(job_cards),
 		"follow_ups": len(follow_ups),
 		"deliveries": len(deliveries),
@@ -1192,6 +1242,7 @@ def get_customer_360(customer: str):
 		"activities": activities,
 		"cases": cases,
 		"appointments": appointments,
+		"sales_appointments": sales_appointments,
 		"job_cards": job_cards,
 		"estimates": estimates,
 		"follow_ups": follow_ups,

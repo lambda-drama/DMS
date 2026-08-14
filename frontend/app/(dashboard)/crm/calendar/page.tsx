@@ -134,8 +134,7 @@ export default function CrmCalendarPage() {
       return;
     }
     if (ev.type === 'sales_appointment') {
-      if (ev.opportunity) navigate('crm-opportunity-detail', { id: String(ev.opportunity) });
-      else navigate('crm-opportunities');
+      navigate('crm-sales-appointment-detail', { id: ev.ref_name || ev.id });
       return;
     }
     if (ev.type === 'test_drive') {
@@ -168,6 +167,9 @@ export default function CrmCalendarPage() {
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>
             Today
+          </Button>
+          <Button size="sm" onClick={() => navigate('crm-sales-appointment-new')}>
+            New appointment
           </Button>
         </div>
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

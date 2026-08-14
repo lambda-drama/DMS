@@ -610,7 +610,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Appointment Status",
-   "options": "Booked\nReminder Sent\nArrived\nIn Inspection\nIn Workshop\nReady for Pickup\nCompleted\nNo-Show\nCancelled\nRescheduled\nDraft",
+   "options": "Draft\nRequested\nScheduled\nConfirmed\nBooked\nReminder Sent\nArrived\nIn Inspection\nIn Workshop\nReady for Pickup\nCompleted\nRescheduled\nCancelled\nNo-Show",
    "read_only_depends_on": "eval:doc.arrived_date_time",
    "reqd": 1
   },
@@ -662,6 +662,22 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [
+  {
+   "color": "Gray",
+   "title": "Draft"
+  },
+  {
+   "color": "Cyan",
+   "title": "Requested"
+  },
+  {
+   "color": "Blue",
+   "title": "Scheduled"
+  },
+  {
+   "color": "Green",
+   "title": "Confirmed"
+  },
   {
    "color": "Blue",
    "title": "Booked"

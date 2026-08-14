@@ -84,6 +84,7 @@ import {
 } from "@/components/job-card/repair-timer";
 import { RoadTestSection } from "@/components/job-card/road-test-section";
 import { QCSection } from "@/components/job-card/qc-section";
+import { QCResultsGroupedList } from "@/components/job-card/qc-grouped-list";
 import { SignaturePad } from "@/components/signature-pad";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { AmountSummaryPopover } from "@/components/amount-summary-popover";
@@ -783,6 +784,7 @@ export default function JobCardDetailPage() {
     const payload = qcState.rows.map((row) => ({
       check_item_text: row.check_item_text,
       category: row.category,
+      section_classification: row.section_classification,
       is_mandatory: row.is_mandatory,
       requires_photo: row.requires_photo,
       requires_measurement: row.requires_measurement,
@@ -2272,30 +2274,7 @@ export default function JobCardDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Check Item</TableHead>
-                        <TableHead>Result</TableHead>
-                        <TableHead>Notes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {jobCard.qc_results.map((qc, idx) => (
-                        <TableRow key={qc.name || idx}>
-                          <TableCell className="font-medium">{qc.check_item_text || "–"}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={qc.result === "Pass" ? "default" : qc.result === "Fail" ? "destructive" : "secondary"}
-                            >
-                              {qc.result}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{qc.notes || "–"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <QCResultsGroupedList rows={jobCard.qc_results} />
                   {jobCard.qc_fail_reason && (
                     <>
                       <Separator className="my-4" />

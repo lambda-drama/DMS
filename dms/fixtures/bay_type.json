@@ -1,5 +1,40 @@
 [
  {
+  "bay_type": "Tire & Wheel Balancing",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-06-17 13:16:46.418519",
+  "name": "Tire & Wheel Balancing"
+ },
+ {
+  "bay_type": "Wheel Alignment",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-06-17 13:35:56.905306",
+  "name": "Wheel Alignment"
+ },
+ {
+  "bay_type": "Appointment/Reservation",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-06-17 13:40:32.325759",
+  "name": "Appointment/Reservation"
+ },
+ {
+  "bay_type": "Body Repair/Painting",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-06-17 13:44:25.521854",
+  "name": "Body Repair/Painting"
+ },
+ {
+  "bay_type": "PHEV/EV",
+  "docstatus": 0,
+  "doctype": "Bay Type",
+  "modified": "2026-06-17 13:54:14.319936",
+  "name": "PHEV/EV"
+ },
+ {
   "bay_type": "Quick Service Bay",
   "docstatus": 0,
   "doctype": "Bay Type",

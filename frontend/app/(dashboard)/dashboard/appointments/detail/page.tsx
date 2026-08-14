@@ -77,6 +77,9 @@ const getAppointmentData = (id: string) => ({
 function getStatusConfig(status: AppointmentStatus) {
   const configs: Record<AppointmentStatus, { color: string; bgColor: string }> = {
     'Draft': { color: 'text-muted-foreground', bgColor: 'bg-muted border-muted-foreground/20' },
+    'Requested': { color: 'text-sky-800', bgColor: 'bg-sky-500/10 border-sky-500/20' },
+    'Scheduled': { color: 'text-chart-1', bgColor: 'bg-chart-1/10 border-chart-1/20' },
+    'Confirmed': { color: 'text-emerald-800', bgColor: 'bg-emerald-500/10 border-emerald-500/20' },
     'Booked': { color: 'text-chart-1', bgColor: 'bg-chart-1/10 border-chart-1/20' },
     'Reminder Sent': { color: 'text-chart-4', bgColor: 'bg-chart-4/10 border-chart-4/20' },
     'Arrived': { color: 'text-chart-3', bgColor: 'bg-chart-3/10 border-chart-3/20' },
@@ -161,7 +164,7 @@ export default function AppointmentDetailPage() {
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
-          {appointment.status === 'Booked' && (
+          {['Booked', 'Requested', 'Scheduled', 'Confirmed'].includes(appointment.status) && (
             <Button size="sm" onClick={handleMarkArrived}>
               <CheckCircle2 className="mr-2 h-4 w-4" />
               Mark Arrived

@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
+import { CrmTerritoryLink } from '@/components/crm/crm-territory-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
 
@@ -130,7 +131,10 @@ export default function CrmAccountNewPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Territory</label>
-            <Input value={form.territory} onChange={(e) => set('territory', e.target.value)} />
+            <CrmTerritoryLink
+              value={form.territory}
+              onValueChange={(v) => set('territory', v)}
+            />
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Legal name</label>

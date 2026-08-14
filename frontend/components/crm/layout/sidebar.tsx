@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import {
   Building2,
   CalendarDays,
+  Car,
   ChevronDown,
   CircleHelp,
   Contact,
@@ -57,7 +58,8 @@ const navigation: NavSection[] = [
     title: 'People',
     items: [
       { name: 'Customers', view: 'crm-customers', icon: Users },
-      { name: 'Contacts', view: 'crm-contacts', icon: Contact },
+      { name: 'Vehicles', view: 'crm-vehicles', icon: Car },
+      { name: 'Masters', view: 'crm-contacts', icon: Contact },
       { name: 'Accounts', view: 'crm-accounts', icon: Building2 },
     ],
   },
@@ -66,6 +68,7 @@ const navigation: NavSection[] = [
     items: [
       { name: 'Leads', view: 'crm-leads', icon: Target },
       { name: 'Deals', view: 'crm-opportunities', icon: Handshake },
+      { name: 'Appointments', view: 'crm-sales-appointments', icon: CalendarDays },
       { name: 'Bookings', view: 'crm-bookings', icon: FileText },
       { name: 'Test Drives', view: 'crm-test-drives', icon: Gauge },
       { name: 'Delivery Readiness', view: 'crm-delivery-readiness', icon: ClipboardCheck },
