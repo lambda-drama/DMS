@@ -33,6 +33,10 @@ frappe.ui.form.on("DMS Settings", {
 			open_inventory_stock_reconciliation_modal(frm);
 		}, __("Actions"));
 
+		frm.add_custom_button(__("Create Audit Stock Reconciliation"), () => {
+			open_audit_stock_reconciliation_modal(frm);
+		}, __("Actions"));
+
 		frm.add_custom_button(__("Create Inventory Item Prices"), () => {
 			open_inventory_item_price_modal(frm);
 		}, __("Actions"));
@@ -322,6 +326,101 @@ function create_inventory_stock_reconciliation(frm, values) {
 				indicator: "green",
 			});
 			frm.reload_doc();
+		},
+	});
+}
+
+function open_audit_stock_reconciliation_modal(frm) {
+	const d = new frappe.ui.Dialog({
+		title: __("Create Audit Stock Reconciliation"),
+		fields: [
+			{
+				fieldname: "audit_file",
+				label: __("Excel workbook (.xlsx)"),
+				fieldtype: "Attach",
+				reqd: 1,
+				description: __(
+					"Part No → Item Code, Part Name → Item Name, Physical Stock → Qty, Location → Spare Part Default Bin Location"
+				),
+			},
+			{
+				fieldname: "posting_date",
+				label: __("Posting Date"),
+				fieldtype: "Date",
+				reqd: 1,
+				default: frappe.datetime.get_today(),
+			},
+			{
+				fieldname: "submit",
+				label: __("Submit automatically"),
+				fieldtype: "Check",
+				default: 0,
+				description: __(
+					"Leave unchecked to save as draft. Warehouse is fixed to Service Center Addis Ababa - SM"
+				),
+			},
+		],
+		primary_action_label: __("Create"),
+		primary_action(values) {
+			if (!values.audit_file) {
+				frappe.msgprint(__("Attach an Excel workbook first"));
+				return;
+			}
+			d.hide();
+			create_audit_stock_reconciliation(frm, values);
+		},
+	});
+	d.show();
+}
+
+function create_audit_stock_reconciliation(frm, values) {
+	frappe.call({
+		method: "dms.api.inventory_import.create_audit_stock_reconciliation",
+		args: {
+			file_url: values.audit_file,
+			posting_date: values.posting_date,
+			submit: values.submit || 0,
+		},
+		freeze: true,
+		freeze_message: __("Creating audit stock reconciliation…"),
+		callback(r) {
+			const summary = r.message;
+			if (!summary) {
+				return;
+			}
+
+			let msg = __("Audit stock reconciliation saved!\n\n");
+			msg += __("Document: {0}\n", [summary.name || ""]);
+			msg += __("Company: {0}\n", [summary.company || ""]);
+			msg += __("Warehouse: {0}\n", [summary.warehouse || ""]);
+			msg += __("Rows processed: {0}\n", [summary.rows_processed || 0]);
+			if (summary.unique_items != null) {
+				msg += __("Unique items: {0}\n", [summary.unique_items]);
+			}
+			if (summary.duplicate_rows_merged) {
+				msg += __("Duplicate rows merged: {0}\n", [summary.duplicate_rows_merged]);
+			}
+			msg += __("Spare Part locations updated: {0}\n", [summary.locations_updated || 0]);
+			if (summary.items_created) {
+				msg += __("Items created: {0}\n", [summary.items_created]);
+			}
+			if (summary.spare_parts_created) {
+				msg += __("Spare Parts created: {0}\n", [summary.spare_parts_created]);
+			}
+			if (summary.skipped_count) {
+				msg += __("Skipped: {0}\n", [summary.skipped_count]);
+			}
+			msg += __("Submitted: {0}\n", [summary.docstatus === 1 ? __("Yes") : __("No")]);
+
+			frappe.msgprint({
+				title: __("Audit Stock Reconciliation Summary"),
+				message: msg,
+				indicator: summary.skipped_count ? "orange" : "green",
+			});
+			frm.reload_doc();
+			if (summary.name) {
+				frappe.set_route("Form", "Stock Reconciliation", summary.name);
+			}
 		},
 	});
 }

@@ -3,6 +3,7 @@
 import frappe
 from frappe import _
 
+from dms.utils.audit_stock_import import create_audit_stock_reconciliation_file_url
 from dms.utils.inventory_stock_import import (
 	INVENTORY_WAREHOUSE,
 	_get_inventory_selling_price_list,
@@ -33,6 +34,23 @@ def create_inventory_stock_reconciliation(file_url=None, posting_date=None, subm
 		frappe.throw(_("Upload an Excel file first."))
 
 	return create_inventory_stock_reconciliation_file_url(
+		file_url=file_url,
+		posting_date=posting_date,
+		submit=submit,
+		warehouse=INVENTORY_WAREHOUSE,
+	)
+
+
+@frappe.whitelist()
+def create_audit_stock_reconciliation(file_url=None, posting_date=None, submit=0):
+	frappe.only_for(("System Manager", "Dealer Manager", "Spare Parts Manager"))
+	frappe.has_permission("Stock Reconciliation", "create", throw=True)
+
+	file_url = (file_url or "").strip()
+	if not file_url:
+		frappe.throw(_("Upload an Excel file first."))
+
+	return create_audit_stock_reconciliation_file_url(
 		file_url=file_url,
 		posting_date=posting_date,
 		submit=submit,

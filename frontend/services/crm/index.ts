@@ -101,6 +101,13 @@ export async function addLeadNote(name: string, content: string) {
   });
 }
 
+export async function disqualifyLead(name: string, lostReason: string) {
+  return apiRequest(`/api/method/${LEADS}.disqualify_lead`, {
+    method: 'POST',
+    body: JSON.stringify({ name, lost_reason: lostReason }),
+  });
+}
+
 export async function convertLeadToOpportunity(name: string, data?: Record<string, unknown>) {
   return apiRequest(`/api/method/${LEADS}.convert_lead_to_opportunity`, {
     method: 'POST',

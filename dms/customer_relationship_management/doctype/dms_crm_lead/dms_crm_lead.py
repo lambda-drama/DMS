@@ -98,6 +98,18 @@ class DMSCRMLead(Document):
 		self._calculate_item_totals()
 		self._apply_lead_score()
 		self._enforce_next_action()
+		self._enforce_lost_reason()
+
+	def _enforce_lost_reason(self):
+		"""Require a Lost Reason when a lead is marked Disqualified."""
+		status = (self.status or "").strip()
+		if status != "Disqualified":
+			if self.lost_reason:
+				# Status moved away from Disqualified — clear the reason
+				self.lost_reason = None
+			return
+		if not (self.lost_reason or "").strip():
+			frappe.throw(_("Lost Reason is required when a lead is Disqualified."))
 
 	def _assign_owner_on_create(self):
 		"""Round-robin only when enabled; otherwise leave assignment manual."""
