@@ -6,6 +6,7 @@ import {
   acceptLead,
   addLeadNote,
   convertLeadToOpportunity,
+  disqualifyLead,
   fetchLeadFormOptions,
   getLead,
   updateLead,
@@ -19,6 +20,7 @@ import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { PipelinePath } from '@/components/crm/pipeline-path';
 import { NoteDialog } from '@/components/crm/note-task-dialogs';
 import { CallLogDialog } from '@/components/crm/call-log-dialog';
+import { LostReasonDialog } from '@/components/crm/lost-reason-dialog';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import {
   LeadFormSections,
@@ -27,7 +29,7 @@ import {
   leadPayload,
   type LeadFormState,
 } from '@/components/crm/lead-form';
-import { Loader2, MessageSquarePlus, PhoneCall } from 'lucide-react';
+import { Loader2, MessageSquarePlus, PhoneCall, XCircle } from 'lucide-react';
 
 const LEAD_PATH = ['New', 'Assigned', 'Contact Attempted', 'Contacted', 'Qualified', 'Converted'];
 
@@ -45,6 +47,8 @@ export default function CrmLeadDetailPage() {
   const [note, setNote] = useState('');
   const [showConvert, setShowConvert] = useState(false);
   const [callLogOpen, setCallLogOpen] = useState(false);
+  const [lostReasonOpen, setLostReasonOpen] = useState(false);
+  const [disqualifying, setDisqualifying] = useState(false);
   const [conversionCustomer, setConversionCustomer] = useState('');
   const [createCustomer, setCreateCustomer] = useState(true);
   /** Farthest pipeline stage reached — keeps Contact Attempted colored if user clicks Assigned. */
@@ -148,6 +152,22 @@ export default function CrmLeadDetailPage() {
     }
   };
 
+  const onDisqualify = async (reason: string) => {
+    if (!id) return;
+    clear();
+    setDisqualifying(true);
+    try {
+      await disqualifyLead(id, reason);
+      setLostReasonOpen(false);
+      await mutate();
+      showSuccess('Lead disqualified.');
+    } catch (e: unknown) {
+      showError(e, 'Failed to disqualify lead');
+    } finally {
+      setDisqualifying(false);
+    }
+  };
+
   if (!id) {
     return (
       <Card className="border-border/70">
@@ -168,11 +188,13 @@ export default function CrmLeadDetailPage() {
   }
 
   const doc = data as Record<string, unknown>;
-  const busy = saving || converting || accepting || addingNote;
+  const busy = saving || converting || accepting || addingNote || disqualifying;
   const canAccept = !doc.accepted_on && ['Assigned', 'New'].includes(String(doc.status || ''));
   const notes = Array.isArray(doc.notes) ? (doc.notes as Record<string, unknown>[]) : [];
   const currentStatus = String(form.status || doc.status || 'New');
   const terminal = ['Disqualified', 'Invalid', 'Duplicate'].includes(currentStatus);
+  const canLoseLead =
+    !['Qualified', 'Converted', 'Disqualified', 'Duplicate', 'Invalid'].includes(currentStatus);
 
   return (
     <div className="dms-form-page space-y-4">
@@ -197,18 +219,34 @@ export default function CrmLeadDetailPage() {
               if (idx > reachedIdx) setReachedStatus(status);
             }}
             trailing={
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0 rounded-full"
-                title="Log call"
-                aria-label="Log call"
-                onClick={() => setCallLogOpen(true)}
-                disabled={busy}
-              >
-                <PhoneCall className="h-4 w-4" />
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-full"
+                  title="Log call"
+                  aria-label="Log call"
+                  onClick={() => setCallLogOpen(true)}
+                  disabled={busy}
+                >
+                  <PhoneCall className="h-4 w-4" />
+                </Button>
+                {canLoseLead ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 rounded-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    title="Lost reason — disqualify lead"
+                    aria-label="Lost reason — disqualify lead"
+                    onClick={() => setLostReasonOpen(true)}
+                    disabled={busy}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                ) : null}
+              </>
             }
           />
           {!LEAD_PATH.includes(currentStatus) ? (
@@ -336,6 +374,15 @@ export default function CrmLeadDetailPage() {
         leadMobile={String(doc.mobile_no || doc.phone || '')}
         defaultCaller={String(doc.lead_owner || doc.owner || '')}
         onSaved={() => void mutate()}
+      />
+
+      <LostReasonDialog
+        open={lostReasonOpen}
+        onOpenChange={setLostReasonOpen}
+        leadName={id}
+        leadLabel={String(doc.lead_name || doc.name || 'Lead')}
+        onSave={(reason) => void onDisqualify(reason)}
+        saving={disqualifying}
       />
     </div>
   );

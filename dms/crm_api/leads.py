@@ -352,6 +352,31 @@ def create_lead(data=None):
 
 
 @frappe.whitelist()
+def disqualify_lead(name, lost_reason=None):
+	"""Mark a lead as Disqualified with a required lost/loss reason.
+
+	Used from the lead path "red circle" button — the UI opens a modal to
+	capture the reason, then calls this endpoint to persist the status change.
+	Prevents accidental disqualification without a reason.
+	"""
+	ensure_crm_write(DOCTYPE)
+	if not name:
+		frappe.throw(_("Lead name is required."))
+
+	doc = frappe.get_doc(DOCTYPE, name)
+	lost_reason = (lost_reason or "").strip()
+	if not lost_reason:
+		frappe.throw(_("Lost Reason is required when disqualifying a lead."))
+
+	doc.status = "Disqualified"
+	doc.lost_reason = lost_reason
+	doc.flags.ignore_permissions = True
+	doc.save()
+	frappe.db.commit()
+	return get_lead(doc.name)
+
+
+@frappe.whitelist()
 def accept_lead(name):
 	"""Owner accepts the lead — stops unaccepted reassignment (§5.3)."""
 	ensure_crm_write(DOCTYPE)

@@ -31,7 +31,7 @@ export function PipelinePath({
 
   return (
     <div className="overflow-x-auto pb-1">
-      <div className="flex min-w-max items-center">
+      <div className="flex min-w-max w-full items-center">
         {stages.map((stage, index) => {
           const completed = reachedIndex >= 0 && index < reachedIndex;
           const explicitlyChecked = checked.includes(stage);
@@ -88,7 +88,7 @@ export function PipelinePath({
           );
         })}
         {trailing ? (
-          <div className="ml-3 flex items-center gap-2 border-l border-border pl-3">{trailing}</div>
+          <div className="ml-auto flex items-center gap-2 border-l border-border pl-3">{trailing}</div>
         ) : null}
       </div>
     </div>

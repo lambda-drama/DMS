@@ -17,6 +17,33 @@ import {
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { MoreHorizontal, Plus, Search } from 'lucide-react';
 
+function leadStatusTone(status: string) {
+  switch (status) {
+    case 'New':
+      return 'bg-sky-500/10 text-sky-700';
+    case 'Assigned':
+      return 'bg-blue-500/10 text-blue-700';
+    case 'Contact Attempted':
+      return 'bg-amber-500/10 text-amber-700';
+    case 'Contacted':
+      return 'bg-violet-500/10 text-violet-700';
+    case 'Qualified':
+      return 'bg-emerald-500/10 text-emerald-700';
+    case 'Disqualified':
+      return 'bg-destructive/10 text-destructive';
+    case 'Converted':
+      return 'bg-emerald-600/10 text-emerald-800';
+    case 'Nurture':
+      return 'bg-cyan-500/10 text-cyan-700';
+    case 'Duplicate':
+      return 'bg-orange-500/10 text-orange-700';
+    case 'Invalid':
+      return 'bg-slate-400/10 text-slate-500';
+    default:
+      return 'bg-muted text-foreground';
+  }
+}
+
 export default function CrmLeadsPage() {
   const { navigate } = useNavigation();
   const [search, setSearch] = useState('');
@@ -130,7 +157,9 @@ export default function CrmLeadsPage() {
                           {String(row.owner_name || row.lead_owner || '—')}
                         </td>
                         <td className="py-3">
-                          <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${leadStatusTone(String(row.status || ''))}`}
+                          >
                             {String(row.status || '')}
                           </span>
                         </td>

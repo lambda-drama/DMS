@@ -36,6 +36,7 @@ export type LeadFormState = {
   company: string;
   priority: string;
   status: string;
+  lost_reason: string;
   brand: string;
   model: string;
   variant: string;
@@ -90,6 +91,7 @@ export const emptyLeadForm = (): LeadFormState => ({
   company: '',
   priority: 'Standard',
   status: 'New',
+  lost_reason: '',
   brand: '',
   model: '',
   variant: '',
@@ -158,6 +160,7 @@ export function leadFromDoc(doc: Record<string, unknown>): LeadFormState {
     company: str('company'),
     priority: str('priority') || 'Standard',
     status: str('status') || 'New',
+    lost_reason: str('lost_reason'),
     brand: str('brand'),
     model: str('model'),
     variant: str('variant'),
@@ -228,6 +231,7 @@ export function leadPayload(form: LeadFormState): Record<string, unknown> {
     company: form.company || undefined,
     priority: form.priority || 'Standard',
     status: form.status || 'New',
+    lost_reason: form.lost_reason.trim() || undefined,
     brand: form.brand.trim() || undefined,
     model: form.model.trim() || undefined,
     variant: form.variant.trim() || undefined,
