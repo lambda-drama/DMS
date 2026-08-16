@@ -29,6 +29,13 @@ _HEADER_ALIASES = {
 	"location": {"location"},
 }
 
+_VALUATION_HEADER_ALIASES = {
+	"part_no": {"partno", "partnumber", "partno."},
+	"total_unit_price_with_tt": {"totalunitpricewithtt"},
+}
+
+AUDIT_PURPOSES = ("Opening Stock", "Stock Reconciliation")
+
 
 @dataclass(slots=True)
 class AuditStockRow:
@@ -40,27 +47,43 @@ class AuditStockRow:
 
 def create_audit_stock_reconciliation_file_url(
 	file_url: str,
+	valuation_file_url: str | None = None,
 	posting_date: str | None = None,
 	submit: int | bool = 0,
+	purpose: str | None = None,
+	expense_account: str | None = None,
 	warehouse: str = INVENTORY_WAREHOUSE,
 ) -> dict:
 	return create_audit_stock_reconciliation_from_workbook(
 		_resolve_file_path(file_url),
+		valuation_file_path=_resolve_file_path(valuation_file_url) if valuation_file_url else None,
 		posting_date=posting_date,
 		submit=submit,
+		purpose=purpose,
+		expense_account=expense_account,
 		warehouse=warehouse,
 	)
 
 
 def create_audit_stock_reconciliation_from_workbook(
 	file_path: str,
+	valuation_file_path: str | None = None,
 	posting_date: str | None = None,
 	submit: int | bool = 0,
+	purpose: str | None = None,
+	expense_account: str | None = None,
 	warehouse: str = INVENTORY_WAREHOUSE,
 ) -> dict:
-	rows = _read_audit_stock_rows(file_path)
+	purpose = (purpose or "Stock Reconciliation").strip()
+	if purpose not in AUDIT_PURPOSES:
+		frappe.throw(_("Purpose must be Opening Stock or Stock Reconciliation."))
+
 	warehouse = (warehouse or INVENTORY_WAREHOUSE).strip()
 	company = _warehouse_company(warehouse)
+	expense_account = _validate_difference_account(expense_account, purpose, company)
+
+	rows = _read_audit_stock_rows(file_path)
+	valuation_rates = _read_valuation_rates(valuation_file_path) if valuation_file_path else {}
 
 	items, duplicate_rows_merged = _aggregate_audit_rows(rows)
 	summary = {
@@ -69,6 +92,8 @@ def create_audit_stock_reconciliation_from_workbook(
 		"spare_parts_created": 0,
 		"spare_parts_updated": 0,
 		"locations_updated": 0,
+		"rates_applied": 0,
+		"rates_missing": 0,
 		"skipped": [],
 	}
 
@@ -81,7 +106,14 @@ def create_audit_stock_reconciliation_from_workbook(
 		if row.location:
 			if _update_spare_part_bin_location(item_code, row.location):
 				summary["locations_updated"] += 1
-		recon_items.append({"item_code": item_code, "qty": max(flt(row.qty), 0)})
+		line = {"item_code": item_code, "qty": max(flt(row.qty), 0)}
+		rate = flt(valuation_rates.get(row.part_no) or valuation_rates.get(item_code) or 0)
+		if rate > 0:
+			line["valuation_rate"] = rate
+			summary["rates_applied"] += 1
+		else:
+			summary["rates_missing"] += 1
+		recon_items.append(line)
 
 	if not recon_items:
 		frappe.throw(_("No matching spare part items were found in the audit workbook."))
@@ -92,7 +124,9 @@ def create_audit_stock_reconciliation_from_workbook(
 			"warehouse": warehouse,
 			"posting_date": posting_date or frappe.utils.today(),
 			"submit": cint(submit),
-			"remarks": _("Audit report stock reconciliation from workbook"),
+			"purpose": purpose,
+			"expense_account": expense_account,
+			"remarks": _("Audit report {0} from workbook").format(purpose.lower()),
 			"items": recon_items,
 		}
 	)
@@ -101,6 +135,8 @@ def create_audit_stock_reconciliation_from_workbook(
 		**result,
 		"warehouse": warehouse,
 		"company": company,
+		"purpose": purpose,
+		"expense_account": expense_account,
 		"rows_processed": len(rows),
 		"unique_items": len(recon_items),
 		"duplicate_rows_merged": duplicate_rows_merged,
@@ -111,6 +147,8 @@ def create_audit_stock_reconciliation_from_workbook(
 		"spare_parts_created": summary["spare_parts_created"],
 		"spare_parts_updated": summary["spare_parts_updated"],
 		"locations_updated": summary["locations_updated"],
+		"rates_applied": summary["rates_applied"],
+		"rates_missing": summary["rates_missing"],
 	}
 
 
@@ -133,7 +171,7 @@ def _read_audit_stock_rows(file_path: str) -> list[AuditStockRow]:
 	if not raw_rows:
 		return []
 
-	header_map = _audit_header_map(raw_rows[0])
+	header_map = _header_map_with_aliases(raw_rows[0], _HEADER_ALIASES)
 	required = ("part_no", "part_name")
 	missing = [field for field in required if field not in header_map]
 	if missing:
@@ -170,14 +208,54 @@ def _read_audit_stock_rows(file_path: str) -> list[AuditStockRow]:
 	return rows
 
 
-def _audit_header_map(header_row: tuple | list) -> dict[str, int]:
+def _read_valuation_rates(file_path: str) -> dict[str, float]:
+	try:
+		import openpyxl
+	except ImportError as exc:
+		raise ImportError(_("Excel import requires openpyxl in the bench environment.")) from exc
+
+	if not os.path.isfile(file_path):
+		frappe.throw(_("Valuation file not found: {0}").format(file_path))
+
+	wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+	try:
+		ws = wb[wb.sheetnames[0]]
+		raw_rows = list(ws.iter_rows(values_only=True))
+	finally:
+		wb.close()
+
+	if not raw_rows:
+		return {}
+
+	header_map = _header_map_with_aliases(raw_rows[0], _VALUATION_HEADER_ALIASES)
+	if "part_no" not in header_map or "total_unit_price_with_tt" not in header_map:
+		frappe.throw(
+			_("Valuation workbook must include Part No and Total Unit Price with T/T columns.")
+		)
+
+	rates: dict[str, float] = {}
+	for raw in raw_rows[1:]:
+		part_no = _normalize_part_no(raw[header_map["part_no"]] if len(raw) > header_map["part_no"] else None)
+		if not part_no:
+			continue
+		rate = _number(
+			raw[header_map["total_unit_price_with_tt"]]
+			if len(raw) > header_map["total_unit_price_with_tt"]
+			else None
+		)
+		if rate > 0:
+			rates[part_no] = rate
+	return rates
+
+
+def _header_map_with_aliases(header_row: tuple | list, aliases: dict[str, set[str]]) -> dict[str, int]:
 	out: dict[str, int] = {}
 	for idx, raw in enumerate(header_row or []):
 		key = _norm_header(raw)
 		if not key:
 			continue
-		for fieldname, aliases in _HEADER_ALIASES.items():
-			if key in aliases:
+		for fieldname, field_aliases in aliases.items():
+			if key in field_aliases:
 				out.setdefault(fieldname, idx)
 	return out
 
@@ -300,3 +378,26 @@ def _update_spare_part_bin_location(item_code: str, location: str) -> bool:
 		return False
 	frappe.db.set_value("Spare Part", spare_name, "bin_location", location, update_modified=True)
 	return True
+
+
+def _validate_difference_account(account: str | None, purpose: str, company: str) -> str:
+	account = (account or "").strip()
+	if not account:
+		frappe.throw(_("Difference Account is required."))
+	if not frappe.db.exists("Account", account):
+		frappe.throw(_("Account {0} was not found.").format(frappe.bold(account)))
+
+	acc_company, is_group, report_type = frappe.db.get_value(
+		"Account", account, ["company", "is_group", "report_type"]
+	)
+	if (acc_company or "").strip() != company:
+		frappe.throw(_("Difference Account must belong to Company {0}.").format(frappe.bold(company)))
+	if cint(is_group):
+		frappe.throw(_("Difference Account cannot be a group account."))
+	if purpose == "Opening Stock" and report_type == "Profit and Loss":
+		frappe.throw(
+			_(
+				"Difference Account must be a Asset/Liability type account, since this Stock Reconciliation is an Opening Entry"
+			)
+		)
+	return account

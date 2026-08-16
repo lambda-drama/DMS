@@ -42,18 +42,34 @@ def create_inventory_stock_reconciliation(file_url=None, posting_date=None, subm
 
 
 @frappe.whitelist()
-def create_audit_stock_reconciliation(file_url=None, posting_date=None, submit=0):
+def create_audit_stock_reconciliation(
+	file_url=None,
+	valuation_file_url=None,
+	posting_date=None,
+	submit=0,
+	purpose=None,
+	expense_account=None,
+):
 	frappe.only_for(("System Manager", "Dealer Manager", "Spare Parts Manager"))
 	frappe.has_permission("Stock Reconciliation", "create", throw=True)
 
 	file_url = (file_url or "").strip()
+	valuation_file_url = (valuation_file_url or "").strip()
+	expense_account = (expense_account or "").strip()
 	if not file_url:
-		frappe.throw(_("Upload an Excel file first."))
+		frappe.throw(_("Upload the audit stock Excel file first."))
+	if not valuation_file_url:
+		frappe.throw(_("Upload the inventory Excel file for valuation rate."))
+	if not expense_account:
+		frappe.throw(_("Difference Account is required."))
 
 	return create_audit_stock_reconciliation_file_url(
 		file_url=file_url,
+		valuation_file_url=valuation_file_url,
 		posting_date=posting_date,
 		submit=submit,
+		purpose=purpose,
+		expense_account=expense_account,
 		warehouse=INVENTORY_WAREHOUSE,
 	)
 

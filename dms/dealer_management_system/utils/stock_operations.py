@@ -1085,9 +1085,13 @@ def create_dms_stock_reconciliation(data: dict) -> dict:
 			)
 		)
 
+	purpose = (data.get("purpose") or "Stock Reconciliation").strip()
+	if purpose not in ("Opening Stock", "Stock Reconciliation"):
+		frappe.throw(_("Purpose must be Opening Stock or Stock Reconciliation."))
+
 	doc = frappe.new_doc("Stock Reconciliation")
 	doc.company = company
-	doc.purpose = "Stock Reconciliation"
+	doc.purpose = purpose
 	doc.posting_date = posting_date
 	doc.set_posting_time = 1
 	doc.expense_account = expense_account
