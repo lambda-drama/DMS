@@ -331,16 +331,63 @@ function create_inventory_stock_reconciliation(frm, values) {
 }
 
 function open_audit_stock_reconciliation_modal(frm) {
-	const d = new frappe.ui.Dialog({
+	const warehouse = "Service Center Addis Ababa - SM";
+	let d;
+	d = new frappe.ui.Dialog({
 		title: __("Create Audit Stock Reconciliation"),
 		fields: [
 			{
+				fieldname: "purpose",
+				label: __("Purpose"),
+				fieldtype: "Select",
+				options: "Opening Stock\nStock Reconciliation",
+				default: "Stock Reconciliation",
+				reqd: 1,
+				onchange() {
+					set_audit_difference_account(d);
+				},
+			},
+			{
+				fieldname: "company",
+				fieldtype: "Data",
+				hidden: 1,
+			},
+			{
+				fieldname: "expense_account",
+				label: __("Difference Account"),
+				fieldtype: "Link",
+				options: "Account",
+				reqd: 1,
+				description: __(
+					"For Opening Stock this must be an Asset/Liability (Balance Sheet) account"
+				),
+				get_query() {
+					const filters = {
+						is_group: 0,
+						company: d.get_value("company") || frappe.defaults.get_default("company"),
+					};
+					if (d.get_value("purpose") === "Opening Stock") {
+						filters.report_type = "Balance Sheet";
+					}
+					return { filters };
+				},
+			},
+			{
 				fieldname: "audit_file",
-				label: __("Excel workbook (.xlsx)"),
+				label: __("Audit stock Excel (.xlsx)"),
 				fieldtype: "Attach",
 				reqd: 1,
 				description: __(
-					"Part No → Item Code, Part Name → Item Name, Physical Stock → Qty, Location → Spare Part Default Bin Location"
+					"Qty and location come from this file: Part No, Physical Stock, Location"
+				),
+			},
+			{
+				fieldname: "valuation_file",
+				label: __("Inventory Excel for valuation rate (.xlsx)"),
+				fieldtype: "Attach",
+				reqd: 1,
+				description: __(
+					"Only Total Unit Price with T/T is used as valuation rate. Items not in the audit file are ignored"
 				),
 			},
 			{
@@ -355,15 +402,23 @@ function open_audit_stock_reconciliation_modal(frm) {
 				label: __("Submit automatically"),
 				fieldtype: "Check",
 				default: 0,
-				description: __(
-					"Leave unchecked to save as draft. Warehouse is fixed to Service Center Addis Ababa - SM"
-				),
+				description: __("Leave unchecked to save as draft. Warehouse is fixed to {0}", [
+					warehouse,
+				]),
 			},
 		],
 		primary_action_label: __("Create"),
 		primary_action(values) {
 			if (!values.audit_file) {
-				frappe.msgprint(__("Attach an Excel workbook first"));
+				frappe.msgprint(__("Attach the audit stock Excel first"));
+				return;
+			}
+			if (!values.valuation_file) {
+				frappe.msgprint(__("Attach the inventory Excel for valuation rate"));
+				return;
+			}
+			if (!values.expense_account) {
+				frappe.msgprint(__("Select a Difference Account"));
 				return;
 			}
 			d.hide();
@@ -371,6 +426,30 @@ function open_audit_stock_reconciliation_modal(frm) {
 		},
 	});
 	d.show();
+
+	frappe.db.get_value("Warehouse", warehouse, "company").then((r) => {
+		const company = r.message && r.message.company;
+		if (company) {
+			d.set_value("company", company);
+		}
+		set_audit_difference_account(d);
+	});
+}
+
+function set_audit_difference_account(d) {
+	const purpose = d.get_value("purpose");
+	const company = d.get_value("company");
+	if (!purpose || !company) {
+		return;
+	}
+	frappe.call({
+		method:
+			"erpnext.stock.doctype.stock_reconciliation.stock_reconciliation.get_difference_account",
+		args: { purpose, company },
+		callback(r) {
+			d.set_value("expense_account", r.message || "");
+		},
+	});
 }
 
 function create_audit_stock_reconciliation(frm, values) {
@@ -378,8 +457,11 @@ function create_audit_stock_reconciliation(frm, values) {
 		method: "dms.api.inventory_import.create_audit_stock_reconciliation",
 		args: {
 			file_url: values.audit_file,
+			valuation_file_url: values.valuation_file,
 			posting_date: values.posting_date,
 			submit: values.submit || 0,
+			purpose: values.purpose || "Stock Reconciliation",
+			expense_account: values.expense_account,
 		},
 		freeze: true,
 		freeze_message: __("Creating audit stock reconciliation…"),
@@ -389,8 +471,10 @@ function create_audit_stock_reconciliation(frm, values) {
 				return;
 			}
 
-			let msg = __("Audit stock reconciliation saved!\n\n");
+			let msg = __("Audit stock document saved!\n\n");
 			msg += __("Document: {0}\n", [summary.name || ""]);
+			msg += __("Purpose: {0}\n", [summary.purpose || ""]);
+			msg += __("Difference Account: {0}\n", [summary.expense_account || ""]);
 			msg += __("Company: {0}\n", [summary.company || ""]);
 			msg += __("Warehouse: {0}\n", [summary.warehouse || ""]);
 			msg += __("Rows processed: {0}\n", [summary.rows_processed || 0]);
@@ -399,6 +483,10 @@ function create_audit_stock_reconciliation(frm, values) {
 			}
 			if (summary.duplicate_rows_merged) {
 				msg += __("Duplicate rows merged: {0}\n", [summary.duplicate_rows_merged]);
+			}
+			msg += __("Valuation rates applied: {0}\n", [summary.rates_applied || 0]);
+			if (summary.rates_missing) {
+				msg += __("Items without valuation rate: {0}\n", [summary.rates_missing]);
 			}
 			msg += __("Spare Part locations updated: {0}\n", [summary.locations_updated || 0]);
 			if (summary.items_created) {
@@ -415,7 +503,7 @@ function create_audit_stock_reconciliation(frm, values) {
 			frappe.msgprint({
 				title: __("Audit Stock Reconciliation Summary"),
 				message: msg,
-				indicator: summary.skipped_count ? "orange" : "green",
+				indicator: summary.skipped_count || summary.rates_missing ? "orange" : "green",
 			});
 			frm.reload_doc();
 			if (summary.name) {
