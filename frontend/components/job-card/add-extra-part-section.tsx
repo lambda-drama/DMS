@@ -20,6 +20,8 @@ interface AddExtraPartSectionProps {
   warehouse?: string;
   company?: string;
   disabled?: boolean;
+  /** When false (user lacks Edit Price role), part selection remains enabled but the unit price input is read-only. */
+  canEditPrice?: boolean;
   onAdded?: (result?: { parts_request?: string }) => void;
 }
 
@@ -29,6 +31,7 @@ export function AddExtraPartSection({
   warehouse,
   company,
   disabled = false,
+  canEditPrice = true,
   onAdded,
 }: AddExtraPartSectionProps) {
   const [sparePartSearch, setSparePartSearch] = useState("");
@@ -144,12 +147,12 @@ export function AddExtraPartSection({
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
-            <Label className="text-xs">Unit price (editable)</Label>
+            <Label className="text-xs">{canEditPrice ? "Unit price (editable)" : "Unit price (fixed)"}</Label>
             <DecimalInput
               min={0}
               value={unitPrice}
-              onValueChange={setUnitPrice}
-              disabled={disabled || busy}
+              onValueChange={canEditPrice ? setUnitPrice : () => {}}
+              disabled={disabled || busy || !canEditPrice}
             />
           </div>
           <div className="sm:col-span-3">

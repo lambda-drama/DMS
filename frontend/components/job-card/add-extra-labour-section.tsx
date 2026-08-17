@@ -23,6 +23,8 @@ interface AddExtraLabourSectionProps {
   vehicleVin?: string;
   vehicleModel?: string;
   disabled?: boolean;
+  /** When false (user lacks Edit Price role), service selection remains enabled but the rate input is read-only. */
+  canEditPrice?: boolean;
   onAdded?: () => void;
 }
 
@@ -31,6 +33,7 @@ export function AddExtraLabourSection({
   vehicleVin,
   vehicleModel,
   disabled = false,
+  canEditPrice = true,
   onAdded,
 }: AddExtraLabourSectionProps) {
   const [serviceSearch, setServiceSearch] = useState("");
@@ -162,12 +165,12 @@ export function AddExtraLabourSection({
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
-            <Label className="text-xs">Rate/hr (editable)</Label>
+            <Label className="text-xs">{canEditPrice ? "Rate/hr (editable)" : "Rate/hr (fixed)"}</Label>
             <DecimalInput
               min={0}
               value={ratePerHour}
-              onValueChange={setRatePerHour}
-              disabled={disabled || busy}
+              onValueChange={canEditPrice ? setRatePerHour : () => {}}
+              disabled={disabled || busy || !canEditPrice}
             />
           </div>
           <div className="sm:col-span-3">

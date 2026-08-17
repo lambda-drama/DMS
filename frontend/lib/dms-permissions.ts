@@ -15,6 +15,8 @@ export type DmsPermissionModule =
   | 'spare-parts'
   | 'vehicle-services'
   | 'item-prices'
+  | 'job-card-terms'
+  | 'user-permissions'
   | 'deliveries'
   | 'customers'
   | 'vehicles'
@@ -29,7 +31,8 @@ export type DmsPermissionModule =
   | 'proforma-invoices'
   | 'inventory-dashboard'
   | 'reports'
-  | 'settings';
+  | 'settings'
+  | 'can_edit_price';
 
 export interface DmsModulePermissions {
   doctype?: string | null;
@@ -72,6 +75,8 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'spare-parts': 'spare-parts',
   'vehicle-services': 'vehicle-services',
   'item-prices': 'item-prices',
+  'job-card-terms': 'job-card-terms',
+  'user-permissions': 'user-permissions',
   deliveries: 'deliveries',
   'delivery-new': 'deliveries',
   customers: 'customers',

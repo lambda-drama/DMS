@@ -30,6 +30,7 @@ interface PermissionsContextType {
   canSubmit: (module: DmsPermissionModule) => boolean;
   canCancel: (module: DmsPermissionModule) => boolean;
   canDelete: (module: DmsPermissionModule) => boolean;
+  canEditPrice: boolean;
   getModule: (module: DmsPermissionModule) => DmsModulePermissions | undefined;
 }
 
@@ -110,6 +111,10 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     [permissions]
   );
 
+  const canEditPrice =
+    truthy(permissions['can_edit_price']?.write) ||
+    truthy(permissions['can_edit_price']?.visible);
+
   const value = useMemo(
     () => ({
       permissions,
@@ -122,6 +127,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       canSubmit,
       canCancel,
       canDelete,
+      canEditPrice,
       getModule,
     }),
     [
@@ -136,6 +142,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       canSubmit,
       canCancel,
       canDelete,
+      canEditPrice,
       getModule,
     ]
   );

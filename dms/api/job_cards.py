@@ -602,6 +602,16 @@ def add_labour_line_to_job_card(
 	jc = frappe.get_doc("DMS Job Card", jc_name)
 	jc.check_permission("write")
 
+	from dms.dealer_management_system.utils.price_permissions import (
+		assert_price_allowed_if_changed,
+	)
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		vehicle_service_item_labour_rate,
+	)
+
+	default_rate = vehicle_service_item_labour_rate(vsi) if rate_per_hour is not None else 0
+	assert_price_allowed_if_changed(default_rate, rate_per_hour)
+
 	if jc.status not in _ADD_LABOUR_ALLOWED_STATUSES:
 		frappe.throw(
 			_("Cannot add labour when job card status is {0}.").format(jc.status or _("Unknown"))
@@ -684,6 +694,7 @@ def create_job_card(data):
 		"service_advisor_notes": data.get("service_advisor_notes"),
 		"internal_notes": data.get("internal_notes"),
 		"terms": data.get("terms"),
+		"terms_and_conditions": data.get("terms_and_conditions"),
 		"schedule_start_time": data.get("schedule_start_time"),
 		"schedule_end_time": data.get("schedule_end_time"),
 	})
@@ -817,7 +828,7 @@ def update_job_card(name, data):
 		"estimated_duration_hours", "promised_delivery_date_time",
 		"warranty_status", "warranty_expiry_date", "warranty_application_type",
 		"service_advisor_notes", "internal_notes",
-		"terms",
+		"terms", "terms_and_conditions",
 		"schedule_start_time", "schedule_end_time", "workshop", "warehouse",
 		"current_odometer",
 		"license_plate",
@@ -1411,7 +1422,7 @@ def get_job_card_terms(search=None, limit=50):
 		"DMS Job Card Terms",
 		filters=filters or None,
 		or_filters=or_filters,
-		fields=["name", "title", "default"],
+		fields=["name", "title", "default", "terms_and_conditions"],
 		limit=int(limit),
 		order_by="title asc",
 	)
@@ -1421,6 +1432,7 @@ def get_job_card_terms(search=None, limit=50):
 			"name": row.name,
 			"title": row.title or row.name,
 			"is_default": cint(row.get("default")),
+			"terms_and_conditions": row.get("terms_and_conditions") or "",
 		}
 		for row in rows
 	]

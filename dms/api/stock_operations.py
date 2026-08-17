@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED
 from dms.dealer_management_system.utils.stock_operations import (
@@ -49,6 +49,39 @@ def get_dms_stock_warehouses(company=None):
 def search_stock_items_for_ui(search=None, warehouse=None, limit=20):
 	frappe.has_permission("Stock Entry", "read", throw=True)
 	return search_stock_items(search=search, warehouse=warehouse, limit=limit)
+
+
+@frappe.whitelist()
+def get_stock_entry_detail(name=None):
+	"""Return Stock Entry header + item lines for the detail sheet."""
+	frappe.has_permission("Stock Entry", "read", throw=True)
+	if not name:
+		frappe.throw(_("Stock Entry name is required."))
+	se = frappe.get_doc("Stock Entry", name)
+	se.check_permission("read")
+	items = []
+	for row in se.get("items") or []:
+		items.append({
+			"item_code": row.item_code,
+			"item_name": row.item_name,
+			"qty": flt(row.qty),
+			"uom": row.uom,
+			"s_warehouse": row.s_warehouse,
+			"t_warehouse": row.t_warehouse,
+			"basic_rate": flt(row.basic_rate),
+			"amount": flt(row.amount),
+		})
+	return {
+		"name": se.name,
+		"stock_entry_type": se.stock_entry_type,
+		"company": se.company,
+		"posting_date": se.posting_date,
+		"docstatus": se.docstatus,
+		"total_outgoing_value": flt(se.total_outgoing_value),
+		"total_incoming_value": flt(se.total_incoming_value),
+		"remarks": se.remarks,
+		"items": items,
+	}
 
 
 @frappe.whitelist()

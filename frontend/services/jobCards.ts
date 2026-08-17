@@ -250,6 +250,7 @@ export interface JobCardTermsOption {
   name: string;
   title: string;
   is_default?: number | boolean;
+  terms_and_conditions?: string;
 }
 
 export async function fetchJobCardTerms(search?: string): Promise<JobCardTermsOption[]> {

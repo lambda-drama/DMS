@@ -950,9 +950,33 @@ def _build_preview_lines(
 
 
 def _apply_rate_overrides_to_job_card(jc, overrides: dict[str, float]) -> None:
-	"""Persist edited selling rates on the job card before invoicing."""
+	"""Persist edited selling rates on the job card before invoicing.
+
+	Only requires the Edit Price permission when an override actually
+	*changes* the stored unit price / rate-per-hour (a direct price edit).
+	Overrides equal to the current values (e.g. discount recalculations that
+	re-send the same rates) are allowed for everyone.
+	"""
 	if not overrides:
 		return
+
+	from dms.dealer_management_system.utils.price_permissions import require_edit_price
+
+	# Detect whether any override differs from the current stored value.
+	actual_changes = False
+	for row in jc.get("labour") or []:
+		if row.name in overrides and abs(flt(row.rate_per_hour or 0) - flt(overrides[row.name])) >= 0.01:
+			actual_changes = True
+			break
+	if not actual_changes:
+		for row in jc.get("parts") or []:
+			if row.name in overrides and abs(flt(row.unit_price or 0) - flt(overrides[row.name])) >= 0.01:
+				actual_changes = True
+				break
+
+	# Only a real price change is a "direct edit" — require permission then.
+	if actual_changes:
+		require_edit_price()
 
 	changed = False
 	for row in jc.get("labour") or []:
@@ -1533,6 +1557,31 @@ def create_standalone_dms_sales_invoice(
 		from dms.dealer_management_system.utils.stock_operations import get_dms_parts_warehouse
 
 		warehouse = (get_dms_parts_warehouse(company) or "").strip()
+
+	# Discounts reduce line rates — that is allowed without Edit Price permission.
+	# Only direct unit-price/rate edits (with no discount) require Edit Price.
+	if not labour_discount and not parts_discount:
+		from dms.dealer_management_system.utils.price_permissions import (
+			assert_price_allowed_if_changed,
+		)
+
+		for row in labour_lines:
+			vsi = (row.get("vehicle_service_item") or "").strip()
+			if not vsi:
+				continue
+			rate_sent = row.get("rate_per_hour") or row.get("rate")
+			if rate_sent is not None and rate_sent != "":
+				default = vehicle_service_item_labour_rate(vsi)
+				assert_price_allowed_if_changed(default, rate_sent)
+
+		for row in parts_lines:
+			spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+			if not spare_part:
+				continue
+			price_sent = row.get("unit_price") or row.get("rate")
+			if price_sent is not None and price_sent != "":
+				default = spare_part_default_selling_price(spare_part)
+				assert_price_allowed_if_changed(default, price_sent)
 	vehicle_vin = (vehicle_vin or "").strip() or None
 	vehicle_brand = (vehicle_brand or "").strip() or None
 	vehicle_model = (vehicle_model or "").strip() or None
@@ -1896,6 +1945,31 @@ def create_standalone_dms_sales_order(
 	labour_lines = labour_lines or []
 	parts_lines = parts_lines or []
 	warehouse = (warehouse or "").strip()
+
+	# Discounts reduce line rates — allowed without Edit Price. Only direct
+	# unit-price/rate edits (no discounts) require Edit Price permission.
+	if not labour_discount and not parts_discount:
+		from dms.dealer_management_system.utils.price_permissions import (
+			assert_price_allowed_if_changed,
+		)
+
+		for row in labour_lines:
+			vsi = (row.get("vehicle_service_item") or "").strip()
+			if not vsi:
+				continue
+			rate_sent = row.get("rate_per_hour") or row.get("rate")
+			if rate_sent is not None and rate_sent != "":
+				default = vehicle_service_item_labour_rate(vsi)
+				assert_price_allowed_if_changed(default, rate_sent)
+
+		for row in parts_lines:
+			spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
+			if not spare_part:
+				continue
+			price_sent = row.get("unit_price") or row.get("rate")
+			if price_sent is not None and price_sent != "":
+				default = spare_part_default_selling_price(spare_part)
+				assert_price_allowed_if_changed(default, price_sent)
 
 	needs_stock_warehouse = False
 	for row in parts_lines:

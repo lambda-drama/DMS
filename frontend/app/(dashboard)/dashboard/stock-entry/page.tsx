@@ -33,6 +33,8 @@ import * as stockSvc from '@/services/stockOperations';
 import { formatDmsWarehouseLabel } from '@/services/stockOperations';
 import { ArrowDownUp, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
+import { PrintFormatDropdown } from '@/components/print-format-dropdown';
 
 type LineRow = {
   id: string;
@@ -71,6 +73,9 @@ export default function StockEntryPage() {
   const [recent, setRecent] = useState<stockSvc.StockEntryListRow[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<stockSvc.StockEntryDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useAutofillSingleCompany(companies, companiesLoading, company, (c) => setCompany(c.name));
 
@@ -107,6 +112,26 @@ export default function StockEntryPage() {
   useEffect(() => {
     void loadRecent();
   }, [loadRecent]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setDetail(null);
+      return;
+    }
+    let cancelled = false;
+    setDetailLoading(true);
+    void (async () => {
+      try {
+        const d = await stockSvc.fetchStockEntryDetail(selectedId);
+        if (!cancelled) setDetail(d);
+      } catch (err) {
+        if (!cancelled) { setDetail(null); toast.error(err instanceof Error ? err.message : 'Failed to load stock entry'); }
+      } finally {
+        if (!cancelled) setDetailLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -418,8 +443,8 @@ export default function StockEntryPage() {
               </TableHeader>
               <TableBody>
                 {recent.map((row) => (
-                  <TableRow key={row.name}>
-                    <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableRow key={row.name} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedId(row.name)}>
+                    <TableCell className="font-medium text-dms-green">{row.name}</TableCell>
                     <TableCell>{row.stock_entry_type}</TableCell>
                     <TableCell>{row.company}</TableCell>
                     <TableCell>{row.posting_date}</TableCell>
@@ -438,6 +463,64 @@ export default function StockEntryPage() {
           )}
         </CardContent>
       </Card>
+
+      <DetailSheet
+        open={!!selectedId}
+        onOpenChange={(open) => { if (!open) setSelectedId(null); }}
+        title={detail?.name || selectedId || ''}
+        subtitle={detail?.stock_entry_type}
+        badge={detail ? { label: docStatusLabel(detail.docstatus) } : undefined}
+        isLoading={detailLoading}
+        footer={
+          selectedId ? (
+            <div className="flex flex-col gap-2 w-full">
+              <PrintFormatDropdown doctype="Stock Entry" docName={selectedId} className="w-full" />
+              <Button type="button" variant="outline" className="w-full" onClick={() => setSelectedId(null)}>Close</Button>
+            </div>
+          ) : null
+        }
+      >
+        {detail ? (
+          <>
+            <DetailSection title="Entry">
+              <DetailRow label="Type" value={detail.stock_entry_type} />
+              <DetailRow label="Company" value={detail.company} />
+              <DetailRow label="Posting date" value={detail.posting_date} />
+              <DetailRow label="Outgoing" value={detail.total_outgoing_value != null ? detail.total_outgoing_value.toLocaleString() : undefined} />
+              <DetailRow label="Incoming" value={detail.total_incoming_value != null ? detail.total_incoming_value.toLocaleString() : undefined} />
+              {detail.remarks ? <DetailRow label="Remarks" value={detail.remarks} /> : null}
+            </DetailSection>
+            <DetailSection title={`Items (${(detail.items || []).length})`}>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead className="text-right">Rate</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(detail.items || []).map((it, i) => (
+                      <TableRow key={`${it.item_code}-${i}`}>
+                        <TableCell><div className="font-medium">{it.item_name || it.item_code}</div><div className="text-xs text-muted-foreground">{it.item_code}</div></TableCell>
+                        <TableCell className="text-right">{it.qty}</TableCell>
+                        <TableCell>{it.s_warehouse || '—'}</TableCell>
+                        <TableCell>{it.t_warehouse || '—'}</TableCell>
+                        <TableCell className="text-right">{it.basic_rate != null ? it.basic_rate.toLocaleString() : '—'}</TableCell>
+                        <TableCell className="text-right">{it.amount != null ? it.amount.toLocaleString() : '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </DetailSection>
+          </>
+        ) : null}
+      </DetailSheet>
     </div>
   );
 }
