@@ -73,7 +73,7 @@ function vehicleModelSelectDescription(vm: VehicleModelOption): string {
 }
 
 export default function SparePartSalesPage() {
-  const { canCreate } = usePermissions();
+  const { canCreate, canEditPrice } = usePermissions();
   const { navigate } = useNavigation();
 
   const [company, setCompany] = useState('');
@@ -576,11 +576,13 @@ export default function SparePartSalesPage() {
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <Label className="text-xs">Unit price</Label>
+                  <Label className="text-xs">{canEditPrice ? "Unit price" : "Unit price (fixed)"}</Label>
                   <Input
                     type="number"
                     min="0"
                     step="any"
+                    readOnly={!canEditPrice}
+                    className={!canEditPrice ? "bg-muted" : undefined}
                     value={line.unit_price}
                     onChange={(e) =>
                       setLines((prev) =>

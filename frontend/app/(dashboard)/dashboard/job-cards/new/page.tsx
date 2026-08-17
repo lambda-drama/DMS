@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { usePermissions } from "@/contexts/permissions-context";
 import {
   useCreateJobCard,
   useCustomers,
@@ -161,6 +162,7 @@ function emptyPartRow(warehouse?: string): PartRow {
 
 export default function NewJobCardPage() {
   const { navigate, viewParams } = useNavigation();
+  const { canEditPrice } = usePermissions();
   const { trigger: createJobCard, isMutating } = useCreateJobCard();
 
   // Search states for searchable selects
@@ -294,6 +296,7 @@ export default function NewJobCardPage() {
   const [serviceAdvisorNotes, setServiceAdvisorNotes] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
   const [terms, setTerms] = useState("");
+  const [termsAndConditions, setTermsAndConditions] = useState("");
 
   const [appointmentId, setAppointmentId] = useState(viewParams.get("appointment") || "");
   const [inspectionId, setInspectionId] = useState(viewParams.get("inspection") || "");
@@ -326,7 +329,12 @@ export default function NewJobCardPage() {
   useEffect(() => {
     if (terms) return;
     const defaultTerms = jobCardTerms?.find((row) => Boolean(row.is_default));
-    if (defaultTerms?.name) setTerms(defaultTerms.name);
+    if (defaultTerms?.name) {
+      setTerms(defaultTerms.name);
+      setTermsAndConditions(
+        htmlToPlainText(defaultTerms.terms_and_conditions || "")
+      );
+    }
   }, [jobCardTerms, terms]);
 
   // --- Auto-fill handlers ---
@@ -1013,6 +1021,7 @@ export default function NewJobCardPage() {
       service_advisor_notes: serviceAdvisorNotes || undefined,
       internal_notes: internalNotes || undefined,
       terms: terms || undefined,
+      terms_and_conditions: termsAndConditions || undefined,
       appointment: appointmentId || undefined,
       skip_vehicle_inspection: skipVehicleInspection ? 1 : 0,
       inspection: skipVehicleInspection ? undefined : inspectionId || undefined,
@@ -1709,14 +1718,13 @@ export default function NewJobCardPage() {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs">Rate/Hr</Label>
+                    <Label className="text-xs">{canEditPrice ? "Rate/Hr" : "Rate/Hr (fixed)"}</Label>
                     <DecimalInput
                       min={0}
                       placeholder="0"
                       value={row.rate_per_hour}
-                      onValueChange={(rate_per_hour) =>
-                        updateLabourRow(idx, { rate_per_hour })
-                      }
+                      onValueChange={canEditPrice ? (rate_per_hour) => updateLabourRow(idx, { rate_per_hour }) : () => {}}
+                      disabled={!canEditPrice}
                     />
                   </div>
                 </div>
@@ -1778,14 +1786,13 @@ export default function NewJobCardPage() {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-3">
-                    <Label className="text-xs">Unit Price (editable)</Label>
+                    <Label className="text-xs">{canEditPrice ? "Unit Price (editable)" : "Unit Price (fixed)"}</Label>
                     <DecimalInput
                       min={0}
                       placeholder="0"
                       value={row.unit_price}
-                      onValueChange={(unit_price) =>
-                        updatePartRow(idx, { unit_price })
-                      }
+                      onValueChange={canEditPrice ? (unit_price) => updatePartRow(idx, { unit_price }) : () => {}}
+                      disabled={!canEditPrice}
                     />
                   </div>
                 </div>
@@ -1899,10 +1906,19 @@ export default function NewJobCardPage() {
                   jobCardTerms?.map((row) => ({
                     value: row.name,
                     label: row.is_default ? `${row.title} (Default)` : row.title,
+                    description: row.terms_and_conditions
+                      ? row.terms_and_conditions.replace(/<[^>]*>/g, "").slice(0, 80) + "..."
+                      : undefined,
                   })) || []
                 }
                 value={terms}
-                onValueChange={setTerms}
+                onValueChange={(val) => {
+                  setTerms(val);
+                  const selected = jobCardTerms?.find((row) => row.name === val);
+                  setTermsAndConditions(
+                    htmlToPlainText(selected?.terms_and_conditions || "")
+                  );
+                }}
                 placeholder="Select terms..."
                 emptyMessage="No job card terms found"
                 isLoading={termsLoading}
@@ -1910,6 +1926,22 @@ export default function NewJobCardPage() {
                   jobCardTerms?.find((row) => row.name === terms)?.title || terms
                 }
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="terms_and_conditions">Terms & Conditions Content</Label>
+              <Textarea
+                id="terms_and_conditions"
+                rows={6}
+                placeholder="Terms & conditions text will be shown here — edit as needed for this job"
+                value={termsAndConditions}
+                onChange={(e) => setTermsAndConditions(e.target.value)}
+                disabled={!terms}
+              />
+              {terms && (
+                <p className="text-xs text-muted-foreground">
+                  Default text loaded from the selected terms template. Edit in your own words before saving if needed.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="service_advisor_notes">

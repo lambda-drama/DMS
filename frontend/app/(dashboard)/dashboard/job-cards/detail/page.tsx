@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { usePermissions } from "@/contexts/permissions-context";
 import { useJobCard, useServiceBays, useServiceEstimate, useTechnicians } from "@/hooks/use-dms";
 import { canEditJobCardAssignment, canStartRepairFromWorkflow, isJobCardWorkshopAssigned, resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import * as jobCardsSvc from "@/services/jobCards";
@@ -160,6 +161,7 @@ function richTextBlock(value?: string | null) {
 export default function JobCardDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
+  const { canEditPrice } = usePermissions();
   const { data: jobCard, isLoading, error, mutate } = useJobCard(id || null);
   const { data: linkedEstimate } = useServiceEstimate(jobCard?.service_estimate || null);
   const [additionalWorkRequests, setAdditionalWorkRequests] = useState<AdditionalWorkRequestSummary[]>([]);
@@ -421,6 +423,7 @@ export default function JobCardDetailPage() {
   /** Cancelled invoices do not block creating a new one. */
   const hasActiveInvoice = Boolean(jobCard.invoice) && !invoiceIsCancelled;
   const canEditLinePricing =
+    canEditPrice &&
     !hasActiveInvoice &&
     !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
 
@@ -1895,6 +1898,7 @@ export default function JobCardDetailPage() {
             <AddExtraLabourSection
               jobCardId={id}
               vehicleVin={jobCard.vehicle_vin}
+              disabled={!canEditPrice}
               onAdded={() => void mutate()}
             />
           )}
@@ -1986,6 +1990,7 @@ export default function JobCardDetailPage() {
               leadTechnician={jobCard.lead_technician}
               warehouse={jobCard.warehouse}
               company={jobCard.company}
+              disabled={!canEditPrice}
               onAdded={(result) => {
                 setPartsFlowRefreshKey((k) => k + 1);
                 autoPartsTabJobRef.current = id;

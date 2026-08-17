@@ -17,6 +17,8 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"spare-parts": "Spare Part",
 	"vehicle-services": "Vehicle Service Item",
 	"item-prices": "Item Price",
+	"job-card-terms": "DMS Job Card Terms",
+	"user-permissions": "DMS CRM User Settings",
 	"deliveries": "Vehicle Delivery Note",
 	"customers": "Customer",
 	"vehicles": "VIN No",
@@ -159,6 +161,17 @@ def get_dms_ui_permissions():
 		"visible": management_access,
 		"read": int(management_access),
 		"write": int(management_access),
+		"create": 0,
+		"delete": 0,
+	}
+
+	from dms.dealer_management_system.utils.price_permissions import can_edit_price
+
+	out["can_edit_price"] = {
+		"doctype": None,
+		"visible": int(can_edit_price(user)),
+		"read": int(can_edit_price(user)),
+		"write": int(can_edit_price(user)),
 		"create": 0,
 		"delete": 0,
 	}

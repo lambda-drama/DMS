@@ -30,6 +30,8 @@ import { useCompanies, useAutofillSingleCompany } from '@/hooks/use-dms';
 import * as stockSvc from '@/services/stockOperations';
 import { formatDmsWarehouseLabel } from '@/services/stockOperations';
 import { MaterialRequestFulfillmentActions } from '@/components/material-request/material-request-fulfillment-actions';
+import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
+import { PrintFormatDropdown } from '@/components/print-format-dropdown';
 import { Loader2, PackagePlus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -78,6 +80,9 @@ export default function MaterialRequestPage() {
   const [recent, setRecent] = useState<stockSvc.MaterialRequestListRow[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<stockSvc.MaterialRequestDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const canStockEntry = canCreate('stock-entry');
   const canPurchaseReceipt = canCreate('purchase-receipt');
@@ -117,6 +122,23 @@ export default function MaterialRequestPage() {
   useEffect(() => {
     void loadRecent();
   }, [loadRecent]);
+
+  useEffect(() => {
+    if (!selectedId) { setDetail(null); return; }
+    let cancelled = false;
+    setDetailLoading(true);
+    void (async () => {
+      try {
+        const d = await stockSvc.fetchMaterialRequestDetail(selectedId);
+        if (!cancelled) setDetail(d);
+      } catch (err) {
+        if (!cancelled) { setDetail(null); toast.error(err instanceof Error ? err.message : 'Failed to load material request'); }
+      } finally {
+        if (!cancelled) setDetailLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -456,8 +478,8 @@ export default function MaterialRequestPage() {
               </TableHeader>
               <TableBody>
                 {recent.map((row) => (
-                  <TableRow key={row.name}>
-                    <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableRow key={row.name} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedId(row.name)}>
+                    <TableCell className="font-medium text-dms-green">{row.name}</TableCell>
                     <TableCell>{row.material_request_type}</TableCell>
                     <TableCell>{row.company}</TableCell>
                     <TableCell>{row.transaction_date}</TableCell>
@@ -492,6 +514,63 @@ export default function MaterialRequestPage() {
           )}
         </CardContent>
       </Card>
+
+      <DetailSheet
+        open={!!selectedId}
+        onOpenChange={(open) => { if (!open) setSelectedId(null); }}
+        title={detail?.name || selectedId || ''}
+        subtitle={detail?.material_request_type}
+        badge={detail ? { label: detail.status || docStatusLabel(detail.docstatus) } : undefined}
+        isLoading={detailLoading}
+        footer={
+          selectedId ? (
+            <div className="flex flex-col gap-2 w-full">
+              <PrintFormatDropdown doctype="Material Request" docName={selectedId} className="w-full" />
+              <Button type="button" variant="outline" className="w-full" onClick={() => setSelectedId(null)}>Close</Button>
+            </div>
+          ) : null
+        }
+      >
+        {detail ? (
+          <>
+            <DetailSection title="Request">
+              <DetailRow label="Type" value={detail.material_request_type} />
+              <DetailRow label="Company" value={detail.company} />
+              <DetailRow label="Transaction date" value={detail.transaction_date} />
+              <DetailRow label="Required by" value={detail.schedule_date} />
+              <DetailRow label="Status" value={detail.status} />
+              {detail.set_warehouse ? <DetailRow label="Warehouse" value={detail.set_warehouse} /> : null}
+              {detail.set_from_warehouse ? <DetailRow label="From warehouse" value={detail.set_from_warehouse} /> : null}
+            </DetailSection>
+            <DetailSection title={`Items (${(detail.items || []).length})`}>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Received</TableHead>
+                      <TableHead className="text-right">Pending</TableHead>
+                      <TableHead>UOM</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(detail.items || []).map((it, i) => (
+                      <TableRow key={`${it.item_code}-${i}`}>
+                        <TableCell><div className="font-medium">{it.item_name || it.item_code}</div><div className="text-xs text-muted-foreground">{it.item_code}</div></TableCell>
+                        <TableCell className="text-right">{it.qty}</TableCell>
+                        <TableCell className="text-right">{it.received_qty != null ? it.received_qty : it.ordered_qty != null ? it.ordered_qty : '—'}</TableCell>
+                        <TableCell className="text-right">{it.pending_qty != null ? it.pending_qty : '—'}</TableCell>
+                        <TableCell>{it.uom || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </DetailSection>
+          </>
+        ) : null}
+      </DetailSheet>
     </div>
   );
 }

@@ -480,26 +480,36 @@ def update_draft_sales_invoice(data):
 
 	# Invoice-level additional discount (ERPNext)
 	discount = data.get("discount") or data.get("invoice_discount")
-	if discount is not None or "discount_mode" in data or "additional_discount_percentage" in data:
+	has_discount = discount is not None or "discount_mode" in data or "additional_discount_percentage" in data
+	if has_discount:
 		_apply_draft_invoice_discount(si, data)
 
 	items_payload = data.get("items") or []
 	if items_payload:
-		by_name = {str(r.get("name")): r for r in items_payload if r.get("name")}
-		has_dms_disc = frappe.get_meta("Sales Invoice Item").has_field("custom_dms_discount")
-		for row in si.get("items") or []:
-			payload = by_name.get(str(row.name))
-			if not payload:
-				continue
-			if "qty" in payload and payload.get("qty") is not None:
-				row.qty = flt(payload.get("qty"))
-			if "rate" in payload and payload.get("rate") is not None:
-				row.rate = flt(payload.get("rate"))
-				row.price_list_rate = flt(payload.get("rate"))
-				row.discount_percentage = 0
-				row.discount_amount = 0
-			if has_dms_disc and "dms_discount" in payload:
-				row.custom_dms_discount = flt(payload.get("dms_discount"))
+		# Discounts may change line rates — that is allowed without Edit Price.
+		# Only direct unit-price edits (without a discount action) require Edit Price.
+		if not has_discount:
+			from dms.dealer_management_system.utils.price_permissions import (
+				assert_price_allowed_if_changed,
+			)
+
+			by_name = {str(r.get("name")): r for r in items_payload if r.get("name")}
+			has_dms_disc = frappe.get_meta("Sales Invoice Item").has_field("custom_dms_discount")
+			for row in si.get("items") or []:
+				payload = by_name.get(str(row.name))
+				if not payload:
+					continue
+				if "rate" in payload and payload.get("rate") is not None:
+					assert_price_allowed_if_changed(flt(row.rate), payload.get("rate"))
+				if "qty" in payload and payload.get("qty") is not None:
+					row.qty = flt(payload.get("qty"))
+				if "rate" in payload and payload.get("rate") is not None:
+					row.rate = flt(payload.get("rate"))
+					row.price_list_rate = flt(payload.get("rate"))
+					row.discount_percentage = 0
+					row.discount_amount = 0
+				if has_dms_disc and "dms_discount" in payload:
+					row.custom_dms_discount = flt(payload.get("dms_discount"))
 
 	if hasattr(si, "ignore_pricing_rule"):
 		si.ignore_pricing_rule = 1

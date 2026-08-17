@@ -115,7 +115,15 @@ def add_part_line_to_job_card(
 	if qty <= 0:
 		frappe.throw(_("Quantity must be greater than zero."))
 
-	price = flt(unit_price) if unit_price is not None else spare_part_default_selling_price(item_code)
+	default_price = spare_part_default_selling_price(item_code)
+	if unit_price is not None:
+		from dms.dealer_management_system.utils.price_permissions import (
+			assert_price_allowed_if_changed,
+		)
+
+		assert_price_allowed_if_changed(default_price, unit_price)
+
+	price = flt(unit_price) if unit_price is not None else default_price
 	bin_location = frappe.db.get_value("Spare Part", item_code, "bin_location") or ""
 
 	jc.append(
@@ -164,7 +172,12 @@ def add_part_line_to_job_card(
 
 @frappe.whitelist()
 def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
-	"""Update selling price on part rows and/or rate/hour on labour rows."""
+	"""Update selling price on part rows and/or rate/hour on labour rows.
+
+	Only requires the Edit Price permission when a sent value actually differs
+	from the current stored unit price / rate-per-hour. Discount-driven updates
+	that write the same effective rates are allowed for everyone.
+	"""
 	if isinstance(parts, str):
 		import json
 
@@ -182,6 +195,38 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 
 	if jc.invoice:
 		frappe.throw(_("Cannot change line pricing after an invoice has been created."))
+
+	# Detect real price changes — only those need Edit Price permission.
+	from dms.dealer_management_system.utils.price_permissions import require_edit_price
+
+	actual_changes = False
+	for payload in parts or []:
+		row_name = (payload.get("name") or payload.get("row_name") or "").strip()
+		if not row_name:
+			continue
+		for row in jc.parts or []:
+			if row.name == row_name:
+				if abs(flt(row.unit_price or 0) - flt(payload.get("unit_price"))) >= 0.01:
+					actual_changes = True
+					break
+		if actual_changes:
+			break
+
+	if not actual_changes:
+		for payload in labour or []:
+			row_name = (payload.get("name") or payload.get("row_name") or "").strip()
+			if not row_name:
+				continue
+			for row in jc.labour or []:
+				if row.name == row_name:
+					if abs(flt(row.rate_per_hour or 0) - flt(payload.get("rate_per_hour"))) >= 0.01:
+						actual_changes = True
+						break
+			if actual_changes:
+				break
+
+	if actual_changes:
+		require_edit_price()
 
 	changed = False
 	for payload in parts or []:

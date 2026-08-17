@@ -251,6 +251,36 @@ export async function searchStockItems(
   });
 }
 
+export interface StockEntryDetailItem {
+  item_code: string;
+  item_name?: string;
+  qty?: number;
+  uom?: string;
+  s_warehouse?: string;
+  t_warehouse?: string;
+  basic_rate?: number;
+  amount?: number;
+}
+
+export interface StockEntryDetail {
+  name: string;
+  stock_entry_type?: string;
+  company?: string;
+  posting_date?: string;
+  docstatus?: number;
+  total_outgoing_value?: number;
+  total_incoming_value?: number;
+  remarks?: string;
+  items: StockEntryDetailItem[];
+}
+
+export async function fetchStockEntryDetail(name: string): Promise<StockEntryDetail> {
+  return apiRequest(`/api/method/${API}.get_stock_entry_detail`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function listStockEntries(options?: {
   search?: string;
   limit?: number;

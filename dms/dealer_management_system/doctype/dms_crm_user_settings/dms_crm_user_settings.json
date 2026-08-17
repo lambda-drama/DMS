@@ -7,7 +7,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "dms_crm_user"
+  "dms_crm_user",
+  "users"
  ],
  "fields": [
   {
@@ -15,13 +16,19 @@
    "fieldtype": "Table",
    "label": "DMS CRM User",
    "options": "DMS CRM User Detail"
+  },
+  {
+   "fieldname": "users",
+   "fieldtype": "Table MultiSelect",
+   "label": "Users",
+   "options": "DMS Users"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-12 03:07:24.273783",
+ "modified": "2026-08-18 00:47:44.541317",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS CRM User Settings",

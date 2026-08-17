@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { usePermissions } from "@/contexts/permissions-context";
 import {
   useCompanies,
   useAutofillSingleCompany,
@@ -116,6 +117,7 @@ function defaultDueDate() {
 
 export default function NewInvoicePage() {
   const { navigate, viewParams } = useNavigation();
+  const { canEditPrice } = usePermissions();
   const jobCardId = viewParams.get("jobcard");
 
   const { data: jobCard } = useJobCard(jobCardId || "");
@@ -982,13 +984,12 @@ export default function NewInvoicePage() {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-3">
-                    <Label className="text-xs">Rate/hr</Label>
+                    <Label className="text-xs">{canEditPrice ? "Rate/hr" : "Rate/hr (fixed)"}</Label>
                     <DecimalInput
                       min={0}
                       value={row.rate_per_hour}
-                      onValueChange={(rate_per_hour) =>
-                        updateLabourRow(idx, { rate_per_hour })
-                      }
+                      onValueChange={canEditPrice ? (rate_per_hour) => updateLabourRow(idx, { rate_per_hour }) : () => {}}
+                      disabled={!canEditPrice}
                     />
                   </div>
                 </div>
@@ -1065,13 +1066,12 @@ export default function NewInvoicePage() {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-3">
-                    <Label className="text-xs">Unit price</Label>
+                    <Label className="text-xs">{canEditPrice ? "Unit price" : "Unit price (fixed)"}</Label>
                     <DecimalInput
                       min={0}
                       value={row.unit_price}
-                      onValueChange={(unit_price) =>
-                        updatePartRow(idx, { unit_price })
-                      }
+                      onValueChange={canEditPrice ? (unit_price) => updatePartRow(idx, { unit_price }) : () => {}}
+                      disabled={!canEditPrice}
                     />
                   </div>
                 </div>

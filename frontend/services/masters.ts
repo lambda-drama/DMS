@@ -203,6 +203,54 @@ export async function createItemPrice(
   });
 }
 
+export type JobCardTermsMaster = {
+  name: string;
+  title: string;
+  default?: number | boolean;
+  terms_and_conditions?: string;
+};
+
+export async function listJobCardTerms(options?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paginated<JobCardTermsMaster>> {
+  return apiRequest(`/api/method/${API}.list_job_card_terms`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      limit: options?.limit ?? 100,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function createJobCardTerms(
+  data: Record<string, unknown>
+): Promise<{ name: string; title: string }> {
+  return apiRequest(`/api/method/${API}.create_job_card_terms`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateJobCardTerms(
+  name: string,
+  data: Record<string, unknown>
+): Promise<{ name: string; title: string }> {
+  return apiRequest(`/api/method/${API}.update_job_card_terms`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function deleteJobCardTerms(name: string): Promise<{ name: string }> {
+  return apiRequest(`/api/method/${API}.delete_job_card_terms`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function getMastersOptions(): Promise<{
   price_lists: { name: string; currency?: string }[];
   default_price_list?: string | null;

@@ -627,6 +627,84 @@ def create_item_price(data=None):
 	return {"name": doc.name, "item_code": doc.item_code, "price_list_rate": doc.price_list_rate}
 
 
+def _job_card_terms_list(search=None, limit=100, offset=0):
+	"""List DMS Job Card Terms records."""
+	filters = {}
+	if search:
+		filters["title"] = ["like", f"%{search}%"]
+
+	total = len(frappe.get_all("DMS Job Card Terms", filters=filters or None, pluck="name", limit_page_length=0))
+	rows = frappe.get_all(
+		"DMS Job Card Terms",
+		filters=filters or None,
+		fields=["name", "title", "default", "terms_and_conditions"],
+		limit=int(limit) or 100,
+		limit_start=int(offset) or 0,
+		order_by="title asc",
+	)
+	return {"data": rows, "total": total}
+
+
+@frappe.whitelist()
+def list_job_card_terms(search=None, limit=100, offset=0):
+	"""Master list for DMS Job Card Terms."""
+	frappe.has_permission("DMS Job Card Terms", "read", throw=True)
+	return _job_card_terms_list(search=search, limit=limit, offset=offset)
+
+
+@frappe.whitelist()
+def create_job_card_terms(data):
+	"""Create a DMS Job Card Terms record."""
+	if isinstance(data, str):
+		import json
+		data = json.loads(data)
+
+	frappe.has_permission("DMS Job Card Terms", "create", throw=True)
+
+	title = (data.get("title") or "").strip()
+	if not title:
+		frappe.throw(_("Title is required."))
+
+	doc = frappe.new_doc("DMS Job Card Terms")
+	doc.title = title
+	doc.terms_and_conditions = data.get("terms_and_conditions") or ""
+	doc.default = 1 if data.get("default") else 0
+	doc.insert(ignore_permissions=False)
+	frappe.db.commit()
+	return {"name": doc.name, "title": doc.title}
+
+
+@frappe.whitelist()
+def update_job_card_terms(name, data):
+	"""Update a DMS Job Card Terms record."""
+	if isinstance(data, str):
+		import json
+		data = json.loads(data)
+
+	frappe.has_permission("DMS Job Card Terms", "write", throw=True)
+
+	doc = frappe.get_doc("DMS Job Card Terms", name)
+	if "title" in data and (data.get("title") or "").strip():
+		doc.title = (data.get("title") or "").strip()
+	if "terms_and_conditions" in data:
+		doc.terms_and_conditions = data.get("terms_and_conditions") or ""
+	if "default" in data:
+		doc.default = 1 if data.get("default") else 0
+	doc.save(ignore_permissions=False)
+	frappe.db.commit()
+	return {"name": doc.name, "title": doc.title}
+
+
+@frappe.whitelist()
+def delete_job_card_terms(name):
+	"""Delete a DMS Job Card Terms record."""
+	doc = frappe.get_doc("DMS Job Card Terms", name)
+	doc.check_permission("delete")
+	doc.delete()
+	frappe.db.commit()
+	return {"name": name}
+
+
 @frappe.whitelist()
 def get_masters_options():
 	"""Dropdown helpers for master edit forms."""

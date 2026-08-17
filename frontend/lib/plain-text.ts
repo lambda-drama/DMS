@@ -5,7 +5,9 @@ export function htmlToPlainText(value: string | undefined | null): string {
   if (typeof document !== "undefined") {
     const el = document.createElement("div");
     el.innerHTML = s;
-    return (el.textContent || el.innerText || "").replace(/\s+/g, " ").trim();
+    const text = el.textContent || el.innerText || "";
+    // Handle doubly-encoded HTML (Quill stores escaped <p> tags inside real <p> tags)
+    return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   }
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
