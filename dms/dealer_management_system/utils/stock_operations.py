@@ -206,6 +206,41 @@ def get_dms_default_item_group() -> str:
 	return (frappe.db.get_single_value("DMS Settings", "default_item_group") or "").strip()
 
 
+DEFAULT_STOCK_UOM = "Pcs"
+_PREFERRED_STOCK_UOMS = ("Pcs", "Nos", "Set", "Pair", "Box", "Kg", "Litre", "Ltr")
+
+
+def _uom_is_enabled(name: str) -> bool:
+	if not frappe.db.exists("UOM", name):
+		return False
+	enabled = frappe.db.get_value("UOM", name, "enabled")
+	return enabled is None or bool(cint(enabled))
+
+
+def list_uoms_for_item_create() -> list[dict]:
+	names = frappe.get_all("UOM", filters={"enabled": 1}, pluck="name", order_by="name asc")
+	preferred = [name for name in _PREFERRED_STOCK_UOMS if name in names]
+	rest = [name for name in names if name not in preferred]
+	return [{"value": name, "label": name} for name in [*preferred, *rest]]
+
+
+def get_default_stock_uom() -> str:
+	for name in _PREFERRED_STOCK_UOMS:
+		if _uom_is_enabled(name):
+			return name
+	fallback = frappe.db.get_value("UOM", {"enabled": 1}, "name")
+	return (fallback or DEFAULT_STOCK_UOM).strip()
+
+
+def resolve_stock_uom(stock_uom: str | None = None) -> str:
+	requested = (stock_uom or "").strip() or get_default_stock_uom()
+	if not frappe.db.exists("UOM", requested):
+		frappe.throw(_("UOM {0} was not found.").format(frappe.bold(requested)))
+	if not _uom_is_enabled(requested):
+		frappe.throw(_("UOM {0} is disabled.").format(frappe.bold(requested)))
+	return requested
+
+
 def get_stock_item_create_defaults() -> dict:
 	item_group = get_dms_default_item_group()
 	return {
@@ -213,6 +248,8 @@ def get_stock_item_create_defaults() -> dict:
 		"auto_create_spare_parts": bool(
 			item_group and item_group_auto_generates_spare_parts(item_group)
 		),
+		"default_stock_uom": get_default_stock_uom(),
+		"uoms": list_uoms_for_item_create(),
 	}
 
 
@@ -376,7 +413,7 @@ def create_dms_stock_item(data: dict) -> dict:
 		data.get("standard_rate") or data.get("selling_price") or data.get("rate")
 	)
 	item_group = (data.get("item_group") or "").strip() or get_dms_default_item_group()
-	stock_uom = (data.get("stock_uom") or "Nos").strip() or "Nos"
+	stock_uom = resolve_stock_uom(data.get("stock_uom"))
 
 	if not item_code:
 		frappe.throw(_("Item code is required."))
@@ -443,6 +480,7 @@ def create_dms_stock_item(data: dict) -> dict:
 		"price_list": price_list,
 		"spare_part": spare_part_name,
 		"item_group": item_group,
+		"stock_uom": stock_uom,
 	}
 
 

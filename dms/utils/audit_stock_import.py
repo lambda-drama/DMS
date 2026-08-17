@@ -107,7 +107,7 @@ def create_audit_stock_reconciliation_from_workbook(
 			if _update_spare_part_bin_location(item_code, row.location):
 				summary["locations_updated"] += 1
 		line = {"item_code": item_code, "qty": max(flt(row.qty), 0)}
-		rate = flt(valuation_rates.get(row.part_no) or valuation_rates.get(item_code) or 0)
+		rate = flt(valuation_rates.get(row.part_no) or 0)
 		if rate > 0:
 			line["valuation_rate"] = rate
 			summary["rates_applied"] += 1
@@ -261,7 +261,8 @@ def _header_map_with_aliases(header_row: tuple | list, aliases: dict[str, set[st
 
 
 def _normalize_part_no(value) -> str:
-	return _text(value).rstrip(".")
+	# Keep a trailing "." — codes like 111300011AA and 111300011AA. are different items.
+	return _text(value)
 
 
 def _aggregate_audit_rows(rows: list[AuditStockRow]) -> tuple[list[AuditStockRow], int]:

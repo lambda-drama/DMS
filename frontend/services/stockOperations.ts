@@ -64,11 +64,14 @@ export interface StockItemCreateResult {
   price_list?: string | null;
   spare_part?: string | null;
   item_group?: string;
+  stock_uom?: string;
 }
 
 export interface StockItemCreateDefaults {
   default_item_group?: string | null;
   auto_create_spare_parts?: boolean;
+  default_stock_uom?: string | null;
+  uoms?: Array<{ value: string; label: string }>;
 }
 
 export interface SupplierSearchRow {
@@ -503,6 +506,7 @@ export async function createStockItem(data: {
   standard_rate?: number;
   selling_price?: number;
   item_group?: string;
+  stock_uom?: string;
 }): Promise<StockItemCreateResult> {
   return apiRequest(`/api/method/${API}.create_stock_item`, {
     method: 'POST',

@@ -39,7 +39,7 @@ export function CreateSparePartDialog({
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
   const [itemGroup, setItemGroup] = useState('Spare Parts');
-  const [uom, setUom] = useState('Nos');
+  const [uom, setUom] = useState('Pcs');
   const [standardRate, setStandardRate] = useState('');
   const [description, setDescription] = useState('');
 
@@ -54,7 +54,7 @@ export function CreateSparePartDialog({
     setItemCode('');
     setItemName('');
     setItemGroup('Spare Parts');
-    setUom('Nos');
+    setUom('Pcs');
     setStandardRate('');
     setDescription('');
   };
@@ -155,8 +155,8 @@ export function CreateSparePartDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Nos">Nos</SelectItem>
                   <SelectItem value="Pcs">Pcs</SelectItem>
+                  <SelectItem value="Nos">Nos</SelectItem>
                   <SelectItem value="Set">Set</SelectItem>
                   <SelectItem value="Pair">Pair</SelectItem>
                   <SelectItem value="Ltr">Ltr</SelectItem>
