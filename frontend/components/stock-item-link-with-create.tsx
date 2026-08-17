@@ -15,6 +15,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect, type SearchableSelectProps } from '@/components/searchable-select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import * as stockSvc from '@/services/stockOperations';
 
 export interface StockItemCreatedPayload {
@@ -52,6 +59,10 @@ export function StockItemLinkWithCreate({
   const [valuationRate, setValuationRate] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [itemGroup, setItemGroup] = useState(defaultItemGroup || '');
+  const [stockUom, setStockUom] = useState('Pcs');
+  const [uomOptions, setUomOptions] = useState<Array<{ value: string; label: string }>>([
+    { value: 'Pcs', label: 'Pcs' },
+  ]);
   const [autoSpare, setAutoSpare] = useState(Boolean(autoCreateSpareParts));
 
   useEffect(() => {
@@ -62,6 +73,7 @@ export function StockItemLinkWithCreate({
     setValuationRate('');
     setSellingPrice('');
     setItemGroup(defaultItemGroup || '');
+    setStockUom('Pcs');
     setAutoSpare(Boolean(autoCreateSpareParts));
 
     let cancelled = false;
@@ -72,6 +84,10 @@ export function StockItemLinkWithCreate({
         if (!defaultItemGroup && defaults.default_item_group) {
           setItemGroup(defaults.default_item_group);
         }
+        if (defaults.uoms?.length) {
+          setUomOptions(defaults.uoms);
+        }
+        setStockUom(defaults.default_stock_uom || 'Pcs');
         setAutoSpare(Boolean(defaults.auto_create_spare_parts));
       } catch {
         /* use props */
@@ -109,6 +125,7 @@ export function StockItemLinkWithCreate({
         valuation_rate: valuationRate ? Number(valuationRate) : undefined,
         standard_rate: sellingPrice ? Number(sellingPrice) : undefined,
         item_group: itemGroup,
+        stock_uom: stockUom || 'Pcs',
       });
       const payload: StockItemCreatedPayload = {
         item_code: result.item_code || result.name,
@@ -208,6 +225,26 @@ export function StockItemLinkWithCreate({
                 </div>
               </div>
             )}
+            <div className="space-y-1">
+              <Label>Default UOM</Label>
+              <Select value={stockUom} onValueChange={setStockUom}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pcs" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(uomOptions.some((opt) => opt.value === stockUom)
+                    ? uomOptions
+                    : stockUom
+                      ? [{ value: stockUom, label: stockUom }, ...uomOptions]
+                      : uomOptions
+                  ).map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1">
               <Label>Item group</Label>
               <Input value={itemGroup} disabled placeholder="From DMS Settings" />
