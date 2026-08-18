@@ -47,10 +47,18 @@ def _company_allowed_for_auto_vin(company, allowed_companies, enabled):
 	return company in allowed_companies
 
 
-def _prepare_serial_for_auto_vin(serial, voucher_company=None):
-	"""Ensure company is set on serial (bulk_insert often omits it until later)."""
-	company = (_serial_value(serial, "company") or voucher_company or "").strip()
-	if voucher_company and not _serial_value(serial, "company"):
+def _prepare_serial_for_auto_vin(serial, voucher_company=None, prefer_voucher_company=False):
+	"""Ensure company matches the voucher when needed.
+
+	- Inward / empty company: use serial.company, falling back to voucher_company.
+	- Outward: prefer voucher_company (the DMS company making the sale) and update
+	  the serial, so vehicles purchased from a non-DMS company still get a VIN
+	  when later sold into a DMS company.
+	"""
+	current = (_serial_value(serial, "company") or "").strip()
+	company = current or (voucher_company or "").strip()
+
+	if voucher_company and (prefer_voucher_company or not current):
 		frappe.db.set_value(
 			"Serial No",
 			serial.name if isinstance(serial, Document) else serial,
@@ -64,12 +72,12 @@ def _prepare_serial_for_auto_vin(serial, voucher_company=None):
 	return company
 
 
-def should_auto_create_vin_for_serial(serial, voucher_company=None):
+def should_auto_create_vin_for_serial(serial, voucher_company=None, prefer_voucher_company=False):
 	"""Whether a new Serial No should trigger automatic VIN No creation."""
 	enabled, companies = get_auto_vin_from_serial_settings()
-	company = _prepare_serial_for_auto_vin(serial, voucher_company)
+	company = _prepare_serial_for_auto_vin(serial, voucher_company, prefer_voucher_company)
 
-	if not _company_allowed_for_auto_vin(company, companies, enabled):
+	if not enabled:
 		return False
 
 	if not _serial_value(serial, "item_code"):
@@ -82,23 +90,63 @@ def should_auto_create_vin_for_serial(serial, voucher_company=None):
 	if serial_no and frappe.db.exists("VIN No", {"vin_number": serial_no}):
 		return False
 
+	# Cross-company / outward path: a vehicle being sold is always tracked —
+	# create the VIN even if the selling company (e.g. LLC) is not a DMS company.
+	# This covers: LLC buys vehicle, LLC sells to Suweys (a DMS company/customer) →
+	# the VIN is created at the sale so DMS can track it.
+	if prefer_voucher_company:
+		item_code = _serial_value(serial, "item_code")
+		item = frappe.get_cached_doc("Item", item_code)
+		item_group = item.get("item_group") or ""
+		vehicle_groups = frappe.get_all(
+			"Item Group",
+			filters={"custom_is_vehicle": 1},
+			pluck="name",
+		)
+		if item_group not in vehicle_groups:
+			return False
+		return True
+
+	# Inward / serial-insert path: respect the DMS Settings company gate.
+	if not _company_allowed_for_auto_vin(company, companies, enabled):
+		return False
+
 	return True
 
 
-def try_auto_create_vin_for_serial_no(serial_name, voucher_company=None, show_message=False):
+def try_auto_create_vin_for_serial_no(
+	serial_name,
+	voucher_company=None,
+	show_message=False,
+	prefer_voucher_company=False,
+	voucher_customer=None,
+):
 	"""
 	Create VIN No for a serial if DMS Settings allows it.
 	Used after_insert (manual), stock vouchers, and Serial and Batch Bundle.
+
+	prefer_voucher_company: when True, use the voucher's company (e.g. the DMS
+	company making a sale) even if the serial was originally created under a
+	non-DMS purchasing company. This supports buy-from-LLC → sell-at-DMS-company.
+	voucher_customer: optional customer resolved from the sale voucher, used when
+	the serial's customer is not yet updated during bundle submit.
 	"""
 	if frappe.flags.get("skip_auto_vin_from_serial"):
 		return None
 
 	serial = frappe.get_doc("Serial No", serial_name)
-	if not should_auto_create_vin_for_serial(serial, voucher_company=voucher_company):
+	if not should_auto_create_vin_for_serial(
+		serial,
+		voucher_company=voucher_company,
+		prefer_voucher_company=prefer_voucher_company,
+	):
 		return None
 
 	try:
-		result = create_vin_from_serial_document(serial)
+		result = create_vin_from_serial_document(
+			serial,
+			voucher_customer=voucher_customer,
+		)
 		if show_message and result == "created":
 			frappe.msgprint(
 				_("VIN No {0} was created automatically.").format(
@@ -127,8 +175,12 @@ def _serial_value(serial, fieldname, default=None):
 	return (serial.get(fieldname) if isinstance(serial, dict) else None) or default
 
 
-def _build_vin_data_from_serial(serial):
-	"""Map Serial No fields to a new VIN No document dict."""
+def _build_vin_data_from_serial(serial, voucher_customer=None):
+	"""Map Serial No fields to a new VIN No document dict.
+
+	voucher_customer: optional customer resolved from the sale voucher
+	(used when the serial's customer hasn't been updated yet during bundle submit).
+	"""
 	serial_no = _serial_value(serial, "serial_no") or _serial_value(serial, "name")
 	item_code = _serial_value(serial, "item_code")
 
@@ -148,7 +200,7 @@ def _build_vin_data_from_serial(serial):
 		"interior_color": _serial_value(serial, "custom_interior_color"),
 		"exterior_color": _serial_value(serial, "custom_exterior_color"),
 		"transmission": _serial_value(serial, "custom_transmission_type"),
-		"current_customer": _serial_value(serial, "customer"),
+		"current_customer": voucher_customer or _serial_value(serial, "customer"),
 		"delivery_date": _serial_value(serial, "posting_date"),
 		"warranty_end_date": _serial_value(serial, "warranty_expiry_date"),
 		"linked_serial": _serial_value(serial, "name"),
@@ -177,7 +229,7 @@ def _build_vin_data_from_serial(serial):
 	return vin_data
 
 
-def create_vin_from_serial_document(serial, force_recreate=0):
+def create_vin_from_serial_document(serial, force_recreate=0, voucher_customer=None):
 	"""
 	Create or update one VIN No from a Serial No document or dict.
 	Returns: 'created', 'updated', or 'skipped'.
@@ -188,7 +240,7 @@ def create_vin_from_serial_document(serial, force_recreate=0):
 	if existing_vin and not cint(force_recreate):
 		return "skipped"
 
-	vin_data = _build_vin_data_from_serial(serial)
+	vin_data = _build_vin_data_from_serial(serial, voucher_customer=voucher_customer)
 
 	if existing_vin and cint(force_recreate):
 		frappe.db.set_value("VIN No", existing_vin, vin_data, update_modified=True)
@@ -210,17 +262,42 @@ def create_vin_from_serial_document(serial, force_recreate=0):
 
 def auto_create_vin_on_bundle_submit(doc, method=None):
 	"""
-	Create VIN Nos when an inward Serial and Batch Bundle is submitted.
-	Covers Purchase Receipt, Purchase Invoice, and other inward stock (not manual Serial No insert).
+	Create VIN Nos when a Serial and Batch Bundle is submitted.
+
+	Inward bundles: create VIN when a DMS company purchases a vehicle.
+	Outward bundles: also create a VIN if the serial was originally created
+	under a different (non-DMS) company, using the voucher's DMS company as
+	the source — e.g. LLC purchased the vehicle and Suweys later sells it.
 	"""
-	if doc.docstatus != 1 or doc.is_cancelled or doc.type_of_transaction != "Inward":
+	if doc.docstatus != 1 or doc.is_cancelled:
 		return
+	if doc.type_of_transaction not in ("Inward", "Outward"):
+		return
+
+	# For outward sales we can still create a VIN from the serial if it belongs
+	# to a vehicle item group and no VIN exists yet, using the selling company.
+	prefer_voucher_company = doc.type_of_transaction == "Outward"
+
+	# Resolve the customer from the voucher (Delivery Note / Sales Invoice)
+	# so the VIN gets current_customer set correctly, since ERPNext updates
+	# the serial's customer via SQL AFTER the bundle is submitted.
+	voucher_customer = None
+	if doc.voucher_type in ("Delivery Note", "Sales Invoice") and doc.voucher_no:
+		voucher_customer = frappe.db.get_value(doc.voucher_type, doc.voucher_no, "customer")
 
 	created = 0
 	for row in doc.entries or []:
 		if not row.serial_no:
 			continue
-		if try_auto_create_vin_for_serial_no(row.serial_no, voucher_company=doc.company) == "created":
+		if (
+			try_auto_create_vin_for_serial_no(
+				row.serial_no,
+				voucher_company=doc.company,
+				prefer_voucher_company=prefer_voucher_company,
+				voucher_customer=voucher_customer,
+			)
+			== "created"
+		):
 			created += 1
 
 	if created:
@@ -313,6 +390,76 @@ def create_vin_from_serial_numbers(company, start_date, end_date, item_code=None
 	frappe.db.commit()
 
 	return result
+
+
+@frappe.whitelist()
+def get_serial_vin_eligibility(serial_name):
+	"""
+	Check if a Serial No can have a VIN No created from it via the Serial No form button.
+
+	Eligible when:
+	  - The serial has an Item linked
+	  - The Item belongs to an Item Group with custom_is_vehicle ticked
+	  - No VIN No already exists for this serial (by vin_number or linked_serial)
+	"""
+	serial_name = (serial_name or "").strip()
+	if not serial_name:
+		return {"eligible": False, "reason": "Serial No is required."}
+
+	serial = frappe.get_doc("Serial No", serial_name)
+	item_code = serial.get("item_code")
+	if not item_code:
+		return {"eligible": False, "reason": "No Item is linked to this serial number."}
+
+	if serial.get("reference_doctype") == "VIN No":
+		return {"eligible": False, "reason": "This serial number was created from a VIN No record."}
+
+	item = frappe.get_cached_doc("Item", item_code)
+	if not item.get("item_group"):
+		return {"eligible": False, "reason": "The linked Item has no Item Group."}
+
+	vehicle_groups = frappe.get_all(
+		"Item Group",
+		filters={"custom_is_vehicle": 1},
+		pluck="name",
+	)
+	if item.item_group not in vehicle_groups:
+		return {
+			"eligible": False,
+			"reason": "Item is not a vehicle (Item Group 'custom_is_vehicle' is not checked).",
+		}
+
+	from dms.utils.serial_vin_sync import get_vin_name_for_serial
+
+	if get_vin_name_for_serial(serial):
+		return {"eligible": False, "reason": "A VIN No is already linked to this serial number."}
+
+	return {"eligible": True}
+
+
+@frappe.whitelist()
+def create_vin_from_serial_api(serial_name):
+	"""
+	Manually create a VIN No from a Serial No (button on the Serial No form).
+	Skips the DMS Settings auto-create gate — only requires the item to be a vehicle.
+	"""
+	serial_name = (serial_name or "").strip()
+	if not serial_name:
+		frappe.throw(_("Serial No is required."))
+
+	eligibility = get_serial_vin_eligibility(serial_name)
+	if not eligibility.get("eligible"):
+		frappe.throw(_(eligibility.get("reason", "Cannot create VIN for this serial number.")))
+
+	serial = frappe.get_doc("Serial No", serial_name)
+	result = create_vin_from_serial_document(serial)
+	frappe.db.commit()
+
+	return {
+		"result": result,
+		"serial": serial.serial_no or serial_name,
+		"vin_number": serial.serial_no or serial_name,
+	}
 
 
 @frappe.whitelist()

@@ -233,10 +233,17 @@ def update_vehicle(name, data):
 
 @frappe.whitelist()
 def get_vehicle_items(search=None, limit=20):
-	"""Get Item records filtered to vehicles (Item Group with custom_is_vehicle checked)."""
+	"""Get Item records filtered to vehicles (Item Group with custom_is_vehicle checked).
+
+	Item Groups that also have custom_auto_generate_spare_parts checked are excluded
+	because auto-generated spare parts would crowd the vehicle dropdown.
+	"""
 	vehicle_groups = frappe.get_all(
 		"Item Group",
-		filters={"custom_is_vehicle": 1},
+		filters={
+			"custom_is_vehicle": 1,
+			"custom_auto_generate_spare_parts": ["!=", 1],
+		},
 		fields=["name"],
 	)
 	group_names = [g.name for g in vehicle_groups]

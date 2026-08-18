@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -23,11 +23,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { apiRequest } from '@/services/apiClient';
+import * as stockSvc from '@/services/stockOperations';
 
 interface CreateSparePartDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: (itemCode: string, itemName: string) => void;
+}
+
+interface MastersOptions {
+  item_groups?: string[];
 }
 
 export function CreateSparePartDialog({
@@ -38,10 +43,35 @@ export function CreateSparePartDialog({
   const [saving, setSaving] = useState(false);
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
-  const [itemGroup, setItemGroup] = useState('Spare Parts');
+  const [itemGroup, setItemGroup] = useState('');
+  const [itemGroupOptions, setItemGroupOptions] = useState<string[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   const [uom, setUom] = useState('Pcs');
   const [standardRate, setStandardRate] = useState('');
   const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setLoadingGroups(true);
+    apiRequest<MastersOptions>('/api/method/dms.api.masters.get_masters_options', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+      .then((res) => {
+        const groups = (res?.item_groups || []).filter(Boolean) as string[];
+        setItemGroupOptions(groups);
+        setItemGroup((prev) => {
+          if (prev && groups.includes(prev)) return prev;
+          if (groups.includes('Spare Parts')) return 'Spare Parts';
+          return groups[0] || '';
+        });
+      })
+      .catch(() => {
+        setItemGroupOptions(['Spare Parts']);
+        setItemGroup('Spare Parts');
+      })
+      .finally(() => setLoadingGroups(false));
+  }, [open]);
 
   const handleClose = () => {
     if (!saving) {
@@ -53,7 +83,7 @@ export function CreateSparePartDialog({
   const resetForm = () => {
     setItemCode('');
     setItemName('');
-    setItemGroup('Spare Parts');
+    setItemGroup('');
     setUom('Pcs');
     setStandardRate('');
     setDescription('');
@@ -68,24 +98,19 @@ export function CreateSparePartDialog({
       toast.error('Item name is required');
       return;
     }
+    if (!itemGroup) {
+      toast.error('Select an item group');
+      return;
+    }
 
     setSaving(true);
     try {
-      const payload = {
-        doctype: 'Item',
+      const result = await stockSvc.createStockItem({
         item_code: itemCode.trim(),
         item_name: itemName.trim(),
         item_group: itemGroup,
         stock_uom: uom,
-        is_stock_item: 1,
-        include_item_in_manufacturing: 0,
-        description: description.trim() || itemName.trim(),
         ...(standardRate ? { standard_rate: parseFloat(standardRate) } : {}),
-      };
-
-      await apiRequest('/api/resource/Item', {
-        method: 'POST',
-        body: JSON.stringify(payload),
       });
 
       toast.success(`Spare part "${itemName}" created successfully`);
@@ -136,15 +161,16 @@ export function CreateSparePartDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Item Group</Label>
-              <Select value={itemGroup} onValueChange={setItemGroup}>
+              <Select value={itemGroup || undefined} onValueChange={setItemGroup} disabled={loadingGroups}>
                 <SelectTrigger>
-                  <SelectValue />
+                  {loadingGroups ? <Loader2 className="h-4 w-4 animate-spin" /> : <SelectValue />}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Spare Parts">Spare Parts</SelectItem>
-                  <SelectItem value="Consumables">Consumables</SelectItem>
-                  <SelectItem value="Service Parts">Service Parts</SelectItem>
-                  <SelectItem value="Accessories">Accessories</SelectItem>
+                  {itemGroupOptions.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      {group}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -194,7 +220,7 @@ export function CreateSparePartDialog({
           <Button type="button" variant="outline" onClick={handleClose} disabled={saving}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={saving}>
+          <Button type="button" onClick={handleSubmit} disabled={saving || loadingGroups}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Spare Part'}
           </Button>
         </DialogFooter>

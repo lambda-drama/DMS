@@ -175,7 +175,7 @@ export default function NewVehiclePage() {
       return;
     }
     if (!form.linked_item) {
-      toast({ title: "Vehicle ERP Item is required", variant: "destructive" });
+      toast({ title: "Vehicle Item is required", variant: "destructive" });
       return;
     }
     if (!form.company) {
@@ -290,14 +290,14 @@ export default function NewVehiclePage() {
             </div>
             <div className="space-y-2">
               <Label>
-                Vehicle ERP Item() <span className="text-destructive">*</span>
+                Vehicle Item <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={form.linked_item}
                 onValueChange={(v) => update("linked_item", v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select ERP item" />
+                  <SelectValue placeholder="Select vehicle item" />
                 </SelectTrigger>
                 <SelectContent>
                   <div className="p-2">

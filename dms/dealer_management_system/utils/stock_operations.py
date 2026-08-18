@@ -379,7 +379,9 @@ def upsert_dms_selling_item_price(
 	if not price_list:
 		return None
 
-	currency = frappe.db.get_value("Price List", price_list, "currency") or "ETB"
+	# Use the company default currency (DMS Settings price lists can be marked
+	# selling but carry a different currency than the company).
+	currency = get_company_default_currency() or "ETB"
 	filters = {"item_code": item_code, "price_list": price_list, "selling": 1}
 	existing = frappe.db.get_value("Item Price", filters, "name")
 	price_data = {
@@ -454,6 +456,30 @@ def create_dms_stock_item(data: dict) -> dict:
 		item_price = upsert_dms_selling_item_price(
 			item.name, selling_rate, price_list=price_list, uom=stock_uom
 		)
+
+		# ERPNext auto-creates an Item Price on Selling Settings' price list
+		# when an Item is inserted with standard_rate. Point any such
+		# auto-created price to the DMS default price list instead, so the
+		# DMS default list is the single source of truth.
+		auto_prices = frappe.get_all(
+			"Item Price",
+			filters={
+				"item_code": item.name,
+				"selling": 1,
+			},
+			fields=["name", "price_list"],
+		)
+		for auto in auto_prices:
+			if auto.price_list == price_list:
+				continue
+			doc = frappe.get_doc("Item Price", auto.name)
+			if frappe.db.exists("Item Price", {"item_code": item.name, "price_list": price_list, "selling": 1}):
+				doc.delete(ignore_permissions=True)
+			else:
+				doc.price_list = price_list
+				doc.currency = get_company_default_currency() or "ETB"
+				doc.save(ignore_permissions=True)
+				item_price = doc.name
 
 	spare_part_name = frappe.db.get_value("Spare Part", {"spare_part_item": item.name}, "name")
 	if not spare_part_name:
