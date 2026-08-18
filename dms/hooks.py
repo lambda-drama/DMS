@@ -143,6 +143,7 @@ fixtures = [
 # include js in doctype views
 doctype_js = {
 	"Item Group": "public/js/item_group.js",
+	"Serial No": "public/js/serial_no.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -236,6 +237,7 @@ doc_events = {
 	"Item": {
 		"after_insert": "dms.utils.spare_part_auto_create.auto_create_spare_part_on_item_insert",
 		"on_update": "dms.utils.spare_part_auto_create.auto_create_spare_part_on_item_update",
+		"after_save": "dms.dealer_management_system.utils.item_price_fix.ensure_dms_item_price_after_item_save",
 	},
 	"Vehicle Service Item": {
 		"validate": "dms.overrides.vehicle_service_item.validate_vehicle_service_item",

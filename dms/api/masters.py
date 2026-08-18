@@ -1,4 +1,4 @@
-r provide the DMS CRM User settings"""Master data list / get / update APIs for DMS SPA (items, services, prices)."""
+"""Master data list / get / update APIs for DMS SPA (items, services, prices)."""
 
 from __future__ import annotations
 
