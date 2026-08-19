@@ -199,8 +199,8 @@ export function JobCardTermsManager() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{editing ? 'Edit Job Card Terms' : 'New Job Card Terms'}</DialogTitle>
             <DialogDescription>
               {editing
@@ -208,7 +208,7 @@ export function JobCardTermsManager() {
                 : 'Create a new Terms & Conditions template used on new job cards.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 overflow-y-auto min-h-0">
             <div className="space-y-2">
               <Label htmlFor="terms-title">Title *</Label>
               <Input
@@ -245,7 +245,7 @@ export function JobCardTermsManager() {
               </Label>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t pt-4">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
