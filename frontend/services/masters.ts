@@ -251,6 +251,54 @@ export async function deleteJobCardTerms(name: string): Promise<{ name: string }
   });
 }
 
+export type SalesInvoiceTcMaster = {
+  name: string;
+  title: string;
+  default?: number | boolean;
+  terms_and_conditions?: string;
+};
+
+export async function listSalesInvoiceTc(options?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paginated<SalesInvoiceTcMaster>> {
+  return apiRequest(`/api/method/${API}.list_sales_invoice_tc`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      limit: options?.limit ?? 100,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function createSalesInvoiceTc(
+  data: Record<string, unknown>
+): Promise<{ name: string; title: string }> {
+  return apiRequest(`/api/method/${API}.create_sales_invoice_tc`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateSalesInvoiceTc(
+  name: string,
+  data: Record<string, unknown>
+): Promise<{ name: string; title: string }> {
+  return apiRequest(`/api/method/${API}.update_sales_invoice_tc`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function deleteSalesInvoiceTc(name: string): Promise<{ name: string }> {
+  return apiRequest(`/api/method/${API}.delete_sales_invoice_tc`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function getMastersOptions(): Promise<{
   price_lists: { name: string; currency?: string }[];
   default_price_list?: string | null;

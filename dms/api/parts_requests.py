@@ -13,5 +13,6 @@ from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow impor
 	list_parts_requests_for_job_card,
 	mark_pick_slip_picked,
 	receive_parts_request,
+	reverse_issued_parts_request,
 	update_job_card_line_pricing,
 )

@@ -91,6 +91,7 @@ const navigation: NavSection[] = [
       { name: 'Services', view: 'vehicle-services', icon: Wrench },
       { name: 'Item Prices', view: 'item-prices', icon: Banknote },
       { name: 'Job Card Terms', view: 'job-card-terms', icon: ScrollText },
+      { name: 'Sales Invoice Terms', view: 'sales-invoice-tc', icon: FileText },
       { name: 'User Permissions', view: 'user-permissions', icon: Shield },
     ],
   },

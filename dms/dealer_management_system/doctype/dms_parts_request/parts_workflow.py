@@ -594,6 +594,53 @@ _CANCELLABLE_PARTS_REQUEST_STATUSES = frozenset(
 
 
 @frappe.whitelist()
+def reverse_issued_parts_request(name: str):
+	"""Reverse the material transfer for an issued parts request (before/after receipt).
+
+	Cancels the parts request's linked Stock Entry so parts go back to the workshop
+	warehouse, then marks the parts request Cancelled and releases job card part lines.
+	"""
+	pr = frappe.get_doc("DMS Parts Request", name)
+	pr.check_permission("write")
+	if pr.status not in ("Issued", "Partially Issued", "Received"):
+		frappe.throw(_("Only issued or received parts requests can be reversed."))
+
+	cancelled: list[str] = []
+	stock_entry = (pr.stock_entry or "").strip()
+	if stock_entry:
+		se = frappe.get_doc("Stock Entry", stock_entry)
+		if se.docstatus == 1:
+			se.flags.ignore_permissions = True
+			se.cancel()
+			cancelled.append(stock_entry)
+
+	for row in pr.items:
+		if row.job_card_part_row:
+			frappe.db.set_value(
+				"Job Card Part Item",
+				row.job_card_part_row,
+				{
+					"line_status": "Requested",
+					"quantity_issued": 0,
+					"quantity_returned": 0,
+					"warehouse": "",
+					"parts_request": "",
+				},
+				update_modified=False,
+			)
+
+	pr.stock_entry = ""
+	pr.status = "Cancelled"
+	pr.save(ignore_permissions=True)
+	frappe.db.commit()
+	return {
+		"name": pr.name,
+		"status": pr.status,
+		"cancelled_stock_entries": cancelled,
+	}
+
+
+@frappe.whitelist()
 def cancel_parts_request(name: str):
 	"""Cancel a parts request before issue — releases linked job card part lines."""
 	pr = frappe.get_doc("DMS Parts Request", name)

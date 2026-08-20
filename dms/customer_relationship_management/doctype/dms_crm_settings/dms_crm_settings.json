@@ -8,6 +8,7 @@
   "default_company",
   "default_lead_owner_role",
   "default_warehouse",
+  "apply_loyalty_discount",
   "column_break_1",
   "hot_response_minutes",
   "warm_response_minutes",
@@ -401,11 +402,17 @@
    "fieldtype": "Link",
    "label": "Default Warehouse",
    "options": "Warehouse"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply_loyalty_discount",
+   "fieldtype": "Check",
+   "label": "Apply Loyalty Discount"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-15 01:34:34.164201",
+ "modified": "2026-08-20 18:07:43.973142",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Settings",

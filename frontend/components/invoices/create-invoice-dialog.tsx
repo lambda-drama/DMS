@@ -30,7 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
 import {
@@ -103,6 +103,7 @@ export function CreateInvoiceDialog({
   const [submitInvoice, setSubmitInvoice] = useState(true);
   const [applyTaxes, setApplyTaxes] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
+  const [excludedRows, setExcludedRows] = useState<string[]>([]);
   const skipWarrantyRefetch = useRef(true);
 
   const applyDiscountsFromPreview = useCallback((data: InvoicePreview) => {
@@ -129,7 +130,8 @@ export function CreateInvoiceDialog({
       labourInput: string,
       partsMode: InvoiceDiscountMode,
       partsInput: string,
-      rates: Record<string, number>
+      rates: Record<string, number>,
+      excluded: string[]
     ) => {
       const warrantyApplicationType =
         warranty === 'none' ? '' : (warranty as WarrantyApplicationType);
@@ -148,6 +150,7 @@ export function CreateInvoiceDialog({
         labourDiscount,
         partsDiscount,
         rateOverrides,
+        excludeRows: excluded.length ? excluded : undefined,
       });
     },
     [jobCardId]
@@ -176,6 +179,7 @@ export function CreateInvoiceDialog({
     setLoading(true);
     setPreview(null);
     setEditedRates({});
+    setExcludedRows([]);
     setDueDate(defaultDueDate());
     setPostingDate(todayLocalDate());
     setSubmitInvoice(true);
@@ -219,7 +223,8 @@ export function CreateInvoiceDialog({
         labourDiscountInput,
         partsDiscountMode,
         partsDiscountInput,
-        editedRates
+        editedRates,
+        excludedRows
       )
         .then((data) => {
           if (!cancelled) setPreview(data);
@@ -245,10 +250,23 @@ export function CreateInvoiceDialog({
     partsDiscountMode,
     partsDiscountInput,
     editedRates,
+    excludedRows,
     open,
     jobCardId,
     loadPreview,
   ]);
+
+  const handleRemoveUnrequestedPart = (sourceRow?: string) => {
+    if (!sourceRow || !preview) return;
+    if (!preview.lines.some((line) => line.source_row === sourceRow && line.never_requested)) {
+      return;
+    }
+    if (preview.lines.length <= 1) {
+      toast.error('Keep at least one billable line on the invoice');
+      return;
+    }
+    setExcludedRows((prev) => (prev.includes(sourceRow) ? prev : [...prev, sourceRow]));
+  };
 
   const handleCreate = async () => {
     if (!preview) return;
@@ -300,6 +318,7 @@ export function CreateInvoiceDialog({
         partsDiscount: warrantyType === 'Discount' ? partsDiscount : undefined,
         rateOverrides:
           Object.keys(editedRates).length > 0 ? editedRates : undefined,
+        excludeRows: excludedRows.length ? excludedRows : undefined,
       });
       toast.success(
         submitInvoice
@@ -316,6 +335,8 @@ export function CreateInvoiceDialog({
   };
 
   const currency = preview?.currency;
+  const neverRequestedCount =
+    preview?.lines.filter((line) => line.never_requested).length || 0;
   const labourDiscountVal = parseDiscountValue(labourDiscountMode, labourDiscountInput);
   const partsDiscountVal = parseDiscountValue(partsDiscountMode, partsDiscountInput);
   const previewLabourDisc =
@@ -329,7 +350,7 @@ export function CreateInvoiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Create Sales Invoice</DialogTitle>
           <DialogDescription>
@@ -362,6 +383,24 @@ export function CreateInvoiceDialog({
                     below)
                   </p>
                 )}
+              {neverRequestedCount > 0 && (
+                <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-xs">
+                    {neverRequestedCount} spare part
+                    {neverRequestedCount === 1 ? ' was' : 's were'} never requested on a parts
+                    requisition. Remove {neverRequestedCount === 1 ? 'it' : 'them'} from this
+                    invoice if {neverRequestedCount === 1 ? 'it should' : 'they should'} not be
+                    billed. The job card is not changed.
+                  </p>
+                </div>
+              )}
+              {excludedRows.length > 0 && neverRequestedCount === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {excludedRows.length} unrequested part
+                  {excludedRows.length === 1 ? '' : 's'} removed from this invoice.
+                </p>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -441,13 +480,22 @@ export function CreateInvoiceDialog({
                     {warrantyType === 'Discount' && preview.discount_amount > 0 ? (
                       <TableHead className="text-right">DMS disc.</TableHead>
                     ) : null}
+                    <TableHead className="w-10">
+                      <span className="sr-only">Remove</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {preview.lines.map((line, idx) => (
                     <TableRow
                       key={`${line.item_code}-${idx}`}
-                      className={line.is_warranty_covered ? 'bg-muted/40' : undefined}
+                      className={
+                        line.never_requested
+                          ? 'bg-amber-50/80 dark:bg-amber-950/20'
+                          : line.is_warranty_covered
+                            ? 'bg-muted/40'
+                            : undefined
+                      }
                     >
                       <TableCell>
                         <div className="flex flex-col gap-1">
@@ -457,6 +505,14 @@ export function CreateInvoiceDialog({
                               {line.discount_percentage && line.discount_percentage >= 100
                                 ? 'Warranty (100% disc.)'
                                 : 'Warranty'}
+                            </Badge>
+                          )}
+                          {line.never_requested && (
+                            <Badge
+                              variant="outline"
+                              className="w-fit border-amber-400 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+                            >
+                              Not requested
                             </Badge>
                           )}
                         </div>
@@ -516,6 +572,21 @@ export function CreateInvoiceDialog({
                             : '—'}
                         </TableCell>
                       ) : null}
+                      <TableCell className="text-right">
+                        {line.never_requested && line.source_row ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-destructive hover:text-destructive"
+                            onClick={() => handleRemoveUnrequestedPart(line.source_row)}
+                            title="Remove this unrequested part from the invoice"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only sm:not-sr-only sm:ml-1">Remove</span>
+                          </Button>
+                        ) : null}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -54,3 +54,13 @@ export async function approvePartsReturn(
     body: JSON.stringify({ name }),
   });
 }
+
+export async function createPartsReturnFromPartsRequest(
+  name: string,
+  submit = 1
+): Promise<{ name: string; status: string }> {
+  return apiRequest(`/api/method/${API}.create_parts_return_from_parts_request`, {
+    method: 'POST',
+    body: JSON.stringify({ name, submit }),
+  });
+}

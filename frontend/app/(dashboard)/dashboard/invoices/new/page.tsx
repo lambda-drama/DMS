@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -35,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, FileText, Receipt, Trash2, User, Wrench } from "lucide-react";
+import { ArrowLeft, AlertTriangle, FileText, Receipt, Trash2, User, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchLabourRate,
@@ -75,6 +76,7 @@ interface PartRow {
   bin_location?: string;
   quantity: number;
   unit_price: number;
+  never_requested?: boolean;
 }
 
 function emptyLabourRow(): LabourRow {
@@ -260,6 +262,7 @@ export default function NewInvoicePage() {
       bin_location: pl.bin_location || "",
       quantity: pl.quantity_issued || pl.quantity_requested || pl.quantity || 1,
       unit_price: pl.unit_price || 0,
+      never_requested: Boolean(pl.never_requested),
     }));
     setLabourRows(labour.length ? labour : [emptyLabourRow()]);
     setPartRows(parts.length ? parts : [emptyPartRow()]);
@@ -283,6 +286,7 @@ export default function NewInvoicePage() {
 
   const filledLabourRows = labourRows.filter((r) => r.vehicle_service_item);
   const filledPartRows = partRows.filter((r) => r.item_code);
+  const neverRequestedPartCount = filledPartRows.filter((r) => r.never_requested).length;
   const labourTotal = filledLabourRows.reduce(
     (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
     0
@@ -547,6 +551,19 @@ export default function NewInvoicePage() {
     });
   };
 
+  const removeUnrequestedPartRow = (idx: number) => {
+    const row = partRows[idx];
+    if (!row?.never_requested) {
+      toast.error("Only parts that were never requested can be removed this way");
+      return;
+    }
+    if (filledLabourRows.length === 0 && filledPartRows.length <= 1) {
+      toast.error("Keep at least one billable line on the invoice");
+      return;
+    }
+    removePartRow(idx);
+  };
+
   const updateLabourRow = (idx: number, patch: Partial<LabourRow>) => {
     setLabourRows((prev) =>
       prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
@@ -565,12 +582,25 @@ export default function NewInvoicePage() {
     if (jobCardId) {
       setIsMutating(true);
       try {
+        const remainingSourceRows = new Set(
+          filledPartRows.map((r) => r.source_row).filter(Boolean) as string[]
+        );
+        const removedUnrequested = (jobCard?.parts || [])
+          .filter(
+            (pl) =>
+              Boolean(pl.name) &&
+              Boolean(pl.never_requested) &&
+              !remainingSourceRows.has(pl.name)
+          )
+          .map((pl) => pl.name as string);
+
         await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
           dueDate,
           postingDate,
           submit: submitInvoice,
           applyTaxes,
           rateOverrides: buildRateOverridesFromRows(filledLabourRows, filledPartRows),
+          excludeRows: removedUnrequested.length ? removedUnrequested : undefined,
         });
         toast.success("Invoice created successfully");
         navigate("invoices");
@@ -1032,13 +1062,38 @@ export default function NewInvoicePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {jobCardId && neverRequestedPartCount > 0 && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p className="text-xs">
+                  {neverRequestedPartCount} spare part
+                  {neverRequestedPartCount === 1 ? " was" : "s were"} never requested on a
+                  parts requisition. Use Remove to drop {neverRequestedPartCount === 1 ? "it" : "them"}{" "}
+                  from this invoice before creating it. The job card is not changed.
+                </p>
+              </div>
+            )}
             {partRows.map((row, idx) => (
               <div
                 key={idx}
-                className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+                className={`grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-12 sm:items-end sm:gap-2 ${
+                  row.never_requested
+                    ? "border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/20"
+                    : ""
+                }`}
               >
                 <div className="space-y-1 sm:col-span-5">
-                  <Label className="text-xs">Spare part *</Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Spare part *</Label>
+                    {row.never_requested ? (
+                      <Badge
+                        variant="outline"
+                        className="border-amber-400 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+                      >
+                        Not requested
+                      </Badge>
+                    ) : null}
+                  </div>
                   <SearchableSelect
                     options={spareParts?.map(sparePartToSelectOption) || []}
                     value={row.item_code}
@@ -1047,10 +1102,15 @@ export default function NewInvoicePage() {
                     onSearchChange={setSparePartSearch}
                     placeholder="Search parts..."
                     isLoading={sparePartsLoading}
-                    onCreateNew={() => {
-                      setCreatePartIdx(idx);
-                      setShowCreateSparePartDialog(true);
-                    }}
+                    disabled={Boolean(jobCardId)}
+                    onCreateNew={
+                      jobCardId
+                        ? undefined
+                        : () => {
+                            setCreatePartIdx(idx);
+                            setShowCreateSparePartDialog(true);
+                          }
+                    }
                     createNewLabel="New Spare Part"
                   />
                 </div>
@@ -1063,6 +1123,7 @@ export default function NewInvoicePage() {
                       onValueChange={(quantity) =>
                         updatePartRow(idx, { quantity })
                       }
+                      disabled={Boolean(jobCardId)}
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-3">
@@ -1076,19 +1137,28 @@ export default function NewInvoicePage() {
                   </div>
                 </div>
                 <div className="flex justify-end sm:col-span-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removePartRow(idx)}
-                    className="h-8 w-8 text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {(isStandalone || row.never_requested) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        jobCardId ? removeUnrequestedPartRow(idx) : removePartRow(idx)
+                      }
+                      className="h-8 w-8 text-destructive"
+                      title={
+                        row.never_requested
+                          ? "Remove this unrequested part from the invoice"
+                          : "Remove part"
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
-            <AddLineButton onClick={addPartRow} />
+            {isStandalone && <AddLineButton onClick={addPartRow} />}
             {isStandalone && filledPartRows.length > 0 && (
               <GroupDiscountFields
                 label="Parts"
