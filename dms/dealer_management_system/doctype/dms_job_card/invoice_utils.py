@@ -37,6 +37,104 @@ WARRANTY_APPLICATION_TYPES = frozenset(
 )
 
 
+def normalize_exclude_rows(exclude_rows) -> set[str]:
+	"""Job Card Part Item names to omit from the invoice (JSON list or list)."""
+	if not exclude_rows:
+		return set()
+	if isinstance(exclude_rows, str):
+		import json
+
+		raw = exclude_rows.strip()
+		if not raw:
+			return set()
+		try:
+			exclude_rows = json.loads(raw)
+		except (json.JSONDecodeError, TypeError, ValueError):
+			exclude_rows = [raw]
+	if isinstance(exclude_rows, dict):
+		exclude_rows = list(exclude_rows.values())
+	if not isinstance(exclude_rows, (list, tuple, set)):
+		return set()
+	return {str(x).strip() for x in exclude_rows if str(x).strip()}
+
+
+def _part_attr(part, field: str):
+	if isinstance(part, dict):
+		return part.get(field)
+	return getattr(part, field, None)
+
+
+def never_requested_part_row_names(parts) -> set[str]:
+	"""Job Card Part Item names with no active (non-cancelled) Parts Request."""
+	parts = parts or []
+	names = [(_part_attr(p, "name") or "").strip() for p in parts]
+	names = [n for n in names if n]
+	if not names:
+		return set()
+
+	requested: set[str] = set()
+	pr_by_row: dict[str, str] = {}
+	for part in parts:
+		row_name = (_part_attr(part, "name") or "").strip()
+		if not row_name:
+			continue
+		pr = (_part_attr(part, "parts_request") or "").strip()
+		if pr:
+			pr_by_row[row_name] = pr
+
+	if pr_by_row:
+		active = set(
+			frappe.get_all(
+				"DMS Parts Request",
+				filters={"name": ["in", list(set(pr_by_row.values()))], "status": ["!=", "Cancelled"]},
+				pluck="name",
+			)
+		)
+		for row_name, pr in pr_by_row.items():
+			if pr in active:
+				requested.add(row_name)
+
+	remaining = [n for n in names if n not in requested]
+	if remaining and frappe.db.exists("DocType", "DMS Parts Request Item"):
+		links = frappe.get_all(
+			"DMS Parts Request Item",
+			filters={"job_card_part_row": ["in", remaining]},
+			fields=["job_card_part_row", "parent"],
+		)
+		parent_names = {r["parent"] for r in links if r.get("parent")}
+		active_parents = set()
+		if parent_names:
+			active_parents = set(
+				frappe.get_all(
+					"DMS Parts Request",
+					filters={"name": ["in", list(parent_names)], "status": ["!=", "Cancelled"]},
+					pluck="name",
+				)
+			)
+		for row in links:
+			if row.get("parent") in active_parents and row.get("job_card_part_row"):
+				requested.add(row["job_card_part_row"])
+
+	return set(names) - requested
+
+
+def _assert_exclude_rows_never_requested(parts, excluded: set[str]) -> set[str]:
+	"""Only spare parts that were never requisitioned may be dropped from the invoice."""
+	if not excluded:
+		return set()
+	never = never_requested_part_row_names(parts)
+	invalid = excluded - never
+	if invalid:
+		frappe.throw(
+			_(
+				"Only spare parts that were never requested on a Parts Requisition "
+				"can be removed from the invoice."
+			),
+			title=_("Cannot remove requested part"),
+		)
+	return excluded
+
+
 def normalize_rate_overrides(rate_overrides) -> dict[str, float]:
 	"""Map child-row name -> unit price or rate/hour override from the UI."""
 	if not rate_overrides:
@@ -544,6 +642,7 @@ def build_invoice_preview_from_job_card(
 	labour_discount=None,
 	parts_discount=None,
 	rate_overrides=None,
+	exclude_rows=None,
 ) -> dict:
 	"""Return billable lines and totals for UI preview before creating a Sales Invoice."""
 	_ensure_erpnext()
@@ -570,7 +669,10 @@ def build_invoice_preview_from_job_card(
 	)
 
 	overrides = normalize_rate_overrides(rate_overrides)
-	lines = _build_preview_lines(jc, warranty_type, overrides)
+	excluded = _assert_exclude_rows_never_requested(
+		jc.get("parts") or [], normalize_exclude_rows(exclude_rows)
+	)
+	lines = _build_preview_lines(jc, warranty_type, overrides, exclude_rows=excluded)
 
 	if not lines:
 		frappe.throw(
@@ -647,6 +749,7 @@ def create_sales_invoice_from_dms_job_card(
 	rate_overrides=None,
 	apply_taxes: bool = False,
 	posting_date: str | None = None,
+	exclude_rows=None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -681,7 +784,10 @@ def create_sales_invoice_from_dms_job_card(
 		)
 
 	warranty_type = normalize_warranty_application_type(jc.warranty_application_type)
-	preview = build_invoice_preview_from_job_card(job_card_name)
+	excluded = _assert_exclude_rows_never_requested(
+		jc.get("parts") or [], normalize_exclude_rows(exclude_rows)
+	)
+	preview = build_invoice_preview_from_job_card(job_card_name, exclude_rows=list(excluded))
 	has_labour = preview.get("has_labour")
 
 	if has_labour and not due_date:
@@ -716,7 +822,7 @@ def create_sales_invoice_from_dms_job_card(
 		_apply_rate_overrides_to_job_card(jc, overrides)
 		jc = frappe.get_doc("DMS Job Card", job_card_name)
 
-	append_si_items(si, jc, warranty_type, overrides)
+	append_si_items(si, jc, warranty_type, overrides, exclude_rows=excluded)
 	if not si.get("items"):
 		frappe.throw(
 			_(
@@ -828,6 +934,7 @@ def _append_preview_line(
 	warranty_application_type: str,
 	source_row: str | None = None,
 	issue: str | None = None,
+	never_requested: bool = False,
 ) -> None:
 	pricing = resolve_invoice_line_pricing(
 		line_type, base_rate, qty, warranty_application_type
@@ -848,12 +955,14 @@ def _append_preview_line(
 			"discount_percentage": pricing["discount_percentage"],
 			"is_warranty_covered": pricing["is_warranty_covered"],
 			"source_row": source_row,
+			"never_requested": never_requested,
 		}
 	)
 
 
 def _build_preview_lines(
-	jc, warranty_application_type: str, rate_overrides: dict[str, float] | None = None
+	jc, warranty_application_type: str, rate_overrides: dict[str, float] | None = None,
+	exclude_rows: set[str] | None = None,
 ) -> list[dict]:
 	"""Build preview line dicts; include all labour/parts with qty, apply warranty rates."""
 	lines: list[dict] = []
@@ -917,8 +1026,13 @@ def _build_preview_lines(
 				issue=issue,
 			)
 
+	never_requested_rows = never_requested_part_row_names(jc.get("parts") or [])
+
 	for part in jc.get("parts") or []:
 		if not part.item_code:
+			continue
+
+		if exclude_rows and part.name in exclude_rows:
 			continue
 
 		qty = part_issue_qty(part)
@@ -944,6 +1058,7 @@ def _build_preview_lines(
 			base_rate=base_rate,
 			warranty_application_type=warranty_application_type,
 			source_row=part.name,
+			never_requested=part.name in never_requested_rows,
 		)
 
 	return lines
@@ -1141,10 +1256,15 @@ def _apply_job_card_discounts_to_si(si, jc, warranty_type: str) -> None:
 def _apply_loyalty_service_discount_to_si(si, customer: str | None) -> None:
 	"""Apply CRM loyalty tier service % as SI additional discount.
 
+	Only when DMS CRM Settings → Apply Loyalty Discount is enabled.
 	Job-card invoices set ignore_pricing_rule (rates come from the JC), so ERPNext
 	Pricing Rules do not run here — apply the linked tier discount explicitly.
 	"""
 	if not customer:
+		return
+	if not frappe.db.exists("DocType", "DMS CRM Settings"):
+		return
+	if not cint(frappe.db.get_single_value("DMS CRM Settings", "apply_loyalty_discount") or 0):
 		return
 	if flt(getattr(si, "additional_discount_percentage", 0) or 0) > 0:
 		return
@@ -1248,13 +1368,14 @@ def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -
 			row.custom_dms_discount = dms_discounts[idx]
 
 
-def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=None):
+def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=None, exclude_rows=None):
 	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items; warranty-aware rates."""
 
 	warranty_application_type = normalize_warranty_application_type(
 		warranty_application_type or jc.warranty_application_type
 	)
 	overrides = normalize_rate_overrides(rate_overrides)
+	excluded = normalize_exclude_rows(exclude_rows)
 
 	has_labour = bool(jc.get("labour"))
 	if has_labour:
@@ -1332,6 +1453,9 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 
 	for part in jc.get("parts") or []:
 		if not part.item_code:
+			continue
+
+		if excluded and part.name in excluded:
 			continue
 
 		qty = part_issue_qty(part)

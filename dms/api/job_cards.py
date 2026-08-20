@@ -196,8 +196,14 @@ def get_job_card(name):
 	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
 		list_parts_requests_for_job_card,
 	)
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		never_requested_part_row_names,
+	)
 
 	data["parts_requests"] = list_parts_requests_for_job_card(name)
+	never_requested = never_requested_part_row_names(data.get("parts") or [])
+	for part in data.get("parts") or []:
+		part["never_requested"] = part.get("name") in never_requested
 
 	data["workshop_assigned"] = bool(
 		(data.get("lead_technician") or "").strip() and (data.get("assigned_bay") or "").strip()
@@ -1269,6 +1275,52 @@ def save_road_test_results(name, road_test_template=None, results=None):
 	return {"road_test_template": doc.road_test_template, "road_test_results": doc.road_test_results}
 
 
+def _cancel_incomplete_parts_requests_for_job_card(job_card: str):
+	"""Mark all outstanding parts requests for a job card as Cancelled.
+
+	Used when a job card is completed — any in-progress parts requests are no longer needed.
+	Issued / Received requests are also marked Cancelled since the parts were already moved
+	to the job card and are considered consumed.
+	"""
+	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
+		_CANCELLABLE_PARTS_REQUEST_STATUSES,
+		cancel_parts_request,
+	)
+
+	# Cancellable (before issue) — release job card part lines
+	open_prs = frappe.get_all(
+		"DMS Parts Request",
+		filters={
+			"job_card": job_card,
+			"status": ["in", list(_CANCELLABLE_PARTS_REQUEST_STATUSES)],
+		},
+		pluck="name",
+	)
+	for pr_name in open_prs:
+		try:
+			cancel_parts_request(pr_name)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "complete_job_card cancel parts request")
+
+	# Issued / Received requests — stock already transferred to the job, just mark cancelled
+	issued_prs = frappe.get_all(
+		"DMS Parts Request",
+		filters={
+			"job_card": job_card,
+			"status": ["in", ["Issued", "Received", "Partially Issued"]],
+		},
+		pluck="name",
+	)
+	for pr_name in issued_prs:
+		frappe.db.set_value(
+			"DMS Parts Request",
+			pr_name,
+			"status",
+			"Cancelled",
+			update_modified=True,
+		)
+
+
 @frappe.whitelist()
 def pass_job_card_qc(name):
 	"""Pass QC and complete the job card. Internal jobs also create a Material Issue."""
@@ -1294,6 +1346,7 @@ def pass_job_card_qc(name):
 	doc.flags.ignore_validate_update_after_submit = True
 	doc.save(ignore_permissions=True)
 	frappe.db.commit()
+	_cancel_incomplete_parts_requests_for_job_card(doc.name)
 	return {"status": doc.status, "material_issue": doc.material_issue}
 
 

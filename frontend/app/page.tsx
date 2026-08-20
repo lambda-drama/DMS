@@ -40,6 +40,7 @@ const SparePartsPage = dynamic(() => import('./(dashboard)/dashboard/spare-parts
 const VehicleServicesPage = dynamic(() => import('./(dashboard)/dashboard/vehicle-services/page'));
 const ItemPricesPage = dynamic(() => import('./(dashboard)/dashboard/item-prices/page'));
 const JobCardTermsPage = dynamic(() => import('./(dashboard)/dashboard/job-card-terms/page'));
+const SalesInvoiceTcPage = dynamic(() => import('./(dashboard)/dashboard/sales-invoice-tc/page'));
 const UserPermissionsPage = dynamic(() => import('./(dashboard)/dashboard/user-permissions/page'));
 const CustomersPage = dynamic(() => import('./(dashboard)/dashboard/customers/page'));
 const VehiclesPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/page'));
@@ -153,6 +154,7 @@ const FALLBACK_VIEWS = [
   'vehicle-services',
   'item-prices',
   'job-card-terms',
+  'sales-invoice-tc',
   'user-permissions',
   'inventory-dashboard',
   'stock-entry',
@@ -219,6 +221,7 @@ function AppContent() {
       case 'vehicle-services':   return <VehicleServicesPage />;
       case 'item-prices':        return <ItemPricesPage />;
       case 'job-card-terms':     return <JobCardTermsPage />;
+      case 'sales-invoice-tc':   return <SalesInvoiceTcPage />;
       case 'user-permissions':   return <UserPermissionsPage />;
       case 'customers':          return <CustomersPage />;
       case 'vehicles':           return <VehiclesPage />;

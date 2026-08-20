@@ -38,14 +38,15 @@ import {
   ClipboardList,
   Wrench,
   XCircle,
-  ExternalLink,
   Undo2,
+  RotateCcw,
 } from "lucide-react";
 import { PaginationControls } from "@/components/pagination-controls";
 import { ListRowActions } from "@/components/list-row-actions";
 import { PartsRequestFlowProgress } from "@/components/parts-request/parts-request-flow-progress";
 import { cn } from "@/lib/utils";
 import * as partsSvc from "@/services/partsRequests";
+import * as partsReturnsSvc from "@/services/partsReturns";
 import { toast } from "sonner";
 
 const statusFilterOptions: { value: string; label: string }[] = [
@@ -81,18 +82,18 @@ function PartsRequisitionRowMenu({
   canWrite,
   onProcess,
   onJobCard,
-  onPartsReturn,
   onCancelled,
 }: {
   pr: { name: string; status: string; job_card?: string };
   canWrite: boolean;
   onProcess: () => void;
   onJobCard: () => void;
-  onPartsReturn: () => void;
   onCancelled: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const canCancel = canWrite && CANCELLABLE_STATUSES.has(pr.status);
+  const isIssued = pr.status === "Issued" || pr.status === "Partially Issued";
+  const isReceived = pr.status === "Received";
 
   const handleCancel = async () => {
     if (!window.confirm(`Cancel parts requisition ${pr.name}?`)) return;
@@ -103,6 +104,49 @@ function PartsRequisitionRowMenu({
       onCancelled();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to cancel");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReverseIssue = async () => {
+    if (
+      !window.confirm(
+        `Reverse the material transfer for ${pr.name}?\n\nThis will cancel the stock entry and return parts to the workshop warehouse.`
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      const result = await partsSvc.reversePartsRequest(pr.name);
+      const count = result.cancelled_stock_entries?.length ?? 0;
+      toast.success(
+        count > 0
+          ? `Material transfer cancelled (${count} stock entr${count === 1 ? "y" : "ies"} reversed)`
+          : "Parts requisition cancelled"
+      );
+      onCancelled();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to reverse material transfer");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateReturn = async () => {
+    if (
+      !window.confirm(
+        `Initiate a parts return for ${pr.name}?\n\nAll issued quantities remaining on this request will be returned to the workshop warehouse.`
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      const result = await partsReturnsSvc.createPartsReturnFromPartsRequest(pr.name, 1);
+      toast.success(`Return note ${result.name} created and submitted`);
+      onCancelled();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create parts return");
     } finally {
       setBusy(false);
     }
@@ -127,18 +171,21 @@ function PartsRequisitionRowMenu({
               Open job card
             </DropdownMenuItem>
           )}
-          {pr.job_card && (pr.status === "Issued" || pr.status === "Received") && (
-            <DropdownMenuItem onClick={onPartsReturn}>
+          {pr.job_card && isIssued && (
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => void handleReverseIssue()}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Cancel material transfer
+            </DropdownMenuItem>
+          )}
+          {pr.job_card && isReceived && (
+            <DropdownMenuItem onClick={() => void handleCreateReturn()}>
               <Undo2 className="mr-2 h-4 w-4" />
               Parts return
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            onClick={() => window.open(`/app/dms-parts-request/${pr.name}`, "_blank")}
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Open in Desk
-          </DropdownMenuItem>
           {canCancel && (
             <>
               <DropdownMenuSeparator />
@@ -257,10 +304,7 @@ export default function PartsRequisitionsPage() {
             <>
               <div className="space-y-3 md:hidden">
                 {rows.map((pr) => (
-                  <div
-                    key={pr.name}
-                    className="rounded-lg border border-border bg-card p-4"
-                  >
+                  <div key={pr.name} className="rounded-lg border border-border bg-card p-4">
                     <div className="flex items-start gap-2">
                       <button
                         type="button"
@@ -282,9 +326,6 @@ export default function PartsRequisitionsPage() {
                         canWrite={canManage}
                         onProcess={() => openDetail(pr.name)}
                         onJobCard={() => navigate("job-card-detail", { id: pr.job_card || "" })}
-                        onPartsReturn={() =>
-                          navigate("job-card-detail", { id: pr.job_card || "", tab: "parts" })
-                        }
                         onCancelled={() => void mutate()}
                       />
                     </div>
@@ -360,9 +401,6 @@ export default function PartsRequisitionsPage() {
                             canWrite={canManage}
                             onProcess={() => openDetail(pr.name)}
                             onJobCard={() => navigate("job-card-detail", { id: pr.job_card || "" })}
-                            onPartsReturn={() =>
-                              navigate("job-card-detail", { id: pr.job_card || "", tab: "parts" })
-                            }
                             onCancelled={() => void mutate()}
                           />
                         </TableCell>

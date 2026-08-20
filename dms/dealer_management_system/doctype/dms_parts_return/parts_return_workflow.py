@@ -210,3 +210,52 @@ def get_parts_return(name: str):
 	doc = frappe.get_doc("DMS Parts Return", name)
 	doc.check_permission("read")
 	return doc.as_dict()
+
+
+@frappe.whitelist()
+def create_parts_return_from_parts_request(name: str, submit: int | bool = 1):
+	"""Create a parts return covering all issued qty from a specific parts request.
+
+	Used from the Parts Requisition listing so the user can initiate a return
+	without leaving the queue / job card UI.
+	"""
+	pr = frappe.get_doc("DMS Parts Request", name)
+	pr.check_permission("read")
+
+	if pr.status not in ("Issued", "Received"):
+		frappe.throw(_("Only issued or received parts requests can have parts returned."))
+
+	jc = frappe.get_doc("DMS Job Card", pr.job_card)
+	part_map = {p.name: p for p in jc.get("parts") or []}
+
+	items = []
+	for row in pr.items:
+		if not row.job_card_part_row:
+			continue
+		part = part_map.get(row.job_card_part_row)
+		if not part:
+			continue
+		issued = flt(part.quantity_issued or 0)
+		returned = flt(part.quantity_returned or 0)
+		qty = max(0, issued - returned)
+		if qty <= 0:
+			continue
+		items.append(
+			{"job_card_part_row": row.job_card_part_row, "quantity_returned": qty}
+		)
+
+	if not items:
+		frappe.throw(_("No issued quantities remaining to return on this parts request."))
+
+	created = create_parts_return_from_job_card(
+		pr.job_card,
+		items=items,
+		raised_by=pr.requested_by,
+		remarks=_("Auto return from parts request {0}").format(pr.name),
+	)
+
+	if int(submit):
+		submit_parts_return(created["name"])
+		created["status"] = "Submitted"
+
+	return created

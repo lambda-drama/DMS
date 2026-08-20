@@ -588,6 +588,8 @@ export interface JobCardPartItem {
   status?: 'Requested' | 'Reserved' | 'Issued' | 'Returned';
   parts_request?: string;
   warehouse?: string;
+  /** True when this line was never included on an active Parts Requisition. */
+  never_requested?: boolean;
 }
 
 export interface VehicleLabourItem {
@@ -1323,6 +1325,8 @@ export interface InvoicePreviewLine {
   source_row?: string;
   /** Per-line share when warranty type is Discount (audit / preview). */
   dms_discount?: number;
+  /** True when the part was never included on a Parts Request for this job card. */
+  never_requested?: boolean;
 }
 
 export interface InvoicePreview {

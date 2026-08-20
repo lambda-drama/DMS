@@ -1,5 +1,5 @@
-import { apiRequest } from './apiClient';
 import type { PaginatedResponse } from '@/types/dms';
+import { apiRequest } from './apiClient';
 
 const API = 'dms.api.parts_requests';
 const AWR_API = 'dms.api.additional_work';
@@ -150,6 +150,15 @@ export async function updateJobCardLinePricing(
 
 export async function cancelPartsRequest(name: string): Promise<{ name: string; status: string }> {
   return apiRequest(`/api/method/${API}.cancel_parts_request`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function reversePartsRequest(
+  name: string
+): Promise<{ name: string; status: string; cancelled_stock_entries?: string[] }> {
+  return apiRequest(`/api/method/${API}.reverse_issued_parts_request`, {
     method: 'POST',
     body: JSON.stringify({ name }),
   });

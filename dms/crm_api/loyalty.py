@@ -65,6 +65,8 @@ def _erpnext_points(customer: str) -> dict:
 		)
 
 		program = out.get("loyalty_program")
+		if not program:
+			raise ValueError("No loyalty program assigned to customer")
 		company = None
 		if program:
 			company = frappe.db.get_value("Loyalty Program", program, "company")

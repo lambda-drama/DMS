@@ -37,6 +37,7 @@ export async function getInvoicePreviewFromJobCard(
     labourDiscount?: StandaloneInvoiceGroupDiscount;
     partsDiscount?: StandaloneInvoiceGroupDiscount;
     rateOverrides?: RateOverrides;
+    excludeRows?: string[];
   }
 ): Promise<InvoicePreview> {
   return apiRequest<InvoicePreview>(
@@ -50,6 +51,7 @@ export async function getInvoicePreviewFromJobCard(
         labour_discount: options?.labourDiscount ?? null,
         parts_discount: options?.partsDiscount ?? null,
         rate_overrides: options?.rateOverrides ?? null,
+        exclude_rows: options?.excludeRows?.length ? options.excludeRows : null,
       }),
     }
   );
@@ -120,6 +122,7 @@ export async function createInvoiceFromJobCard(
     rateOverrides?: RateOverrides;
     /** When true, apply DMS Settings Default Taxes and Charges Template. Default: false (blank). */
     applyTaxes?: boolean;
+    excludeRows?: string[];
   }
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${JC_API}.make_sales_invoice_from_job_card`, {
@@ -135,6 +138,7 @@ export async function createInvoiceFromJobCard(
       parts_discount: options?.partsDiscount ?? null,
       rate_overrides: options?.rateOverrides ?? null,
       apply_taxes: options?.applyTaxes ? 1 : 0,
+      exclude_rows: options?.excludeRows?.length ? options.excludeRows : null,
     }),
   });
 }
