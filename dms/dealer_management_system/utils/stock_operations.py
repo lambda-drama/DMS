@@ -15,6 +15,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 from dms.api.utils import get_dms_companies
 from dms.utils.spare_part_auto_create import (
+	SPARE_PART_BIN_LOCATION_FLAG,
 	item_group_auto_generates_spare_parts,
 	try_create_spare_part_from_item,
 )
@@ -416,6 +417,7 @@ def create_dms_stock_item(data: dict) -> dict:
 	)
 	item_group = (data.get("item_group") or "").strip() or get_dms_default_item_group()
 	stock_uom = resolve_stock_uom(data.get("stock_uom"))
+	bin_location = (data.get("bin_location") or "").strip()
 
 	if not item_code:
 		frappe.throw(_("Item code is required."))
@@ -447,7 +449,11 @@ def create_dms_stock_item(data: dict) -> dict:
 		item_row["standard_rate"] = selling_rate
 
 	item = frappe.get_doc(item_row)
-	item.insert(ignore_permissions=True)
+	frappe.flags[SPARE_PART_BIN_LOCATION_FLAG] = bin_location or None
+	try:
+		item.insert(ignore_permissions=True)
+	finally:
+		frappe.flags[SPARE_PART_BIN_LOCATION_FLAG] = None
 
 	item_price = None
 	price_list = None
@@ -483,7 +489,7 @@ def create_dms_stock_item(data: dict) -> dict:
 
 	spare_part_name = frappe.db.get_value("Spare Part", {"spare_part_item": item.name}, "name")
 	if not spare_part_name:
-		try_create_spare_part_from_item(item, show_message=False)
+		try_create_spare_part_from_item(item, show_message=False, bin_location=bin_location)
 		spare_part_name = frappe.db.get_value("Spare Part", {"spare_part_item": item.name}, "name")
 
 	if spare_part_name:
@@ -492,6 +498,8 @@ def create_dms_stock_item(data: dict) -> dict:
 			sp_updates["last_purchase_price"] = valuation_rate
 		if selling_rate > 0:
 			sp_updates["selling_price"] = selling_rate
+		if bin_location:
+			sp_updates["bin_location"] = bin_location
 		if sp_updates:
 			frappe.db.set_value("Spare Part", spare_part_name, sp_updates)
 
@@ -507,6 +515,7 @@ def create_dms_stock_item(data: dict) -> dict:
 		"spare_part": spare_part_name,
 		"item_group": item_group,
 		"stock_uom": stock_uom,
+		"bin_location": bin_location or None,
 	}
 
 

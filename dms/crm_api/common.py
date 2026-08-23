@@ -299,11 +299,17 @@ def quick_create_brand(brand):
 
 
 @frappe.whitelist()
-def quick_create_item(item_code=None, item_name=None, brand=None, standard_rate=None):
+def quick_create_item(item_code=None, item_name=None, brand=None, standard_rate=None, bin_location=None):
 	"""Create a sellable Item from a CRM link + button (deal / quotation lines)."""
+	from dms.utils.spare_part_auto_create import (
+		SPARE_PART_BIN_LOCATION_FLAG,
+		apply_bin_location_to_item_spare_part,
+	)
+
 	ensure_crm_create("Item")
 	item_code = (item_code or item_name or "").strip()
 	item_name = (item_name or item_code).strip()
+	bin_location = (bin_location or "").strip()
 	if not item_code:
 		frappe.throw(_("Item code is required."))
 	if frappe.db.exists("Item", item_code):
@@ -329,9 +335,14 @@ def quick_create_item(item_code=None, item_name=None, brand=None, standard_rate=
 			"standard_rate": flt(standard_rate),
 		}
 	)
-	doc.insert()
+	frappe.flags[SPARE_PART_BIN_LOCATION_FLAG] = bin_location or None
+	try:
+		doc.insert()
+	finally:
+		frappe.flags[SPARE_PART_BIN_LOCATION_FLAG] = None
+	apply_bin_location_to_item_spare_part(doc.name, bin_location)
 	frappe.db.commit()
-	return {"name": doc.name, "label": doc.item_name or doc.name}
+	return {"name": doc.name, "label": doc.item_name or doc.name, "bin_location": bin_location or None}
 
 
 @frappe.whitelist()

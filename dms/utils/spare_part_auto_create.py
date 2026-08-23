@@ -8,6 +8,7 @@ from frappe.utils import flt
 
 AUTO_SPARE_PART_FIELD = "custom_auto_generate_spare_parts"
 DEFAULT_PART_CATEGORY = "Genuine Part"
+SPARE_PART_BIN_LOCATION_FLAG = "spare_part_bin_location"
 
 
 def item_group_auto_generates_spare_parts(item_group: str | None) -> bool:
@@ -26,20 +27,41 @@ def _get_item_doc(item: str | Document) -> Document:
 	return frappe.get_doc("Item", item)
 
 
-def build_spare_part_data_from_item(item: str | Document) -> dict:
+def _resolve_bin_location(bin_location: str | None = None) -> str:
+	return (bin_location or frappe.flags.get(SPARE_PART_BIN_LOCATION_FLAG) or "").strip()
+
+
+def build_spare_part_data_from_item(item: str | Document, bin_location: str | None = None) -> dict:
 	item_doc = _get_item_doc(item)
 	selling_price = flt(item_doc.get("standard_rate") or 0)
 
-	return {
+	data = {
 		"doctype": "Spare Part",
 		"spare_part_item": item_doc.name,
 		"oem_part_number": item_doc.item_code,
 		"part_category": DEFAULT_PART_CATEGORY,
 		"selling_price": selling_price or None,
 	}
+	resolved = _resolve_bin_location(bin_location)
+	if resolved:
+		data["bin_location"] = resolved
+	return data
 
 
-def try_create_spare_part_from_item(item: str | Document, show_message: bool = False) -> str | None:
+def apply_bin_location_to_item_spare_part(item_code: str | None, bin_location: str | None) -> None:
+	"""Copy a create-form bin location onto the Spare Part linked to this Item."""
+	item_code = (item_code or "").strip()
+	bin_location = (bin_location or "").strip()
+	if not item_code or not bin_location:
+		return
+	spare_name = frappe.db.get_value("Spare Part", {"spare_part_item": item_code}, "name")
+	if spare_name:
+		frappe.db.set_value("Spare Part", spare_name, "bin_location", bin_location)
+
+
+def try_create_spare_part_from_item(
+	item: str | Document, show_message: bool = False, bin_location: str | None = None
+) -> str | None:
 	"""Create a Spare Part for an Item when its Item Group has auto-generation enabled."""
 	if frappe.flags.get("skip_auto_spare_part_from_item"):
 		return None
@@ -59,7 +81,7 @@ def try_create_spare_part_from_item(item: str | Document, show_message: bool = F
 		return "skipped"
 
 	try:
-		sp_doc = frappe.get_doc(build_spare_part_data_from_item(item_doc))
+		sp_doc = frappe.get_doc(build_spare_part_data_from_item(item_doc, bin_location=bin_location))
 		sp_doc.insert(ignore_permissions=True)
 
 		if show_message:
