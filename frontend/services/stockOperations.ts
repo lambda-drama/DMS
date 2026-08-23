@@ -65,6 +65,7 @@ export interface StockItemCreateResult {
   spare_part?: string | null;
   item_group?: string;
   stock_uom?: string;
+  bin_location?: string | null;
 }
 
 export interface StockItemCreateDefaults {
@@ -537,6 +538,7 @@ export async function createStockItem(data: {
   selling_price?: number;
   item_group?: string;
   stock_uom?: string;
+  bin_location?: string;
 }): Promise<StockItemCreateResult> {
   return apiRequest(`/api/method/${API}.create_stock_item`, {
     method: 'POST',

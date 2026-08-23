@@ -48,6 +48,7 @@ export function CrmItemLink({
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
   const [rate, setRate] = useState('');
+  const [binLocation, setBinLocation] = useState('');
   const { data, isLoading } = useSWR(['crm-link-items', search], () =>
     fetchCrmItems(search || undefined)
   );
@@ -82,6 +83,7 @@ export function CrmItemLink({
         item_code: code,
         item_name: (itemName || itemCode).trim() || code,
         standard_rate: rate ? Number(rate) : undefined,
+        bin_location: binLocation.trim() || undefined,
       });
       await mutate(
         (key) => Array.isArray(key) && String(key[0]).includes('item'),
@@ -98,6 +100,7 @@ export function CrmItemLink({
       setItemCode('');
       setItemName('');
       setRate('');
+      setBinLocation('');
       toast.success(`Created: ${res.label || res.name}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not create item');
@@ -135,7 +138,8 @@ export function CrmItemLink({
           <DialogHeader>
             <DialogTitle>New item</DialogTitle>
             <DialogDescription>
-              Creates a sellable ERPNext Item and selects it on this form.
+              Creates a sellable ERPNext Item and selects it on this form. Bin location is copied
+              to the Spare Part if one is auto-created.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
@@ -162,6 +166,14 @@ export function CrmItemLink({
                 min={0}
                 value={rate}
                 onChange={(e) => setRate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Bin location</Label>
+              <Input
+                value={binLocation}
+                onChange={(e) => setBinLocation(e.target.value)}
+                placeholder="e.g. A-12-B-03"
               />
             </div>
           </div>

@@ -191,6 +191,7 @@ export async function quickCreateItem(data: {
   item_name?: string;
   brand?: string;
   standard_rate?: number;
+  bin_location?: string;
 }) {
   return apiRequest<{ name: string; label?: string }>(
     '/api/method/dms.crm_api.common.quick_create_item',

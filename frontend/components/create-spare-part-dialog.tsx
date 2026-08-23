@@ -48,6 +48,7 @@ export function CreateSparePartDialog({
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [uom, setUom] = useState('Pcs');
   const [standardRate, setStandardRate] = useState('');
+  const [binLocation, setBinLocation] = useState('');
   const [description, setDescription] = useState('');
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export function CreateSparePartDialog({
     setItemGroup('');
     setUom('Pcs');
     setStandardRate('');
+    setBinLocation('');
     setDescription('');
   };
 
@@ -105,12 +107,13 @@ export function CreateSparePartDialog({
 
     setSaving(true);
     try {
-      const result = await stockSvc.createStockItem({
+      await stockSvc.createStockItem({
         item_code: itemCode.trim(),
         item_name: itemName.trim(),
         item_group: itemGroup,
         stock_uom: uom,
         ...(standardRate ? { standard_rate: parseFloat(standardRate) } : {}),
+        ...(binLocation.trim() ? { bin_location: binLocation.trim() } : {}),
       });
 
       toast.success(`Spare part "${itemName}" created successfully`);
@@ -130,7 +133,8 @@ export function CreateSparePartDialog({
         <DialogHeader>
           <DialogTitle>New Spare Part</DialogTitle>
           <DialogDescription>
-            Create a new spare part item in the inventory system.
+            Create a new spare part item in the inventory system. Bin location is saved on the
+            Spare Part record.
           </DialogDescription>
         </DialogHeader>
 
@@ -193,16 +197,26 @@ export function CreateSparePartDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Standard Rate</Label>
-            <Input
-              type="number"
-              step="any"
-              min="0"
-              value={standardRate}
-              onChange={(e) => setStandardRate(e.target.value)}
-              placeholder="0.00"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Standard Rate</Label>
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                value={standardRate}
+                onChange={(e) => setStandardRate(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Bin location</Label>
+              <Input
+                value={binLocation}
+                onChange={(e) => setBinLocation(e.target.value)}
+                placeholder="e.g. A-12-B-03"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

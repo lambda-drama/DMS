@@ -60,6 +60,7 @@ export function StockItemLinkWithCreate({
   const [sellingPrice, setSellingPrice] = useState('');
   const [itemGroup, setItemGroup] = useState(defaultItemGroup || '');
   const [stockUom, setStockUom] = useState('Pcs');
+  const [binLocation, setBinLocation] = useState('');
   const [uomOptions, setUomOptions] = useState<Array<{ value: string; label: string }>>([
     { value: 'Pcs', label: 'Pcs' },
   ]);
@@ -74,6 +75,7 @@ export function StockItemLinkWithCreate({
     setSellingPrice('');
     setItemGroup(defaultItemGroup || '');
     setStockUom('Pcs');
+    setBinLocation('');
     setAutoSpare(Boolean(autoCreateSpareParts));
 
     let cancelled = false;
@@ -126,6 +128,7 @@ export function StockItemLinkWithCreate({
         standard_rate: sellingPrice ? Number(sellingPrice) : undefined,
         item_group: itemGroup,
         stock_uom: stockUom || 'Pcs',
+        bin_location: binLocation.trim() || undefined,
       });
       const payload: StockItemCreatedPayload = {
         item_code: result.item_code || result.name,
@@ -177,7 +180,7 @@ export function StockItemLinkWithCreate({
               Selling price also creates an Item Price on the default selling price list
               configured in DMS Settings.
               {autoSpare
-                ? ' A Spare Part will be created automatically with the prices you enter.'
+                ? ' A Spare Part will be created automatically with the prices and bin location you enter.'
                 : ' Enable Auto Generate Spare Parts on the item group to create a Spare Part automatically.'}
             </DialogDescription>
           </DialogHeader>
@@ -244,6 +247,14 @@ export function StockItemLinkWithCreate({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Bin location</Label>
+              <Input
+                value={binLocation}
+                onChange={(e) => setBinLocation(e.target.value)}
+                placeholder="e.g. A-12-B-03"
+              />
             </div>
             <div className="space-y-1">
               <Label>Item group</Label>
