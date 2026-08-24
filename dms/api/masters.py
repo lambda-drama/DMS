@@ -157,6 +157,15 @@ def update_spare_part(name, data):
 
 	frappe.has_permission("Spare Part", "write", throw=True)
 	doc = frappe.get_doc("Spare Part", name)
+	from dms.dealer_management_system.utils.price_permissions import assert_price_allowed_if_changed
+
+	if "selling_price" in data:
+		assert_price_allowed_if_changed(doc.selling_price, data.get("selling_price"))
+	if "wholesale_price" in data:
+		assert_price_allowed_if_changed(doc.wholesale_price, data.get("wholesale_price"))
+	if "markup_percentage" in data:
+		assert_price_allowed_if_changed(doc.markup_percentage, data.get("markup_percentage"))
+
 	allowed_fields = [
 		"item_name",
 		"oem_part_number",
@@ -198,18 +207,26 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 	or_filters = None
 	if search and str(search).strip():
 		q = f"%{search.strip()}%"
-		or_filters = [
-			["service_item", "like", q],
-			["custom_item_name", "like", q],
-			["custom_service_code", "like", q],
-		]
+		search_fields = _meta_fields(
+			"Vehicle Service Item",
+			["service_item", "custom_item_name", "custom_service_code"],
+		)
+		or_filters = [[f, "like", q] for f in search_fields] or None
 
-	if vehicle_model:
+	if vehicle_model and meta.has_field("custom_vehicle_model"):
 		filters["custom_vehicle_model"] = vehicle_model
 
-	fields = ["name", "service_item", "custom_item_name", "custom_vehicle_model", "custom_category", "custom_estimated_timehours", "custom_description", "disabled"] + _meta_fields(
+	fields = _meta_fields(
 		"Vehicle Service Item",
 		[
+			"name",
+			"service_item",
+			"custom_item_name",
+			"custom_vehicle_model",
+			"custom_category",
+			"custom_estimated_timehours",
+			"custom_description",
+			"disabled",
 			"custom_erpnext_item",
 			"custom_service_code",
 			"custom_frt",
@@ -218,6 +235,8 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 			"custom_rate",
 		],
 	)
+	if "name" not in fields:
+		fields.insert(0, "name")
 
 	rows = frappe.get_all(
 		"Vehicle Service Item",
@@ -274,6 +293,11 @@ def update_vehicle_service_item(name, data):
 
 	frappe.has_permission("Vehicle Service Item", "write", throw=True)
 	doc = frappe.get_doc("Vehicle Service Item", name)
+	from dms.dealer_management_system.utils.price_permissions import assert_price_allowed_if_changed
+
+	if "custom_rate" in data:
+		assert_price_allowed_if_changed(getattr(doc, "custom_rate", None), data.get("custom_rate"))
+
 	allowed_fields = [
 		"custom_item_name",
 		"custom_service_code",
@@ -350,6 +374,11 @@ def update_item_price(name, data):
 
 	frappe.has_permission("Item Price", "write", throw=True)
 	doc = frappe.get_doc("Item Price", name)
+	from dms.dealer_management_system.utils.price_permissions import assert_price_allowed_if_changed
+
+	if "price_list_rate" in data:
+		assert_price_allowed_if_changed(doc.price_list_rate, data.get("price_list_rate"))
+
 	allowed_fields = ["item_code", "price_list", "price_list_rate", "uom", "valid_from", "valid_upto"]
 	meta = frappe.get_meta("Item Price")
 	fields = [f for f in allowed_fields if meta.has_field(f) and f in data]
@@ -365,6 +394,9 @@ def create_item_price(data):
 		data = json.loads(data)
 
 	frappe.has_permission("Item Price", "create", throw=True)
+	from dms.dealer_management_system.utils.price_permissions import require_edit_price
+
+	require_edit_price()
 
 	item_code = (data.get("item_code") or "").strip()
 	if not item_code:

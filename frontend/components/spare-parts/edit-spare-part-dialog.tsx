@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import * as mastersSvc from '@/services/masters';
 import type { SparePartMaster } from '@/services/masters';
+import { usePermissions } from '@/contexts/permissions-context';
 
 const PART_CATEGORIES = [
   'Engine Parts',
@@ -101,6 +102,7 @@ export function EditSparePartDialog({
   onUpdated,
 }: EditSparePartDialogProps) {
   const { mutate } = useSWRConfig();
+  const { canEditPrice } = usePermissions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docName, setDocName] = useState('');
@@ -331,16 +333,18 @@ export function EditSparePartDialog({
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <Label>Selling price</Label>
+                <Label>{canEditPrice ? 'Selling price' : 'Selling price (fixed)'}</Label>
                 <Input
                   type="text"
                   inputMode="decimal"
                   value={form.selling_price}
                   onChange={(e) => setForm((p) => ({ ...p, selling_price: e.target.value }))}
+                  disabled={!canEditPrice}
+                  className={!canEditPrice ? 'bg-muted' : undefined}
                 />
               </div>
               <div className="space-y-1">
-                <Label>Wholesale</Label>
+                <Label>{canEditPrice ? 'Wholesale' : 'Wholesale (fixed)'}</Label>
                 <Input
                   type="text"
                   inputMode="decimal"
@@ -348,14 +352,18 @@ export function EditSparePartDialog({
                   onChange={(e) =>
                     setForm((p) => ({ ...p, wholesale_price: e.target.value }))
                   }
+                  disabled={!canEditPrice}
+                  className={!canEditPrice ? 'bg-muted' : undefined}
                 />
               </div>
               <div className="space-y-1">
-                <Label>Markup %</Label>
+                <Label>{canEditPrice ? 'Markup %' : 'Markup % (fixed)'}</Label>
                 <Input
                   type="text"
                   inputMode="decimal"
                   value={form.markup_percentage}
+                  disabled={!canEditPrice}
+                  className={!canEditPrice ? 'bg-muted' : undefined}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, markup_percentage: e.target.value }))
                   }

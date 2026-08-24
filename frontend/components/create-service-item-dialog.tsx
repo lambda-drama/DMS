@@ -25,6 +25,7 @@ import {
 import { SearchableSelect } from '@/components/searchable-select';
 import { useVehicleModels, useVehicleServiceTypes } from '@/hooks/use-dms';
 import { apiRequest } from '@/services/apiClient';
+import { usePermissions } from '@/contexts/permissions-context';
 
 interface CreateServiceItemDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function CreateServiceItemDialog({
   onOpenChange,
   onCreated,
 }: CreateServiceItemDialogProps) {
+  const { canEditPrice } = usePermissions();
   const [saving, setSaving] = useState(false);
   const [serviceItem, setServiceItem] = useState('');
   const [serviceCode, setServiceCode] = useState('');
@@ -99,7 +101,7 @@ export function CreateServiceItemDialog({
       if (catCode.trim()) payload.custom_cat_code = catCode.trim();
       if (subCode.trim()) payload.custom_sub_code = subCode.trim();
       if (estimatedHours) payload.custom_estimated_timehours = estimatedHours;
-      if (rate) payload.custom_rate = parseFloat(rate);
+      if (rate && canEditPrice) payload.custom_rate = parseFloat(rate);
       if (description.trim()) payload.custom_description = description.trim();
 
       const response = await apiRequest<{ name: string }>('/api/resource/Vehicle Service Item', {
@@ -242,7 +244,7 @@ export function CreateServiceItemDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Rate</Label>
+              <Label>{canEditPrice ? 'Rate' : 'Rate (fixed)'}</Label>
               <Input
                 type="number"
                 step="any"
@@ -250,6 +252,8 @@ export function CreateServiceItemDialog({
                 value={rate}
                 onChange={(e) => setRate(e.target.value)}
                 placeholder="0.00"
+                disabled={!canEditPrice}
+                className={!canEditPrice ? 'bg-muted' : undefined}
               />
             </div>
           </div>
