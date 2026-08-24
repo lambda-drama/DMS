@@ -19,6 +19,7 @@ import {
   Phone,
   ScrollText,
   Shield,
+  ShieldCheck,
   Truck,
   UserCheck,
   Users,
@@ -93,6 +94,7 @@ const navigation: NavSection[] = [
       { name: 'Job Card Terms', view: 'job-card-terms', icon: ScrollText },
       { name: 'Sales Invoice Terms', view: 'sales-invoice-tc', icon: FileText },
       { name: 'User Permissions', view: 'user-permissions', icon: Shield },
+      { name: 'Advanced Permission', view: 'advanced-permissions', icon: ShieldCheck },
     ],
   },
   {

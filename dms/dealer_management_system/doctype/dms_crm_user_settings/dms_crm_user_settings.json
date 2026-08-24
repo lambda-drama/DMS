@@ -8,7 +8,11 @@
  "engine": "InnoDB",
  "field_order": [
   "dms_crm_user",
-  "users"
+  "users",
+  "section_break_dsej",
+  "roles",
+  "column_break_stma",
+  "role_profiles"
  ],
  "fields": [
   {
@@ -22,13 +26,33 @@
    "fieldtype": "Table MultiSelect",
    "label": "Users",
    "options": "DMS Users"
+  },
+  {
+   "fieldname": "section_break_dsej",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "roles",
+   "fieldtype": "Table MultiSelect",
+   "label": "Roles",
+   "options": "Display Role Detail"
+  },
+  {
+   "fieldname": "column_break_stma",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "role_profiles",
+   "fieldtype": "Table MultiSelect",
+   "label": "Role Profiles",
+   "options": "Display Role Profile"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-18 00:47:44.541317",
+ "modified": "2026-08-25 00:08:45.950766",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS CRM User Settings",

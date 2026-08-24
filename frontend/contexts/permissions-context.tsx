@@ -59,7 +59,12 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       const p = permissions[module];
       if (!p) return false;
       // Dashboard/reports are synthetic — only the computed `visible` flag applies.
-      if (module === 'dashboard' || module === 'reports' || module === 'settings') {
+      if (
+        module === 'dashboard' ||
+        module === 'reports' ||
+        module === 'settings' ||
+        module === 'advanced-permissions'
+      ) {
         return truthy(p.visible);
       }
       return truthy(p.visible) || truthy(p.read) || truthy(p.select);
@@ -78,7 +83,12 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const canRead = useCallback(
     (module: DmsPermissionModule) => {
       const p = permissions[module];
-      if (module === 'dashboard' || module === 'reports' || module === 'settings') {
+      if (
+        module === 'dashboard' ||
+        module === 'reports' ||
+        module === 'settings' ||
+        module === 'advanced-permissions'
+      ) {
         return truthy(p?.visible);
       }
       return truthy(p?.read) || truthy(p?.select);
