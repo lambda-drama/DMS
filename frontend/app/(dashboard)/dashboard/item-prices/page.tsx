@@ -92,7 +92,7 @@ export default function ItemPricesPage() {
         <div>
           <h1 className="dms-stat-value text-xl tracking-tight">Item Prices</h1>
           <p className="text-muted-foreground">
-            Selling price list rates
+            Selling prices for items in vehicle or after-sales spare part groups
             {data?.default_price_list ? ` · ${data.default_price_list}` : ""}
           </p>
         </div>

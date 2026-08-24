@@ -7,6 +7,7 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 AUTO_SPARE_PART_FIELD = "custom_auto_generate_spare_parts"
+IS_VEHICLE_ITEM_GROUP_FIELD = "custom_is_vehicle"
 DEFAULT_PART_CATEGORY = "Genuine Part"
 SPARE_PART_BIN_LOCATION_FLAG = "spare_part_bin_location"
 
@@ -15,6 +16,46 @@ def item_group_auto_generates_spare_parts(item_group: str | None) -> bool:
 	if not item_group:
 		return False
 	return bool(frappe.db.get_value("Item Group", item_group, AUTO_SPARE_PART_FIELD))
+
+
+def get_aftersales_spare_part_item_groups() -> list[str]:
+	"""Item Groups with Is Vehicle, Auto Generate Spare Parts, or both."""
+	meta = frappe.get_meta("Item Group")
+	or_filters = []
+	if meta.has_field(IS_VEHICLE_ITEM_GROUP_FIELD):
+		or_filters.append([IS_VEHICLE_ITEM_GROUP_FIELD, "=", 1])
+	if meta.has_field(AUTO_SPARE_PART_FIELD):
+		or_filters.append([AUTO_SPARE_PART_FIELD, "=", 1])
+	if not or_filters:
+		return []
+	if len(or_filters) == 1:
+		field, _, value = or_filters[0]
+		return frappe.get_all("Item Group", filters={field: value}, pluck="name", order_by="name asc")
+	return frappe.get_all(
+		"Item Group",
+		or_filters=or_filters,
+		pluck="name",
+		order_by="name asc",
+	)
+
+
+def get_aftersales_spare_part_item_codes() -> list[str]:
+	groups = get_aftersales_spare_part_item_groups()
+	if not groups:
+		return []
+	return frappe.get_all(
+		"Item",
+		filters={"item_group": ["in", groups], "disabled": 0},
+		pluck="name",
+	)
+
+
+def item_is_aftersales_spare_part(item_code: str | None) -> bool:
+	item_code = (item_code or "").strip()
+	if not item_code:
+		return False
+	item_group = frappe.db.get_value("Item", item_code, "item_group")
+	return bool(item_group) and item_group in set(get_aftersales_spare_part_item_groups())
 
 
 def spare_part_exists_for_item(item_code: str) -> bool:
