@@ -20,6 +20,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"job-card-terms": "DMS Job Card Terms",
 	"sales-invoice-tc": "DMS Sales Invoice TC",
 	"user-permissions": "DMS CRM User Settings",
+	"advanced-permissions": None,
 	"deliveries": "Vehicle Delivery Note",
 	"customers": "Customer",
 	"vehicles": "VIN No",
@@ -158,6 +159,15 @@ def get_dms_ui_permissions():
 	}
 
 	out["settings"] = {
+		"doctype": None,
+		"visible": management_access,
+		"read": int(management_access),
+		"write": int(management_access),
+		"create": 0,
+		"delete": 0,
+	}
+
+	out["advanced-permissions"] = {
 		"doctype": None,
 		"visible": management_access,
 		"read": int(management_access),

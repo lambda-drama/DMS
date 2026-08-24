@@ -42,6 +42,7 @@ const ItemPricesPage = dynamic(() => import('./(dashboard)/dashboard/item-prices
 const JobCardTermsPage = dynamic(() => import('./(dashboard)/dashboard/job-card-terms/page'));
 const SalesInvoiceTcPage = dynamic(() => import('./(dashboard)/dashboard/sales-invoice-tc/page'));
 const UserPermissionsPage = dynamic(() => import('./(dashboard)/dashboard/user-permissions/page'));
+const AdvancedPermissionsPage = dynamic(() => import('./(dashboard)/dashboard/advanced-permissions/page'));
 const CustomersPage = dynamic(() => import('./(dashboard)/dashboard/customers/page'));
 const VehiclesPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/page'));
 const VehicleNewPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/new/page'));
@@ -134,7 +135,7 @@ function LoadingScreen() {
   );
 }
 
-const RESTRICTED_VIEWS = new Set(['dashboard', 'reports', 'settings']);
+const RESTRICTED_VIEWS = new Set(['dashboard', 'reports', 'settings', 'advanced-permissions']);
 
 const FALLBACK_VIEWS = [
   'appointments',
@@ -223,6 +224,7 @@ function AppContent() {
       case 'job-card-terms':     return <JobCardTermsPage />;
       case 'sales-invoice-tc':   return <SalesInvoiceTcPage />;
       case 'user-permissions':   return <UserPermissionsPage />;
+      case 'advanced-permissions': return <AdvancedPermissionsPage />;
       case 'customers':          return <CustomersPage />;
       case 'vehicles':           return <VehiclesPage />;
       case 'vehicle-new':        return <VehicleNewPage />;
