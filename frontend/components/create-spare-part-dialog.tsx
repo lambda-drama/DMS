@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { apiRequest } from '@/services/apiClient';
 import * as stockSvc from '@/services/stockOperations';
+import { usePermissions } from '@/contexts/permissions-context';
 
 interface CreateSparePartDialogProps {
   open: boolean;
@@ -40,6 +41,7 @@ export function CreateSparePartDialog({
   onOpenChange,
   onCreated,
 }: CreateSparePartDialogProps) {
+  const { canEditPrice } = usePermissions();
   const [saving, setSaving] = useState(false);
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
@@ -112,7 +114,7 @@ export function CreateSparePartDialog({
         item_name: itemName.trim(),
         item_group: itemGroup,
         stock_uom: uom,
-        ...(standardRate ? { standard_rate: parseFloat(standardRate) } : {}),
+        ...(standardRate && canEditPrice ? { standard_rate: parseFloat(standardRate) } : {}),
         ...(binLocation.trim() ? { bin_location: binLocation.trim() } : {}),
       });
 
@@ -199,7 +201,7 @@ export function CreateSparePartDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Standard Rate</Label>
+              <Label>{canEditPrice ? 'Standard Rate' : 'Standard Rate (fixed)'}</Label>
               <Input
                 type="number"
                 step="any"
@@ -207,6 +209,8 @@ export function CreateSparePartDialog({
                 value={standardRate}
                 onChange={(e) => setStandardRate(e.target.value)}
                 placeholder="0.00"
+                disabled={!canEditPrice}
+                className={!canEditPrice ? 'bg-muted' : undefined}
               />
             </div>
             <div className="space-y-2">

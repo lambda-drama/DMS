@@ -95,6 +95,7 @@ export default function VehicleServicesPage() {
 
   const rows = data?.data || [];
   const total = data?.total || 0;
+  const supportsDisabled = rows.some((r) => Object.prototype.hasOwnProperty.call(r, "disabled"));
 
   function openEdit(row: VehicleServiceItemMaster) {
     const id = serviceItemId(row);
@@ -176,7 +177,7 @@ export default function VehicleServicesPage() {
                     <TableHead>Model</TableHead>
                     <TableHead>Hours</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
-                    <TableHead>Status</TableHead>
+                    {supportsDisabled ? <TableHead>Status</TableHead> : null}
                     <TableHead className="w-12" />
                   </TableRow>
                 </TableHeader>
@@ -211,6 +212,7 @@ export default function VehicleServicesPage() {
                         <TableCell className="text-right tabular-nums">
                           {formatMoney(row.custom_rate)}
                         </TableCell>
+                        {supportsDisabled ? (
                         <TableCell>
                           {row.disabled ? (
                             <Badge variant="outline" className="text-muted-foreground">
@@ -220,6 +222,7 @@ export default function VehicleServicesPage() {
                             <Badge variant="secondary">Active</Badge>
                           )}
                         </TableCell>
+                        ) : null}
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <ListRowActions
                             doctype="Vehicle Service Item"
@@ -252,6 +255,7 @@ export default function VehicleServicesPage() {
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
                                 </DropdownMenuItem>
+                                {supportsDisabled ? (
                                 <DropdownMenuItem
                                   className={
                                     row.disabled
@@ -272,6 +276,7 @@ export default function VehicleServicesPage() {
                                     </>
                                   )}
                                 </DropdownMenuItem>
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </ListRowActions>
@@ -310,7 +315,7 @@ export default function VehicleServicesPage() {
               <Pencil className="h-4 w-4 mr-2" />
               Edit
             </Button>
-            {(selected || editTarget)?.custom_erpnext_item ? (
+            {supportsDisabled && (selected || editTarget)?.custom_erpnext_item ? (
               <Button
                 variant="outline"
                 className="w-full sm:w-auto"

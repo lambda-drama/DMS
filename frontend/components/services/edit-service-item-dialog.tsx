@@ -20,6 +20,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { useVehicleModels, useVehicleServiceTypes } from '@/hooks/use-dms';
 import * as mastersSvc from '@/services/masters';
 import type { VehicleServiceItemMaster } from '@/services/masters';
+import { usePermissions } from '@/contexts/permissions-context';
 
 export interface EditServiceItemDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export function EditServiceItemDialog({
   onUpdated,
 }: EditServiceItemDialogProps) {
   const { mutate } = useSWRConfig();
+  const { canEditPrice } = usePermissions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docName, setDocName] = useState('');
@@ -274,12 +276,14 @@ export function EditServiceItemDialog({
                 />
               </div>
               <div className="space-y-1">
-                <Label>Rate</Label>
+                <Label>{canEditPrice ? 'Rate' : 'Rate (fixed)'}</Label>
                 <Input
                   type="text"
                   inputMode="decimal"
                   value={form.custom_rate}
                   onChange={(e) => setForm((p) => ({ ...p, custom_rate: e.target.value }))}
+                  disabled={!canEditPrice}
+                  className={!canEditPrice ? 'bg-muted' : undefined}
                 />
               </div>
             </div>

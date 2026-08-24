@@ -19,6 +19,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { useSpareParts } from '@/hooks/use-dms';
 import * as mastersSvc from '@/services/masters';
 import type { ItemPriceMaster } from '@/services/masters';
+import { usePermissions } from '@/contexts/permissions-context';
 
 export interface EditItemPriceDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function EditItemPriceDialog({
   onUpdated,
 }: EditItemPriceDialogProps) {
   const { mutate } = useSWRConfig();
+  const { canEditPrice } = usePermissions();
   const [saving, setSaving] = useState(false);
   const [itemSearch, setItemSearch] = useState('');
   const { data: spareParts } = useSpareParts(itemSearch);
@@ -108,6 +110,10 @@ export function EditItemPriceDialog({
     e.preventDefault();
     if (!form.price_list_rate || Number(form.price_list_rate) <= 0) {
       toast.error('Rate must be greater than zero');
+      return;
+    }
+    if (createMode && !canEditPrice) {
+      toast.error('You do not have permission to create selling prices');
       return;
     }
     setSaving(true);
@@ -199,7 +205,7 @@ export function EditItemPriceDialog({
             )}
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label>Rate *</Label>
+                <Label>{canEditPrice ? 'Rate *' : 'Rate (fixed)'}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -208,7 +214,9 @@ export function EditItemPriceDialog({
                   onChange={(e) =>
                     setForm((p) => ({ ...p, price_list_rate: e.target.value }))
                   }
-                  autoFocus
+                  disabled={!canEditPrice}
+                  className={!canEditPrice ? 'bg-muted' : undefined}
+                  autoFocus={canEditPrice}
                 />
               </div>
               <div className="space-y-1">
