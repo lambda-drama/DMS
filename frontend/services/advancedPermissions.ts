@@ -65,6 +65,50 @@ export async function saveDisplayRoles(data: {
   });
 }
 
+export async function createRole(role_name: string, desk_access = 1): Promise<{
+  ok: boolean;
+  name: string;
+  selected_roles: string[];
+  selected_role_profiles: string[];
+}> {
+  return apiRequest(`/api/method/${API}.create_role`, {
+    method: 'POST',
+    body: JSON.stringify({ role_name, desk_access }),
+  });
+}
+
+export async function createRoleProfile(data: {
+  role_profile: string;
+  roles?: string[];
+}): Promise<{
+  ok: boolean;
+  name: string;
+  selected_roles: string[];
+  selected_role_profiles: string[];
+}> {
+  return apiRequest(`/api/method/${API}.create_role_profile`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function getRoleProfile(name: string): Promise<{ name: string; roles: string[] }> {
+  return apiRequest(`/api/method/${API}.get_role_profile`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function removeRoleFromProfile(
+  role_profile: string,
+  role: string
+): Promise<{ name: string; roles: string[] }> {
+  return apiRequest(`/api/method/${API}.remove_role_from_profile`, {
+    method: 'POST',
+    body: JSON.stringify({ role_profile, role }),
+  });
+}
+
 export async function getRolePermissions(doctype?: string, role?: string): Promise<PermRow[]> {
   return apiRequest(`/api/method/${API}.get_role_permissions`, {
     method: 'POST',

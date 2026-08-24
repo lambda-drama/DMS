@@ -51,6 +51,9 @@ EXTRA_USED_DOCTYPES = (
 
 PROTECTED_ROLES = frozenset({"Administrator", "System Manager"})
 PROTECTED_USERS = frozenset({"Administrator", "Guest"})
+RESERVED_ROLE_NAMES = frozenset(
+	{"Administrator", "Guest", "All", "Desk User", "System Manager"}
+)
 
 PERM_RIGHTS = (
 	"select",
@@ -150,11 +153,7 @@ def _parse(data):
 
 
 def _get_settings():
-	if not frappe.db.exists(SETTINGS):
-		doc = frappe.new_doc(SETTINGS)
-		doc.insert(ignore_permissions=True)
-		return doc
-	return frappe.get_doc(SETTINGS)
+	return frappe.get_single(SETTINGS)
 
 
 def _allowed_doctypes() -> list[str]:
@@ -283,6 +282,159 @@ def save_display_roles(data):
 		"selected_roles": _display_roles(doc),
 		"selected_role_profiles": _display_role_profiles(doc),
 	}
+
+
+def _save_settings(settings):
+	settings.flags.ignore_permissions = True
+	settings.save(ignore_permissions=True)
+	frappe.db.commit()
+
+
+def _append_child_if_missing(settings, table_field: str, link_field: str, value: str):
+	if not value:
+		return
+	for row in settings.get(table_field) or []:
+		if getattr(row, link_field, None) == value:
+			return
+	settings.append(table_field, {link_field: value})
+
+
+def _append_display_role(role: str) -> list[str]:
+	"""Add Role to DMS CRM User Settings → Roles Table MultiSelect."""
+	settings = _get_settings()
+	_append_child_if_missing(settings, "roles", "role", role)
+	_save_settings(settings)
+	return _display_roles(settings)
+
+
+def _append_display_role_profile(role_profile: str) -> list[str]:
+	"""Add Role Profile to DMS CRM User Settings → Role Profiles Table MultiSelect."""
+	settings = _get_settings()
+	_append_child_if_missing(settings, "role_profiles", "role_profile", role_profile)
+	_save_settings(settings)
+	return _display_role_profiles(settings)
+
+
+@frappe.whitelist()
+def create_role(role_name: str | None = None, desk_access: int | str = 1):
+	"""Create a Role and add it to the Advanced Permission display list."""
+	_assert_manager()
+	role_name = (role_name or "").strip()
+	if not role_name:
+		frappe.throw(_("Role name is required."))
+	if role_name in RESERVED_ROLE_NAMES:
+		frappe.throw(_("Cannot create reserved role {0}.").format(frappe.bold(role_name)))
+	if frappe.db.exists("Role", role_name):
+		frappe.throw(_("Role {0} already exists.").format(frappe.bold(role_name)))
+
+	doc = frappe.new_doc("Role")
+	doc.role_name = role_name
+	doc.desk_access = 1 if cint(desk_access) else 0
+	if doc.meta.has_field("is_custom"):
+		doc.is_custom = 1
+	doc.insert(ignore_permissions=True)
+	selected_roles = _append_display_role(doc.name)
+	return {
+		"ok": True,
+		"name": doc.name,
+		"selected_roles": selected_roles,
+		"selected_role_profiles": _display_role_profiles(_get_settings()),
+	}
+
+
+@frappe.whitelist()
+def create_role_profile(data=None):
+	"""Create a Role Profile (with optional roles) and add it to the display list."""
+	_assert_manager()
+	data = _parse(data)
+	name = (data.get("role_profile") or data.get("name") or "").strip()
+	if not name:
+		frappe.throw(_("Role Profile name is required."))
+	if frappe.db.exists("Role Profile", name):
+		frappe.throw(_("Role Profile {0} already exists.").format(frappe.bold(name)))
+
+	crm_roles = set(_crm_roles())
+	roles = []
+	seen = set()
+	for role in data.get("roles") or []:
+		role = (role or "").strip()
+		if not role or role in seen:
+			continue
+		if role in RESERVED_ROLE_NAMES:
+			continue
+		if role not in crm_roles:
+			frappe.throw(
+				_("Role {0} is not in the Roles list on DMS CRM User Settings.").format(
+					frappe.bold(role)
+				)
+			)
+		if not frappe.db.exists("Role", role):
+			frappe.throw(_("Role {0} does not exist.").format(frappe.bold(role)))
+		seen.add(role)
+		roles.append(role)
+
+	doc = frappe.new_doc("Role Profile")
+	doc.role_profile = name
+	for role in roles:
+		doc.append("roles", {"role": role})
+	doc.insert(ignore_permissions=True)
+	selected_profiles = _append_display_role_profile(doc.name)
+	return {
+		"ok": True,
+		"name": doc.name,
+		"selected_roles": _display_roles(_get_settings()),
+		"selected_role_profiles": selected_profiles,
+	}
+
+
+def _assert_display_role_profile(name: str):
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Role Profile is required."))
+	if not frappe.db.exists("Role Profile", name):
+		frappe.throw(_("Role Profile {0} does not exist.").format(frappe.bold(name)))
+	allowed = set(_display_role_profiles(_get_settings()))
+	if name not in allowed:
+		frappe.throw(
+			_("Role Profile {0} is not on DMS CRM User Settings.").format(frappe.bold(name))
+		)
+
+
+def _role_profile_payload(name: str) -> dict:
+	doc = frappe.get_doc("Role Profile", name)
+	return {
+		"name": doc.name,
+		"roles": [r.role for r in (doc.get("roles") or []) if getattr(r, "role", None)],
+	}
+
+
+@frappe.whitelist()
+def get_role_profile(name: str | None = None):
+	"""Roles assigned to a Role Profile shown on Advanced Permission."""
+	_assert_manager()
+	_assert_display_role_profile(name or "")
+	return _role_profile_payload(name)
+
+
+@frappe.whitelist()
+def remove_role_from_profile(role_profile: str | None = None, role: str | None = None):
+	"""Remove a role from a Role Profile. Does not change user assignments."""
+	_assert_manager()
+	role_profile = (role_profile or "").strip()
+	role = (role or "").strip()
+	_assert_display_role_profile(role_profile)
+	if not role:
+		frappe.throw(_("Role is required."))
+
+	doc = frappe.get_doc("Role Profile", role_profile)
+	keep = [r.role for r in (doc.get("roles") or []) if getattr(r, "role", None) and r.role != role]
+	doc.set("roles", [])
+	for remaining in keep:
+		doc.append("roles", {"role": remaining})
+	doc.flags.ignore_permissions = True
+	doc.save(ignore_permissions=True)
+	frappe.db.commit()
+	return _role_profile_payload(role_profile)
 
 
 @frappe.whitelist()
