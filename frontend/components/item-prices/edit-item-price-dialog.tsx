@@ -162,7 +162,7 @@ export function EditItemPriceDialog({
             <DialogTitle>{createMode ? 'New item price' : 'Edit item price'}</DialogTitle>
             <DialogDescription>
               {createMode
-                ? 'Create a selling price on the default or selected price list.'
+                ? 'Create a selling price for an item in a vehicle or spare-parts item group.'
                 : `Update rate for ${itemPrice?.item_code || 'item'}`}
             </DialogDescription>
           </DialogHeader>
@@ -176,7 +176,7 @@ export function EditItemPriceDialog({
                     value={form.item_code}
                     onValueChange={(v) => setForm((p) => ({ ...p, item_code: v }))}
                     onSearchChange={setItemSearch}
-                    placeholder="Search spare parts / items..."
+                    placeholder="Search spare parts…"
                   />
                 </div>
                 <div className="space-y-1">

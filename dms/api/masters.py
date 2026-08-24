@@ -26,6 +26,22 @@ def _meta_fields(doctype: str, candidates: list[str]) -> list[str]:
 	return [f for f in candidates if meta.has_field(f)]
 
 
+def _count(doctype: str, filters=None, or_filters=None) -> int:
+	"""COUNT(*) that supports or_filters. frappe.db.count() does not."""
+	if not or_filters:
+		return frappe.db.count(doctype, filters=filters)
+	from frappe.query_builder.functions import Count
+
+	result = frappe.qb.get_query(
+		table=doctype,
+		filters=filters,
+		or_filters=or_filters,
+		fields=Count("*"),
+		distinct=True,
+	).run()
+	return cint(result[0][0]) if result else 0
+
+
 # ── Spare Parts (Spare Part + linked Item) ───────────────────────────────────
 
 
@@ -83,7 +99,7 @@ def list_spare_parts(search=None, include_discontinued=0, limit=50, offset=0):
 		limit_start=offset,
 		order_by="item_name asc",
 	)
-	total = frappe.db.count("Spare Part", filters=filters or None, or_filters=or_filters)
+	total = _count("Spare Part", filters=filters or None, or_filters=or_filters)
 
 	names = [r["name"] for r in rows]
 	item_names = [
@@ -188,9 +204,8 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 			["custom_service_code", "like", q],
 		]
 
-	and_filters = None
 	if vehicle_model:
-		and_filters = {"custom_vehicle_model": vehicle_model}
+		filters["custom_vehicle_model"] = vehicle_model
 
 	fields = ["name", "service_item", "custom_item_name", "custom_vehicle_model", "custom_category", "custom_estimated_timehours", "custom_description", "disabled"] + _meta_fields(
 		"Vehicle Service Item",
@@ -204,33 +219,16 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 		],
 	)
 
-	if search and str(search).strip():
-		rows = frappe.get_all(
-			"Vehicle Service Item",
-			fields=fields,
-			filters=filters or None,
-			or_filters=or_filters,
-			and_filters=and_filters,
-			limit=limit,
-			limit_start=offset,
-			order_by="service_item asc",
-		)
-		total = frappe.db.count(
-			"Vehicle Service Item",
-			filters=filters or None,
-			or_filters=or_filters,
-		)
-	else:
-		rows = frappe.get_all(
-			"Vehicle Service Item",
-			fields=fields,
-			filters=filters or None,
-			and_filters=and_filters,
-			limit=limit,
-			limit_start=offset,
-			order_by="service_item asc",
-		)
-		total = frappe.db.count("Vehicle Service Item", filters=filters or None, and_filters=and_filters)
+	rows = frappe.get_all(
+		"Vehicle Service Item",
+		fields=fields,
+		filters=filters or None,
+		or_filters=or_filters,
+		limit=limit,
+		limit_start=offset,
+		order_by="service_item asc",
+	)
+	total = _count("Vehicle Service Item", filters=filters or None, or_filters=or_filters)
 
 	item_codes = [r.get("custom_erpnext_item") for r in rows if r.get("custom_erpnext_item")]
 	item_map: dict[str, dict] = {}
@@ -303,9 +301,15 @@ def update_vehicle_service_item(name, data):
 def list_item_prices(search=None, price_list=None, selling=1, limit=50, offset=0):
 	frappe.has_permission("Item Price", "read", throw=True)
 
+	from dms.utils.spare_part_auto_create import get_aftersales_spare_part_item_codes
+
 	limit = cint(limit) or 50
 	offset = cint(offset) or 0
-	filters: dict = {}
+	item_codes = get_aftersales_spare_part_item_codes()
+	if not item_codes:
+		return {"data": [], "total": 0}
+
+	filters: dict = {"item_code": ["in", item_codes]}
 	if selling:
 		filters["selling"] = 1
 	if price_list and str(price_list).strip():
@@ -322,13 +326,13 @@ def list_item_prices(search=None, price_list=None, selling=1, limit=50, offset=0
 	rows = frappe.get_all(
 		"Item Price",
 		fields=["name", "item_code", "item_name", "price_list", "price_list_rate", "currency", "uom", "selling", "buying", "valid_from", "valid_upto"],
-		filters=filters or None,
+		filters=filters,
 		or_filters=or_filters,
 		limit=limit,
 		limit_start=offset,
 		order_by="item_code asc",
 	)
-	total = frappe.db.count("Item Price", filters=filters or None, or_filters=or_filters)
+	total = _count("Item Price", filters=filters, or_filters=or_filters)
 
 	return {"data": rows, "total": total}
 
@@ -365,6 +369,16 @@ def create_item_price(data):
 	item_code = (data.get("item_code") or "").strip()
 	if not item_code:
 		frappe.throw(_("Item Code is required."))
+
+	from dms.utils.spare_part_auto_create import item_is_aftersales_spare_part
+
+	if not item_is_aftersales_spare_part(item_code):
+		frappe.throw(
+			_(
+				"Item Price can only be created for items whose Item Group has "
+				"Is Vehicle or Auto Generate Spare Parts (or both)."
+			)
+		)
 
 	from dms.dealer_management_system.utils.stock_operations import (
 		get_dms_default_selling_price_list,
