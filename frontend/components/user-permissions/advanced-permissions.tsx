@@ -7,7 +7,16 @@ import { Loader2, Plus, RotateCcw, Shield, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/searchable-select';
 import * as svc from '@/services/advancedPermissions';
 import type { PermRow } from '@/services/advancedPermissions';
@@ -55,6 +64,11 @@ function ChipMultiSelect({
   value,
   onChange,
   placeholder,
+  onCreate,
+  createLabel,
+  allowAdd = true,
+  allowRemove = true,
+  onChipClick,
 }: {
   label: string;
   hint?: string;
@@ -62,11 +76,24 @@ function ChipMultiSelect({
   value: string[];
   onChange: (next: string[]) => void;
   placeholder: string;
+  onCreate?: () => void;
+  createLabel?: string;
+  allowAdd?: boolean;
+  allowRemove?: boolean;
+  onChipClick?: (item: string) => void;
 }) {
-  const remaining = options.filter((o) => !value.includes(o));
+  const remaining = allowAdd ? options.filter((o) => !value.includes(o)) : [];
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label>{label}</Label>
+        {onCreate ? (
+          <Button type="button" variant="outline" size="sm" className="h-7" onClick={onCreate}>
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            {createLabel || 'New'}
+          </Button>
+        ) : null}
+      </div>
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       <div className="flex min-h-10 flex-wrap gap-1.5 rounded-xl border bg-background px-2 py-2">
         {value.length === 0 ? (
@@ -75,17 +102,25 @@ function ChipMultiSelect({
           value.map((item) => (
             <span
               key={item}
-              className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs"
+              className={`inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs ${
+                onChipClick ? 'cursor-pointer hover:bg-muted' : ''
+              }`}
+              onClick={() => onChipClick?.(item)}
             >
               {item}
-              <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => onChange(value.filter((v) => v !== item))}
-                aria-label={`Remove ${item}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
+              {allowRemove ? (
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(value.filter((v) => v !== item));
+                  }}
+                  aria-label={`Remove ${item}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : null}
             </span>
           ))
         )}
@@ -101,6 +136,262 @@ function ChipMultiSelect({
         />
       ) : null}
     </div>
+  );
+}
+
+function CreateRoleDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (name: string, selectedRoles: string[]) => void;
+}) {
+  const [name, setName] = useState('');
+  const [deskAccess, setDeskAccess] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setDeskAccess(true);
+    }
+  }, [open]);
+
+  async function submit() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error('Role name is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await svc.createRole(trimmed, deskAccess ? 1 : 0);
+      onCreated(res.name, res.selected_roles || []);
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to create role');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>New Role</DialogTitle>
+          <DialogDescription>
+            Creates a Frappe Role and adds it to the list used on this screen.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label>Role name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Service Advisor"
+              autoFocus
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={deskAccess} onCheckedChange={(c) => setDeskAccess(Boolean(c))} />
+            Desk access
+          </label>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={saving} onClick={() => void submit()}>
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Create Role
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreateRoleProfileDialog({
+  open,
+  onOpenChange,
+  roleOptions,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  roleOptions: string[];
+  onCreated: (name: string, selectedProfiles: string[]) => void;
+}) {
+  const [name, setName] = useState('');
+  const [roles, setRoles] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setRoles([]);
+    }
+  }, [open]);
+
+  async function submit() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error('Role Profile name is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await svc.createRoleProfile({ role_profile: trimmed, roles });
+      onCreated(res.name, res.selected_role_profiles || []);
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to create role profile');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>New Role Profile</DialogTitle>
+          <DialogDescription>
+            Creates a Role Profile you can assign to users. The role list is the same Roles
+            Table MultiSelect on DMS CRM User Settings.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label>Profile name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Aftersales Staff"
+              autoFocus
+            />
+          </div>
+          <ChipMultiSelect
+            label="Roles in this profile"
+            hint="Only roles already on DMS CRM User Settings → Roles."
+            options={roleOptions}
+            value={roles}
+            onChange={setRoles}
+            placeholder={
+              roleOptions.length
+                ? "Add roles from DMS CRM User Settings…"
+                : "No roles on DMS CRM User Settings yet — create or select roles first"
+            }
+          />
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={saving} onClick={() => void submit()}>
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Create Role Profile
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RoleProfileRolesDialog({
+  profile,
+  onOpenChange,
+}: {
+  profile: string | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [roles, setRoles] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile) {
+      setRoles([]);
+      return;
+    }
+    setLoading(true);
+    svc
+      .getRoleProfile(profile)
+      .then((d) => setRoles(d.roles || []))
+      .catch((e) => toast.error(e instanceof Error ? e.message : 'Failed to load role profile'))
+      .finally(() => setLoading(false));
+  }, [profile]);
+
+  async function removeRole(role: string) {
+    if (!profile) return;
+    setRemoving(role);
+    try {
+      const d = await svc.removeRoleFromProfile(profile, role);
+      setRoles(d.roles || []);
+      toast.success(`Removed ${role}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to remove role');
+    } finally {
+      setRemoving(null);
+    }
+  }
+
+  return (
+    <Dialog open={Boolean(profile)} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{profile || 'Role Profile'}</DialogTitle>
+          <DialogDescription>
+            Roles in this profile. Removing a role here updates the Role Profile; it does not
+            assign the profile to any user.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-h-24 py-2">
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : roles.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No roles in this profile.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {roles.map((role) => (
+                <li
+                  key={role}
+                  className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
+                >
+                  <span>{role}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-destructive hover:text-destructive"
+                    disabled={removing === role}
+                    onClick={() => void removeRole(role)}
+                  >
+                    {removing === role ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -128,29 +419,11 @@ function AdvancedBody({
   data: svc.AdvancedBootstrap;
   onRefresh: () => void;
 }) {
-  const allRoles = data.all_roles || [];
-  const allProfiles = data.all_role_profiles || [];
-  const [shownRoles, setShownRoles] = useState<string[]>(data.selected_roles || []);
-  const [shownProfiles, setShownProfiles] = useState<string[]>(data.selected_role_profiles || []);
-  const [savingDisplay, setSavingDisplay] = useState(false);
-
-  const pickerRoles = shownRoles;
-  const pickerProfiles = shownProfiles;
-
-  async function saveDisplay() {
-    setSavingDisplay(true);
-    try {
-      const res = await svc.saveDisplayRoles({ roles: shownRoles, role_profiles: shownProfiles });
-      setShownRoles(res.selected_roles);
-      setShownProfiles(res.selected_role_profiles);
-      toast.success('Visible roles and role profiles saved');
-      onRefresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to save');
-    } finally {
-      setSavingDisplay(false);
-    }
-  }
+  const shownRoles = data.selected_roles || [];
+  const shownProfiles = data.selected_role_profiles || [];
+  const [createRoleOpen, setCreateRoleOpen] = useState(false);
+  const [createProfileOpen, setCreateProfileOpen] = useState(false);
+  const [viewProfile, setViewProfile] = useState<string | null>(null);
 
   return (
     <div className="space-y-4 border-t pt-8">
@@ -169,43 +442,73 @@ function AdvancedBody({
         <CardHeader>
           <CardTitle className="text-base">Roles &amp; Role Profiles on this screen</CardTitle>
           <CardDescription>
-            Same lists as the Table MultiSelect on DMS CRM User Settings. They control which roles
-            and role profiles appear below.
+            These lists come from DMS CRM User Settings. Roles are maintained from Desk. Role
+            Profiles are created here (or on Desk) and stored on that same settings document.
+            Click a Role Profile to see its roles.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <ChipMultiSelect
               label="Roles"
-              hint="Only these roles appear in Role Permission Manager. Same list as Roles on DMS CRM User Settings."
-              options={allRoles}
+              hint="Only these roles appear in Role Permission Manager. Same list as Roles on DMS CRM User Settings. Add or remove roles from Desk."
+              options={shownRoles}
               value={shownRoles}
-              onChange={setShownRoles}
-              placeholder="No roles selected yet — add the DMS/CRM roles you use"
+              onChange={() => {}}
+              allowAdd={false}
+              allowRemove={false}
+              placeholder="No roles on DMS CRM User Settings yet"
+              onCreate={() => setCreateRoleOpen(true)}
+              createLabel="New Role"
             />
             <ChipMultiSelect
               label="Role Profiles"
-              hint="Role Profiles work like ERPNext: applying a profile sets that user’s roles."
-              options={allProfiles}
+              hint="Role Profiles work like ERPNext: applying a profile sets that user’s roles. Click a profile to view or remove its roles."
+              options={shownProfiles}
               value={shownProfiles}
-              onChange={setShownProfiles}
-              placeholder="No role profiles selected yet"
+              onChange={() => {}}
+              allowAdd={false}
+              allowRemove={false}
+              onChipClick={setViewProfile}
+              placeholder="No role profiles on DMS CRM User Settings yet"
+              onCreate={() => setCreateProfileOpen(true)}
+              createLabel="New Role Profile"
             />
           </div>
-          <Button onClick={() => void saveDisplay()} disabled={savingDisplay}>
-            {savingDisplay ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Save lists
-          </Button>
         </CardContent>
       </Card>
 
-      <AssignUserRoles
-        users={data.whitelisted_users || []}
-        roles={pickerRoles}
-        profiles={pickerProfiles}
+      <CreateRoleDialog
+        open={createRoleOpen}
+        onOpenChange={setCreateRoleOpen}
+        onCreated={() => {
+          toast.success('Role created and added to DMS CRM User Settings');
+          onRefresh();
+        }}
+      />
+      <CreateRoleProfileDialog
+        open={createProfileOpen}
+        onOpenChange={setCreateProfileOpen}
+        roleOptions={[...shownRoles].sort()}
+        onCreated={() => {
+          toast.success('Role Profile created and added to DMS CRM User Settings');
+          onRefresh();
+        }}
+      />
+      <RoleProfileRolesDialog
+        profile={viewProfile}
+        onOpenChange={(open) => {
+          if (!open) setViewProfile(null);
+        }}
       />
 
-      <RolePermissionGrid doctypes={data.doctypes || []} roles={pickerRoles} />
+      <AssignUserRoles
+        users={data.whitelisted_users || []}
+        roles={shownRoles}
+        profiles={shownProfiles}
+      />
+
+      <RolePermissionGrid doctypes={data.doctypes || []} roles={shownRoles} />
     </div>
   );
 }
