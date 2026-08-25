@@ -304,20 +304,28 @@ function CreateRoleProfileDialog({
 
 function RoleProfileRolesDialog({
   profile,
+  roleOptions,
   onOpenChange,
 }: {
   profile: string | null;
+  roleOptions: string[];
   onOpenChange: (open: boolean) => void;
 }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const remaining = roleOptions.filter((o) => !roles.includes(o));
 
   useEffect(() => {
     if (!profile) {
       setRoles([]);
+      setPickerOpen(false);
       return;
     }
+    setPickerOpen(false);
     setLoading(true);
     svc
       .getRoleProfile(profile)
@@ -325,6 +333,20 @@ function RoleProfileRolesDialog({
       .catch((e) => toast.error(e instanceof Error ? e.message : 'Failed to load role profile'))
       .finally(() => setLoading(false));
   }, [profile]);
+
+  async function addRole(role: string) {
+    if (!profile || !role) return;
+    setAdding(true);
+    try {
+      const d = await svc.addRoleToProfile(profile, role);
+      setRoles(d.roles || []);
+      toast.success(`Added ${role}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to add role');
+    } finally {
+      setAdding(false);
+    }
+  }
 
   async function removeRole(role: string) {
     if (!profile) return;
@@ -342,23 +364,51 @@ function RoleProfileRolesDialog({
 
   return (
     <Dialog open={Boolean(profile)} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="overflow-visible sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{profile || 'Role Profile'}</DialogTitle>
           <DialogDescription>
-            Roles in this profile. Removing a role here updates the Role Profile; it does not
-            assign the profile to any user.
+            Roles in this profile. Adding or removing a role here updates the Role Profile; it does
+            not assign the profile to any user.
           </DialogDescription>
         </DialogHeader>
-        <div className="min-h-24 py-2">
+        <div className="min-h-24 space-y-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label>Roles</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7"
+              disabled={loading || adding || remaining.length === 0}
+              onClick={() => setPickerOpen((open) => !open)}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Add
+            </Button>
+          </div>
+          {pickerOpen && remaining.length > 0 ? (
+            <SearchableSelect
+              options={remaining.map((o) => ({ value: o, label: o }))}
+              value=""
+              onValueChange={(v) => {
+                if (v) void addRole(v);
+              }}
+              placeholder="Choose a role…"
+              emptyMessage="No more roles on DMS CRM User Settings"
+              disabled={adding}
+            />
+          ) : null}
           {loading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : roles.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No roles in this profile.</p>
+            <p className="text-sm text-muted-foreground">
+              No roles in this profile.{remaining.length ? ' Use Add to choose roles.' : ''}
+            </p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="max-h-64 space-y-1.5 overflow-y-auto">
               {roles.map((role) => (
                 <li
                   key={role}
@@ -370,7 +420,7 @@ function RoleProfileRolesDialog({
                     variant="ghost"
                     size="sm"
                     className="h-7 text-destructive hover:text-destructive"
-                    disabled={removing === role}
+                    disabled={removing === role || adding}
                     onClick={() => void removeRole(role)}
                   >
                     {removing === role ? (
@@ -384,6 +434,16 @@ function RoleProfileRolesDialog({
               ))}
             </ul>
           )}
+          {!loading && remaining.length === 0 && roleOptions.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              All roles from DMS CRM User Settings are already in this profile.
+            </p>
+          ) : null}
+          {!loading && roleOptions.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No roles on DMS CRM User Settings yet — create or select roles first.
+            </p>
+          ) : null}
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -444,7 +504,7 @@ function AdvancedBody({
           <CardDescription>
             These lists come from DMS CRM User Settings. Roles are maintained from Desk. Role
             Profiles are created here (or on Desk) and stored on that same settings document.
-            Click a Role Profile to see its roles.
+            Click a Role Profile to see its roles and add more.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -463,7 +523,7 @@ function AdvancedBody({
             />
             <ChipMultiSelect
               label="Role Profiles"
-              hint="Role Profiles work like ERPNext: applying a profile sets that user’s roles. Click a profile to view or remove its roles."
+              hint="Role Profiles work like ERPNext: applying a profile sets that user’s roles. Click a profile to view, add, or remove its roles."
               options={shownProfiles}
               value={shownProfiles}
               onChange={() => {}}
@@ -497,6 +557,7 @@ function AdvancedBody({
       />
       <RoleProfileRolesDialog
         profile={viewProfile}
+        roleOptions={[...shownRoles].sort()}
         onOpenChange={(open) => {
           if (!open) setViewProfile(null);
         }}

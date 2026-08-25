@@ -109,6 +109,16 @@ export async function removeRoleFromProfile(
   });
 }
 
+export async function addRoleToProfile(
+  role_profile: string,
+  role: string
+): Promise<{ name: string; roles: string[] }> {
+  return apiRequest(`/api/method/${API}.add_role_to_profile`, {
+    method: 'POST',
+    body: JSON.stringify({ role_profile, role }),
+  });
+}
+
 export async function getRolePermissions(doctype?: string, role?: string): Promise<PermRow[]> {
   return apiRequest(`/api/method/${API}.get_role_permissions`, {
     method: 'POST',

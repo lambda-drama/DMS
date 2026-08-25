@@ -408,6 +408,27 @@ def _role_profile_payload(name: str) -> dict:
 	}
 
 
+def _assert_addable_profile_role(role: str):
+	role = (role or "").strip()
+	if not role:
+		frappe.throw(_("Role is required."))
+	if role in RESERVED_ROLE_NAMES:
+		frappe.throw(_("Role {0} cannot be added to a Role Profile.").format(frappe.bold(role)))
+	_assert_crm_role(role)
+	if not frappe.db.exists("Role", role):
+		frappe.throw(_("Role {0} does not exist.").format(frappe.bold(role)))
+	return role
+
+
+def _save_role_profile_roles(doc, roles: list[str]):
+	doc.set("roles", [])
+	for remaining in roles:
+		doc.append("roles", {"role": remaining})
+	doc.flags.ignore_permissions = True
+	doc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+
 @frappe.whitelist()
 def get_role_profile(name: str | None = None):
 	"""Roles assigned to a Role Profile shown on Advanced Permission."""
@@ -428,12 +449,22 @@ def remove_role_from_profile(role_profile: str | None = None, role: str | None =
 
 	doc = frappe.get_doc("Role Profile", role_profile)
 	keep = [r.role for r in (doc.get("roles") or []) if getattr(r, "role", None) and r.role != role]
-	doc.set("roles", [])
-	for remaining in keep:
-		doc.append("roles", {"role": remaining})
-	doc.flags.ignore_permissions = True
-	doc.save(ignore_permissions=True)
-	frappe.db.commit()
+	_save_role_profile_roles(doc, keep)
+	return _role_profile_payload(role_profile)
+
+
+@frappe.whitelist()
+def add_role_to_profile(role_profile: str | None = None, role: str | None = None):
+	"""Add a role to a Role Profile. Does not assign the profile to any user."""
+	_assert_manager()
+	role_profile = (role_profile or "").strip()
+	role = _assert_addable_profile_role(role or "")
+	_assert_display_role_profile(role_profile)
+
+	doc = frappe.get_doc("Role Profile", role_profile)
+	existing = [r.role for r in (doc.get("roles") or []) if getattr(r, "role", None)]
+	if role not in existing:
+		_save_role_profile_roles(doc, existing + [role])
 	return _role_profile_payload(role_profile)
 
 
