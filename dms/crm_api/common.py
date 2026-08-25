@@ -99,9 +99,9 @@ def get_territories(search=None, limit=50, is_group=0):
 	search = (search or "").strip()
 	if search:
 		q = f"%{search}%"
-		or_filters = {"name": ["like", q]}
+		or_filters = [["name", "like", q]]
 		if frappe.get_meta("Territory").has_field("territory_name"):
-			or_filters["territory_name"] = ["like", q]
+			or_filters.append(["territory_name", "like", q])
 	fields = ["name"]
 	if frappe.get_meta("Territory").has_field("territory_name"):
 		fields.append("territory_name")

@@ -493,7 +493,13 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
               </div>
               <div>
                 <FieldLabel>Language</FieldLabel>
-                <Input value={form.language} onChange={(e) => set('language', e.target.value)} />
+                <SearchableSelect
+                  options={options?.languages || []}
+                  value={form.language}
+                  onValueChange={(v) => set('language', v || '')}
+                  placeholder="Select language…"
+                  emptyMessage="No languages configured"
+                />
               </div>
               <div>
                 <FieldLabel>Customer Type</FieldLabel>

@@ -129,6 +129,25 @@ def get_lead_form_options():
 	countries = []
 	if frappe.db.exists("DocType", "Country"):
 		countries = frappe.get_all("Country", pluck="name", order_by="name asc", limit_page_length=500)
+
+	languages = []
+	if frappe.db.exists("DocType", "Language"):
+		lang_fields = ["name"]
+		lang_meta = frappe.get_meta("Language")
+		if lang_meta.has_field("language_name"):
+			lang_fields.append("language_name")
+		lang_rows = frappe.get_all(
+			"Language",
+			fields=lang_fields,
+			order_by="language_name asc, name asc"
+			if "language_name" in lang_fields
+			else "name asc",
+			limit_page_length=500,
+		)
+		languages = [
+			{"value": row.name, "label": row.get("language_name") or row.name}
+			for row in lang_rows
+		]
 	from dms.dealer_management_system.utils.crm_user_settings import get_lead_sales_persons
 
 	sales_person_ids = get_lead_sales_persons()
@@ -180,6 +199,7 @@ def get_lead_form_options():
 		"new_or_used": ["New", "Used", "Either"],
 		"branches": branches,
 		"countries": countries,
+		"languages": languages,
 		"companies": companies,
 		"default_company": default_company,
 		"currency": currency,
@@ -447,7 +467,9 @@ def convert_lead_to_opportunity(name, data=None):
 		return {"lead": get_lead(lead.name), "opportunity": opp.name, "customer": customer}
 
 	opp = frappe.new_doc("DMS CRM Opportunity")
-	opp.title = payload.get("title") or f"{lead.lead_name} — {lead.model or 'Opportunity'}"
+	opp.title = payload.get("title") or (
+		f"{lead.lead_name} — {lead.model}" if lead.model else (lead.lead_name or "Deal")
+	)
 	opp.lead = lead.name
 	opp.customer = customer
 	opp.organization_name = lead.organization_name

@@ -108,7 +108,13 @@ export default function CrmSalesAppointmentNewPage() {
         branch: form.branch || null,
         agenda: form.agenda || null,
       });
-      navigate('crm-sales-appointment-detail', { id: String(result.name) });
+      if (presetDeal) {
+        navigate('crm-opportunity-detail', { id: presetDeal });
+      } else if (presetCustomer) {
+        navigate('crm-customer-detail', { id: presetCustomer });
+      } else {
+        navigate('crm-sales-appointment-detail', { id: String(result.name) });
+      }
     } catch (e: unknown) {
       showError(e, 'Failed to book appointment');
     } finally {

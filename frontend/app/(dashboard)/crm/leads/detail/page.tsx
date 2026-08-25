@@ -265,7 +265,7 @@ export default function CrmLeadDetailPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">
-                Existing Customer (optional)
+                Customer
               </label>
               <CrmCustomerLink
                 value={conversionCustomer}
@@ -273,7 +273,31 @@ export default function CrmLeadDetailPage() {
                   setConversionCustomer(value || '');
                   if (value) setCreateCustomer(false);
                 }}
+                createDefaults={{
+                  customer_name:
+                    String(doc.organization_name || '').trim() ||
+                    String(doc.lead_name || '').trim() ||
+                    [doc.first_name, doc.last_name].filter(Boolean).map(String).join(' '),
+                  mobile_no: String(doc.mobile_no || doc.phone || ''),
+                  email_id: String(doc.email || ''),
+                  customer_type: [
+                    'Company',
+                    'Government',
+                    'Embassy',
+                    'NGO',
+                    'Fleet Operator',
+                    'Taxi / Mobility',
+                    'Leasing / Rental',
+                    'Dealer / Reseller',
+                  ].includes(String(doc.customer_type || ''))
+                    ? 'Company'
+                    : 'Individual',
+                }}
               />
+              <p className="text-xs text-muted-foreground">
+                Search an existing customer, or use Create customer — it opens a modal and
+                selects the new record automatically.
+              </p>
             </div>
             {!conversionCustomer ? (
               <label className="flex items-center gap-2 text-sm">
@@ -282,7 +306,7 @@ export default function CrmLeadDetailPage() {
                   checked={createCustomer}
                   onChange={(event) => setCreateCustomer(event.target.checked)}
                 />
-                Create an ERPNext Customer from this lead, then link it to the deal
+                Auto-create customer from this lead on convert (if none selected)
               </label>
             ) : null}
             <div className="flex justify-end gap-2">

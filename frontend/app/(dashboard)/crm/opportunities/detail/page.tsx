@@ -7,7 +7,6 @@ import {
   createSalesInvoiceFromOpportunity,
   createSalesOrderFromOpportunity,
   createTestDrive,
-  createQuotationFromOpportunity,
   createDeliveryReadiness,
   allocateVin,
   approveAllocationSwitch,
@@ -19,7 +18,6 @@ import {
   fetchCrmBranches,
   fetchOpportunityFormOptions,
   getOpportunity,
-  getQuotationPreview,
   listAccounts,
   listTenders,
   markOpportunityWon,
@@ -32,7 +30,7 @@ import { CrmCustomerLink } from '@/components/crm/crm-customer-link';
 import { CrmBrandLink } from '@/components/crm/crm-brand-link';
 import { CrmColorLink } from '@/components/crm/crm-color-link';
 import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
-import { CrmItemLink } from '@/components/crm/crm-item-link';
+import { CrmSparePartLink } from '@/components/crm/crm-spare-part-link';
 import { CrmVinLink } from '@/components/crm/crm-vin-link';
 import { Button } from '@/components/ui/button';
 import { AddLineButton } from '@/components/ui/add-line-button';
@@ -44,6 +42,7 @@ import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
 import { PipelinePath } from '@/components/crm/pipeline-path';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
+import { CreateQuotationDialog } from '@/components/crm/create-quotation-dialog';
 import { Loader2, Trash2 } from 'lucide-react';
 
 const DEAL_PATH = [
@@ -246,9 +245,9 @@ export default function CrmOpportunityDetailPage() {
     () => listTenders({ search: tenderSearch || undefined, limit: 30 })
   );
   const [pipelinePanel, setPipelinePanel] = useState<
-    '' | 'appointment' | 'test-drive' | 'quotation' | 'booking' | 'invoice'
+    '' | 'appointment' | 'test-drive' | 'booking' | 'invoice'
   >('');
-  const [applyQuotationTaxes, setApplyQuotationTaxes] = useState(false);
+  const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const [appointmentForm, setAppointmentForm] = useState({
     appointment_datetime: '',
     appointment_type: 'Showroom Appointment',
@@ -298,12 +297,6 @@ export default function CrmOpportunityDetailPage() {
     ['crm-opp-detail-branches', form.company],
     () => fetchCrmBranches(form.company || undefined),
     { keepPreviousData: true }
-  );
-  const { data: quotationPreview, isLoading: quotationPreviewLoading } = useSWR(
-    id && pipelinePanel === 'quotation'
-      ? ['crm-quotation-preview', id, applyQuotationTaxes]
-      : null,
-    () => getQuotationPreview(id, applyQuotationTaxes)
   );
   const { data: allocatableVins, isLoading: allocatableLoading } = useSWR(
     ['crm-opp-allocate-vins', allocateSearch, form.company, form.model],
@@ -450,16 +443,18 @@ export default function CrmOpportunityDetailPage() {
   const onPipelineStageClick = (stage: string) => {
     if (stage === 'Appointment Scheduled') {
       if (linked.appointment) {
-        navigate('crm-sales-appointment-detail', { id: linked.appointment });
+        document
+          .getElementById('deal-sales-appointment')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } else setPipelinePanel('appointment');
     } else if (stage === 'Test Drive') {
       if (linked.testDrive) navigate('crm-test-drive-detail', { id: linked.testDrive });
       else setPipelinePanel('test-drive');
     } else if (stage === 'Quotation Submitted') {
       if (linked.quotation) navigate('crm-quotation-detail', { id: linked.quotation });
-      else setPipelinePanel('quotation');
+      else setQuotationDialogOpen(true);
     } else if (stage === 'Negotiation') {
-      if (!linked.quotation) setPipelinePanel('quotation');
+      if (!linked.quotation) setQuotationDialogOpen(true);
       else setForm((prev) => ({ ...prev, stage: 'Negotiation' }));
     } else if (stage === 'Booking / Deposit') {
       if (linked.booking) openDeskDoc('DMS CRM Booking', linked.booking);
@@ -474,7 +469,7 @@ export default function CrmOpportunityDetailPage() {
   };
 
   const runPipelineAction = async (
-    action: '' | 'appointment' | 'test-drive' | 'quotation' | 'negotiation' | 'booking' | 'invoice' | 'won'
+    action: '' | 'appointment' | 'test-drive' | 'negotiation' | 'booking' | 'invoice' | 'won'
   ) => {
     if (!action) return;
     clear();
@@ -485,14 +480,9 @@ export default function CrmOpportunityDetailPage() {
           ...appointmentForm,
           duration_minutes: Number(appointmentForm.duration_minutes || 60),
         });
-        const appointment = String(
-          (result as Record<string, unknown>)?.appointment
-            ? ((result as Record<string, unknown>).appointment as Record<string, unknown>).name
-            : ''
-        );
         await mutate();
         setPipelinePanel('');
-        if (appointment) navigate('crm-sales-appointment-detail', { id: appointment });
+        showSuccess('Sales appointment scheduled on this deal.');
         return;
       } else if (action === 'test-drive') {
         const result = await createTestDrive({ opportunity: id, ...testDriveForm });
@@ -501,16 +491,6 @@ export default function CrmOpportunityDetailPage() {
         setPipelinePanel('');
         if (testDrive) navigate('crm-test-drive-detail', { id: testDrive });
         return;
-      } else if (action === 'quotation') {
-        await updateOpportunity(id, payload());
-        const result = await createQuotationFromOpportunity(id, false, applyQuotationTaxes);
-        const quotation = String((result as { quotation?: string })?.quotation || '');
-        await mutate();
-        setPipelinePanel('');
-        if (quotation) {
-          navigate('crm-quotation-detail', { id: quotation });
-          return;
-        }
       } else if (action === 'negotiation') {
         await updateOpportunity(id, { ...payload(), stage: 'Negotiation', status: 'Open' });
       } else if (action === 'booking') {
@@ -745,11 +725,53 @@ export default function CrmOpportunityDetailPage() {
             </span>
           ) : null}
           <p className="text-xs text-muted-foreground">
-            Click Appointment, Test Drive, Quotation, Booking or Invoice to open its record.
-            Missing records will ask you to create them.
+            Click a path step to create or review its record here. You stay on this deal — nothing
+            jumps to another page.
           </p>
         </CardContent>
       </Card>
+
+      {linked.appointment ? (
+        <Card id="deal-sales-appointment" className="border-border/70 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Sales appointment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{linked.appointment}</span>
+              {appointmentStatus ? (
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+                  {appointmentStatus}
+                </span>
+              ) : null}
+            </div>
+            <p className="text-muted-foreground">
+              {(
+                (doc.sales_appointment_details as Record<string, unknown> | undefined)
+                  ?.appointment_datetime as string | undefined
+              )
+                ? new Date(
+                    String(
+                      (doc.sales_appointment_details as Record<string, unknown>).appointment_datetime
+                    )
+                  ).toLocaleString()
+                : '—'}
+              {' · '}
+              {String(
+                (doc.sales_appointment_details as Record<string, unknown> | undefined)
+                  ?.appointment_type || 'Showroom Appointment'
+              )}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('crm-sales-appointment-detail', { id: linked.appointment })}
+            >
+              Open full appointment record
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {linked.quotation ? (
         <Card className="border-border/70 shadow-sm">
@@ -1006,11 +1028,9 @@ export default function CrmOpportunityDetailPage() {
                 ? 'Schedule Sales Appointment'
                 : pipelinePanel === 'test-drive'
                   ? 'Schedule Test Drive'
-                  : pipelinePanel === 'quotation'
-                    ? 'Create Standard Quotation'
-                    : pipelinePanel === 'booking'
-                      ? 'Create Booking / Sales Order'
-                      : 'Create Sales Invoice'}
+                  : pipelinePanel === 'booking'
+                    ? 'Create Booking / Sales Order'
+                    : 'Create Sales Invoice'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1120,97 +1140,6 @@ export default function CrmOpportunityDetailPage() {
                   />
                 </div>
               </div>
-            ) : pipelinePanel === 'quotation' ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Review the vehicle and ERPNext item before creating the draft quotation.
-                </p>
-                {quotationPreviewLoading ? (
-                  <Skeleton className="h-28 w-full" />
-                ) : quotationPreview ? (
-                  <div className="overflow-hidden rounded-lg border border-border/70">
-                    {quotationPreview.vin ? (
-                      <div className="border-b border-border/70 bg-muted/30 px-3 py-2 text-sm">
-                        <span className="font-medium">Vehicle VIN: </span>
-                        {quotationPreview.vin.vin_number}
-                        {quotationPreview.vin.model_name
-                          ? ` · ${quotationPreview.vin.model_name}`
-                          : ''}
-                      </div>
-                    ) : null}
-                    <div className="space-y-2 p-3 text-sm">
-                      {quotationPreview.items.map((item) => (
-                        <div
-                          key={item.item_code}
-                          className="grid gap-1 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-4"
-                        >
-                          <div>
-                            <div className="font-medium">{item.item_name || item.item_code}</div>
-                            <div className="text-xs text-muted-foreground">{item.item_code}</div>
-                          </div>
-                          <div className="text-muted-foreground">
-                            {item.qty} × {item.rate.toLocaleString()}
-                          </div>
-                          <div className="font-medium">
-                            {quotationPreview.currency || ''} {item.net_amount.toLocaleString()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-1 border-t border-border/70 bg-muted/30 px-3 py-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Net total</span>
-                        <span>
-                          {quotationPreview.currency || ''}{' '}
-                          {Number(quotationPreview.net_total || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      {applyQuotationTaxes ? (
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Taxes / VAT</span>
-                          <span>
-                            {quotationPreview.currency || ''}{' '}
-                            {Number(quotationPreview.total_taxes_and_charges || 0).toLocaleString()}
-                          </span>
-                        </div>
-                      ) : null}
-                      <div className="flex justify-between font-semibold">
-                        <span>Estimated total</span>
-                        <span>
-                          {quotationPreview.currency || ''}{' '}
-                          {Number(
-                            quotationPreview.grand_total ?? quotationPreview.net_total ?? 0
-                          ).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Unable to load the quotation preview.
-                  </p>
-                )}
-                <div className="space-y-1">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={applyQuotationTaxes}
-                      onChange={(event) => setApplyQuotationTaxes(event.target.checked)}
-                    />
-                    Include taxes / tax withholding
-                  </label>
-                  <p className="pl-6 text-xs text-muted-foreground">
-                    Uses the Default Taxes and Charges Template from DMS Settings
-                    {quotationPreview?.dms_taxes_and_charges_template
-                      ? ` (${quotationPreview.dms_taxes_and_charges_template})`
-                      : ''}
-                    . Leave unchecked to create the quotation without taxes.
-                  </p>
-                  {applyQuotationTaxes && quotationPreview?.tax_error ? (
-                    <p className="pl-6 text-xs text-destructive">{quotationPreview.tax_error}</p>
-                  ) : null}
-                </div>
-              </div>
             ) : pipelinePanel === 'booking' ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -1282,11 +1211,9 @@ export default function CrmOpportunityDetailPage() {
             ) : (
               pipelinePanel !== 'appointment' && (
                 <p className="text-sm text-muted-foreground">
-                  {pipelinePanel === 'quotation'
-                    ? 'This creates a standard ERPNext Quotation from the deal items. Complete the Test Drive first.'
-                    : pipelinePanel === 'booking'
-                      ? 'This submits the Quotation and creates a draft standard Sales Order as the booking record.'
-                      : 'This submits the Sales Order and creates a draft Sales Invoice. Won remains locked until the invoice is submitted with Update Stock.'}
+                  {pipelinePanel === 'booking'
+                    ? 'This submits the Quotation and creates a draft standard Sales Order as the booking record.'
+                    : 'This submits the Sales Order and creates a draft Sales Invoice. Won remains locked until the invoice is submitted with Update Stock.'}
                 </p>
               )
             )}
@@ -1299,10 +1226,7 @@ export default function CrmOpportunityDetailPage() {
                 disabled={
                   busy ||
                   (pipelinePanel === 'appointment' && !appointmentForm.appointment_datetime) ||
-                  (pipelinePanel === 'test-drive' && !testDriveForm.scheduled_datetime) ||
-                  (pipelinePanel === 'quotation' &&
-                    applyQuotationTaxes &&
-                    Boolean(quotationPreview?.tax_error))
+                  (pipelinePanel === 'test-drive' && !testDriveForm.scheduled_datetime)
                 }
               >
                 {pipelineBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -1494,7 +1418,11 @@ export default function CrmOpportunityDetailPage() {
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base">Items</CardTitle>
+          <CardTitle className="text-base">Spare parts</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Add accessories or spare parts only. The vehicle line is taken from the completed test
+            drive when you create the quotation.
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
           {form.items.map((row, index) => (
@@ -1503,7 +1431,7 @@ export default function CrmOpportunityDetailPage() {
               className="grid gap-2 rounded-md border border-border/60 p-3 sm:grid-cols-12"
             >
               <div className="sm:col-span-5">
-                <CrmItemLink
+                <CrmSparePartLink
                   value={row.item_code}
                   valueLabel={row.item_name || row.item_code}
                   onValueChange={(v, meta) =>
@@ -1511,10 +1439,10 @@ export default function CrmOpportunityDetailPage() {
                       item_code: v || '',
                       item_name: meta?.item_name || '',
                       uom: meta?.uom || '',
-                      rate: Number(meta?.rate || row.rate || 0),
+                      rate: Number(meta?.rate ?? row.rate ?? 0),
                     })
                   }
-                  placeholder="Search item…"
+                  placeholder="Search spare part…"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -1572,7 +1500,7 @@ export default function CrmOpportunityDetailPage() {
                 items: [...prev.items, emptyOppItem()],
               }))
             }
-            label="Add item"
+            label="Add spare part"
           />
         </CardContent>
       </Card>
@@ -1847,7 +1775,9 @@ export default function CrmOpportunityDetailPage() {
                 void onStartDeliveryReadiness();
               } else if (nextAction.action === 'open-delivery-readiness') {
                 navigate('crm-delivery-readiness-detail', { id: linked.deliveryReadiness });
-              } else if (['appointment', 'test-drive', 'quotation', 'booking', 'invoice'].includes(nextAction.action)) {
+              } else if (nextAction.action === 'quotation') {
+                setQuotationDialogOpen(true);
+              } else if (['appointment', 'test-drive', 'booking', 'invoice'].includes(nextAction.action)) {
                 setPipelinePanel(nextAction.action as typeof pipelinePanel);
               } else {
                 void runPipelineAction(nextAction.action);
@@ -1860,6 +1790,20 @@ export default function CrmOpportunityDetailPage() {
           </Button>
         ) : null}
       </FormActionsBar>
+
+      <CreateQuotationDialog
+        open={quotationDialogOpen}
+        onOpenChange={setQuotationDialogOpen}
+        opportunityId={id}
+        dealPayload={payload()}
+        onError={showError}
+        onCreated={(quotation) => {
+          void mutate().then(() => {
+            showSuccess('Quotation created.');
+            navigate('crm-quotation-detail', { id: quotation });
+          });
+        }}
+      />
     </div>
   );
 }

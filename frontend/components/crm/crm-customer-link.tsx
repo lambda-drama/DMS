@@ -1,10 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { listCustomers } from '@/services/crm';
-import { useNavigation } from '@/contexts/navigation-context';
 import { SearchableSelect } from '@/components/searchable-select';
+import {
+  CreateCustomerDialog,
+  type CreateCustomerDefaults,
+} from '@/components/crm/create-customer-dialog';
 
 type Props = {
   value: string;
@@ -14,10 +17,13 @@ type Props = {
   disabled?: boolean;
   className?: string;
   allowCreate?: boolean;
+  /** Prefill create-customer modal (e.g. from a lead). */
+  createDefaults?: CreateCustomerDefaults;
 };
 
 /**
  * CRM Customer link — same searchable UX as DMS item/customer pickers.
+ * "Create customer" opens an in-place modal and auto-selects the new record.
  */
 export function CrmCustomerLink({
   value,
@@ -27,11 +33,12 @@ export function CrmCustomerLink({
   disabled,
   className,
   allowCreate = true,
+  createDefaults,
 }: Props) {
-  const { navigate } = useNavigation();
   const [search, setSearch] = useState('');
   const [localLabel, setLocalLabel] = useState(valueLabel || '');
-  const { data, isLoading } = useSWR(['crm-link-customers', search], () =>
+  const [createOpen, setCreateOpen] = useState(false);
+  const { data, isLoading, mutate } = useSWR(['crm-link-customers', search], () =>
     listCustomers({ search: search || undefined, limit: 50 })
   );
 
@@ -54,24 +61,43 @@ export function CrmCustomerLink({
     undefined;
 
   return (
-    <SearchableSelect
-      className={className}
-      options={options}
-      value={value}
-      valueLabel={selectedLabel}
-      onValueChange={(next) => {
-        const opt = options.find((o) => o.value === next);
-        const label = opt?.label || '';
-        setLocalLabel(label);
-        onValueChange(next, label || undefined);
-      }}
-      onSearchChange={setSearch}
-      placeholder={placeholder}
-      emptyMessage={data?.message || 'No customers found'}
-      isLoading={isLoading}
-      disabled={disabled}
-      onCreateNew={allowCreate ? () => navigate('crm-customer-new') : undefined}
-      createNewLabel="Create customer"
-    />
+    <>
+      <SearchableSelect
+        className={className}
+        options={options}
+        value={value}
+        valueLabel={selectedLabel}
+        onValueChange={(next) => {
+          const opt = options.find((o) => o.value === next);
+          const label = opt?.label || '';
+          setLocalLabel(label);
+          onValueChange(next, label || undefined);
+        }}
+        onSearchChange={setSearch}
+        placeholder={placeholder}
+        emptyMessage={data?.message || 'No customers found'}
+        isLoading={isLoading}
+        disabled={disabled}
+        onCreateNew={allowCreate ? () => setCreateOpen(true) : undefined}
+        createNewLabel="Create customer"
+      />
+      {allowCreate ? (
+        <CreateCustomerDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          defaults={createDefaults}
+          onCreated={(name, label) => {
+            setLocalLabel(label);
+            onValueChange(name, label);
+            void mutate();
+            void globalMutate(
+              (key) => Array.isArray(key) && key[0] === 'crm-link-customers',
+              undefined,
+              { revalidate: true }
+            );
+          }}
+        />
+      ) : null}
+    </>
   );
 }
