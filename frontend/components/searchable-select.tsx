@@ -37,6 +37,8 @@ export interface SearchableSelectProps {
   createNewLabel?: string;
   /** Shown when `value` is set but not found in `options` (e.g. programmatic selection) */
   valueLabel?: string;
+  /** Keep the list open after a pick (multi-select add). */
+  keepOpenOnSelect?: boolean;
 }
 
 export function SearchableSelect({
@@ -53,6 +55,7 @@ export function SearchableSelect({
   onCreateNew,
   createNewLabel = "Create new",
   valueLabel,
+  keepOpenOnSelect = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -126,9 +129,18 @@ export function SearchableSelect({
     (opt: SearchableSelectOption) => {
       onValueChange(opt.value);
       setSearch("");
+      onSearchChange?.("");
+      if (keepOpenOnSelect) {
+        setOpen(true);
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+          updateDropdownPosition();
+        });
+        return;
+      }
       setOpen(false);
     },
-    [onValueChange]
+    [onValueChange, onSearchChange, keepOpenOnSelect, updateDropdownPosition]
   );
 
   const clear = useCallback(() => {
@@ -249,8 +261,14 @@ export function SearchableSelect({
           }}
           onFocus={() => {
             setOpen(true);
-            if (selectedOption) setSearch("");
+            if (selectedOption && !keepOpenOnSelect) setSearch("");
             if (portaled) updateDropdownPosition();
+          }}
+          onClick={() => {
+            if (!open) {
+              setOpen(true);
+              if (portaled) updateDropdownPosition();
+            }
           }}
           onKeyDown={handleKeyDown}
           disabled={disabled}

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PaginationControls } from "@/components/pagination-controls";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { EditServiceItemDialog } from "@/components/services/edit-service-item-dialog";
+import { AddServiceItemModelDialog } from "@/components/services/add-service-item-model-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { ListRowActions } from "@/components/list-row-actions";
@@ -36,9 +37,11 @@ import {
   Eye,
   Ban,
   CheckCircle2,
+  Plus,
 } from "lucide-react";
 import * as mastersSvc from "@/services/masters";
 import type { VehicleServiceItemMaster } from "@/services/masters";
+import { usePermissions } from "@/contexts/permissions-context";
 
 function formatMoney(n?: number | null) {
   if (n == null || Number.isNaN(Number(n))) return "—";
@@ -59,6 +62,8 @@ function serviceItemId(row: VehicleServiceItemMaster | null | undefined): string
 }
 
 export default function VehicleServicesPage() {
+  const { canCreate } = usePermissions();
+  const canAddModel = canCreate("vehicle-services");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(1);
@@ -67,6 +72,8 @@ export default function VehicleServicesPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<VehicleServiceItemMaster | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [addModelOpen, setAddModelOpen] = useState(false);
+  const [addModelTarget, setAddModelTarget] = useState<VehicleServiceItemMaster | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,6 +109,12 @@ export default function VehicleServicesPage() {
     setSelectedId(id || null);
     setEditTarget({ ...row, name: id || row.name });
     setEditOpen(true);
+  }
+
+  function openAddModel(row: VehicleServiceItemMaster) {
+    const id = serviceItemId(row);
+    setAddModelTarget({ ...row, name: id || row.name });
+    setAddModelOpen(true);
   }
 
   async function toggleDisabled(row: VehicleServiceItemMaster) {
@@ -178,7 +191,7 @@ export default function VehicleServicesPage() {
                     <TableHead>Hours</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
                     {supportsDisabled ? <TableHead>Status</TableHead> : null}
-                    <TableHead className="w-12" />
+                    <TableHead className="w-[1%] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -229,6 +242,18 @@ export default function VehicleServicesPage() {
                             docName={serviceItemId(row)}
                             showPrint={false}
                           >
+                            {canAddModel ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => openAddModel(row)}
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Add Model
+                              </Button>
+                            ) : null}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -251,6 +276,12 @@ export default function VehicleServicesPage() {
                                   <Eye className="mr-2 h-4 w-4" />
                                   View Details
                                 </DropdownMenuItem>
+                                {canAddModel ? (
+                                  <DropdownMenuItem onClick={() => openAddModel(row)}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Model
+                                  </DropdownMenuItem>
+                                ) : null}
                                 <DropdownMenuItem onClick={() => openEdit(row)}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
@@ -306,6 +337,16 @@ export default function VehicleServicesPage() {
         subtitle={selected?.custom_service_code || selected?.name}
         footer={
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {canAddModel && (selected || editTarget) ? (
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => openAddModel(selected || editTarget!)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Model
+              </Button>
+            ) : null}
             <Button
               className="w-full sm:w-auto"
               onClick={() =>
@@ -390,6 +431,23 @@ export default function VehicleServicesPage() {
             : editTarget || selected || null
         }
         onUpdated={() => {
+          void mutate();
+          void mutateDetail();
+        }}
+      />
+
+      <AddServiceItemModelDialog
+        open={addModelOpen}
+        onOpenChange={(open) => {
+          setAddModelOpen(open);
+          if (!open) setAddModelTarget(null);
+        }}
+        serviceItem={
+          addModelTarget && selected && selected.name === addModelTarget.name
+            ? selected
+            : addModelTarget
+        }
+        onCreated={() => {
           void mutate();
           void mutateDetail();
         }}

@@ -287,6 +287,235 @@ def get_vehicle_service_item(name):
 
 
 @frappe.whitelist()
+def create_vehicle_service_items(data=None):
+	"""Create one Vehicle Service Item per vehicle model, sharing name and details.
+
+	Service codes are combined with each model's `model_code` when the entered
+	code does not already include it (TYP + GTY/FGT → GTYTYP, FGTTYP).
+	"""
+	data = _parse_data(data)
+	frappe.has_permission("Vehicle Service Item", "create", throw=True)
+
+	rate = data.get("custom_rate")
+	if rate not in (None, ""):
+		from dms.dealer_management_system.utils.price_permissions import assert_price_allowed_if_changed
+
+		assert_price_allowed_if_changed(None, rate)
+
+	return _insert_vehicle_service_item_docs(data)
+
+
+@frappe.whitelist()
+def add_vehicle_service_item_models(name, vehicle_models=None):
+	"""Clone a Vehicle Service Item onto other models using the original code suffix.
+
+	GTYTYP on GTY + new model FGT → FGTTYP. Name, rate, FRT, and other details are copied.
+	"""
+	frappe.has_permission("Vehicle Service Item", "create", throw=True)
+	if not name or not frappe.db.exists("Vehicle Service Item", name):
+		frappe.throw(_("Vehicle Service Item {0} was not found.").format(frappe.bold(name or "")))
+
+	from dms.overrides.vehicle_service_item import service_code_suffix
+
+	source = frappe.get_doc("Vehicle Service Item", name)
+	models = [m for m in _normalize_vehicle_models({"vehicle_models": vehicle_models}) if m]
+	if not models:
+		frappe.throw(_("Select at least one vehicle model."))
+
+	source_model = (source.get("custom_vehicle_model") or "").strip()
+	if source_model:
+		models = [m for m in models if m != source_model]
+		if not models:
+			frappe.throw(_("That vehicle model already has this service item."))
+
+	source_model_code = ""
+	if source_model and frappe.db.exists("Vehicle Model", source_model):
+		source_model_code = (frappe.db.get_value("Vehicle Model", source_model, "model_code") or "").strip()
+
+	entered_code = service_code_suffix(source.get("custom_service_code") or "", source_model_code)
+	if not entered_code:
+		cat = (source.get("custom_cat_code") or "").strip().upper()
+		sub = (source.get("custom_sub_code") or "").strip()
+		entered_code = f"{cat}{sub}"
+	if not entered_code:
+		frappe.throw(_("This service item has no service code to copy."))
+
+	display_name = (
+		(source.get("custom_item_name") or "").strip()
+		or (source.get("service_item") or "").strip()
+		or source.name
+	)
+	payload = {
+		"service_item": display_name,
+		"custom_item_name": display_name,
+		"custom_service_code": entered_code,
+		"vehicle_models": models,
+		"service_type": source.get("service_type"),
+		"custom_category": source.get("custom_category"),
+		"custom_frt": source.get("custom_frt"),
+		"custom_cat_code": source.get("custom_cat_code"),
+		"custom_sub_code": source.get("custom_sub_code"),
+		"custom_estimated_timehours": source.get("custom_estimated_timehours"),
+		"custom_rate": source.get("custom_rate"),
+		"custom_description": source.get("custom_description"),
+	}
+	return _insert_vehicle_service_item_docs(payload, require_model_code=True)
+
+
+def _insert_vehicle_service_item_docs(data: dict, require_model_code: bool = False):
+	from dms.overrides.vehicle_service_item import combine_service_code, unique_service_item_name
+
+	service_item = (data.get("service_item") or "").strip()
+	if not service_item:
+		frappe.throw(_("Service Item name is required"))
+
+	vehicle_models = _normalize_vehicle_models(data)
+	entered_code = (data.get("custom_service_code") or data.get("service_code") or "").strip()
+	if (len(vehicle_models) > 1 or require_model_code) and not entered_code:
+		frappe.throw(_("Service Code is required when creating for multiple vehicle models."))
+
+	combine_with_model = data.get("combine_with_model")
+	if combine_with_model is None:
+		combiner = combine_service_code
+	elif cint(combine_with_model):
+		combiner = combine_service_code
+	else:
+		combiner = lambda entered, _model: (entered or "").strip().upper()
+
+	specs = _service_item_create_specs(
+		vehicle_models, entered_code, combiner, require_model_code=require_model_code
+	)
+	_assert_service_codes_available([spec["service_code"] for spec in specs if spec["service_code"]])
+
+	meta = frappe.get_meta("Vehicle Service Item")
+	shared = _shared_service_item_values(data, meta)
+	created: list[dict] = []
+
+	try:
+		for spec in specs:
+			values = dict(shared)
+			item_name = unique_service_item_name(service_item, spec["service_code"])
+			values["service_item"] = item_name
+			if meta.has_field("custom_item_name") and not values.get("custom_item_name"):
+				values["custom_item_name"] = service_item
+			if meta.has_field("custom_service_code") and spec["service_code"]:
+				values["custom_service_code"] = spec["service_code"]
+			if meta.has_field("custom_vehicle_model") and spec["vehicle_model"]:
+				values["custom_vehicle_model"] = spec["vehicle_model"]
+
+			doc = frappe.get_doc({"doctype": "Vehicle Service Item", **values})
+			doc.insert(ignore_permissions=False)
+			created.append(
+				{
+					"name": doc.name,
+					"service_item": doc.service_item,
+					"custom_service_code": doc.get("custom_service_code"),
+					"custom_vehicle_model": doc.get("custom_vehicle_model"),
+				}
+			)
+	except Exception:
+		frappe.db.rollback()
+		raise
+
+	frappe.db.commit()
+	return {
+		"created": created,
+		"count": len(created),
+		"name": created[0]["name"] if created else None,
+		"suffix": entered_code,
+	}
+
+
+def _normalize_vehicle_models(data: dict) -> list[str]:
+	raw = data.get("vehicle_models")
+	if raw in (None, ""):
+		single = (data.get("custom_vehicle_model") or data.get("vehicle_model") or "").strip()
+		return [single] if single else [""]
+	if isinstance(raw, str):
+		try:
+			raw = json.loads(raw)
+		except (TypeError, ValueError):
+			raw = [part.strip() for part in raw.split(",") if part.strip()]
+	if not isinstance(raw, (list, tuple)):
+		raw = [raw]
+	seen: set[str] = set()
+	out: list[str] = []
+	for value in raw:
+		name = (value or "").strip() if isinstance(value, str) else str(value or "").strip()
+		if not name or name in seen:
+			continue
+		seen.add(name)
+		out.append(name)
+	return out or [""]
+
+
+def _service_item_create_specs(
+	vehicle_models: list[str], entered_code: str, combine, require_model_code: bool = False
+) -> list[dict]:
+	specs: list[dict] = []
+	for model_name in vehicle_models:
+		model_code = ""
+		if model_name:
+			if not frappe.db.exists("Vehicle Model", model_name):
+				frappe.throw(_("Vehicle Model {0} was not found.").format(frappe.bold(model_name)))
+			model_code = (frappe.db.get_value("Vehicle Model", model_name, "model_code") or "").strip()
+			if (require_model_code or len(vehicle_models) > 1) and not model_code:
+				frappe.throw(
+					_("Vehicle Model {0} has no model code, so a combined service code cannot be built.").format(
+						frappe.bold(model_name)
+					)
+				)
+		specs.append(
+			{
+				"vehicle_model": model_name,
+				"model_code": model_code,
+				"service_code": combine(entered_code, model_code),
+			}
+		)
+	return specs
+
+
+def _assert_service_codes_available(codes: list[str]) -> None:
+	unique_codes = [c for c in dict.fromkeys(codes) if c]
+	if len(unique_codes) != len([c for c in codes if c]):
+		frappe.throw(_("Selected vehicle models produced duplicate service codes. Check model codes."))
+	if not unique_codes:
+		return
+	existing = frappe.get_all(
+		"Vehicle Service Item",
+		filters={"custom_service_code": ["in", unique_codes]},
+		pluck="custom_service_code",
+	)
+	if existing:
+		frappe.throw(
+			_("Service code already exists: {0}").format(", ".join(sorted(set(existing)))),
+		)
+
+
+def _shared_service_item_values(data: dict, meta) -> dict:
+	optional = [
+		"service_type",
+		"custom_item_name",
+		"custom_category",
+		"custom_frt",
+		"custom_cat_code",
+		"custom_sub_code",
+		"custom_estimated_timehours",
+		"custom_rate",
+		"custom_description",
+	]
+	values: dict = {}
+	for field in optional:
+		if field not in data or not meta.has_field(field):
+			continue
+		value = data.get(field)
+		if value in (None, ""):
+			continue
+		values[field] = value
+	return values
+
+
+@frappe.whitelist()
 def update_vehicle_service_item(name, data):
 	if isinstance(data, str):
 		data = json.loads(data)
