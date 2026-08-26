@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, X, Loader2, Plus } from "lucide-react";
@@ -9,6 +10,13 @@ export interface SearchableSelectOption {
   value: string;
   label: string;
   description?: string;
+}
+
+/** Portaled dropdown marker — Dialog ignores outside clicks on this element. */
+export const SEARCHABLE_SELECT_DROPDOWN_ATTR = "data-searchable-select-dropdown";
+
+export function isSearchableSelectDropdownTarget(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest(`[${SEARCHABLE_SELECT_DROPDOWN_ATTR}]`));
 }
 
 export interface SearchableSelectProps {
@@ -21,12 +29,16 @@ export interface SearchableSelectProps {
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
+  /** Render dropdown in a portal (use inside modals / overflow containers). */
+  portaled?: boolean;
   /** Opens create-new flow (e.g. from LinkWithCreate); shows + inside the field */
   onCreateNew?: () => void;
   /** Accessible label for the create button */
   createNewLabel?: string;
   /** Shown when `value` is set but not found in `options` (e.g. programmatic selection) */
   valueLabel?: string;
+  /** Keep the list open after a pick (multi-select add). */
+  keepOpenOnSelect?: boolean;
 }
 
 export function SearchableSelect({
@@ -39,14 +51,18 @@ export function SearchableSelect({
   isLoading = false,
   disabled = false,
   className,
+  portaled = false,
   onCreateNew,
   createNewLabel = "Create new",
   valueLabel,
+  keepOpenOnSelect = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -63,14 +79,24 @@ export function SearchableSelect({
       )
     : options;
 
+  const updateDropdownPosition = useCallback(() => {
+    if (!portaled || !inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setDropdownStyle({
+      position: "fixed",
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 200,
+    });
+  }, [portaled]);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false);
-      }
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -79,6 +105,17 @@ export function SearchableSelect({
   useEffect(() => {
     setHighlightedIndex(-1);
   }, [search, open]);
+
+  useEffect(() => {
+    if (!open || !portaled) return;
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
+  }, [open, portaled, search, options.length, updateDropdownPosition]);
 
   const handleSearchChange = useCallback(
     (val: string) => {
@@ -92,9 +129,18 @@ export function SearchableSelect({
     (opt: SearchableSelectOption) => {
       onValueChange(opt.value);
       setSearch("");
+      onSearchChange?.("");
+      if (keepOpenOnSelect) {
+        setOpen(true);
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+          updateDropdownPosition();
+        });
+        return;
+      }
       setOpen(false);
     },
-    [onValueChange]
+    [onValueChange, onSearchChange, keepOpenOnSelect, updateDropdownPosition]
   );
 
   const clear = useCallback(() => {
@@ -138,6 +184,70 @@ export function SearchableSelect({
       ? "pr-24 sm:pr-16"
       : "pr-12 sm:pr-10";
 
+  const dropdownPanel = (
+    <div
+      ref={dropdownRef}
+      {...{ [SEARCHABLE_SELECT_DROPDOWN_ATTR]: "" }}
+      className={cn(
+        "rounded-md border border-(--dms-green)/30 bg-popover shadow-lg",
+        portaled ? "pointer-events-auto" : "absolute z-50 mt-1 w-full"
+      )}
+      style={portaled ? dropdownStyle : undefined}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div
+        ref={listRef}
+        className="max-h-60 overflow-y-auto overscroll-contain p-1 touch-pan-y"
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Loading...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            {emptyMessage}
+          </div>
+        ) : (
+          filtered.map((option, idx) => (
+            <button
+              key={option.value}
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                selectOption(option);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm cursor-pointer",
+                "hover:bg-dms-green-light hover:text-foreground",
+                highlightedIndex === idx && "bg-dms-green-light",
+                value === option.value && "font-medium text-dms-green"
+              )}
+            >
+              <Check
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0",
+                  value === option.value ? "opacity-100 text-dms-green" : "opacity-0"
+                )}
+              />
+              <div className="flex flex-col items-start text-left min-w-0">
+                <span className="truncate">{option.label}</span>
+                {option.description && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {option.description}
+                  </span>
+                )}
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <div className="relative">
@@ -151,7 +261,14 @@ export function SearchableSelect({
           }}
           onFocus={() => {
             setOpen(true);
-            if (selectedOption) setSearch("");
+            if (selectedOption && !keepOpenOnSelect) setSearch("");
+            if (portaled) updateDropdownPosition();
+          }}
+          onClick={() => {
+            if (!open) {
+              setOpen(true);
+              if (portaled) updateDropdownPosition();
+            }
           }}
           onKeyDown={handleKeyDown}
           disabled={disabled}
@@ -224,54 +341,10 @@ export function SearchableSelect({
         </div>
       </div>
 
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-(--dms-green)/30 bg-popover shadow-lg">
-          <div
-            ref={listRef}
-            className="max-h-60 overflow-auto p-1"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Loading...
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="py-4 text-center text-sm text-muted-foreground">
-                {emptyMessage}
-              </div>
-            ) : (
-              filtered.map((option, idx) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => selectOption(option)}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm cursor-pointer",
-                    "hover:bg-dms-green-light hover:text-foreground",
-                    highlightedIndex === idx && "bg-dms-green-light",
-                    value === option.value && "font-medium text-dms-green"
-                  )}
-                >
-                  <Check
-                    className={cn(
-                      "h-3.5 w-3.5 shrink-0",
-                      value === option.value ? "opacity-100 text-dms-green" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col items-start text-left min-w-0">
-                    <span className="truncate">{option.label}</span>
-                    {option.description && (
-                      <span className="text-xs text-muted-foreground truncate">
-                        {option.description}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+      {open &&
+        (portaled && typeof document !== "undefined"
+          ? createPortal(dropdownPanel, document.body)
+          : dropdownPanel)}
     </div>
   );
 }

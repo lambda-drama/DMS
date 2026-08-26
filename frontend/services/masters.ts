@@ -158,6 +158,32 @@ export async function updateVehicleServiceItem(
   });
 }
 
+export type CreatedVehicleServiceItem = {
+  name: string;
+  service_item?: string;
+  custom_service_code?: string;
+  custom_vehicle_model?: string;
+};
+
+export async function createVehicleServiceItems(
+  data: Record<string, unknown>
+): Promise<{ created: CreatedVehicleServiceItem[]; count: number; name?: string }> {
+  return apiRequest(`/api/method/${API}.create_vehicle_service_items`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function addVehicleServiceItemModels(
+  name: string,
+  vehicleModels: string[]
+): Promise<{ created: CreatedVehicleServiceItem[]; count: number; name?: string; suffix?: string }> {
+  return apiRequest(`/api/method/${API}.add_vehicle_service_item_models`, {
+    method: 'POST',
+    body: JSON.stringify({ name, vehicle_models: vehicleModels }),
+  });
+}
+
 export async function listItemPrices(options?: {
   search?: string;
   price_list?: string;

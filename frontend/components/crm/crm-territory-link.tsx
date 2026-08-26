@@ -108,6 +108,7 @@ export function CrmTerritoryLink({
         options={options}
         value={value}
         valueLabel={selectedLabel}
+        portaled
         onValueChange={(next) => {
           const opt = options.find((o) => o.value === next);
           setLocalLabel(opt?.label || next || '');
@@ -146,6 +147,7 @@ export function CrmTerritoryLink({
                   value={parent}
                   onValueChange={setParent}
                   placeholder="Optional parent…"
+                  portaled
                 />
               </div>
             ) : null}

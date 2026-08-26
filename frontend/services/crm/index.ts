@@ -135,6 +135,7 @@ export interface LeadFormOptions {
   new_or_used: string[];
   branches: string[];
   countries: string[];
+  languages: Array<{ value: string; label: string }>;
   companies: string[];
   default_company?: string | null;
   currency?: string | null;
@@ -341,11 +342,14 @@ export async function createQuotationFromOpportunity(
 export async function getQuotationPreview(name: string, applyTaxes = false) {
   return apiRequest<{
     currency?: string;
+    currency_symbol?: string;
     source: string;
     vin?: { name: string; vin_number: string; model_name?: string; linked_item: string } | null;
+    vin_labels?: string[];
     items: Array<{
       item_code: string;
       item_name?: string;
+      line_source?: string;
       qty: number;
       rate: number;
       discount_percentage?: number;

@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import {
-  createQuotationFromOpportunity,
   getTestDrive,
   updateTestDrive,
 } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
+import { CreateQuotationDialog } from '@/components/crm/create-quotation-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,7 @@ export default function CrmTestDriveDetailPage() {
   );
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [saving, setSaving] = useState(false);
-  const [creatingQuotation, setCreatingQuotation] = useState(false);
+  const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const { error, success, showError, showSuccess, clear } = useCrmFeedback();
 
   useEffect(() => {
@@ -118,7 +118,7 @@ export default function CrmTestDriveDetailPage() {
     }
   };
 
-  const onCreateQuotation = async () => {
+  const onCreateQuotation = () => {
     if (form.quotation) {
       window.open(
         `/app/quotation/${encodeURIComponent(String(form.quotation))}`,
@@ -127,18 +127,7 @@ export default function CrmTestDriveDetailPage() {
       );
       return;
     }
-    setCreatingQuotation(true);
-    clear();
-    try {
-      const result = await createQuotationFromOpportunity(String(form.opportunity));
-      await mutate();
-      navigate('crm-opportunity-detail', { id: String(form.opportunity) });
-      return result;
-    } catch (e: unknown) {
-      showError(e, 'Failed to create Quotation');
-    } finally {
-      setCreatingQuotation(false);
-    }
+    setQuotationDialogOpen(true);
   };
 
   if (isLoading || !data) return <Skeleton className="h-80" />;
@@ -154,8 +143,7 @@ export default function CrmTestDriveDetailPage() {
         <div className="flex gap-2">
           {form.status === 'Completed' &&
           ['Interested', 'Quotation Requested'].includes(String(form.outcome || '')) ? (
-            <Button variant="outline" onClick={onCreateQuotation} disabled={creatingQuotation}>
-              {creatingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            <Button variant="outline" onClick={onCreateQuotation}>
               {form.quotation ? 'Open Quotation' : 'Create Quotation'}
             </Button>
           ) : null}
@@ -426,6 +414,24 @@ export default function CrmTestDriveDetailPage() {
           {form.quotation ? <Field label="Quotation">{String(form.quotation)}</Field> : null}
         </CardContent>
       </Card>
+
+      <CreateQuotationDialog
+        open={quotationDialogOpen}
+        onOpenChange={setQuotationDialogOpen}
+        opportunityId={String(form.opportunity || '')}
+        onError={showError}
+        onCreated={(quotation) => {
+          void mutate().then(() => {
+            showSuccess('Quotation created.');
+            navigate('crm-opportunity-detail', { id: String(form.opportunity) });
+            window.open(
+              `/app/quotation/${encodeURIComponent(quotation)}`,
+              '_blank',
+              'noopener'
+            );
+          });
+        }}
+      />
     </div>
   );
 }

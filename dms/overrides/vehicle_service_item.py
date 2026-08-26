@@ -101,6 +101,62 @@ def ensure_labour_item_group() -> None:
 	).insert(ignore_permissions=True)
 
 
+def combine_service_code(entered_code: str, model_code: str | None) -> str:
+	"""Build the stored service code from the UI value and a vehicle model code.
+
+	- If the entered code already starts with the model code (YTYZZZ + YTY), keep it.
+	- Otherwise prepend the model code (ZZZ + YTY → YTYZZZ, TYP + GTY → GTYTYP).
+	- Empty code or missing model code is returned as-is.
+	"""
+	code = (entered_code or "").strip().upper()
+	model = (model_code or "").strip().upper()
+	if not code or not model:
+		return code
+	if code.startswith(model):
+		return code
+	return f"{model}{code}"
+
+
+def service_code_suffix(service_code: str, model_code: str | None) -> str:
+	"""Return the trailing service-code part after stripping a leading model code.
+
+	GTYTYP + GTY → TYP. If the code does not start with the model, the full code is kept.
+	"""
+	code = (service_code or "").strip().upper()
+	model = (model_code or "").strip().upper()
+	if not code:
+		return ""
+	if model and code.startswith(model) and len(code) > len(model):
+		return code[len(model) :]
+	return code
+
+
+def unique_service_item_name(display_name: str, service_code: str = "") -> str:
+	"""Return a unique Vehicle Service Item `service_item` value (autoname)."""
+	display_name = (display_name or service_code or "").strip()
+	if not display_name:
+		frappe.throw(_("Service Item name is required."))
+
+	if not frappe.db.exists("Vehicle Service Item", display_name):
+		return display_name
+
+	code = (service_code or "").strip()
+	if code:
+		fallback = f"{display_name} ({code})"
+		if not frappe.db.exists("Vehicle Service Item", fallback):
+			return fallback
+		base = fallback
+	else:
+		base = display_name
+
+	for n in range(2, 100):
+		candidate = f"{base}-{n}"
+		if not frappe.db.exists("Vehicle Service Item", candidate):
+			return candidate
+
+	frappe.throw(_("Could not generate a unique Service Item name for {0}.").format(display_name))
+
+
 def _item_code_from_vehicle_service_item(doc) -> str:
 	"""Prefer custom_service_code; otherwise derive a unique code from service_item."""
 	meta = doc.meta if getattr(doc, "meta", None) else frappe.get_meta("Vehicle Service Item")
