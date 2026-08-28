@@ -1906,6 +1906,12 @@ def _apply_original_repair(doc, source):
 		notes=_("Copied from main job card {0}").format(source.name),
 	)
 
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+		recreate_issued_stock_from_original,
+	)
+
+	recreate_issued_stock_from_original(doc, source)
+
 
 def _apply_original_road_test(doc, source):
 	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
