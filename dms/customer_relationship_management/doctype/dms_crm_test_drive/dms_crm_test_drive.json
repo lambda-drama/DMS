@@ -27,8 +27,11 @@
   "consent_on",
   "consent_notes",
   "section_drive",
+  "driver",
   "driver_name",
   "driver_license",
+  "issuing_date",
+  "expiry_date",
   "route",
   "start_odometer",
   "pre_drive_condition",
@@ -192,14 +195,34 @@
    "label": "Drive Details"
   },
   {
+   "fieldname": "driver",
+   "fieldtype": "Link",
+   "label": "Driver",
+   "options": "Driver"
+  },
+  {
+   "fetch_from": "driver.full_name",
    "fieldname": "driver_name",
    "fieldtype": "Data",
    "label": "Driver Name"
   },
   {
+   "fetch_from": "driver.license_number",
    "fieldname": "driver_license",
    "fieldtype": "Data",
    "label": "Driver Licence"
+  },
+  {
+   "fetch_from": "driver.issuing_date",
+   "fieldname": "issuing_date",
+   "fieldtype": "Date",
+   "label": "Issuing Date"
+  },
+  {
+   "fetch_from": "driver.expiry_date",
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "label": "Expiry Date"
   },
   {
    "fieldname": "route",
@@ -348,7 +371,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-31 16:55:00.000000",
+ "modified": "2026-08-28 17:55:00.000000",
  "modified_by": "Administrator",
  "module": "Customer Relationship Management",
  "name": "DMS CRM Test Drive",

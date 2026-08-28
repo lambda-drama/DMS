@@ -13,8 +13,19 @@ from dms.crm_api.common import (
 	paginate,
 	parse_json,
 )
+from dms.customer_relationship_management.doctype.dms_crm_test_drive.dms_crm_test_drive import (
+	sync_license_to_driver,
+)
 
 DOCTYPE = "DMS CRM Test Drive"
+
+
+def _normalize_driver_payload(payload):
+	if "driver" in payload:
+		payload["driver"] = (str(payload.get("driver") or "")).strip() or None
+	for fieldname in ("issuing_date", "expiry_date"):
+		if fieldname in payload:
+			payload[fieldname] = (str(payload.get(fieldname) or "")).strip()[:10] or None
 
 @frappe.whitelist()
 def get_test_vehicle_options(search=None, company=None, limit=40):
@@ -39,6 +50,33 @@ def get_test_vehicle_options(search=None, company=None, limit=40):
 		fields=["name", "vin_number", "plate_number", "linked_item", "model_name"],
 		order_by="modified desc",
 		limit_page_length=min(cint(limit) or 40, 100),
+	)
+
+
+@frappe.whitelist()
+def get_driver_options(search=None, limit=40):
+	"""Active ERPNext Driver records for the test-drive driver picker."""
+	ensure_crm_read(DOCTYPE)
+	if not frappe.db.exists("DocType", "Driver"):
+		return []
+	filters = {"status": "Active"}
+	or_filters = None
+	if search:
+		q = f"%{search.strip()}%"
+		or_filters = {
+			"name": ["like", q],
+			"full_name": ["like", q],
+			"license_number": ["like", q],
+			"cell_number": ["like", q],
+		}
+	return frappe.get_all(
+		"Driver",
+		filters=filters,
+		or_filters=or_filters,
+		fields=["name", "full_name", "license_number", "issuing_date", "expiry_date", "cell_number", "status"],
+		order_by="full_name asc",
+		limit_page_length=min(cint(limit) or 40, 100),
+		ignore_permissions=True,
 	)
 
 
@@ -100,6 +138,7 @@ def get_test_drive(name):
 def create_test_drive(data=None):
 	ensure_crm_create(DOCTYPE)
 	payload = parse_json(data)
+	_normalize_driver_payload(payload)
 	opportunity = (payload.get("opportunity") or "").strip()
 	if not opportunity:
 		frappe.throw(_("Deal is required."))
@@ -119,12 +158,16 @@ def create_test_drive(data=None):
 		frappe.throw(_("Scheduled date and time are required."))
 
 	doc = frappe.new_doc(DOCTYPE)
+	meta = frappe.get_meta(DOCTYPE)
 	for fieldname in (
 		"scheduled_datetime",
 		"vehicle_vin",
 		"vehicle_item",
+		"driver",
 		"driver_name",
 		"driver_license",
+		"issuing_date",
+		"expiry_date",
 		"route",
 		"start_odometer",
 		"end_odometer",
@@ -149,8 +192,11 @@ def create_test_drive(data=None):
 		"incident_attachment",
 		"notes",
 	):
-		if fieldname in payload:
-			doc.set(fieldname, payload.get(fieldname))
+		if fieldname not in payload:
+			continue
+		if fieldname in ("driver", "issuing_date", "expiry_date") and not meta.has_field(fieldname):
+			continue
+		doc.set(fieldname, payload.get(fieldname))
 	doc.opportunity = opp.name
 	doc.customer = opp.customer
 	doc.company = opp.company
@@ -159,6 +205,12 @@ def create_test_drive(data=None):
 	doc.status = doc.status or "Scheduled"
 
 	doc.insert()
+	sync_license_to_driver(
+		payload.get("driver") or doc.get("driver"),
+		doc.get("driver_license"),
+		issuing_date=payload.get("issuing_date") or doc.get("issuing_date"),
+		expiry_date=payload.get("expiry_date") or doc.get("expiry_date"),
+	)
 
 	opp.test_drive = doc.name
 	opp.stage = "Test Drive"
@@ -171,13 +223,18 @@ def create_test_drive(data=None):
 def update_test_drive(name, data=None):
 	ensure_crm_write(DOCTYPE)
 	payload = parse_json(data)
+	_normalize_driver_payload(payload)
 	doc = frappe.get_doc(DOCTYPE, name)
+	meta = frappe.get_meta(DOCTYPE)
 	for fieldname in (
 		"scheduled_datetime",
 		"vehicle_vin",
 		"vehicle_item",
+		"driver",
 		"driver_name",
 		"driver_license",
+		"issuing_date",
+		"expiry_date",
 		"route",
 		"start_odometer",
 		"end_odometer",
@@ -202,8 +259,11 @@ def update_test_drive(name, data=None):
 		"incident_attachment",
 		"notes",
 	):
-		if fieldname in payload:
-			doc.set(fieldname, payload.get(fieldname))
+		if fieldname not in payload:
+			continue
+		if fieldname in ("driver", "issuing_date", "expiry_date") and not meta.has_field(fieldname):
+			continue
+		doc.set(fieldname, payload.get(fieldname))
 	if "checklist" in payload:
 		doc.set("checklist", [])
 		for row in payload.get("checklist") or []:
@@ -221,5 +281,11 @@ def update_test_drive(name, data=None):
 	if doc.status == "In Progress" and not doc.started_on:
 		doc.started_on = now_datetime()
 	doc.save()
+	sync_license_to_driver(
+		payload.get("driver") or doc.get("driver"),
+		doc.get("driver_license"),
+		issuing_date=payload.get("issuing_date") or doc.get("issuing_date"),
+		expiry_date=payload.get("expiry_date") or doc.get("expiry_date"),
+	)
 	frappe.db.commit()
 	return get_test_drive(doc.name)

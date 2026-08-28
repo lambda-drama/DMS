@@ -1,10 +1,50 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import add_to_date, cint, now_datetime
+from frappe.utils import add_to_date, cint, cstr, now_datetime
+
+
+def sync_license_to_driver(
+	driver: str | None,
+	license_no: str | None = None,
+	issuing_date=None,
+	expiry_date=None,
+) -> None:
+	"""Persist licence details onto the Driver master so they are reused next time."""
+	driver = cstr(driver).strip()
+	if not driver:
+		return
+	if not frappe.db.exists("DocType", "Driver") or not frappe.db.exists("Driver", driver):
+		return
+	current = frappe.db.get_value(
+		"Driver",
+		driver,
+		["license_number", "issuing_date", "expiry_date"],
+		as_dict=True,
+	)
+	if not current:
+		return
+	updates = {}
+	license_no = cstr(license_no).strip()
+	if license_no and cstr(current.license_number).strip() != license_no:
+		updates["license_number"] = license_no
+	issuing = _as_date(issuing_date)
+	if issuing and _as_date(current.issuing_date) != issuing:
+		updates["issuing_date"] = issuing
+	expiry = _as_date(expiry_date)
+	if expiry and _as_date(current.expiry_date) != expiry:
+		updates["expiry_date"] = expiry
+	if updates:
+		frappe.db.set_value("Driver", driver, updates, update_modified=True)
+
+
+def _as_date(value) -> str:
+	text = cstr(value).strip()
+	return text[:10] if len(text) >= 10 else ""
 
 
 class DMSCRMTestDrive(Document):
 	def before_validate(self):
+		self._apply_driver()
 		self._set_default_template()
 		self._load_template_checklist()
 		self._stamp_acceptance_and_consent()
@@ -57,9 +97,42 @@ class DMSCRMTestDrive(Document):
 		if self.damage_reported and not self.damage_details:
 			frappe.throw("Enter vehicle damage details.")
 
+	def after_insert(self):
+		self._sync_license_to_driver()
+
 	def on_update(self):
+		self._sync_license_to_driver()
 		if self.status == "Completed" and not self.follow_up_activity:
 			self._create_follow_up_activity()
+
+	def _apply_driver(self):
+		if not self.meta.has_field("driver") or not self.driver:
+			return
+		values = frappe.db.get_value(
+			"Driver",
+			self.driver,
+			["full_name", "license_number", "issuing_date", "expiry_date"],
+			as_dict=True,
+		)
+		if not values:
+			return
+		if values.full_name:
+			self.driver_name = values.full_name
+		if values.license_number and not (self.driver_license or "").strip():
+			self.driver_license = values.license_number
+		if values.issuing_date and self.meta.has_field("issuing_date") and not self.issuing_date:
+			self.issuing_date = values.issuing_date
+		if values.expiry_date and self.meta.has_field("expiry_date") and not self.expiry_date:
+			self.expiry_date = values.expiry_date
+
+	def _sync_license_to_driver(self):
+		driver = self.get("driver") if self.meta.has_field("driver") else None
+		sync_license_to_driver(
+			driver,
+			self.driver_license,
+			issuing_date=self.get("issuing_date") if self.meta.has_field("issuing_date") else None,
+			expiry_date=self.get("expiry_date") if self.meta.has_field("expiry_date") else None,
+		)
 
 	def _set_default_template(self):
 		if self.checklist_template:

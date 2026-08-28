@@ -32,6 +32,7 @@ import { CrmColorLink } from '@/components/crm/crm-color-link';
 import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
 import { CrmSparePartLink } from '@/components/crm/crm-spare-part-link';
 import { CrmVinLink } from '@/components/crm/crm-vin-link';
+import { CrmDriverLink } from '@/components/crm/crm-driver-link';
 import { Button } from '@/components/ui/button';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -256,8 +257,11 @@ export default function CrmOpportunityDetailPage() {
   });
   const [testDriveForm, setTestDriveForm] = useState({
     scheduled_datetime: '',
+    driver: '',
     driver_name: '',
     driver_license: '',
+    issuing_date: '',
+    expiry_date: '',
     route: '',
     vehicle_vin: '',
   });
@@ -1123,10 +1127,18 @@ export default function CrmOpportunityDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">Driver Name</label>
-                  <Input
-                    value={testDriveForm.driver_name}
-                    onChange={(event) =>
-                      setTestDriveForm((prev) => ({ ...prev, driver_name: event.target.value }))
+                  <CrmDriverLink
+                    value={testDriveForm.driver}
+                    valueLabel={testDriveForm.driver_name}
+                    onValueChange={(value, label, meta) =>
+                      setTestDriveForm((prev) => ({
+                        ...prev,
+                        driver: value || '',
+                        driver_name: label || '',
+                        driver_license: meta?.license || '',
+                        issuing_date: meta?.issuingDate || '',
+                        expiry_date: meta?.expiryDate || '',
+                      }))
                     }
                   />
                 </div>
@@ -1136,6 +1148,26 @@ export default function CrmOpportunityDetailPage() {
                     value={testDriveForm.driver_license}
                     onChange={(event) =>
                       setTestDriveForm((prev) => ({ ...prev, driver_license: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Issuing Date</label>
+                  <Input
+                    type="date"
+                    value={testDriveForm.issuing_date}
+                    onChange={(event) =>
+                      setTestDriveForm((prev) => ({ ...prev, issuing_date: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Expiry Date</label>
+                  <Input
+                    type="date"
+                    value={testDriveForm.expiry_date}
+                    onChange={(event) =>
+                      setTestDriveForm((prev) => ({ ...prev, expiry_date: event.target.value }))
                     }
                   />
                 </div>

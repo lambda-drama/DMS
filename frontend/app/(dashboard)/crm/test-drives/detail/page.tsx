@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CrmVinLink } from '@/components/crm/crm-vin-link';
+import { CrmDriverLink } from '@/components/crm/crm-driver-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -81,8 +82,11 @@ export default function CrmTestDriveDetailPage() {
         scheduled_datetime: form.scheduled_datetime,
         status: form.status,
         vehicle_vin: form.vehicle_vin,
+        driver: form.driver,
         driver_name: form.driver_name,
         driver_license: form.driver_license,
+        issuing_date: form.issuing_date,
+        expiry_date: form.expiry_date,
         id_verified: form.id_verified ? 1 : 0,
         driver_id_reference: form.driver_id_reference,
         customer_consent: form.customer_consent ? 1 : 0,
@@ -198,15 +202,39 @@ export default function CrmTestDriveDetailPage() {
             />
           </Field>
           <Field label="Driver Name">
-            <Input
-              value={String(form.driver_name || '')}
-              onChange={(event) => set('driver_name', event.target.value)}
+            <CrmDriverLink
+              value={String(form.driver || '')}
+              valueLabel={String(form.driver_name || '')}
+              onValueChange={(value, label, meta) => {
+                setForm((prev) => ({
+                  ...prev,
+                  driver: value || '',
+                  driver_name: label || '',
+                  driver_license: meta?.license || '',
+                  issuing_date: meta?.issuingDate || '',
+                  expiry_date: meta?.expiryDate || '',
+                }));
+              }}
             />
           </Field>
           <Field label="Driver Licence">
             <Input
               value={String(form.driver_license || '')}
               onChange={(event) => set('driver_license', event.target.value)}
+            />
+          </Field>
+          <Field label="Issuing Date">
+            <Input
+              type="date"
+              value={String(form.issuing_date || '').slice(0, 10)}
+              onChange={(event) => set('issuing_date', event.target.value)}
+            />
+          </Field>
+          <Field label="Expiry Date">
+            <Input
+              type="date"
+              value={String(form.expiry_date || '').slice(0, 10)}
+              onChange={(event) => set('expiry_date', event.target.value)}
             />
           </Field>
           <Field label="ID / Licence Reference">
