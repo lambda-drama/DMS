@@ -45,6 +45,8 @@ import {
   BarChart3,
   RotateCcw,
   XCircle,
+  Copy,
+  FilePenLine,
 } from "lucide-react";
 import { toast } from "sonner";
 import { RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
@@ -76,6 +78,10 @@ function canCreateRepeatJob(jc: Pick<DMSJobCard, "status" | "job_card_type">) {
 function canCancelJobCard(jc: Pick<DMSJobCard, "status" | "docstatus">) {
   const workflow = resolveJobCardWorkflowStatus(jc.status, jc.docstatus);
   return workflow !== "Cancelled" && workflow !== "Delivered";
+}
+
+function isCancelledJobCard(jc: Pick<DMSJobCard, "status" | "docstatus">) {
+  return resolveJobCardWorkflowStatus(jc.status, jc.docstatus) === "Cancelled";
 }
 
 const statusFilterOptions: { value: string; label: string }[] = [
@@ -215,6 +221,7 @@ export default function JobCardsPage() {
   const [cancelTarget, setCancelTarget] = useState<DMSJobCard | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [creatingVersion, setCreatingVersion] = useState<string | null>(null);
 
   const openRepeatDialog = (jc: DMSJobCard) => {
     setRepeatSource(jc);
@@ -259,6 +266,36 @@ export default function JobCardsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to cancel job card");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleCreateNewVersion = async (jc: DMSJobCard) => {
+    setCreatingVersion(jc.name);
+    try {
+      const created = await jobCardsSvc.createJobCardNewVersion(jc.name);
+      toast.success(`New version ${created.name} created`);
+      navigate("job-card-detail", { id: created.name });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create new version");
+    } finally {
+      setCreatingVersion(null);
+    }
+  };
+
+  const handleAmend = async (jc: DMSJobCard) => {
+    if (jc.already_amended && jc.amended_as) {
+      navigate("job-card-detail", { id: jc.amended_as });
+      return;
+    }
+    setCreatingVersion(jc.name);
+    try {
+      const created = await jobCardsSvc.amendJobCard(jc.name);
+      toast.success(`Amended as ${created.name}`);
+      navigate("job-card-detail", { id: created.name });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to amend job card");
+    } finally {
+      setCreatingVersion(null);
     }
   };
 
@@ -426,6 +463,34 @@ export default function JobCardsPage() {
                                     Create Repeat Job
                                   </DropdownMenuItem>
                                 ) : null}
+                                {isCancelledJobCard(jc) && !jc.already_amended ? (
+                                  <DropdownMenuItem
+                                    disabled={creatingVersion === jc.name}
+                                    onClick={() => void handleAmend(jc)}
+                                  >
+                                    <FilePenLine className="mr-2 h-4 w-4" />
+                                    Amend
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {isCancelledJobCard(jc) && jc.amended_as ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      navigate("job-card-detail", { id: jc.amended_as! })
+                                    }
+                                  >
+                                    <FilePenLine className="mr-2 h-4 w-4" />
+                                    Open Amendment
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {isCancelledJobCard(jc) ? (
+                                  <DropdownMenuItem
+                                    disabled={creatingVersion === jc.name}
+                                    onClick={() => void handleCreateNewVersion(jc)}
+                                  >
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    New Version
+                                  </DropdownMenuItem>
+                                ) : null}
                                 {canCancelJobCard(jc) ? (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
@@ -540,6 +605,34 @@ export default function JobCardsPage() {
                                 <DropdownMenuItem onClick={() => openRepeatDialog(jc)}>
                                   <RotateCcw className="h-4 w-4 mr-2" />
                                   Create Repeat Job
+                                </DropdownMenuItem>
+                              ) : null}
+                              {isCancelledJobCard(jc) && !jc.already_amended ? (
+                                <DropdownMenuItem
+                                  disabled={creatingVersion === jc.name}
+                                  onClick={() => void handleAmend(jc)}
+                                >
+                                  <FilePenLine className="h-4 w-4 mr-2" />
+                                  Amend
+                                </DropdownMenuItem>
+                              ) : null}
+                              {isCancelledJobCard(jc) && jc.amended_as ? (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate("job-card-detail", { id: jc.amended_as! })
+                                  }
+                                >
+                                  <FilePenLine className="h-4 w-4 mr-2" />
+                                  Open Amendment
+                                </DropdownMenuItem>
+                              ) : null}
+                              {isCancelledJobCard(jc) ? (
+                                <DropdownMenuItem
+                                  disabled={creatingVersion === jc.name}
+                                  onClick={() => void handleCreateNewVersion(jc)}
+                                >
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  New Version
                                 </DropdownMenuItem>
                               ) : null}
                               {canCancelJobCard(jc) ? (

@@ -24,6 +24,7 @@ export function resolveJobCardWorkflowStatus(
   status: JobCardStatus | string,
   docstatus?: number
 ): JobCardStatus {
+  if (docstatus === 2) return 'Cancelled';
   if (status !== 'Assigned') return status as JobCardStatus;
   return (docstatus ?? 0) >= 1 ? 'Estimation Approved' : 'Open';
 }

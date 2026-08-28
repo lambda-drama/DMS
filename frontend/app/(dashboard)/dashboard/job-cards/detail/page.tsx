@@ -6,6 +6,7 @@ import { usePermissions } from "@/contexts/permissions-context";
 import { useJobCard, useServiceBays, useServiceEstimate, useTechnicians } from "@/hooks/use-dms";
 import { canEditJobCardAssignment, canStartRepairFromWorkflow, isJobCardWorkshopAssigned, resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import * as jobCardsSvc from "@/services/jobCards";
+import type { OriginalJobCardStage } from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -68,6 +70,8 @@ import {
   Headphones,
   HardHat,
   MoreHorizontal,
+  Copy,
+  FilePenLine,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
@@ -156,6 +160,51 @@ function richTextBlock(value?: string | null) {
     return <p className="text-sm text-muted-foreground">Not recorded</p>;
   }
   return <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>;
+}
+
+function UseMainJobCardToggle({
+  originalName,
+  stageLabel,
+  disabled,
+  onUse,
+}: {
+  originalName: string;
+  stageLabel: string;
+  disabled?: boolean;
+  onUse: () => Promise<boolean>;
+}) {
+  const [checked, setChecked] = useState(false);
+
+  return (
+    <label
+      className={`flex w-full max-w-md items-start gap-2 rounded-md border border-dashed px-3 py-2 text-sm ${
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40"
+      }`}
+    >
+      <Checkbox
+        className="mt-0.5"
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={(value) => {
+          if (value !== true) {
+            setChecked(false);
+            return;
+          }
+          void (async () => {
+            setChecked(true);
+            const ok = await onUse();
+            if (!ok) setChecked(false);
+          })();
+        }}
+      />
+      <span>
+        <span className="font-medium">Use the main job card — {stageLabel}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          Copy {stageLabel.toLowerCase()} from {originalName} and continue
+        </span>
+      </span>
+    </label>
+  );
 }
 
 export default function JobCardDetailPage() {
@@ -308,6 +357,59 @@ export default function JobCardDetailPage() {
     [mutate]
   );
 
+  const handleUseMainJobCard = async (stage: OriginalJobCardStage) => {
+    const labels: Record<OriginalJobCardStage, string> = {
+      customer_approval: "Customer approval copied from the main job card",
+      repair: "Repair details copied from the main job card",
+      road_test: "Road test copied from the main job card",
+      qc: "QC copied from the main job card",
+    };
+    setBusy(true);
+    try {
+      await jobCardsSvc.applyOriginalJobCardStage(id, stage);
+      toast.success(labels[stage]);
+      await mutate();
+      return true;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to copy from the main job card");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateNewVersion = async () => {
+    setBusy(true);
+    try {
+      const created = await jobCardsSvc.createJobCardNewVersion(id);
+      toast.success(`New version ${created.name} created`);
+      navigate("job-card-detail", { id: created.name });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create new version");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAmend = async () => {
+    const existing =
+      jobCard?.already_amended && jobCard.amended_as ? jobCard.amended_as : null;
+    if (existing) {
+      navigate("job-card-detail", { id: existing });
+      return;
+    }
+    setBusy(true);
+    try {
+      const created = await jobCardsSvc.amendJobCard(id);
+      toast.success(`Amended as ${created.name}`);
+      navigate("job-card-detail", { id: created.name });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to amend job card");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const refreshInvoiceDetail = useCallback(async (invoiceName: string) => {
     try {
       const detail = await invoicesSvc.getSalesInvoiceDetail(invoiceName);
@@ -426,6 +528,34 @@ export default function JobCardDetailPage() {
     canEditPrice &&
     !hasActiveInvoice &&
     !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
+  const canAmendCancelled =
+    workflowStatus === "Cancelled" && !jobCard.already_amended;
+  const existingAmendment =
+    jobCard.already_amended && jobCard.amended_as ? jobCard.amended_as : null;
+  const canCreateNewVersion = workflowStatus === "Cancelled";
+  const mainJobCardName = jobCard.original_job_card || jobCard.amended_from || "";
+  const reuse = jobCard.original_stage_reuse;
+  const showUseMainApproval =
+    Boolean(mainJobCardName) &&
+    Boolean(reuse?.customer_approval?.available) &&
+    !isInternal &&
+    ["Draft", "Estimation Pending"].includes(status) &&
+    jobCard.customer_approval_status !== "Approved" &&
+    docstatus === 0;
+  const showUseMainRepair =
+    Boolean(mainJobCardName) &&
+    Boolean(reuse?.repair?.available) &&
+    (canStartRepairFromWorkflow(status) ||
+      (isInternal && status === "Draft") ||
+      ["Repair In Progress", "Waiting Parts", "Waiting Customer Approval"].includes(status));
+  const showUseMainRoadTest =
+    Boolean(mainJobCardName) &&
+    Boolean(reuse?.road_test?.available) &&
+    ["Repair Completed", "Road Test In Progress"].includes(status);
+  const showUseMainQC =
+    Boolean(mainJobCardName) &&
+    Boolean(reuse?.qc?.available) &&
+    ["Road Test Completed", "QC In Progress", "QC Failed"].includes(status);
 
   const assignmentDirty =
     leadTechnician !== (jobCard.lead_technician || "") ||
@@ -945,6 +1075,23 @@ export default function JobCardDetailPage() {
                 Original job: {jobCard.repeat_repair_reference}
               </button>
             ) : null}
+            {jobCard.amended_from ? (
+              <button
+                type="button"
+                className="mt-1 block text-sm text-primary hover:underline"
+                onClick={() => navigate("job-card-detail", { id: jobCard.amended_from! })}
+              >
+                Amended from {jobCard.amended_from}
+              </button>
+            ) : jobCard.original_job_card ? (
+              <button
+                type="button"
+                className="mt-1 block text-sm text-primary hover:underline"
+                onClick={() => navigate("job-card-detail", { id: jobCard.original_job_card! })}
+              >
+                New version of {jobCard.original_job_card}
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -972,8 +1119,30 @@ export default function JobCardDetailPage() {
               },
             ]}
           />
+          {canAmendCancelled ? (
+            <Button onClick={() => void handleAmend()} disabled={busy}>
+              <FilePenLine className="h-4 w-4 mr-2" />
+              Amend
+            </Button>
+          ) : null}
+          {existingAmendment ? (
+            <Button
+              variant="outline"
+              onClick={() => navigate("job-card-detail", { id: existingAmendment })}
+            >
+              <FilePenLine className="h-4 w-4 mr-2" />
+              Open Amendment
+            </Button>
+          ) : null}
+          {canCreateNewVersion ? (
+            <Button variant="outline" onClick={() => void handleCreateNewVersion()} disabled={busy}>
+              <Copy className="h-4 w-4 mr-2" />
+              New Version
+            </Button>
+          ) : null}
           <ListRowActions doctype="DMS Job Card" docName={id}>
             {status === "Draft" ||
+            workflowStatus === "Cancelled" ||
             (!isInternal && (status === "Completed" || status === "Delivered")) ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -991,6 +1160,26 @@ export default function JobCardDetailPage() {
                       Edit
                     </DropdownMenuItem>
                   )}
+                  {canAmendCancelled ? (
+                    <DropdownMenuItem onClick={() => void handleAmend()} disabled={busy}>
+                      <FilePenLine className="mr-2 h-4 w-4" />
+                      Amend
+                    </DropdownMenuItem>
+                  ) : null}
+                  {existingAmendment ? (
+                    <DropdownMenuItem
+                      onClick={() => navigate("job-card-detail", { id: existingAmendment })}
+                    >
+                      <FilePenLine className="mr-2 h-4 w-4" />
+                      Open Amendment
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canCreateNewVersion ? (
+                    <DropdownMenuItem onClick={() => void handleCreateNewVersion()} disabled={busy}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      New Version
+                    </DropdownMenuItem>
+                  ) : null}
                   {!isInternal && (status === "Completed" || status === "Delivered") ? (
                     <DropdownMenuItem
                       disabled={jobCard.repeat_repair_eligible === false}
@@ -1074,6 +1263,14 @@ export default function JobCardDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {showUseMainApproval ? (
+              <UseMainJobCardToggle
+                originalName={mainJobCardName}
+                stageLabel="Customer approval"
+                disabled={busy}
+                onUse={() => handleUseMainJobCard("customer_approval")}
+              />
+            ) : null}
             <div className="space-y-2">
               <p className="text-sm font-medium">Customer signature *</p>
               <SignaturePad
@@ -1177,7 +1374,29 @@ export default function JobCardDetailPage() {
       {/* ─── Workflow Action Buttons ─────────────────────────── */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+            {canAmendCancelled ? (
+              <Button onClick={() => void handleAmend()} disabled={busy}>
+                <FilePenLine className="h-4 w-4 mr-2" />
+                Amend
+              </Button>
+            ) : null}
+            {existingAmendment ? (
+              <Button
+                variant="outline"
+                onClick={() => navigate("job-card-detail", { id: existingAmendment })}
+              >
+                <FilePenLine className="h-4 w-4 mr-2" />
+                Open Amendment
+              </Button>
+            ) : null}
+            {canCreateNewVersion ? (
+              <Button variant="outline" onClick={() => void handleCreateNewVersion()} disabled={busy}>
+                <Copy className="h-4 w-4 mr-2" />
+                New Version
+              </Button>
+            ) : null}
             {/* Draft → Submit for Estimation (customer jobs only) */}
             {status === "Draft" && !isInternal && (
               <Button onClick={handleSubmitForEstimation} disabled={busy}>
@@ -1425,6 +1644,39 @@ export default function JobCardDetailPage() {
                 </a>
               </Button>
             )}
+          </div>
+          {showUseMainApproval && !showApprovalSignature ? (
+            <UseMainJobCardToggle
+              originalName={mainJobCardName}
+              stageLabel="Customer approval"
+              disabled={busy}
+              onUse={() => handleUseMainJobCard("customer_approval")}
+            />
+          ) : showUseMainRepair ? (
+            <UseMainJobCardToggle
+              originalName={mainJobCardName}
+              stageLabel="Repair"
+              disabled={
+                busy ||
+                (["Draft", "Open", "Estimation Approved"].includes(status) && !hasWorkshopWarehouse)
+              }
+              onUse={() => handleUseMainJobCard("repair")}
+            />
+          ) : showUseMainRoadTest ? (
+            <UseMainJobCardToggle
+              originalName={mainJobCardName}
+              stageLabel="Road test"
+              disabled={busy}
+              onUse={() => handleUseMainJobCard("road_test")}
+            />
+          ) : showUseMainQC ? (
+            <UseMainJobCardToggle
+              originalName={mainJobCardName}
+              stageLabel="QC"
+              disabled={busy}
+              onUse={() => handleUseMainJobCard("qc")}
+            />
+          ) : null}
           </div>
         </CardContent>
       </Card>

@@ -128,6 +128,7 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 			"promised_delivery_date_time", "opened_date_time",
 			"completed_date_time", "invoice", "docstatus",
 			"is_repeat_repair", "repeat_repair_reference",
+			"amended_from",
 			"creation", "modified",
 		],
 		limit=int(limit),
@@ -135,6 +136,7 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 		order_by=LIST_ORDER_LATEST_CREATED,
 	)
 
+	_attach_job_card_amendment_flags(job_cards)
 	return {"data": job_cards, "total": total}
 
 
@@ -209,7 +211,9 @@ def get_job_card(name):
 		(data.get("lead_technician") or "").strip() and (data.get("assigned_bay") or "").strip()
 	)
 	# Legacy rows used Assigned as a workflow status — normalize on read.
-	if (data.get("status") or "").strip() == "Assigned":
+	if cint(data.get("docstatus")) == 2:
+		data["status"] = "Cancelled"
+	elif (data.get("status") or "").strip() == "Assigned":
 		data["status"] = "Estimation Approved" if data.get("docstatus") == 1 else "Open"
 
 	eligibility = _get_repeat_repair_eligibility(name, doc=doc)
@@ -218,6 +222,8 @@ def get_job_card(name):
 	# Synthetic for UI — JC stores complaints on job_items, not a summary field.
 	data["customer_complaint_summary"] = _job_card_complaint_text(doc)
 	_attach_qc_section_classification(data.get("qc_results") or [], data.get("qc_checklist_template"))
+	_attach_job_card_amendment_flags([data])
+	_attach_original_stage_reuse(data, doc=doc)
 
 	return data
 
@@ -1368,85 +1374,77 @@ def start_job_card_qc(name):
 	return {"status": doc.status, "qc_started_at": str(doc.qc_started_at)}
 
 
-_TERMINAL_CANCEL_BLOCKED = frozenset({"Cancelled", "Delivered"})
+def _apply_job_card_cancel_reason(doc, reason):
+	if not reason:
+		return
+	note = (doc.internal_notes or "").strip()
+	cancel_note = _("Cancelled: {0}").format(reason)
+	doc.internal_notes = f"{note}\n{cancel_note}".strip() if note else cancel_note
 
 
 @frappe.whitelist()
 def cancel_job_card(name, reason=None):
 	"""Cancel a saved job card at any point so it can be filtered out (no delete).
 
-	Also cancels linked stock transfers from parts issue / WIP / material issue.
+	Submitted cards use standard Frappe cancel (docstatus 2) in addition to
+	status=Cancelled. Drafts only change status. Linked stock transfers from
+	parts issue / WIP / material issue are reversed first.
 	"""
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+		log_job_card_status_change,
+		reverse_job_card_cancel_side_effects,
+	)
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		get_active_job_card_invoice,
+	)
+
 	if not name:
 		frappe.throw(_("Job Card name is required"))
 
 	doc = frappe.get_doc("DMS Job Card", name)
-	doc.check_permission("write")
+	if not (doc.has_permission("write") or doc.has_permission("cancel")):
+		frappe.throw(_("Not permitted to cancel this Job Card"))
 
-	if doc.status in _TERMINAL_CANCEL_BLOCKED:
+	if cint(doc.docstatus) == 2:
+		frappe.throw(_("Job card is already cancelled."))
+	if doc.status == "Delivered":
+		frappe.throw(_("Job card is already {0}.").format(doc.status))
+	# status=Cancelled but still submitted: finish with standard cancel below.
+	if doc.status == "Cancelled" and cint(doc.docstatus) != 1:
 		frappe.throw(_("Job card is already {0}.").format(doc.status))
 
 	reason = (reason or "").strip()
 	prev = doc.status
 
-	# Reverse stock movements first (parts issue / return / WIP / material issue)
-	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
-		cancel_job_card_stock_transfers,
-	)
+	cancelled_stock = reverse_job_card_cancel_side_effects(doc.name)
 
-	cancelled_stock = cancel_job_card_stock_transfers(doc.name)
-
-	# Cancel all linked parts requests (including Issued / Received after stock reverse)
-	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
-		_CANCELLABLE_PARTS_REQUEST_STATUSES,
-		cancel_parts_request,
-	)
-
-	open_prs = frappe.get_all(
-		"DMS Parts Request",
-		filters={
-			"job_card": doc.name,
-			"status": ["in", list(_CANCELLABLE_PARTS_REQUEST_STATUSES)],
-		},
-		pluck="name",
-	)
-	for pr_name in open_prs:
-		try:
-			cancel_parts_request(pr_name)
-		except Exception:
-			frappe.log_error(frappe.get_traceback(), "cancel_job_card parts request")
-
-	# Issued / Received requests: stock already reversed — mark Cancelled
-	issued_prs = frappe.get_all(
-		"DMS Parts Request",
-		filters={
-			"job_card": doc.name,
-			"status": ["in", ["Issued", "Received", "Partially Issued"]],
-		},
-		pluck="name",
-	)
-	for pr_name in issued_prs:
-		frappe.db.set_value(
-			"DMS Parts Request",
-			pr_name,
-			"status",
-			"Cancelled",
-			update_modified=True,
+	active_inv = get_active_job_card_invoice(doc.name)
+	if active_inv and cint(frappe.db.get_value("Sales Invoice", active_inv, "docstatus")) == 1:
+		frappe.throw(
+			_("Cancel Sales Invoice {0} first, then cancel this job card.").format(
+				frappe.bold(active_inv)
+			)
 		)
 
-	updates = {"status": "Cancelled"}
-	if reason:
-		note = (doc.internal_notes or "").strip()
-		cancel_note = _("Cancelled: {0}").format(reason)
-		updates["internal_notes"] = f"{note}\n{cancel_note}".strip() if note else cancel_note
+	if cint(doc.docstatus) == 1:
+		# Reload after side-effect writes so cancel does not hit a timestamp mismatch.
+		doc = frappe.get_doc("DMS Job Card", doc.name)
+		_apply_job_card_cancel_reason(doc, reason)
+		doc.status = "Cancelled"
+		doc.flags.cancel_reason = reason or None
+		# Existing DMS cancel was write-based; cancel perm may not be synced on all sites.
+		doc.flags.ignore_permissions = True
+		doc.flags.skip_cancel_side_effects = True
+		doc.cancel()
+	else:
+		updates = {"status": "Cancelled"}
+		if reason:
+			note = (doc.internal_notes or "").strip()
+			cancel_note = _("Cancelled: {0}").format(reason)
+			updates["internal_notes"] = f"{note}\n{cancel_note}".strip() if note else cancel_note
+		frappe.db.set_value("DMS Job Card", doc.name, updates, update_modified=True)
+		log_job_card_status_change(doc.name, "Cancelled", previous_status=prev, notes=reason or None)
 
-	frappe.db.set_value("DMS Job Card", doc.name, updates, update_modified=True)
-
-	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
-		log_job_card_status_change,
-	)
-
-	log_job_card_status_change(doc.name, "Cancelled", previous_status=prev, notes=reason or None)
 	frappe.db.commit()
 	doc.reload()
 	return {
@@ -1454,6 +1452,596 @@ def cancel_job_card(name, reason=None):
 		"status": doc.status,
 		"docstatus": doc.docstatus,
 		"cancelled_stock_entries": cancelled_stock,
+	}
+
+
+def _attach_job_card_amendment_flags(rows):
+	"""Mark cancelled cards that already have an official Amend (amended_from)."""
+	if not rows:
+		return
+	names = [row.get("name") for row in rows if row.get("name")]
+	amended_as_map = {}
+	if names:
+		for link in frappe.get_all(
+			"DMS Job Card",
+			filters={"amended_from": ["in", names]},
+			fields=["name", "amended_from"],
+		):
+			amended_as_map.setdefault(link.amended_from, link.name)
+	for row in rows:
+		amended_as = amended_as_map.get(row.get("name"))
+		row["already_amended"] = 1 if amended_as else 0
+		row["amended_as"] = amended_as or None
+
+
+def _reset_copied_job_card_runtime_fields(doc, source_name, *, as_amend=False):
+	"""Turn a copied cancelled job card into a fresh draft (Amend or New Version)."""
+	from frappe.utils import now_datetime, today
+
+	doc.name = None
+	doc.docstatus = 0
+	# Amend keeps the Frappe link; New Version is an independent copy.
+	doc.amended_from = source_name if as_amend else None
+	# Both Amend and New Version remember the cancelled source for stage reuse.
+	if doc.meta.has_field("original_job_card"):
+		doc.original_job_card = source_name
+	# Amend reopens work; New Version starts as a fresh draft.
+	doc.status = "Open" if as_amend else "Draft"
+	doc.posting_date = today()
+	doc.opened_date_time = now_datetime()
+
+	for field, value in (
+		("completed_date_time", None),
+		("technician_assigned_at", None),
+		("repair_started_at", None),
+		("qc_started_at", None),
+		("invoiced_at", None),
+		("delivery_date_time", None),
+		("invoice", None),
+		("material_issue", None),
+		("wip_material_transfer", None),
+		("payment_status", "Unpaid"),
+		("payment_reference", None),
+		("customer_approval_status", "Pending"),
+		("approval_reference", None),
+		("approval_attachment", None),
+		("approved_amount", None),
+		("customer_signature", None),
+		("delivered_to", None),
+		("delivered_to_phone", None),
+		("final_odometer", None),
+		("qc_result", None),
+		("qc_fail_reason", None),
+		("qc_inspector", None),
+		("qc_checked_date", None),
+		("rt_result", None),
+		("road_test_note", None),
+		("rework_required", 0),
+		("actual_duration_hours", None),
+		("total_hours", None),
+		("release_blocked", 0),
+		("release_block_reason", None),
+		("reason_for_stop", None),
+		("customer_satisfaction", None),
+	):
+		if doc.meta.has_field(field):
+			doc.set(field, value)
+
+	for table in ("time_logs", "status_log", "qc_results", "road_test_results"):
+		if doc.meta.has_field(table):
+			doc.set(table, [])
+
+	part_meta = frappe.get_meta("Job Card Part Item")
+	for row in doc.get("parts") or []:
+		for field, value in (
+			("quantity_issued", 0),
+			("quantity_returned", 0),
+			("line_status", "Requested"),
+			("parts_request", None),
+			("material_request", None),
+			("is_backordered", 0),
+			("backorder_eta", None),
+			("backorder_quantity", 0),
+			("old_part_received", 0),
+			("old_part_photo", None),
+			("stock_available", None),
+		):
+			if part_meta.has_field(field):
+				row.set(field, value)
+
+	labour_meta = frappe.get_meta("Vehicle Labour Item")
+	for row in doc.get("labour") or []:
+		if labour_meta.has_field("actual_hours"):
+			row.set("actual_hours", None)
+		if labour_meta.has_field("line_status"):
+			row.set("line_status", "Open")
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+		prepare_internal_job_card,
+	)
+
+	if is_internal_job_card(doc):
+		prepare_internal_job_card(doc)
+
+
+def _copy_cancelled_job_card(name, *, as_amend: bool):
+	"""Copy a cancelled job card into a new draft.
+
+	Amend (as_amend=True): Frappe amendment — sets amended_from, one per source.
+	New Version: independent copy (new series name), allowed even after Amend.
+	"""
+	from frappe.model.document import copy_doc
+
+	source_name = (name or "").strip()
+	if not source_name:
+		frappe.throw(_("Job Card name is required"))
+
+	source = frappe.get_doc("DMS Job Card", source_name)
+	source.check_permission("read")
+	frappe.has_permission("DMS Job Card", "create", throw=True)
+
+	if (source.status or "").strip() != "Cancelled" and cint(source.docstatus) != 2:
+		if as_amend:
+			frappe.throw(_("Only cancelled job cards can be amended."))
+		frappe.throw(_("Only cancelled job cards can create a New Version."))
+
+	if as_amend:
+		existing = frappe.db.exists("DMS Job Card", {"amended_from": source_name})
+		if existing:
+			frappe.throw(
+				_("This job card is already amended as {0}.").format(frappe.bold(existing))
+			)
+
+	new_doc = copy_doc(source, ignore_no_copy=True)
+	_reset_copied_job_card_runtime_fields(new_doc, source_name, as_amend=as_amend)
+	new_doc.insert()
+	frappe.db.commit()
+
+	return {
+		"name": new_doc.name,
+		"status": new_doc.status,
+		"amended_from": new_doc.amended_from,
+		"original_job_card": new_doc.get("original_job_card") or source_name,
+		"customer": new_doc.customer,
+		"customer_name": new_doc.customer_name,
+	}
+
+
+@frappe.whitelist()
+def amend_job_card(name):
+	"""Frappe-style Amend: new draft linked via amended_from (one per cancelled card)."""
+	return _copy_cancelled_job_card(name, as_amend=True)
+
+
+@frappe.whitelist()
+def create_job_card_new_version(name):
+	"""Independent duplicate of a cancelled job card (new naming-series name)."""
+	return _copy_cancelled_job_card(name, as_amend=False)
+
+
+_ORIGINAL_STAGES = ("customer_approval", "repair", "road_test", "qc")
+_CHILD_COPY_SKIP = {
+	"name",
+	"owner",
+	"creation",
+	"modified",
+	"modified_by",
+	"parent",
+	"parentfield",
+	"parenttype",
+	"idx",
+	"docstatus",
+}
+_LAYOUT_FIELDTYPES = {
+	"Section Break",
+	"Column Break",
+	"Tab Break",
+	"HTML",
+	"Heading",
+	"Fold",
+}
+
+
+def _resolve_original_job_card_name(doc) -> str:
+	return (doc.get("original_job_card") or doc.get("amended_from") or "").strip()
+
+
+def _copy_child_table(target, source, table_field, extra_skip=None):
+	"""Copy a child table's data fields onto target (new row names)."""
+	skip = set(_CHILD_COPY_SKIP)
+	if extra_skip:
+		skip.update(extra_skip)
+
+	target.set(table_field, [])
+	rows = source.get(table_field) or []
+	if not rows:
+		return
+
+	df = target.meta.get_field(table_field)
+	if not df or not df.options:
+		return
+
+	meta = frappe.get_meta(df.options)
+	copyable = [
+		field.fieldname
+		for field in meta.fields
+		if field.fieldname not in skip and field.fieldtype not in _LAYOUT_FIELDTYPES
+	]
+	for row in rows:
+		payload = {}
+		for fieldname in copyable:
+			payload[fieldname] = row.get(fieldname) if isinstance(row, dict) else row.get(fieldname)
+		target.append(table_field, payload)
+
+
+def _copy_labour_actuals(target, source):
+	labour_meta = frappe.get_meta("Vehicle Labour Item")
+	src_rows = list(source.get("labour") or [])
+	for idx, row in enumerate(target.get("labour") or []):
+		if idx >= len(src_rows):
+			break
+		src = src_rows[idx]
+		if labour_meta.has_field("actual_hours"):
+			row.actual_hours = src.get("actual_hours") if isinstance(src, dict) else src.actual_hours
+		if labour_meta.has_field("line_status"):
+			row.line_status = src.get("line_status") if isinstance(src, dict) else src.line_status
+
+
+def _copy_approval_fields(target, source):
+	for field in (
+		"customer_approval_status",
+		"approval_reference",
+		"approval_attachment",
+		"approved_amount",
+		"customer_signature",
+		"schedule_start_time",
+		"schedule_end_time",
+	):
+		if not target.meta.has_field(field):
+			continue
+		value = source.get(field)
+		if value not in (None, ""):
+			target.set(field, value)
+
+	if target.meta.has_field("lead_technician") and source.get("lead_technician") and not target.lead_technician:
+		target.lead_technician = source.lead_technician
+	if target.meta.has_field("assigned_bay") and source.get("assigned_bay") and not target.assigned_bay:
+		target.assigned_bay = source.assigned_bay
+	if target.meta.has_field("service_advisor") and source.get("service_advisor") and not target.service_advisor:
+		target.service_advisor = source.service_advisor
+
+
+def _original_has_customer_approval(source, is_internal: bool) -> bool:
+	if is_internal:
+		return False
+	status = (source.get("customer_approval_status") or "").strip()
+	return (
+		status == "Approved"
+		or bool(source.get("customer_signature"))
+		or bool(source.get("approval_reference"))
+	)
+
+
+def _original_has_repair(source) -> bool:
+	logs = source.get("time_logs") or []
+	has_logs = False
+	for row in logs:
+		start = row.get("start_time") if isinstance(row, dict) else row.get("start_time")
+		if start:
+			has_logs = True
+			break
+	return bool(
+		has_logs
+		or source.get("repair_started_at")
+		or source.get("completed_date_time")
+		or flt(source.get("actual_duration_hours"))
+		or flt(source.get("total_hours"))
+	)
+
+
+def _original_has_road_test(source) -> bool:
+	result = (source.get("rt_result") or "").strip()
+	if result in ("Pass", "Fail"):
+		return True
+	for row in source.get("road_test_results") or []:
+		value = row.get("result") if isinstance(row, dict) else row.get("result")
+		if value:
+			return True
+	return False
+
+
+def _original_has_qc(source) -> bool:
+	result = (source.get("qc_result") or "").strip()
+	if result in ("Pass", "Fail"):
+		return True
+	for row in source.get("qc_results") or []:
+		value = row.get("result") if isinstance(row, dict) else row.get("result")
+		if value:
+			return True
+	return False
+
+
+def _original_stage_reuse_payload(doc) -> dict:
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+	)
+
+	original_name = _resolve_original_job_card_name(doc)
+	empty = {
+		"customer_approval": {"available": False},
+		"repair": {"available": False},
+		"road_test": {"available": False},
+		"qc": {"available": False},
+	}
+	if not original_name or not frappe.db.exists("DMS Job Card", original_name):
+		return empty
+
+	source = frappe.get_doc("DMS Job Card", original_name)
+	internal = is_internal_job_card(doc)
+	return {
+		"customer_approval": {"available": _original_has_customer_approval(source, internal)},
+		"repair": {"available": _original_has_repair(source)},
+		"road_test": {"available": _original_has_road_test(source)},
+		"qc": {"available": _original_has_qc(source)},
+	}
+
+
+def _attach_original_stage_reuse(data, doc=None):
+	"""Expose the cancelled source + which stages can be reused on Amend / New Version."""
+	original_name = _resolve_original_job_card_name(doc or data)
+	data["original_job_card"] = original_name or None
+	data["original_stage_reuse"] = _original_stage_reuse_payload(doc or data)
+
+
+def _assert_current_status(doc, allowed, stage_label):
+	status = (doc.status or "").strip()
+	if status not in allowed:
+		frappe.throw(
+			_("Cannot copy {0} from the main job card while this card is {1}.").format(
+				stage_label, frappe.bold(status or _("unknown"))
+			)
+		)
+
+
+def _save_workflow_doc(doc):
+	if cint(doc.docstatus) == 1:
+		doc.flags.ignore_validate_update_after_submit = True
+		doc.save(ignore_permissions=True)
+	else:
+		doc.save()
+
+
+def _apply_original_customer_approval(doc, source):
+	_assert_current_status(doc, {"Draft", "Open", "Estimation Pending"}, _("customer approval"))
+	if cint(doc.docstatus) != 0:
+		frappe.throw(_("Job Card is already submitted."))
+
+	_copy_approval_fields(doc, source)
+	if not doc.schedule_start_time:
+		from frappe.utils import add_to_date, now_datetime
+
+		doc.schedule_start_time = now_datetime()
+		end = doc.promised_delivery_date_time
+		if not end and flt(doc.estimated_duration_hours):
+			end = add_to_date(doc.schedule_start_time, hours=flt(doc.estimated_duration_hours))
+		if not end:
+			end = add_to_date(doc.schedule_start_time, hours=48)
+		doc.schedule_end_time = doc.schedule_end_time or end
+	if not (doc.approval_reference or "").strip():
+		doc.approval_reference = _("Copied from {0}").format(source.name)
+	doc.customer_approval_status = "Approved"
+	doc.status = "Estimation Approved"
+	_validate_job_card_before_submit(doc)
+	doc.save()
+	doc.submit()
+
+
+def _apply_original_repair(doc, source):
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+		_assert_workshop_warehouse_for_repair,
+		_duration_hours,
+		_ensure_job_card_submitted_for_repair,
+		_is_open_time_log,
+		log_job_card_status_change,
+	)
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+	)
+	from frappe.utils import now_datetime
+
+	_assert_current_status(
+		doc,
+		{
+			"Draft",
+			"Open",
+			"Estimation Approved",
+			"Repair In Progress",
+			"Waiting Parts",
+			"Waiting Customer Approval",
+		},
+		_("repair"),
+	)
+
+	if not is_internal_job_card(doc) and cint(doc.docstatus) == 0:
+		_copy_approval_fields(doc, source)
+		if (source.get("customer_approval_status") or "").strip() == "Approved":
+			doc.customer_approval_status = "Approved"
+			if not (doc.approval_reference or "").strip():
+				doc.approval_reference = _("Copied from {0}").format(source.name)
+
+	_assert_workshop_warehouse_for_repair(doc)
+	if cint(doc.docstatus) == 0:
+		doc = _ensure_job_card_submitted_for_repair(doc)
+
+	_copy_child_table(doc, source, "time_logs", extra_skip={"job_item"})
+	now = now_datetime()
+	total_hours = 0.0
+	for row in doc.get("time_logs") or []:
+		if _is_open_time_log(row):
+			row.end_time = now
+			row.duration_hours = _duration_hours(row.start_time, row.end_time)
+		total_hours += flt(row.duration_hours)
+
+	if source.get("repair_started_at"):
+		doc.repair_started_at = source.repair_started_at
+	elif not doc.get("repair_started_at"):
+		doc.repair_started_at = now
+
+	doc.completed_date_time = source.get("completed_date_time") or now
+	doc.actual_duration_hours = source.get("actual_duration_hours") or total_hours
+	doc.total_hours = source.get("total_hours") or total_hours
+	if doc.meta.has_field("total_labor_hours") and source.get("total_labor_hours"):
+		doc.total_labor_hours = source.total_labor_hours
+
+	_copy_labour_actuals(doc, source)
+
+	prev = doc.status
+	doc.status = "Repair Completed"
+	_save_workflow_doc(doc)
+	log_job_card_status_change(
+		doc.name,
+		"Repair Completed",
+		previous_status=prev,
+		notes=_("Copied from main job card {0}").format(source.name),
+	)
+
+
+def _apply_original_road_test(doc, source):
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+		log_job_card_status_change,
+	)
+
+	_assert_current_status(doc, {"Repair Completed", "Road Test In Progress"}, _("road test"))
+	_copy_child_table(doc, source, "road_test_results")
+	if source.get("road_test_template"):
+		doc.road_test_template = source.road_test_template
+	doc.road_test_note = source.get("road_test_note")
+	result = (source.get("rt_result") or "").strip() or "Pass"
+	doc.rt_result = result
+	prev = doc.status
+	if result == "Fail":
+		doc.rework_required = 1
+		doc.status = "Rework"
+	else:
+		doc.rt_result = "Pass"
+		doc.status = "Road Test Completed"
+	_save_workflow_doc(doc)
+	log_job_card_status_change(
+		doc.name,
+		doc.status,
+		previous_status=prev,
+		notes=_("Copied from main job card {0}").format(source.name),
+	)
+
+
+def _apply_original_qc(doc, source):
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+		log_job_card_status_change,
+	)
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		complete_internal_job_card,
+		is_internal_job_card,
+	)
+
+	_assert_current_status(doc, {"Road Test Completed", "QC In Progress", "QC Failed"}, _("QC"))
+	_copy_child_table(doc, source, "qc_results")
+	for field in (
+		"qc_checklist_template",
+		"qc_inspector",
+		"qc_fail_reason",
+		"qc_checked_date",
+		"qc_started_at",
+	):
+		if doc.meta.has_field(field) and source.get(field) not in (None, ""):
+			doc.set(field, source.get(field))
+
+	result = (source.get("qc_result") or "").strip() or "Pass"
+	prev = doc.status
+
+	if result == "Fail":
+		doc.qc_result = "Fail"
+		doc.rework_required = 1
+		doc.status = "Rework"
+		_save_workflow_doc(doc)
+		log_job_card_status_change(
+			doc.name,
+			doc.status,
+			previous_status=prev,
+			notes=_("Copied from main job card {0}").format(source.name),
+		)
+		return
+
+	if is_internal_job_card(doc):
+		_save_workflow_doc(doc)
+		complete_internal_job_card(doc)
+		return
+
+	doc.qc_result = "Pass"
+	if not doc.get("qc_checked_date"):
+		doc.qc_checked_date = frappe.utils.now_datetime()
+	if not doc.get("qc_started_at"):
+		doc.qc_started_at = doc.qc_checked_date
+	doc.status = "Completed"
+	_save_workflow_doc(doc)
+	log_job_card_status_change(
+		doc.name,
+		"Completed",
+		previous_status=prev,
+		notes=_("Copied from main job card {0}").format(source.name),
+	)
+	_cancel_incomplete_parts_requests_for_job_card(doc.name)
+
+
+@frappe.whitelist()
+def apply_original_job_card_stage(name, stage):
+	"""Copy one completed stage from the cancelled main job card onto this Amend / New Version."""
+	stage = (stage or "").strip()
+	if stage not in _ORIGINAL_STAGES:
+		frappe.throw(_("Unknown stage {0}.").format(frappe.bold(stage or "")))
+	if not name:
+		frappe.throw(_("Job Card name is required"))
+
+	doc = frappe.get_doc("DMS Job Card", name)
+	doc.check_permission("write")
+
+	original_name = _resolve_original_job_card_name(doc)
+	if not original_name:
+		frappe.throw(_("This job card is not an amendment or new version of another job card."))
+	if not frappe.db.exists("DMS Job Card", original_name):
+		frappe.throw(_("Main job card {0} was not found.").format(frappe.bold(original_name)))
+
+	source = frappe.get_doc("DMS Job Card", original_name)
+	source.check_permission("read")
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+	)
+
+	if stage == "customer_approval":
+		if not _original_has_customer_approval(source, is_internal_job_card(doc)):
+			frappe.throw(_("The main job card has no customer approval to copy."))
+		_apply_original_customer_approval(doc, source)
+	elif stage == "repair":
+		if not _original_has_repair(source):
+			frappe.throw(_("The main job card has no repair details to copy."))
+		_apply_original_repair(doc, source)
+	elif stage == "road_test":
+		if not _original_has_road_test(source):
+			frappe.throw(_("The main job card has no road test to copy."))
+		_apply_original_road_test(doc, source)
+	else:
+		if not _original_has_qc(source):
+			frappe.throw(_("The main job card has no QC results to copy."))
+		_apply_original_qc(doc, source)
+
+	frappe.db.commit()
+	doc.reload()
+	return {
+		"name": doc.name,
+		"status": doc.status,
+		"docstatus": doc.docstatus,
+		"original_job_card": original_name,
 	}
 
 

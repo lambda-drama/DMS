@@ -787,6 +787,18 @@ export interface DMSJobCard {
   terms?: string;
   terms_and_conditions?: string;
   customer_satisfaction?: string;
+  /** Cancelled job card this draft was amended from (Frappe Amend). */
+  amended_from?: string;
+  /** Cancelled source for Amend and New Version — used to reuse stage details. */
+  original_job_card?: string | null;
+  original_stage_reuse?: {
+    customer_approval?: { available?: boolean };
+    repair?: { available?: boolean };
+    road_test?: { available?: boolean };
+    qc?: { available?: boolean };
+  };
+  already_amended?: number | boolean;
+  amended_as?: string | null;
   
   // Display / List
   vehicle_registration?: string;

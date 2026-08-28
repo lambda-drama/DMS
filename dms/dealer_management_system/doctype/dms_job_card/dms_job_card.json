@@ -107,6 +107,7 @@
   "service_advisor_notes",
   "internal_notes",
   "amended_from",
+  "original_job_card",
   "section_break_pwum",
   "customer_satisfaction",
   "section_break_cehe",
@@ -800,6 +801,15 @@
    "read_only": 1
   },
   {
+   "fieldname": "original_job_card",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Original Job Card",
+   "no_copy": 1,
+   "options": "DMS Job Card",
+   "read_only": 1
+  },
+  {
    "fieldname": "total_labor_hours",
    "fieldtype": "Float",
    "label": "Total Labor Hours",
@@ -1018,7 +1028,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-13 00:40:00.000000",
+ "modified": "2026-08-28 14:45:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",
@@ -1026,6 +1036,8 @@
  "owner": "Administrator",
  "permissions": [
   {
+   "amend": 1,
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -1035,9 +1047,12 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
+   "amend": 1,
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -1047,6 +1062,7 @@
    "report": 1,
    "role": "Dealer Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],
