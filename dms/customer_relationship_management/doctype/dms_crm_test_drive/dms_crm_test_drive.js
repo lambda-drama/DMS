@@ -10,6 +10,9 @@ frappe.ui.form.on("DMS CRM Test Drive", {
 		frm.set_query("checklist_template", () => ({
 			filters: { is_active: 1 },
 		}));
+		frm.set_query("driver", () => ({
+			filters: { status: "Active" },
+		}));
 	},
 
 	refresh(frm) {

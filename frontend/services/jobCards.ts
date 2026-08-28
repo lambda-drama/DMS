@@ -89,6 +89,46 @@ export async function cancelJobCard(
   });
 }
 
+export async function createJobCardNewVersion(name: string): Promise<{
+  name: string;
+  status: string;
+  amended_from?: string | null;
+  original_job_card?: string | null;
+  customer?: string;
+  customer_name?: string;
+}> {
+  return apiRequest(`/api/method/${API}.create_job_card_new_version`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function amendJobCard(name: string): Promise<{
+  name: string;
+  status: string;
+  amended_from?: string | null;
+  original_job_card?: string | null;
+  customer?: string;
+  customer_name?: string;
+}> {
+  return apiRequest(`/api/method/${API}.amend_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export type OriginalJobCardStage = 'customer_approval' | 'repair' | 'road_test' | 'qc';
+
+export async function applyOriginalJobCardStage(
+  name: string,
+  stage: OriginalJobCardStage
+): Promise<{ name: string; status: string; docstatus?: number; original_job_card?: string }> {
+  return apiRequest(`/api/method/${API}.apply_original_job_card_stage`, {
+    method: 'POST',
+    body: JSON.stringify({ name, stage }),
+  });
+}
+
 // ─── Field-level update on submitted doc ─────────────────────
 
 export async function setFieldValue(

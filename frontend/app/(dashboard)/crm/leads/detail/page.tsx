@@ -232,6 +232,21 @@ export default function CrmLeadDetailPage() {
                 >
                   <PhoneCall className="h-4 w-4" />
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-full"
+                  title="Add note"
+                  aria-label="Add note"
+                  onClick={() => {
+                    setNote('');
+                    setNoteOpen(true);
+                  }}
+                  disabled={busy}
+                >
+                  <MessageSquarePlus className="h-4 w-4" />
+                </Button>
                 {canLoseLead ? (
                   <Button
                     type="button"

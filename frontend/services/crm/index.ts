@@ -678,6 +678,17 @@ export async function fetchTestVehicleOptions(search = '', company?: string) {
   });
 }
 
+export async function listCrmDrivers(options?: { search?: string; limit?: number }) {
+  const rows = await apiRequest(`/api/method/${TEST_DRIVES}.get_driver_options`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      limit: options?.limit ?? 50,
+    }),
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 export async function listTestDrives(options?: {
   status?: string;
   search?: string;

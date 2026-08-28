@@ -202,6 +202,8 @@ frappe.ui.form.on("DMS Job Card", {
         add_vehicle_delivery_button(frm);
         add_sales_invoice_button(frm);
         add_repeat_job_button(frm);
+        add_amend_button(frm);
+        add_new_version_button(frm);
         refresh_qc_dashboard(frm);
         add_status_flow_buttons(frm);
         apply_customer_filter_advanced(frm);
@@ -573,6 +575,89 @@ function add_create_sales_invoice_button(frm) {
                         callback: (r) => {
                             if (r.message) frappe.set_route("Form", "Sales Invoice", r.message);
                         }
+                    });
+                }
+            );
+        },
+        ACTIONS_GROUP
+    );
+}
+
+function add_amend_button(frm) {
+    if (frm.is_new() || frm.doc.status !== "Cancelled") return;
+    if (!frappe.model.can_create("DMS Job Card")) return;
+
+    frappe.db
+        .get_list("DMS Job Card", {
+            filters: { amended_from: frm.doc.name },
+            fields: ["name"],
+            limit: 1,
+        })
+        .then((rows) => {
+            const existing = rows?.length ? rows[0].name : null;
+            if (existing) {
+                frm.add_custom_button(
+                    __("Open Amendment"),
+                    () => frappe.set_route("Form", "DMS Job Card", existing),
+                    ACTIONS_GROUP
+                );
+                return;
+            }
+            frm.add_custom_button(
+                __("Amend"),
+                () => {
+                    frappe.confirm(
+                        __(
+                            "Amend this cancelled job card? A new draft will be created and linked as the official amendment."
+                        ),
+                        () => {
+                            frappe.call({
+                                method: "dms.api.job_cards.amend_job_card",
+                                args: { name: frm.doc.name },
+                                freeze: true,
+                                freeze_message: __("Amending job card…"),
+                                callback: (res) => {
+                                    if (!res.message || !res.message.name) return;
+                                    frappe.show_alert({
+                                        message: __("Amended as {0}", [res.message.name]),
+                                        indicator: "green",
+                                    });
+                                    frappe.set_route("Form", "DMS Job Card", res.message.name);
+                                },
+                            });
+                        }
+                    );
+                },
+                ACTIONS_GROUP
+            );
+        });
+}
+
+function add_new_version_button(frm) {
+    if (frm.is_new() || frm.doc.status !== "Cancelled") return;
+    if (!frappe.model.can_create("DMS Job Card")) return;
+
+    frm.add_custom_button(
+        __("New Version"),
+        () => {
+            frappe.confirm(
+                __(
+                    "Create a new independent job card copied from this cancelled one? Vehicle, labour, and parts will be copied."
+                ),
+                () => {
+                    frappe.call({
+                        method: "dms.api.job_cards.create_job_card_new_version",
+                        args: { name: frm.doc.name },
+                        freeze: true,
+                        freeze_message: __("Creating new version…"),
+                        callback: (res) => {
+                            if (!res.message || !res.message.name) return;
+                            frappe.show_alert({
+                                message: __("New version {0} created", [res.message.name]),
+                                indicator: "green",
+                            });
+                            frappe.set_route("Form", "DMS Job Card", res.message.name);
+                        },
                     });
                 }
             );

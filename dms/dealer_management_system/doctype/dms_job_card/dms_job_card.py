@@ -95,6 +95,52 @@ def log_job_card_status_change(job_card, new_status, previous_status=None, when=
 		stamp_job_card_timestamp(name, field, when)
 
 
+def reverse_job_card_cancel_side_effects(job_card_name: str) -> list[str]:
+	"""Reverse stock and cancel parts requests. Idempotent."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+		cancel_job_card_stock_transfers,
+	)
+	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
+		_CANCELLABLE_PARTS_REQUEST_STATUSES,
+		cancel_parts_request,
+	)
+
+	cancelled_stock = cancel_job_card_stock_transfers(job_card_name)
+
+	open_prs = frappe.get_all(
+		"DMS Parts Request",
+		filters={
+			"job_card": job_card_name,
+			"status": ["in", list(_CANCELLABLE_PARTS_REQUEST_STATUSES)],
+		},
+		pluck="name",
+	)
+	for pr_name in open_prs:
+		try:
+			cancel_parts_request(pr_name)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "cancel_job_card parts request")
+
+	issued_prs = frappe.get_all(
+		"DMS Parts Request",
+		filters={
+			"job_card": job_card_name,
+			"status": ["in", ["Issued", "Received", "Partially Issued"]],
+		},
+		pluck="name",
+	)
+	for pr_name in issued_prs:
+		frappe.db.set_value(
+			"DMS Parts Request",
+			pr_name,
+			"status",
+			"Cancelled",
+			update_modified=True,
+		)
+
+	return cancelled_stock
+
+
 class DMSJobCard(Document):
 	def before_validate(self):
 		# Must run before Frappe's select-option validation.
@@ -126,6 +172,35 @@ class DMSJobCard(Document):
 		if self.status:
 			log_job_card_status_change(self.name, self.status, previous_status="")
 		self.sync_vin_odometer_from_job_card()
+
+	def copy_attachments_from_amended_from(self):
+		"""Copy files from the cancelled source. Missing disks files must not block Amend."""
+		from frappe.desk.form.load import get_attachments
+
+		if not self.amended_from:
+			return
+
+		for attach_item in get_attachments(self.doctype, self.amended_from):
+			file_url = attach_item.file_url
+			try:
+				file_doc = frappe.get_doc("File", attach_item.name)
+				if not file_doc.is_remote_file and not file_doc.exists_on_disk():
+					frappe.logger("dms").warning(
+						"Amend %s: skip missing attachment %s",
+						self.amended_from,
+						file_url,
+					)
+					continue
+				file_doc.create_attachment_copy(
+					self.doctype, self.name, ignore_permissions=True
+				)
+			except Exception:
+				frappe.logger("dms").warning(
+					"Amend %s: could not copy attachment %s",
+					self.amended_from,
+					file_url,
+					exc_info=True,
+				)
 
 	def on_update(self):
 		pending = getattr(self.flags, "pending_status_log", None)
@@ -170,6 +245,24 @@ class DMSJobCard(Document):
 			"status": self.status,
 			"previous_status": prev or "",
 		}
+
+	def before_cancel(self):
+		"""Desk or API cancel: keep workflow status in sync with docstatus 2."""
+		self.status = "Cancelled"
+		if not getattr(self.flags, "skip_cancel_side_effects", False):
+			reverse_job_card_cancel_side_effects(self.name)
+
+	def on_cancel(self):
+		prev = None
+		before = self.get_doc_before_save()
+		if before:
+			prev = before.status
+		log_job_card_status_change(
+			self.name,
+			"Cancelled",
+			previous_status=prev,
+			notes=getattr(self.flags, "cancel_reason", None),
+		)
 
 	def stamp_journey_timestamps(self):
 		"""Auto-stamp permanent TAT fields from document state (first write wins)."""
