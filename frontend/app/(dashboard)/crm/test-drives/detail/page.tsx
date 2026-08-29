@@ -124,11 +124,7 @@ export default function CrmTestDriveDetailPage() {
 
   const onCreateQuotation = () => {
     if (form.quotation) {
-      window.open(
-        `/app/quotation/${encodeURIComponent(String(form.quotation))}`,
-        '_blank',
-        'noopener'
-      );
+      navigate('crm-quotation-detail', { id: String(form.quotation) });
       return;
     }
     setQuotationDialogOpen(true);
@@ -439,7 +435,17 @@ export default function CrmTestDriveDetailPage() {
           {form.follow_up_activity ? (
             <Field label="Automatic Follow-up Task">{String(form.follow_up_activity)}</Field>
           ) : null}
-          {form.quotation ? <Field label="Quotation">{String(form.quotation)}</Field> : null}
+          {form.quotation ? (
+            <Field label="Quotation">
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline"
+                onClick={() => navigate('crm-quotation-detail', { id: String(form.quotation) })}
+              >
+                {String(form.quotation)}
+              </button>
+            </Field>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -450,12 +456,8 @@ export default function CrmTestDriveDetailPage() {
         onError={showError}
         onCreated={(quotation) => {
           void mutate().then(() => {
-            showSuccess('Quotation created.');
-            navigate('crm-opportunity-detail', { id: String(form.opportunity) });
-            window.open(
-              `/app/quotation/${encodeURIComponent(quotation)}`,
-              '_blank',
-              'noopener'
+            showSuccess(
+              `Quotation ${quotation} created. Find it under Quotations to view or send it.`
             );
           });
         }}

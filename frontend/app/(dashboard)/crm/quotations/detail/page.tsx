@@ -10,7 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { SendQuotationDialog } from '@/components/crm/send-quotation-dialog';
+import { ConfirmActionDialog } from '@/components/crm/confirm-action-dialog';
+import { ArrowLeft, Loader2, Send } from 'lucide-react';
 
 type QuoteItem = {
   item_code: string;
@@ -33,6 +35,8 @@ export default function CrmQuotationDetailPage() {
   const [items, setItems] = useState<QuoteItem[]>([]);
   const [validTill, setValidTill] = useState('');
   const [busy, setBusy] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
   const { error, success, showError, showSuccess, clear } = useCrmFeedback();
 
   useEffect(() => {
@@ -84,7 +88,6 @@ export default function CrmQuotationDetailPage() {
 
   const onSubmit = async () => {
     if (!isDraft) return;
-    if (!window.confirm('Submit this quotation? It cannot be edited after submit.')) return;
     setBusy(true);
     clear();
     try {
@@ -93,6 +96,7 @@ export default function CrmQuotationDetailPage() {
       }
       await submitQuotation(id);
       await mutate();
+      setSubmitOpen(false);
       showSuccess('Quotation submitted.');
     } catch (e: unknown) {
       showError(e, 'Failed to submit quotation.');
@@ -121,13 +125,17 @@ export default function CrmQuotationDetailPage() {
               Open Deal
             </Button>
           ) : null}
+          <Button variant="outline" onClick={() => setSendOpen(true)} disabled={busy}>
+            <Send className="mr-2 h-4 w-4" />
+            Send to Customer
+          </Button>
           {isDraft ? (
             <>
               <Button variant="outline" onClick={() => void onSave()} disabled={busy}>
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Save
               </Button>
-              <Button onClick={() => void onSubmit()} disabled={busy || !Boolean(data.can_submit)}>
+              <Button onClick={() => setSubmitOpen(true)} disabled={busy || !Boolean(data.can_submit)}>
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Submit Quotation
               </Button>
@@ -255,6 +263,28 @@ export default function CrmQuotationDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <SendQuotationDialog
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        quotationId={id}
+        customer={{
+          name: String(data.party_name || ''),
+          display: String(data.customer_display || data.party_name || ''),
+          email: String(data.customer_email || data.contact_email || ''),
+          phone: String(data.customer_mobile || data.contact_mobile || ''),
+        }}
+      />
+      <ConfirmActionDialog
+        open={submitOpen}
+        onOpenChange={setSubmitOpen}
+        title="Submit this quotation?"
+        description={`${id} will be submitted. After that it cannot be edited — you can still share it with the customer.`}
+        confirmLabel="Submit quotation"
+        cancelLabel="Keep as draft"
+        loading={busy}
+        onConfirm={() => void onSubmit()}
+      />
     </div>
   );
 }

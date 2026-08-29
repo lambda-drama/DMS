@@ -102,8 +102,9 @@ export function CreateQuotationDialog({
         <DialogHeader>
           <DialogTitle>Create Quotation</DialogTitle>
           <DialogDescription>
-            Review the items that will be added to the ERPNext quotation
-            {preview?.source ? ` (${preview.source.toLowerCase()})` : ''}.
+            Review the items that will be added to the quotation. After you create it, it
+            appears in Quotations — no ERPNext redirect.
+            {preview?.source ? ` Source: ${preview.source.toLowerCase()}.` : ''}
           </DialogDescription>
         </DialogHeader>
 
