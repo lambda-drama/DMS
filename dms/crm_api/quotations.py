@@ -23,6 +23,21 @@ def _docstatus_label(docstatus: int) -> str:
 	return {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(cint(docstatus), "Draft")
 
 
+def _attach_customer_contact(data: dict, cust_map: dict | None = None) -> dict:
+	party = data.get("party_name")
+	email = (data.get("contact_email") or data.get("customer_email") or "").strip()
+	mobile = (data.get("contact_mobile") or data.get("customer_mobile") or "").strip()
+	cust = (cust_map or {}).get(party) if party else None
+	if not cust and party and frappe.db.exists("Customer", party):
+		cust = frappe.db.get_value("Customer", party, ["email_id", "mobile_no"], as_dict=True)
+	if cust:
+		email = email or (cust.get("email_id") or "")
+		mobile = mobile or (cust.get("mobile_no") or "")
+	data["customer_email"] = email
+	data["customer_mobile"] = mobile
+	return data
+
+
 @frappe.whitelist()
 def get_quotations(status=None, search=None, limit=50, offset=0):
 	"""List ERPNext Quotations linked to CRM deals (and searchable drafts)."""
@@ -65,6 +80,10 @@ def get_quotations(status=None, search=None, limit=50, offset=0):
 		"company",
 		"modified",
 	]
+	if meta.has_field("contact_email"):
+		fields.append("contact_email")
+	if meta.has_field("contact_mobile"):
+		fields.append("contact_mobile")
 	if meta.has_field("custom_dms_crm_opportunity"):
 		fields.append("custom_dms_crm_opportunity")
 		if not search:
@@ -81,6 +100,15 @@ def get_quotations(status=None, search=None, limit=50, offset=0):
 	)
 
 	out = []
+	party_names = list({row.party_name for row in rows if row.party_name})
+	cust_map = {}
+	if party_names:
+		for cust in frappe.get_all(
+			"Customer",
+			filters={"name": ["in", party_names]},
+			fields=["name", "email_id", "mobile_no"],
+		):
+			cust_map[cust.name] = cust
 	for row in rows:
 		data = dict(row)
 		opp = data.get("custom_dms_crm_opportunity")
@@ -92,6 +120,7 @@ def get_quotations(status=None, search=None, limit=50, offset=0):
 			data.get("party_name")
 		)
 		data["docstatus_label"] = _docstatus_label(data.get("docstatus"))
+		_attach_customer_contact(data, cust_map)
 		out.append(data)
 
 	return {
@@ -115,6 +144,7 @@ def get_quotation(name):
 	data["customer_display"] = data.get("customer_name") or customer_display_name(
 		data.get("party_name")
 	)
+	_attach_customer_contact(data)
 	opp = data.get("custom_dms_crm_opportunity")
 	data["opportunity"] = opp
 	if opp and frappe.db.exists(OPP_DOCTYPE, opp):
@@ -182,6 +212,23 @@ def submit_quotation(name):
 		opp.flags.ignore_permissions = True
 		opp.save()
 
+	frappe.db.commit()
+	return get_quotation(doc.name)
+
+
+@frappe.whitelist()
+def cancel_quotation(name):
+	"""Cancel a submitted Quotation from CRM (no Desk)."""
+	ensure_crm_write(OPP_DOCTYPE)
+	if not name:
+		frappe.throw(_("Quotation is required."))
+	doc = frappe.get_doc(DOCTYPE, name)
+	doc.check_permission("cancel")
+	if cint(doc.docstatus) == 2:
+		return get_quotation(doc.name)
+	if cint(doc.docstatus) != 1:
+		frappe.throw(_("Only submitted quotations can be cancelled."))
+	doc.cancel()
 	frappe.db.commit()
 	return get_quotation(doc.name)
 

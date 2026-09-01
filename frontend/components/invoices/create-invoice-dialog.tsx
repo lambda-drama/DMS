@@ -431,7 +431,7 @@ export function CreateInvoiceDialog({
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {preview.add_full_warranty_item_on_invoice
-                    ? 'Warranty-covered lines are included at full rate with 100% line discount (DMS Settings).'
+                    ? 'Warranty-covered lines are included at full selling rate. Warranty is taken off the invoice total so the customer outstanding is 0 (or parts/labour only).'
                     : 'Warranty-covered lines are omitted from the invoice (DMS Settings). Billable lines only.'}
                 </p>
               </div>

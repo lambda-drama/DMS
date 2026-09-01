@@ -18,6 +18,7 @@ import {
   fetchCrmBranches,
   fetchOpportunityFormOptions,
   getOpportunity,
+  getQuotation,
   listAccounts,
   listTenders,
   markOpportunityWon,
@@ -44,7 +45,8 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { PipelinePath } from '@/components/crm/pipeline-path';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { CreateQuotationDialog } from '@/components/crm/create-quotation-dialog';
-import { Loader2, Trash2 } from 'lucide-react';
+import { SendQuotationDialog } from '@/components/crm/send-quotation-dialog';
+import { Loader2, Send, Trash2 } from 'lucide-react';
 
 const DEAL_PATH = [
   'Qualified',
@@ -249,6 +251,14 @@ export default function CrmOpportunityDetailPage() {
     '' | 'appointment' | 'test-drive' | 'booking' | 'invoice'
   >('');
   const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
+  const [sendQuoteOpen, setSendQuoteOpen] = useState(false);
+  const sendQuoteId = sendQuoteOpen
+    ? String((data as Record<string, unknown> | undefined)?.quotation || '')
+    : '';
+  const { data: quoteForSend } = useSWR(
+    sendQuoteId ? ['crm-quotation-send', sendQuoteId] : null,
+    () => getQuotation(sendQuoteId)
+  );
   const [appointmentForm, setAppointmentForm] = useState({
     appointment_datetime: '',
     appointment_type: 'Showroom Appointment',
@@ -789,6 +799,10 @@ export default function CrmOpportunityDetailPage() {
                 onClick={() => navigate('crm-quotation-detail', { id: linked.quotation })}
               >
                 Open {linked.quotation}
+              </Button>
+              <Button variant="outline" onClick={() => setSendQuoteOpen(true)}>
+                <Send className="mr-2 h-4 w-4" />
+                Send to Customer
               </Button>
               <span className="rounded-full bg-muted px-3 py-1">
                 Version {String(doc.quotation_version || 1)}
@@ -1831,9 +1845,23 @@ export default function CrmOpportunityDetailPage() {
         onError={showError}
         onCreated={(quotation) => {
           void mutate().then(() => {
-            showSuccess('Quotation created.');
-            navigate('crm-quotation-detail', { id: quotation });
+            showSuccess(
+              `Quotation ${quotation} created. Find it under Quotations to view or send it.`
+            );
           });
+        }}
+      />
+      <SendQuotationDialog
+        open={sendQuoteOpen}
+        onOpenChange={setSendQuoteOpen}
+        quotationId={linked.quotation}
+        customer={{
+          name: String(form.customer || quoteForSend?.party_name || ''),
+          display: String(
+            quoteForSend?.customer_display || form.customer || quoteForSend?.party_name || ''
+          ),
+          email: String(quoteForSend?.customer_email || quoteForSend?.contact_email || ''),
+          phone: String(quoteForSend?.customer_mobile || quoteForSend?.contact_mobile || ''),
         }}
       />
     </div>

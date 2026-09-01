@@ -405,6 +405,13 @@ export async function submitQuotation(name: string) {
   });
 }
 
+export async function cancelQuotation(name: string) {
+  return apiRequest<Record<string, unknown>>(`/api/method/${QUOTATIONS}.cancel_quotation`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function updateQuotationItems(name: string, data: Record<string, unknown>) {
   return apiRequest<Record<string, unknown>>(`/api/method/${QUOTATIONS}.update_quotation_items`, {
     method: 'POST',

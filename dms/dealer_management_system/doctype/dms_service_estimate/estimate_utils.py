@@ -12,6 +12,7 @@ from frappe.utils import add_to_date, flt, now_datetime, strip_html, today
 from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 	_apply_dms_settings_dimensions_to_sales_invoice,
 	_generate_invoice_no,
+	normalize_warranty_application_type,
 )
 from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 from dms.dealer_management_system.doctype.vehicle_inspection.vehicle_inspection import (
@@ -46,6 +47,21 @@ def _estimate_diagnosis_text(est) -> str:
 	return "\n\n".join(parts)
 
 
+def _job_card_type_from_estimate(est) -> str:
+	"""Warranty application on the estimate means the job is a warranty job."""
+	if normalize_warranty_application_type(est.get("warranty_application_type")):
+		return "Warranty"
+	return "Customer Paid"
+
+
+def _apply_job_card_type_from_estimate(jc, est) -> None:
+	"""Keep Customer Paid / Warranty in sync with the estimate; leave other types alone."""
+	derived = _job_card_type_from_estimate(est)
+	current = (jc.get("job_card_type") or "").strip()
+	if derived == "Warranty" or current in ("", "Customer Paid", "Warranty"):
+		jc.job_card_type = derived
+
+
 def make_dms_job_card_from_estimate(
 	estimate_name: str,
 	lead_technician: str | None = None,
@@ -70,7 +86,7 @@ def make_dms_job_card_from_estimate(
 	jc = frappe.new_doc("DMS Job Card")
 	jc.update(
 		{
-			"job_card_type": "Customer Paid",
+			"job_card_type": _job_card_type_from_estimate(est),
 			"status": "Open",
 			"inspection": est.inspection,
 			"service_estimate": est.name,
@@ -298,6 +314,7 @@ def sync_job_card_from_accepted_estimate(est) -> str | None:
 		)
 
 	jc.warranty_application_type = est.warranty_application_type
+	_apply_job_card_type_from_estimate(jc, est)
 	jc.labour_discount_type = est.labour_discount_type
 	jc.labour_discount_value = est.labour_discount_value
 	jc.parts_discount_type = est.parts_discount_type
