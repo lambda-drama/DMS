@@ -64,19 +64,52 @@ def _part_attr(part, field: str):
 	return getattr(part, field, None)
 
 
-def never_requested_part_row_names(parts) -> set[str]:
-	"""Job Card Part Item names with no active (non-cancelled) Parts Request."""
+_PART_REQUEST_IN_PROGRESS_STATUSES = frozenset(
+	{
+		"Pending Approval",
+		"Reserved",
+		"Ready for Issue",
+		"Issued",
+		"Received",
+		"Returned",
+		"Backordered",
+	}
+)
+
+
+def never_requested_part_row_names(parts, job_card: str | None = None) -> set[str]:
+	"""Job Card Part Item names with no evidence of a parts requisition.
+
+	Row identity is not enough: saving or re-syncing the job card recreates child
+	rows, which drops ``parts_request`` / ``job_card_part_row``. Also treat the
+	line as requested when qty was issued, the line already moved in the PR
+	workflow, or the same spare part is on an active PR for this job card.
+	"""
 	parts = parts or []
 	names = [(_part_attr(p, "name") or "").strip() for p in parts]
 	names = [n for n in names if n]
 	if not names:
 		return set()
 
+	if not job_card:
+		for part in parts:
+			parent = (_part_attr(part, "parent") or "").strip()
+			if parent:
+				job_card = parent
+				break
+
 	requested: set[str] = set()
 	pr_by_row: dict[str, str] = {}
 	for part in parts:
 		row_name = (_part_attr(part, "name") or "").strip()
 		if not row_name:
+			continue
+		if flt(_part_attr(part, "quantity_issued")) > 0:
+			requested.add(row_name)
+			continue
+		status = (_part_attr(part, "line_status") or "").strip()
+		if status in _PART_REQUEST_IN_PROGRESS_STATUSES:
+			requested.add(row_name)
 			continue
 		pr = (_part_attr(part, "parts_request") or "").strip()
 		if pr:
@@ -115,14 +148,42 @@ def never_requested_part_row_names(parts) -> set[str]:
 			if row.get("parent") in active_parents and row.get("job_card_part_row"):
 				requested.add(row["job_card_part_row"])
 
+	remaining = [n for n in names if n not in requested]
+	if remaining and job_card and frappe.db.exists("DocType", "DMS Parts Request"):
+		active_prs = frappe.get_all(
+			"DMS Parts Request",
+			filters={"job_card": job_card, "status": ["!=", "Cancelled"]},
+			pluck="name",
+		)
+		requested_items = set()
+		if active_prs and frappe.db.exists("DocType", "DMS Parts Request Item"):
+			requested_items = {
+				(code or "").strip()
+				for code in frappe.get_all(
+					"DMS Parts Request Item",
+					filters={"parent": ["in", active_prs]},
+					pluck="item_code",
+				)
+				if (code or "").strip()
+			}
+		if requested_items:
+			name_set = set(remaining)
+			for part in parts:
+				row_name = (_part_attr(part, "name") or "").strip()
+				if row_name not in name_set:
+					continue
+				item = (_part_attr(part, "item_code") or "").strip()
+				if item and item in requested_items:
+					requested.add(row_name)
+
 	return set(names) - requested
 
 
-def _assert_exclude_rows_never_requested(parts, excluded: set[str]) -> set[str]:
+def _assert_exclude_rows_never_requested(parts, excluded: set[str], job_card: str | None = None) -> set[str]:
 	"""Only spare parts that were never requisitioned may be dropped from the invoice."""
 	if not excluded:
 		return set()
-	never = never_requested_part_row_names(parts)
+	never = never_requested_part_row_names(parts, job_card=job_card)
 	invalid = excluded - never
 	if invalid:
 		frappe.throw(
@@ -238,6 +299,79 @@ def resolve_invoice_line_pricing(
 		"amount": round(qty * rate, 2),
 		"is_warranty_covered": False,
 	}
+
+
+def _si_item_pricing_fields(pricing: dict) -> dict:
+	"""Selling fields for a Sales Invoice Item.
+
+	Warranty is not stored as a 0 net rate: a site Server Script rejects rate=0.
+	Covered lines keep the full selling rate; the write-off is an invoice discount.
+	"""
+	base = flt(pricing.get("rate"))
+	return {
+		"price_list_rate": base,
+		"rate_with_margin": base,
+		"discount_percentage": 0.0,
+		"discount_amount": 0.0,
+		"rate": base,
+		"margin_type": "",
+		"margin_rate_or_amount": 0.0,
+	}
+
+
+_SI_ITEM_RATE_FIELDS = (
+	"price_list_rate",
+	"rate_with_margin",
+	"discount_percentage",
+	"discount_amount",
+	"rate",
+	"margin_type",
+	"margin_rate_or_amount",
+)
+
+
+def _apply_si_item_pricing_fields(row, fields: dict) -> None:
+	for key in _SI_ITEM_RATE_FIELDS:
+		if key in fields:
+			row.set(key, fields[key])
+
+
+def _reapply_job_card_si_line_rates(si, line_fields: list[dict]) -> None:
+	"""Put DMS selling rates back after price-list / totals overwrites."""
+	for idx, row in enumerate(si.get("items") or []):
+		if idx >= len(line_fields):
+			break
+		_apply_si_item_pricing_fields(row, line_fields[idx])
+
+
+def _warranty_covered_line_amount(si, line_fields: list[dict]) -> tuple[float, float]:
+	covered = 0.0
+	total = 0.0
+	for idx, row in enumerate(si.get("items") or []):
+		amount = flt(row.qty) * flt(row.rate)
+		total += amount
+		if idx < len(line_fields) and line_fields[idx].get("warranty_full_discount"):
+			covered += amount
+	return covered, total
+
+
+def _apply_warranty_as_invoice_discount(si, line_fields: list[dict]) -> None:
+	"""Take warranty off the invoice total so line rates stay non-zero."""
+	covered, total = _warranty_covered_line_amount(si, line_fields)
+	if covered <= 0 or total <= 0:
+		return
+
+	if hasattr(si, "apply_discount_on"):
+		si.apply_discount_on = "Grand Total"
+
+	if abs(covered - total) < 0.005:
+		if hasattr(si, "additional_discount_percentage"):
+			si.additional_discount_percentage = 100
+		si.discount_amount = 0
+	else:
+		if hasattr(si, "additional_discount_percentage"):
+			si.additional_discount_percentage = 0
+		si.discount_amount = round(covered, 2)
 
 
 def invoice_rate_for_line(line_type: str, base_rate: float, warranty_application_type: str) -> float:
@@ -670,7 +804,7 @@ def build_invoice_preview_from_job_card(
 
 	overrides = normalize_rate_overrides(rate_overrides)
 	excluded = _assert_exclude_rows_never_requested(
-		jc.get("parts") or [], normalize_exclude_rows(exclude_rows)
+		jc.get("parts") or [], normalize_exclude_rows(exclude_rows), job_card=jc.name
 	)
 	lines = _build_preview_lines(jc, warranty_type, overrides, exclude_rows=excluded)
 
@@ -785,7 +919,7 @@ def create_sales_invoice_from_dms_job_card(
 
 	warranty_type = normalize_warranty_application_type(jc.warranty_application_type)
 	excluded = _assert_exclude_rows_never_requested(
-		jc.get("parts") or [], normalize_exclude_rows(exclude_rows)
+		jc.get("parts") or [], normalize_exclude_rows(exclude_rows), job_card=jc.name
 	)
 	preview = build_invoice_preview_from_job_card(job_card_name, exclude_rows=list(excluded))
 	has_labour = preview.get("has_labour")
@@ -822,7 +956,7 @@ def create_sales_invoice_from_dms_job_card(
 		_apply_rate_overrides_to_job_card(jc, overrides)
 		jc = frappe.get_doc("DMS Job Card", job_card_name)
 
-	append_si_items(si, jc, warranty_type, overrides, exclude_rows=excluded)
+	line_fields = append_si_items(si, jc, warranty_type, overrides, exclude_rows=excluded)
 	if not si.get("items"):
 		frappe.throw(
 			_(
@@ -841,11 +975,18 @@ def create_sales_invoice_from_dms_job_card(
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
 	apply_company_letter_head(si, jc.company)
 
+	# Keep selling rates on the lines (site script forbids rate=0). Warranty is
+	# applied as an invoice-level discount after loyalty so it wins.
+	_reapply_job_card_si_line_rates(si, line_fields)
+
 	_apply_job_card_discounts_to_si(si, jc, warranty_type)
 	_apply_loyalty_service_discount_to_si(si, jc.customer)
+	_apply_warranty_as_invoice_discount(si, line_fields)
 
 	_allow_zero_valuation_rate_when_missing(si)
 
+	si.run_method("calculate_taxes_and_totals")
+	_apply_warranty_as_invoice_discount(si, line_fields)
 	si.run_method("calculate_taxes_and_totals")
 
 	si.insert()
@@ -1026,7 +1167,9 @@ def _build_preview_lines(
 				issue=issue,
 			)
 
-	never_requested_rows = never_requested_part_row_names(jc.get("parts") or [])
+	never_requested_rows = never_requested_part_row_names(
+		jc.get("parts") or [], job_card=jc.name
+	)
 
 	for part in jc.get("parts") or []:
 		if not part.item_code:
@@ -1376,6 +1519,25 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 	)
 	overrides = normalize_rate_overrides(rate_overrides)
 	excluded = normalize_exclude_rows(exclude_rows)
+	line_fields: list[dict] = []
+
+	def _append_priced_item(item_code: str, qty: float, pricing: dict):
+		fields = _si_item_pricing_fields(pricing)
+		child = si.append(
+			"items",
+			{
+				"item_code": item_code,
+				"qty": qty,
+				**fields,
+			},
+		)
+		line_fields.append(
+			{
+				**fields,
+				"warranty_full_discount": flt(pricing.get("discount_percentage")) >= 100,
+			}
+		)
+		return child
 
 	has_labour = bool(jc.get("labour"))
 	if has_labour:
@@ -1411,15 +1573,7 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 			if not pricing["include"]:
 				continue
 
-			child = si.append(
-				"items",
-				{
-					"item_code": item_code,
-					"qty": qty,
-					"rate": pricing["rate"],
-					"discount_percentage": pricing["discount_percentage"],
-				},
-			)
+			child = _append_priced_item(item_code, qty, pricing)
 			child.description = (_labour_row_service_name(row) or item_code)[:4096]
 
 	else:
@@ -1437,15 +1591,7 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 			if not pricing["include"]:
 				continue
 
-			child = si.append(
-				"items",
-				{
-					"item_code": ji.labor_operation,
-					"qty": 1,
-					"rate": pricing["rate"],
-					"discount_percentage": pricing["discount_percentage"],
-				},
-			)
+			child = _append_priced_item(ji.labor_operation, 1, pricing)
 			item_name = (
 				frappe.db.get_value("Item", ji.labor_operation, "item_name") or ji.labor_operation
 			)
@@ -1479,16 +1625,10 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 		if not pricing["include"]:
 			continue
 
-		row = si.append(
-			"items",
-			{
-				"item_code": erp_item,
-				"qty": qty,
-				"rate": pricing["rate"],
-				"discount_percentage": pricing["discount_percentage"],
-			},
-		)
+		row = _append_priced_item(erp_item, qty, pricing)
 		_apply_stock_item_warehouse(row, erp_item, part, jc)
+
+	return line_fields
 
 
 def mark_sales_invoice_as_dms_ui_transaction(si) -> None:

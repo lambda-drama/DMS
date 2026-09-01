@@ -203,7 +203,7 @@ def get_job_card(name):
 	)
 
 	data["parts_requests"] = list_parts_requests_for_job_card(name)
-	never_requested = never_requested_part_row_names(data.get("parts") or [])
+	never_requested = never_requested_part_row_names(data.get("parts") or [], job_card=name)
 	for part in data.get("parts") or []:
 		part["never_requested"] = part.get("name") in never_requested
 
