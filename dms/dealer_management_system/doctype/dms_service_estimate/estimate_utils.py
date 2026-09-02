@@ -47,8 +47,25 @@ def _estimate_diagnosis_text(est) -> str:
 	return "\n\n".join(parts)
 
 
-def _job_card_type_from_estimate(est) -> str:
-	"""Warranty application on the estimate means the job is a warranty job."""
+JOB_CARD_TYPES = frozenset(
+	{
+		"Customer Paid",
+		"Warranty",
+		"Internal",
+		"PDI",
+		"Campaign/Recall",
+		"Insurance",
+		"Goodwill",
+		"Fleet Contract",
+	}
+)
+
+
+def _job_card_type_from_estimate(est, override: str | None = None) -> str:
+	"""Use the type chosen at accept, else Warranty when the estimate has warranty."""
+	chosen = (override or "").strip()
+	if chosen in JOB_CARD_TYPES:
+		return chosen
 	if normalize_warranty_application_type(est.get("warranty_application_type")):
 		return "Warranty"
 	return "Customer Paid"
@@ -68,6 +85,7 @@ def make_dms_job_card_from_estimate(
 	assigned_bay: str | None = None,
 	schedule_start_time: str | None = None,
 	schedule_end_time: str | None = None,
+	job_card_type: str | None = None,
 ) -> str:
 	if not frappe.has_permission("DMS Service Estimate", "read", doc=estimate_name):
 		frappe.throw(_("Not permitted to read this Service Estimate"), frappe.PermissionError)
@@ -86,7 +104,7 @@ def make_dms_job_card_from_estimate(
 	jc = frappe.new_doc("DMS Job Card")
 	jc.update(
 		{
-			"job_card_type": _job_card_type_from_estimate(est),
+			"job_card_type": _job_card_type_from_estimate(est, job_card_type),
 			"status": "Open",
 			"inspection": est.inspection,
 			"service_estimate": est.name,

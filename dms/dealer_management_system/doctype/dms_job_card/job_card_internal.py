@@ -97,19 +97,29 @@ def apply_internal_job_card_billing(doc) -> None:
 
 
 def consumable_part_qty(part) -> float:
-	"""Remaining qty to consume via material issue."""
-	target = part_issue_qty(part)
-	already = flt(part.quantity_issued or 0)
-	return max(0.0, target - already)
+	"""Qty still sitting on the job that must leave stock via Material Issue.
+
+	Parts request already moved stock workshop → WIP and set ``quantity_issued``.
+	That transfer is not consumption — completion must issue the net issued qty
+	out of WIP. Unissued lines (no PR yet) fall back to requested qty.
+	"""
+	issued = flt(getattr(part, "quantity_issued", None) or 0)
+	returned = flt(getattr(part, "quantity_returned", None) or 0)
+	if issued > 0:
+		return max(0.0, issued - returned)
+	return part_issue_qty(part)
 
 
 def _issue_warehouse_for_part(jc, part) -> str | None:
+	"""Prefer the warehouse the part was transferred into (WIP after issue)."""
 	wh = (getattr(part, "warehouse", None) or "").strip()
-	if wh and flt(part.quantity_issued or 0) > 0:
+	if wh:
 		return wh
 
 	wip = get_wip_warehouse(jc.company)
-	if wip and jc.get("wip_material_transfer"):
+	if wip and (
+		jc.get("wip_material_transfer") or flt(getattr(part, "quantity_issued", None) or 0) > 0
+	):
 		return wip
 
 	return resolve_workshop_warehouse(jc)
@@ -162,7 +172,7 @@ def create_material_issue_for_job_card(jc) -> str | None:
 	se.company = jc.company
 	se.posting_date = jc.posting_date or frappe.utils.today()
 	se.set_posting_time = 1
-	se.remarks = _("Internal job card {0} — material consumption").format(jc.name)
+	se.remarks = _("Internal job card {0} — consume parts from work in progress").format(jc.name)
 
 	defaults_row = get_dms_company_defaults_row(jc.company)
 	if defaults_row:
@@ -201,15 +211,19 @@ def create_material_issue_for_job_card(jc) -> str | None:
 		part = next((p for p in jc.get("parts") or [] if p.name == line["part_row"]), None)
 		if not part:
 			continue
-		new_issued = flt(part.quantity_issued or 0) + flt(line["qty"])
+		# PR issue already set quantity_issued (workshop → WIP). Consumption
+		# must not inflate issued qty; only stamp warehouse / status.
+		issued = flt(part.quantity_issued or 0)
+		updates = {
+			"line_status": "Issued",
+			"warehouse": line["s_warehouse"],
+		}
+		if issued <= 0:
+			updates["quantity_issued"] = flt(line["qty"])
 		frappe.db.set_value(
 			"Job Card Part Item",
 			part.name,
-			{
-				"quantity_issued": new_issued,
-				"line_status": "Issued",
-				"warehouse": line["s_warehouse"],
-			},
+			updates,
 			update_modified=False,
 		)
 

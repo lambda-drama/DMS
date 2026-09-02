@@ -85,7 +85,22 @@ import {
 } from "@/lib/invoice-discount";
 import * as vehiclesSvc from "@/services/vehicles";
 import { fetchServicePackageLines } from "@/services/service-packages";
-import type { VehicleWarrantySummary } from "@/types/dms";
+import type { JobCardType, VehicleWarrantySummary } from "@/types/dms";
+
+const JOB_CARD_TYPES: JobCardType[] = [
+  "Customer Paid",
+  "Warranty",
+  "Internal",
+  "PDI",
+  "Campaign/Recall",
+  "Insurance",
+  "Goodwill",
+  "Fleet Contract",
+];
+
+function defaultJobCardTypeFromEstimate(warranty?: string | null): JobCardType {
+  return warranty && warranty !== "none" ? "Warranty" : "Customer Paid";
+}
 
 function discountModeFromBackend(type?: string | null): InvoiceDiscountMode {
   if (!type) return "none";
@@ -183,6 +198,7 @@ export default function ServiceEstimateDetailPage() {
   const [showStartRepairDialog, setShowStartRepairDialog] = useState(false);
   const [acceptLeadTechnician, setAcceptLeadTechnician] = useState("");
   const [acceptAssignedBay, setAcceptAssignedBay] = useState("");
+  const [acceptJobCardType, setAcceptJobCardType] = useState<JobCardType>("Customer Paid");
   const [acceptBayWorkshop, setAcceptBayWorkshop] = useState("");
   const [acceptBayWarehouse, setAcceptBayWarehouse] = useState("");
   const [acceptScheduleStart, setAcceptScheduleStart] = useState("");
@@ -438,6 +454,7 @@ export default function ServiceEstimateDetailPage() {
       customer_signature: string;
       lead_technician?: string;
       assigned_bay?: string;
+      job_card_type?: string;
       schedule_start_time?: string;
       schedule_end_time?: string;
       start_repair?: boolean;
@@ -486,6 +503,7 @@ export default function ServiceEstimateDetailPage() {
     setAcceptScheduleStart(start);
     setAcceptScheduleEnd(defaultScheduleEndLocal(start));
     setAcceptLeadTechnician("");
+    setAcceptJobCardType(defaultJobCardTypeFromEstimate(estimate?.warranty_application_type));
     void applyAcceptBay(estimate?.assigned_bay || "");
     setShowStartRepairDialog(true);
   };
@@ -523,6 +541,10 @@ export default function ServiceEstimateDetailPage() {
       toast.error("Assigned service bay is required");
       return;
     }
+    if (!acceptJobCardType) {
+      toast.error("Job card type is required");
+      return;
+    }
     if (!acceptBayWarehouse) {
       toast.error(
         acceptBayWorkshop
@@ -549,6 +571,7 @@ export default function ServiceEstimateDetailPage() {
       customer_signature: acceptSignature,
       lead_technician: acceptLeadTechnician,
       assigned_bay: acceptAssignedBay,
+      job_card_type: acceptJobCardType,
       schedule_start_time: startRepair ? toFrappeDatetime(acceptScheduleStart) : undefined,
       schedule_end_time: startRepair ? toFrappeDatetime(acceptScheduleEnd) : undefined,
       start_repair: startRepair,
@@ -1619,11 +1642,35 @@ export default function ServiceEstimateDetailPage() {
           <DialogHeader>
             <DialogTitle>Assign technician and bay</DialogTitle>
             <DialogDescription>
-              Choose a lead technician and service bay before the job card is created. The bay&apos;s
-              Workshop must have a warehouse.
+              Choose job card type, lead technician, and service bay before the job card is created.
+              The bay&apos;s Workshop must have a warehouse.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="accept-job-card-type">Job card type *</Label>
+              <Select
+                value={acceptJobCardType}
+                onValueChange={(v) => setAcceptJobCardType(v as JobCardType)}
+              >
+                <SelectTrigger id="accept-job-card-type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {JOB_CARD_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {estimate?.warranty_application_type ? (
+                <p className="text-xs text-muted-foreground">
+                  Defaults to Warranty because this estimate has warranty application{" "}
+                  {estimate.warranty_application_type}. You can change it.
+                </p>
+              ) : null}
+            </div>
             <div className="space-y-2">
               <Label>Lead technician *</Label>
               <SearchableSelect
