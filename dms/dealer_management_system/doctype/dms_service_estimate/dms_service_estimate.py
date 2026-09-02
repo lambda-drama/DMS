@@ -18,6 +18,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 )
 from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils import (
+	JOB_CARD_TYPES,
 	create_diagnostic_invoice_from_estimate,
 	get_default_diagnostic_fee,
 	get_default_vat_rate,
@@ -261,6 +262,7 @@ def accept_estimate(
 	schedule_end_time: str | None = None,
 	start_repair: int | bool = 0,
 	terms_accepted: int | bool = 0,
+	job_card_type: str | None = None,
 ) -> dict:
 	doc = frappe.get_doc("DMS Service Estimate", estimate_name)
 	doc.check_permission("write")
@@ -295,6 +297,11 @@ def accept_estimate(
 		missing.append(_("Lead Technician"))
 	if not assigned_bay:
 		missing.append(_("Assigned Service Bay"))
+	chosen_type = (job_card_type or "").strip()
+	if not chosen_type:
+		missing.append(_("Job Card Type"))
+	elif chosen_type not in JOB_CARD_TYPES:
+		frappe.throw(_("Invalid Job Card Type: {0}").format(frappe.bold(chosen_type)))
 	if cint(start_repair):
 		if not schedule_start_time:
 			missing.append(_("Schedule Start Time"))
@@ -324,6 +331,7 @@ def accept_estimate(
 		assigned_bay=assigned_bay,
 		schedule_start_time=schedule_start_time,
 		schedule_end_time=schedule_end_time,
+		job_card_type=chosen_type,
 	)
 
 	if cint(start_repair):

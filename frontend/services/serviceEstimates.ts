@@ -119,6 +119,7 @@ export async function acceptEstimate(
     schedule_end_time?: string;
     start_repair?: boolean;
     terms_accepted?: boolean;
+    job_card_type?: string;
   }
 ): Promise<{ name: string; status: string; job_card: string }> {
   return apiRequest(`/api/method/${DT}.accept_estimate`, {
@@ -132,6 +133,7 @@ export async function acceptEstimate(
       schedule_end_time: payload.schedule_end_time || null,
       start_repair: payload.start_repair ? 1 : 0,
       terms_accepted: payload.terms_accepted ? 1 : 0,
+      job_card_type: payload.job_card_type || null,
     }),
   });
 }
