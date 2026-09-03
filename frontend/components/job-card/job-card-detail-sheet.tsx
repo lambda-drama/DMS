@@ -104,7 +104,10 @@ export function JobCardDetailSheetContent({
           <DetailSection title="Service Details">
             <DetailRow label="Type" value={jobCard.job_card_type} />
             <DetailRow label="Priority" value={jobCard.priority} />
-            <DetailRow label="Service Advisor" value={jobCard.service_advisor} />
+            <DetailRow
+              label="Service Advisor"
+              value={jobCard.service_advisor_name || jobCard.service_advisor}
+            />
             <DetailRow
               label="Lead Technician"
               value={jobCard.lead_technician_name || jobCard.lead_technician}

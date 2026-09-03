@@ -2,7 +2,13 @@ import frappe
 from frappe import _
 from frappe.utils import today
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_companies, resolve_dms_customer
+from dms.api.utils import (
+	LIST_ORDER_LATEST_CREATED,
+	add_branch_filter,
+	enrich_vin_listing_fields,
+	get_dms_companies,
+	resolve_dms_customer,
+)
 from dms.dealer_management_system.utils.document_links import enrich_inspection_row
 
 # Frontend warning-light labels → Vehicle Warning Light.select option
@@ -129,6 +135,7 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 		or_filters = {
 			"name": ["like", f"%{search}%"],
 			"customer": ["like", f"%{search}%"],
+			"vin_chassis": ["like", f"%{search}%"],
 			"license_plate": ["like", f"%{search}%"],
 		}
 
@@ -158,6 +165,7 @@ def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
 	)
 
 	inspections = _enrich_inspection_list_rows(inspections)
+	enrich_vin_listing_fields(inspections, vin_field="vin_chassis")
 
 	return {"data": inspections, "total": total}
 

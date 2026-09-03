@@ -1892,7 +1892,7 @@ export default function JobCardDetailPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-muted-foreground">Service Advisor</p>
-                    <p className="font-medium">{jobCard.service_advisor || "N/A"}</p>
+                    <p className="font-medium">{jobCard.service_advisor_name || jobCard.service_advisor || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Priority</p>
@@ -2563,7 +2563,7 @@ export default function JobCardDetailPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Service advisor</p>
-                  <p className="font-medium">{jobCard.service_advisor || "Not assigned"}</p>
+                  <p className="font-medium">{jobCard.service_advisor_name || jobCard.service_advisor || "Not assigned"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Promised delivery time</p>

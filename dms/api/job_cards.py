@@ -2,7 +2,12 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, resolve_dms_customer
+from dms.api.utils import (
+	LIST_ORDER_LATEST_CREATED,
+	add_branch_filter,
+	enrich_vin_listing_fields,
+	resolve_dms_customer,
+)
 
 def _resolve_job_card_currency(currency=None, company=None) -> str:
 	"""Default ETB; fall back to company default currency when currency not sent."""
@@ -98,6 +103,7 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 		or_filters = {
 			"name": ["like", f"%{search}%"],
 			"customer_name": ["like", f"%{search}%"],
+			"vehicle_vin": ["like", f"%{search}%"],
 			"license_plate": ["like", f"%{search}%"],
 			"vehicle_model": ["like", f"%{search}%"],
 		}
@@ -137,6 +143,7 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 	)
 
 	_attach_job_card_amendment_flags(job_cards)
+	enrich_vin_listing_fields(job_cards, vin_field="vehicle_vin")
 	return {"data": job_cards, "total": total}
 
 
@@ -224,6 +231,31 @@ def get_job_card(name):
 	_attach_qc_section_classification(data.get("qc_results") or [], data.get("qc_checklist_template"))
 	_attach_job_card_amendment_flags([data])
 	_attach_original_stage_reuse(data, doc=doc)
+	_attach_job_card_people_names(data)
+
+	return data
+
+
+def _attach_job_card_people_names(data: dict) -> dict:
+	"""Resolve Service Advisor / Technician link IDs to full_name for UI display."""
+	advisor = (data.get("service_advisor") or "").strip()
+	if advisor:
+		data["service_advisor_name"] = (
+			frappe.db.get_value("Service Advisor", advisor, "full_name") or advisor
+		)
+
+	tech = (data.get("lead_technician") or "").strip()
+	if tech:
+		data["lead_technician_name"] = (
+			frappe.db.get_value("Technician", tech, "full_name") or tech
+		)
+
+	for row in data.get("assistant_technicians") or []:
+		if not isinstance(row, dict):
+			continue
+		tid = (row.get("technician") or "").strip()
+		if tid and not (row.get("technician_name") or "").strip():
+			row["technician_name"] = frappe.db.get_value("Technician", tid, "full_name") or tid
 
 	return data
 
