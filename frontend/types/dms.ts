@@ -350,6 +350,8 @@ export interface VehicleInspection {
   // Vehicle Status
   customer_vehicle: string;
   vin_chassis: string;
+  vin_number?: string;
+  vehicle_model?: string;
   customer: string;
   license_plate?: string;
   model_year?: number;
@@ -668,6 +670,7 @@ export interface DMSJobCard {
   customer_name?: string;
   customer_mobile?: string;
   vehicle_vin: string;
+  vin_number?: string;
   vehicle_model?: string;
   license_plate?: string;
   current_odometer?: number;
@@ -693,6 +696,7 @@ export interface DMSJobCard {
     reason?: string;
   };
   service_advisor: string;
+  service_advisor_name?: string;
   assigned_bay: string;
   workshop?: string;
   warehouse?: string;

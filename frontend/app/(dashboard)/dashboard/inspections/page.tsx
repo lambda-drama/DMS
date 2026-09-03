@@ -52,7 +52,7 @@ import {
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ListRowActions } from '@/components/list-row-actions';
-import { cn } from '@/lib/utils';
+import { cn, vehicleListingLines } from '@/lib/utils';
 
 export default function InspectionsPage() {
   const { navigate } = useNavigation();
@@ -97,6 +97,9 @@ export default function InspectionsPage() {
   const filteredInspections = inspections.filter((insp) => {
     const matchesSearch =
       (insp.customer_vehicle ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (insp.vehicle_model ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (insp.vin_chassis ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (insp.vin_number ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       insp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (insp.license_plate ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       insp.customer.toLowerCase().includes(searchQuery.toLowerCase());
@@ -183,7 +186,13 @@ export default function InspectionsPage() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Tap a row for details
                 </p>
-                {filteredInspections.map((insp) => (
+                {filteredInspections.map((insp) => {
+                  const vehicle = vehicleListingLines({
+                    vin: insp.vin_number || insp.vin_chassis,
+                    model: insp.vehicle_model || insp.customer_vehicle,
+                    license: insp.license_plate,
+                  });
+                  return (
                 <div
                   key={insp.name}
                   className="rounded-lg border border-border bg-card p-4"
@@ -194,11 +203,11 @@ export default function InspectionsPage() {
                       onClick={() => setSelectedId(insp.name)}
                       className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
                     >
-                      <p className="font-medium">{insp.customer_vehicle || insp.customer}</p>
+                      <p className="font-medium">{vehicle.primary}</p>
                       <p className="truncate text-sm text-muted-foreground">{insp.name}</p>
                       <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                         <p>{insp.customer}</p>
-                        {insp.license_plate ? <p>{insp.license_plate}</p> : null}
+                        {vehicle.secondary ? <p>{vehicle.secondary}</p> : null}
                         <p>{format(new Date(insp.inspection_date), 'MMM d, yyyy · h:mm a')}</p>
                         <p>
                           {(insp.customer_complaints?.length || 0)} issue
@@ -301,7 +310,8 @@ export default function InspectionsPage() {
                     </Button>
                   ) : null}
                 </div>
-                ))}
+                );
+                })}
               </>
             )}
           </div>
@@ -333,7 +343,13 @@ export default function InspectionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInspections.map((insp) => (
+                {filteredInspections.map((insp) => {
+                  const vehicle = vehicleListingLines({
+                    vin: insp.vin_number || insp.vin_chassis,
+                    model: insp.vehicle_model || insp.customer_vehicle,
+                    license: insp.license_plate,
+                  });
+                  return (
                   <TableRow key={insp.name}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -365,9 +381,11 @@ export default function InspectionsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <Car className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{insp.customer_vehicle}</span>
+                          <span className="font-medium">{vehicle.primary}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">{insp.license_plate}</p>
+                        {vehicle.secondary ? (
+                          <p className="text-sm text-muted-foreground">{vehicle.secondary}</p>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -455,7 +473,8 @@ export default function InspectionsPage() {
                       </ListRowActions>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

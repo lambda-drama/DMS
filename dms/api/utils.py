@@ -139,3 +139,40 @@ def resolve_dms_customer(explicit: str | None = None) -> str | None:
 	if customer:
 		return customer
 	return get_dms_default_customer()
+
+
+def enrich_vin_listing_fields(rows: list[dict], vin_field: str = "vehicle_vin") -> list[dict]:
+	"""Fill listing vehicle fields from VIN No when the document itself is blank.
+
+	License plate falls back to VIN No.plate_number. Model falls back to VIN No.model_name.
+	"""
+	if not rows:
+		return rows
+
+	vins = list({(row.get(vin_field) or "").strip() for row in rows if row.get(vin_field)})
+	if not vins:
+		return rows
+
+	vin_map = {
+		r.name: r
+		for r in frappe.get_all(
+			"VIN No",
+			filters={"name": ["in", vins]},
+			fields=["name", "vin_number", "plate_number", "model_name"],
+		)
+	}
+
+	for row in rows:
+		vin = (row.get(vin_field) or "").strip()
+		info = vin_map.get(vin)
+		if not info:
+			if vin:
+				row.setdefault("vin_number", vin)
+			continue
+		if not (row.get("license_plate") or "").strip():
+			row["license_plate"] = info.plate_number or ""
+		if not (row.get("vehicle_model") or "").strip():
+			row["vehicle_model"] = info.model_name or ""
+		row["vin_number"] = info.vin_number or vin
+
+	return rows

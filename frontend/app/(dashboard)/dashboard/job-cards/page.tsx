@@ -54,7 +54,7 @@ import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-d
 import { resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import { PaginationControls } from "@/components/pagination-controls";
 import { ListRowActions } from "@/components/list-row-actions";
-import { cn } from "@/lib/utils";
+import { cn, vehicleListingLines } from "@/lib/utils";
 import * as jobCardsSvc from "@/services/jobCards";
 import type { DMSJobCard, JobCardStatus } from "@/types/dms";
 import {
@@ -316,6 +316,8 @@ export default function JobCardsPage() {
       jc.name?.toLowerCase().includes(q) ||
       jc.customer_name?.toLowerCase().includes(q) ||
       jc.license_plate?.toLowerCase().includes(q) ||
+      jc.vehicle_vin?.toLowerCase().includes(q) ||
+      jc.vin_number?.toLowerCase().includes(q) ||
       jc.vehicle_model?.toLowerCase().includes(q)
     );
   });
@@ -410,7 +412,13 @@ export default function JobCardsPage() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Tap a row for details
                 </p>
-                {filtered.map((jc) => (
+                {filtered.map((jc) => {
+                  const vehicle = vehicleListingLines({
+                    vin: jc.vin_number || jc.vehicle_vin,
+                    model: jc.vehicle_model,
+                    license: jc.license_plate,
+                  });
+                  return (
                   <div
                     key={jc.name}
                     className="rounded-lg border border-border bg-card p-4"
@@ -424,10 +432,8 @@ export default function JobCardsPage() {
                         <p className="font-medium">{jc.customer_name}</p>
                         <p className="truncate text-sm text-muted-foreground">{jc.name}</p>
                         <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                          <p>
-                            {jc.license_plate || "—"}
-                            {jc.vehicle_model ? ` · ${jc.vehicle_model}` : ""}
-                          </p>
+                          <p className="font-medium text-foreground">{vehicle.primary}</p>
+                          {vehicle.secondary ? <p>{vehicle.secondary}</p> : null}
                           <Badge variant="outline" className="mt-1">
                             {jc.job_card_type}
                           </Badge>
@@ -510,7 +516,8 @@ export default function JobCardsPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="mt-4 md:hidden">
@@ -538,7 +545,13 @@ export default function JobCardsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((jc) => (
+                  {filtered.map((jc) => {
+                    const vehicle = vehicleListingLines({
+                      vin: jc.vin_number || jc.vehicle_vin,
+                      model: jc.vehicle_model,
+                      license: jc.license_plate,
+                    });
+                    return (
                     <TableRow key={jc.name} className="hover:bg-muted/50">
                       <TableCell>
                         <button
@@ -554,8 +567,10 @@ export default function JobCardsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{jc.license_plate || "—"}</p>
-                          <p className="text-sm text-muted-foreground">{jc.vehicle_model}</p>
+                          <p className="font-medium">{vehicle.primary}</p>
+                          {vehicle.secondary ? (
+                            <p className="text-sm text-muted-foreground">{vehicle.secondary}</p>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -652,7 +667,8 @@ export default function JobCardsPage() {
                         </ListRowActions>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
               </div>
