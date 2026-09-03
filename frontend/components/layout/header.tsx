@@ -125,11 +125,13 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { activeView, viewParams } = useNavigation();
   const section = viewParams.get('section') || '';
   const title =
-    (activeView === 'reports' || activeView === 'crm-reports') &&
-    section &&
-    SECTION_TITLES[section]
-      ? SECTION_TITLES[section]
-      : viewTitles[activeView] || 'Dashboard';
+    activeView === 'appointment-new' && viewParams.get('id')
+      ? 'Edit Appointment'
+      : (activeView === 'reports' || activeView === 'crm-reports') &&
+          section &&
+          SECTION_TITLES[section]
+        ? SECTION_TITLES[section]
+        : viewTitles[activeView] || 'Dashboard';
 
   return (
     <header

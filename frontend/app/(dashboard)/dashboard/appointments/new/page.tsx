@@ -47,13 +47,16 @@ import {
   useAutofillSingleCompany,
   useAutofillDefaultCustomer,
   useDmsCustomerDefaults,
+  useAppointment,
 } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
 import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
 import * as vehiclesSvc from '@/services/vehicles';
+import * as appointmentsSvc from '@/services/appointments';
 import type {
   BookingSource,
   Priority,
+  ServiceAppointment,
   VehicleArrivalStatus,
   VehicleWarrantySummary,
   VINNo,
@@ -90,9 +93,17 @@ const arrivalStatuses: VehicleArrivalStatus[] = [
   'Fleet Driver Drop-off',
 ];
 
+function toDatetimeLocal(value?: string | null) {
+  if (!value) return '';
+  return String(value).trim().replace(' ', 'T').slice(0, 16);
+}
+
 export default function NewAppointmentPage() {
   const { navigate, viewParams } = useNavigation();
+  const editId = viewParams.get('id') || '';
+  const isEdit = Boolean(editId);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [hydratedId, setHydratedId] = useState('');
 
   const [form, setForm] = useState({
     booking_source: 'Phone Call',
@@ -136,7 +147,10 @@ export default function NewAppointmentPage() {
   const { data: bays } = useServiceBays();
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
-  const { trigger: createAppointment, isMutating } = useCreateAppointment();
+  const { trigger: createAppointment, isMutating: isCreating } = useCreateAppointment();
+  const { data: existing, isLoading: existingLoading } = useAppointment(editId || null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const isMutating = isCreating || isUpdating;
 
   useAutofillSingleCompany(
     companies,
@@ -146,14 +160,18 @@ export default function NewAppointmentPage() {
     { search: companySearch }
   );
 
-  useAutofillDefaultCustomer(form.customer, (d) => {
-    setForm((prev) => ({ ...prev, customer: d.default_customer! }));
-    setSelectedCustomerMeta({
-      name: d.default_customer!,
-      customer_name: d.customer_name || d.default_customer!,
-      mobile_no: d.mobile_no || undefined,
-    });
-  });
+  useAutofillDefaultCustomer(
+    form.customer,
+    (d) => {
+      setForm((prev) => ({ ...prev, customer: d.default_customer! }));
+      setSelectedCustomerMeta({
+        name: d.default_customer!,
+        customer_name: d.customer_name || d.default_customer!,
+        mobile_no: d.mobile_no || undefined,
+      });
+    },
+    { enabled: !isEdit }
+  );
 
   const handleVinSelect = async (vinName: string) => {
     setWarrantySummary(null);
@@ -224,6 +242,74 @@ export default function NewAppointmentPage() {
     }
   };
 
+  useEffect(() => {
+    if (!isEdit || !existing || hydratedId === existing.name) return;
+
+    setForm({
+      booking_source: (existing.booking_source as BookingSource) || 'Phone Call',
+      priority: (existing.priority as Priority) || 'Normal',
+      appointment_date_time:
+        toDatetimeLocal(existing.appointment_date_time) || format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      promised_delivery_date_time: toDatetimeLocal(existing.promised_delivery_date_time),
+      estimated_duration_hours: existing.estimated_duration_hours || 2,
+      customer: existing.customer || '',
+      vehicle: existing.vehicle || '',
+      vin_chassis: existing.vin_chassis || '',
+      license_plate: existing.license_plate || '',
+      current_odometer: existing.current_odometer || 0,
+      customer_complaint_summary: existing.customer_complaint_summary || '',
+      preferred_advisor: existing.preferred_advisor || existing.assigned_service_advisor || '',
+      assigned_bay: existing.assigned_bay || '',
+      special_instructions: existing.special_instructions || '',
+      vehicle_arrival_status: (existing.vehicle_arrival_status as VehicleArrivalStatus) || 'Drop-off',
+      company: existing.company || '',
+    });
+    setSelectedServices(
+      (existing.service_type_requested || [])
+        .map((row) => row.service_type)
+        .filter((name): name is string => Boolean(name))
+    );
+    if (existing.customer) {
+      setSelectedCustomerMeta({
+        name: existing.customer,
+        customer_name: existing.customer_name || existing.customer,
+      });
+    }
+    if (existing.vin_chassis) {
+      void vehiclesSvc
+        .getVehicle(existing.vin_chassis)
+        .then((full) => {
+          setSelectedVin({
+            name: full.name,
+            vin_number: full.vin_number,
+            plate_number: full.plate_number,
+            model_name: full.model_name,
+            linked_item: full.linked_item,
+            current_customer: full.current_customer,
+            customer_name: full.customer_name,
+            current_odometer: full.current_odometer,
+          });
+          setForm((prev) => ({
+            ...prev,
+            vehicle: full.linked_item || prev.vehicle,
+            license_plate: full.plate_number || prev.license_plate,
+            current_odometer: full.current_odometer ?? prev.current_odometer,
+          }));
+          setWarrantySummary(full.warranty_summary || null);
+        })
+        .catch(() => {
+          setSelectedVin({
+            name: existing.vin_chassis!,
+            vin_number: existing.vin_number || existing.vin_chassis!,
+            plate_number: existing.license_plate,
+            model_name: existing.vehicle_model,
+            linked_item: existing.vehicle,
+          });
+        });
+    }
+    setHydratedId(existing.name);
+  }, [existing, hydratedId, isEdit]);
+
   const vinFromReturn = viewParams.get('vin');
 
   useEffect(() => {
@@ -237,6 +323,7 @@ export default function NewAppointmentPage() {
     const draft = vinSearch.trim();
     if (draft) params.vinDraft = draft;
     if (form.company) params.company = form.company;
+    if (editId) params.appointmentId = editId;
     navigate('vehicle-new', params);
   };
 
@@ -374,7 +461,7 @@ export default function NewAppointmentPage() {
         });
       }
 
-      const result = await createAppointment({
+      const payload = {
         booking_source: form.booking_source,
         priority: form.priority,
         company: form.company,
@@ -388,13 +475,12 @@ export default function NewAppointmentPage() {
         current_odometer: form.current_odometer,
         customer_complaint_summary: form.customer_complaint_summary,
         preferred_advisor: form.preferred_advisor || undefined,
+        assigned_service_advisor: form.preferred_advisor || undefined,
         assigned_bay: form.assigned_bay || undefined,
         vehicle_arrival_status: form.vehicle_arrival_status,
         special_instructions: form.special_instructions,
         mobile_no: customerContact.mobile_no,
         customer_email: customerContact.email_id,
-        as_draft: asDraft ? 1 : 0,
-        confirm: asDraft ? 0 : 1,
         service_type_requested: selectedServices.map((s) => {
           const st = serviceTypes?.find((t) => t.name === s);
           return {
@@ -403,7 +489,30 @@ export default function NewAppointmentPage() {
             is_warranty: st?.warranty_applicable ? 1 : 0,
           };
         }),
-      } as any);
+      };
+
+      if (isEdit) {
+        setIsUpdating(true);
+        try {
+          await appointmentsSvc.updateAppointment(editId, payload);
+          if (!asDraft && existing && Number(existing.docstatus) === 0) {
+            await appointmentsSvc.confirmAppointment(editId);
+            toast.success('Appointment updated and confirmed');
+          } else {
+            toast.success('Appointment updated');
+          }
+          navigate('appointment-detail', { id: editId });
+        } finally {
+          setIsUpdating(false);
+        }
+        return;
+      }
+
+      const result = await createAppointment({
+        ...payload,
+        as_draft: asDraft ? 1 : 0,
+        confirm: asDraft ? 0 : 1,
+      } as Partial<ServiceAppointment> & { as_draft?: number; confirm?: number });
 
       if (asDraft) {
         toast.success('Appointment saved as draft', {
@@ -417,9 +526,16 @@ export default function NewAppointmentPage() {
 
       navigate('appointments');
     } catch (err) {
-      toast.error(asDraft ? 'Failed to save draft' : 'Failed to create appointment', {
-        description: err instanceof Error ? err.message : 'Please try again.',
-      });
+      toast.error(
+        isEdit
+          ? 'Failed to update appointment'
+          : asDraft
+            ? 'Failed to save draft'
+            : 'Failed to create appointment',
+        {
+          description: err instanceof Error ? err.message : 'Please try again.',
+        }
+      );
     }
   }
 
@@ -432,16 +548,43 @@ export default function NewAppointmentPage() {
     await saveAppointment('draft');
   }
 
+  const isSubmittedEdit = isEdit && Number(existing?.docstatus) === 1;
+  const backView = isEdit ? 'appointment-detail' : 'appointments';
+  const backParams = isEdit ? { id: editId } : undefined;
+
+  if (isEdit && existingLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (isEdit && !existingLoading && !existing) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
+        <p className="text-lg text-muted-foreground">Failed to load appointment</p>
+        <Button variant="outline" onClick={() => navigate('appointments')}>
+          Back to Appointments
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('appointments')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(backView, backParams)}>
             <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">New Appointment</h1>
-          <p className="text-sm text-muted-foreground">Schedule a new service appointment</p>
+          <h1 className="text-2xl font-bold">{isEdit ? 'Edit Appointment' : 'New Appointment'}</h1>
+          <p className="text-sm text-muted-foreground">
+            {isEdit
+              ? existing?.name || 'Update this service appointment'
+              : 'Schedule a new service appointment'}
+          </p>
         </div>
       </div>
 
@@ -828,27 +971,34 @@ export default function NewAppointmentPage() {
         </Card>
 
         <FormActionsBar>
-          <Button type="button" variant="outline" onClick={() => navigate('appointments')}>
+          <Button type="button" variant="outline" onClick={() => navigate(backView, backParams)}>
             Cancel
           </Button>
-          <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isMutating}>
+          {!isSubmittedEdit && (
+            <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isMutating}>
+              {isMutating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save as Draft
+                </>
+              )}
+            </Button>
+          )}
+          <Button type="submit" form="new-appointment-form" disabled={isMutating}>
             {isMutating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
-            ) : (
+            ) : isEdit ? (
               <>
-                <Save className="mr-2 h-4 w-4" />
-                Save as Draft
-              </>
-            )}
-          </Button>
-          <Button type="submit" form="new-appointment-form" disabled={isMutating}>
-            {isMutating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {isSubmittedEdit ? 'Save changes' : 'Save & Confirm'}
               </>
             ) : (
               <>

@@ -47,6 +47,7 @@ export default function NewVehiclePage() {
   const { toast } = useToast();
   const returnTo = viewParams.get("returnTo");
   const returnAppointment = viewParams.get("appointment");
+  const returnAppointmentId = viewParams.get("appointmentId");
   const vinDraft = viewParams.get("vinDraft");
   const companyDraft = viewParams.get("company");
 
@@ -86,6 +87,7 @@ export default function NewVehiclePage() {
     if (returnTarget.view === "appointment-new") {
       const params: Record<string, string> = {};
       if (vinDocName) params.vin = vinDocName;
+      if (returnAppointmentId) params.id = returnAppointmentId;
       navigate("appointment-new", params);
       return;
     }
