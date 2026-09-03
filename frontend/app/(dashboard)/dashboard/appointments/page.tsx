@@ -52,7 +52,7 @@ import {
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ListRowActions } from '@/components/list-row-actions';
-import { cn } from '@/lib/utils';
+import { cn, vehicleListingLines } from '@/lib/utils';
 import {
   CancelAppointmentDialog,
   ConfirmAppointmentDialog,
@@ -196,6 +196,9 @@ export default function AppointmentsPage() {
       apt.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       apt.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       apt.vehicle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.vin_chassis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.vin_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       apt.license_plate?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesPriority = priorityFilter === 'all' || apt.priority === priorityFilter;
@@ -420,6 +423,11 @@ export default function AppointmentsPage() {
                   .map((s) => s.service_type)
                   .filter(Boolean)
                   .join(', ');
+                const vehicle = vehicleListingLines({
+                  vin: apt.vin_number || apt.vin_chassis,
+                  model: apt.vehicle_model || apt.vehicle,
+                  license: apt.license_plate,
+                });
                 return (
                   <div
                     key={apt.name}
@@ -434,7 +442,8 @@ export default function AppointmentsPage() {
                         <p className="font-medium">{apt.customer_name}</p>
                         <p className="truncate text-sm text-muted-foreground">{apt.name}</p>
                         <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                          <p>{apt.vehicle} · {apt.license_plate}</p>
+                          <p className="font-medium text-foreground">{vehicle.primary}</p>
+                          {vehicle.secondary ? <p>{vehicle.secondary}</p> : null}
                           <p>{aptDate}{aptTime ? ` · ${aptTime}` : ''}</p>
                           {serviceTypes ? <p className="truncate">{serviceTypes}</p> : null}
                         </div>
@@ -461,7 +470,7 @@ export default function AppointmentsPage() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    navigate('appointment-detail', { id: apt.name, mode: 'edit' })
+                                    navigate('appointment-new', { id: apt.name })
                                   }
                                 >
                                   Edit
@@ -586,6 +595,11 @@ export default function AppointmentsPage() {
                     .map((s) => s.service_type)
                     .filter(Boolean)
                     .join(', ');
+                  const vehicle = vehicleListingLines({
+                    vin: apt.vin_number || apt.vin_chassis,
+                    model: apt.vehicle_model || apt.vehicle,
+                    license: apt.license_plate,
+                  });
 
                   return (
                     <TableRow key={apt.name}>
@@ -626,8 +640,10 @@ export default function AppointmentsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{apt.vehicle}</p>
-                          <p className="text-sm text-muted-foreground">{apt.license_plate}</p>
+                          <p className="font-medium">{vehicle.primary}</p>
+                          {vehicle.secondary ? (
+                            <p className="text-sm text-muted-foreground">{vehicle.secondary}</p>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -663,7 +679,7 @@ export default function AppointmentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate('appointment-detail', { id: apt.name, mode: 'edit' })}>
+                              <DropdownMenuItem onClick={() => navigate('appointment-new', { id: apt.name })}>
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -884,7 +900,8 @@ export default function AppointmentsPage() {
               <DetailRow label="Email" value={selectedAppointment.customer_email} />
             </DetailSection>
             <DetailSection title="Vehicle">
-              <DetailRow label="VIN" value={selectedAppointment.vin_chassis} />
+              <DetailRow label="VIN" value={selectedAppointment.vin_number || selectedAppointment.vin_chassis} />
+              <DetailRow label="Model" value={selectedAppointment.vehicle_model || selectedAppointment.vehicle} />
               <DetailRow label="License Plate" value={selectedAppointment.license_plate} />
               <DetailRow label="Odometer" value={selectedAppointment.current_odometer ? `${selectedAppointment.current_odometer} km` : undefined} />
               <DetailRow label="Warranty" value={selectedAppointment.warranty_status} />

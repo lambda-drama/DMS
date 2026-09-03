@@ -196,6 +196,8 @@ export interface ServiceAppointment {
   customer_email?: string;
   vehicle: string;
   vin_chassis?: string;
+  vin_number?: string;
+  vehicle_model?: string;
   license_plate?: string;
   current_odometer?: number;
   warranty_status?: string;
@@ -239,6 +241,7 @@ export interface ServiceAppointment {
   lead_technician?: string;
   technicians?: AssignedTechnician[];
   assigned_service_advisor?: string;
+  assigned_service_advisor_name?: string;
   assigned_bay?: string;
   alternate_bay?: string;
   

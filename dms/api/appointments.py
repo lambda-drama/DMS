@@ -4,7 +4,13 @@ import frappe
 from frappe import _
 from frappe.utils import cint, get_datetime, now_datetime
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_companies, resolve_dms_customer
+from dms.api.utils import (
+	LIST_ORDER_LATEST_CREATED,
+	add_branch_filter,
+	enrich_vin_listing_fields,
+	get_dms_companies,
+	resolve_dms_customer,
+)
 from dms.dealer_management_system.utils.document_links import enrich_appointment_row
 
 _TERMINAL_STATUSES = frozenset({
@@ -34,6 +40,19 @@ def _append_status_history(doc, message):
 	line = f"{stamp} - {message}"
 	history = (doc.get("status_history") or "").strip()
 	return f"{history}\n{line}" if history else line
+
+
+def _enrich_appointment_display(row: dict) -> dict:
+	"""Attach linked docs, VIN model/plate, phone, and advisor name for the UI."""
+	enrich_appointment_row(row)
+	enrich_vin_listing_fields([row], vin_field="vin_chassis")
+	row["contact_phone"] = _resolve_appointment_phone(row)
+	advisor = (row.get("assigned_service_advisor") or row.get("preferred_advisor") or "").strip()
+	if advisor:
+		row["assigned_service_advisor_name"] = (
+			frappe.db.get_value("Service Advisor", advisor, "full_name") or advisor
+		)
+	return row
 
 
 def _get_appointment_doc(name):
@@ -121,6 +140,7 @@ def get_appointments(limit=50, offset=0, status=None, date=None, search=None):
 		or_filters = {
 			"name": ["like", f"%{search}%"],
 			"customer_name": ["like", f"%{search}%"],
+			"vin_chassis": ["like", f"%{search}%"],
 			"license_plate": ["like", f"%{search}%"],
 		}
 
@@ -175,8 +195,7 @@ def get_appointments(limit=50, offset=0, status=None, date=None, search=None):
 			})
 		for apt in appointments:
 			apt["service_type_requested"] = by_parent.get(apt.name, [])
-			apt["contact_phone"] = _resolve_appointment_phone(apt)
-			enrich_appointment_row(apt)
+			_enrich_appointment_display(apt)
 
 	return {"data": appointments, "total": total}
 
@@ -190,7 +209,7 @@ def get_appointment(name):
 	doc.check_permission("read")
 
 	result = doc.as_dict()
-	enrich_appointment_row(result)
+	_enrich_appointment_display(result)
 	return result
 
 
@@ -329,17 +348,57 @@ def update_appointment(name, data):
 	doc = frappe.get_doc("Service Appointment", name)
 	doc.check_permission("write")
 
+	if cint(doc.docstatus) == 2:
+		frappe.throw(_("Cannot edit a cancelled appointment"))
+
+	vehicle = data.get("vehicle") if "vehicle" in data else doc.vehicle
+	vin_chassis = data.get("vin_chassis") if "vin_chassis" in data else doc.vin_chassis
+
+	if vin_chassis:
+		if not frappe.db.exists("VIN No", vin_chassis):
+			vin_name = frappe.db.get_value("VIN No", {"vin_number": vin_chassis}, "name")
+			if vin_name:
+				vin_chassis = vin_name
+		if not vehicle or not frappe.db.exists("Item", vehicle):
+			linked_item = frappe.db.get_value("VIN No", vin_chassis, "linked_item")
+			if linked_item:
+				vehicle = linked_item
+
 	updatable = [
-		"appointment_date_time", "promised_delivery_date_time", "company",
-		"estimated_duration_hours", "priority", "customer_complaint_summary",
-		"preferred_advisor", "preferred_technician", "special_instructions",
-		"assigned_service_advisor", "assigned_bay", "vehicle_arrival_status",
+		"booking_source",
+		"appointment_date_time",
+		"promised_delivery_date_time",
+		"company",
+		"estimated_duration_hours",
+		"priority",
+		"customer_complaint_summary",
+		"preferred_advisor",
+		"preferred_technician",
+		"special_instructions",
+		"assigned_service_advisor",
+		"assigned_bay",
+		"vehicle_arrival_status",
 		"mobile_no",
+		"customer_email",
+		"license_plate",
+		"current_odometer",
 	]
 
 	for field in updatable:
 		if field in data:
-			doc.set(field, data[field])
+			value = data.get(field)
+			doc.set(field, None if value in ("", None) else value)
+
+	if "customer" in data:
+		customer = (data.get("customer") or "").strip()
+		doc.customer = resolve_dms_customer(customer) if customer else None
+
+	if "vin_chassis" in data or "vehicle" in data:
+		doc.vin_chassis = vin_chassis or None
+		doc.vehicle = vehicle or None
+
+	if "preferred_advisor" in data and "assigned_service_advisor" not in data:
+		doc.assigned_service_advisor = data.get("preferred_advisor") or None
 
 	if "company" in data:
 		company = (data.get("company") or "").strip()
@@ -350,10 +409,29 @@ def update_appointment(name, data):
 			if company not in allowed:
 				frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
 
+	if "service_type_requested" in data:
+		doc.set("service_type_requested", [])
+		for svc in data.get("service_type_requested") or []:
+			service_type = (svc.get("service_type") or "").strip()
+			if not service_type:
+				continue
+			doc.append(
+				"service_type_requested",
+				{
+					"service_type": service_type,
+					"estimated_hours": svc.get("estimated_hours") or 1.0,
+					"is_urgent": cint(svc.get("is_urgent") or svc.get("is_warranty")),
+					"notes": (svc.get("notes") or svc.get("description") or "")[:140],
+				},
+			)
+
+	if cint(doc.docstatus) == 1:
+		doc.flags.ignore_validate_update_after_submit = True
+
 	doc.save()
 	frappe.db.commit()
 
-	return {"name": doc.name, "status": doc.status}
+	return {"name": doc.name, "status": doc.status, "docstatus": doc.docstatus}
 
 
 @frappe.whitelist()
