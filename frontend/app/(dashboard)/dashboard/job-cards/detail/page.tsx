@@ -5,6 +5,7 @@ import { useNavigation } from "@/contexts/navigation-context";
 import { usePermissions } from "@/contexts/permissions-context";
 import { useJobCard, useServiceBays, useServiceEstimate, useTechnicians } from "@/hooks/use-dms";
 import { canEditJobCardAssignment, canStartRepairFromWorkflow, isJobCardWorkshopAssigned, resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
+import { technicianDisplayName, technicianNameFromList } from "@/lib/technician-label";
 import * as jobCardsSvc from "@/services/jobCards";
 import type { OriginalJobCardStage } from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
+import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult, VehicleLabourItem } from "@/types/dms";
 import { htmlToPlainText } from "@/lib/plain-text";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
@@ -123,6 +124,7 @@ import { AddExtraPartSection } from "@/components/job-card/add-extra-part-sectio
 import { AddExtraLabourSection } from "@/components/job-card/add-extra-labour-section";
 import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-dialog";
 import { EditEstimateLinesDialog } from "@/components/job-card/edit-estimate-lines-dialog";
+import { EditLabourLineDialog } from "@/components/job-card/edit-labour-line-dialog";
 import * as partsRequestsSvc from "@/services/partsRequests";
 import type { AdditionalWorkRequestSummary } from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
@@ -279,6 +281,8 @@ export default function JobCardDetailPage() {
     label: string;
   } | null>(null);
   const [deletingLine, setDeletingLine] = useState(false);
+  const [labourLineToEdit, setLabourLineToEdit] = useState<VehicleLabourItem | null>(null);
+  const [savingLabourEdit, setSavingLabourEdit] = useState(false);
   const [stageEditActive, setStageEditActive] = useState(false);
   const [showEstimateEditDialog, setShowEstimateEditDialog] = useState(false);
   const autoPartsTabJobRef = useRef<string | null>(null);
@@ -876,18 +880,26 @@ export default function JobCardDetailPage() {
     }
   };
 
-  const saveLabourRate = async (rowName: string, ratePerHour: number) => {
-    setSavingLinePrice(rowName);
+  const saveLabourLineEdit = async (payload: {
+    estimated_hours: number;
+    rate_per_hour: number;
+    display_name: string;
+  }) => {
+    if (!labourLineToEdit?.name) return;
+    setSavingLabourEdit(true);
     try {
-      await partsRequestsSvc.updateJobCardLinePricing(id, {
-        labour: [{ name: rowName, rate_per_hour: ratePerHour }],
+      await jobCardsSvc.updateLabourLineOnJobCard(id, labourLineToEdit.name, {
+        estimated_hours: payload.estimated_hours,
+        rate_per_hour: canEditPrice ? payload.rate_per_hour : undefined,
+        custom_display_name: payload.display_name,
       });
+      setLabourLineToEdit(null);
       await mutate();
-      toast.success("Labour rate updated");
+      toast.success("Service line updated");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update labour rate");
+      toast.error(err instanceof Error ? err.message : "Failed to update service line");
     } finally {
-      setSavingLinePrice(null);
+      setSavingLabourEdit(false);
     }
   };
 
@@ -1458,6 +1470,7 @@ export default function JobCardDetailPage() {
                 <SearchableSelect
                   options={technicianOptions}
                   value={leadTechnician}
+                  valueLabel={technicianNameFromList(leadTechnician, technicians)}
                   onValueChange={setLeadTechnician}
                   placeholder="Search technicians..."
                   isLoading={techniciansLoading}
@@ -1481,6 +1494,7 @@ export default function JobCardDetailPage() {
                         <SearchableSelect
                           options={technicianOptions}
                           value={row.technician}
+                          valueLabel={technicianNameFromList(row.technician, technicians)}
                           onValueChange={(value) => {
                             const next = [...assistantRows];
                             next[index] = { technician: value };
@@ -2057,6 +2071,7 @@ export default function JobCardDetailPage() {
                         <SearchableSelect
                           options={technicianOptions}
                           value={leadTechnician}
+                          valueLabel={technicianNameFromList(leadTechnician, technicians)}
                           onValueChange={setLeadTechnician}
                           placeholder="Search technicians..."
                           isLoading={techniciansLoading}
@@ -2360,36 +2375,25 @@ export default function JobCardDetailPage() {
                         <TableHead className="text-right">Rate</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead>Warranty</TableHead>
-                        {canDeleteLabourLine ? <TableHead className="w-12" /> : null}
+                        {canDeleteLabourLine ? <TableHead className="w-20" /> : null}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {jobCard.labour.map((line, idx) => (
                         <TableRow key={line.name || idx}>
                           <TableCell className="font-medium">{labourLineLabel(line)}</TableCell>
-                          <TableCell>{line.technician || "–"}</TableCell>
+                          <TableCell>
+                            {technicianDisplayName(
+                              line.technician,
+                              line.technician_name,
+                              technicians
+                            ) || "–"}
+                          </TableCell>
                           <TableCell className="text-right">{line.actual_hours || line.estimated_hours || 0}</TableCell>
                           <TableCell className="text-right">
-                            {canEditLinePricing && line.name ? (
-                              <Input
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                className="ml-auto h-8 w-28 text-right"
-                                defaultValue={line.rate_per_hour || 0}
-                                disabled={savingLinePrice === line.name}
-                                onBlur={(e) => {
-                                  const next = parseFloat(e.target.value) || 0;
-                                  if (next !== (line.rate_per_hour || 0)) {
-                                    void saveLabourRate(line.name, next);
-                                  }
-                                }}
-                              />
-                            ) : (
-                              (line.rate_per_hour || 0).toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                              })
-                            )}
+                            {(line.rate_per_hour || 0).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                            })}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {(line.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -2403,23 +2407,36 @@ export default function JobCardDetailPage() {
                           </TableCell>
                           {canDeleteLabourLine ? (
                             <TableCell className="text-right">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                disabled={!line.name || deletingLine}
-                                aria-label="Delete service line"
-                                onClick={() =>
-                                  setLineToDelete({
-                                    kind: "labour",
-                                    name: line.name,
-                                    label: labourLineLabel(line),
-                                  })
-                                }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex justify-end gap-0.5">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  disabled={!line.name || savingLabourEdit}
+                                  aria-label="Edit service line"
+                                  onClick={() => setLabourLineToEdit(line)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  disabled={!line.name || deletingLine}
+                                  aria-label="Delete service line"
+                                  onClick={() =>
+                                    setLineToDelete({
+                                      kind: "labour",
+                                      name: line.name,
+                                      label: labourLineLabel(line),
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           ) : null}
                         </TableRow>
@@ -2667,7 +2684,13 @@ export default function JobCardDetailPage() {
                     <TableBody>
                       {jobCard.time_logs.map((log, idx) => (
                         <TableRow key={log.name || idx}>
-                          <TableCell className="font-medium">{log.technician_name}</TableCell>
+                          <TableCell className="font-medium">
+                            {technicianDisplayName(
+                              log.technician,
+                              log.technician_name,
+                              technicians
+                            )}
+                          </TableCell>
                           <TableCell>{new Date(log.start_time).toLocaleString()}</TableCell>
                           <TableCell>
                             {log.end_time ? new Date(log.end_time).toLocaleString() : (
@@ -2985,7 +3008,13 @@ export default function JobCardDetailPage() {
                                 || (line as { vehicle_service_item?: string }).vehicle_service_item
                                 || "—"}
                             </TableCell>
-                            <TableCell>{line.technician || "—"}</TableCell>
+                            <TableCell>
+                              {technicianDisplayName(
+                                line.technician,
+                                (line as { technician_name?: string }).technician_name,
+                                technicians
+                              ) || "—"}
+                            </TableCell>
                             <TableCell className="text-right">
                               {(line as { estimated_hours?: number }).estimated_hours ?? "—"}
                             </TableCell>
@@ -3070,6 +3099,7 @@ export default function JobCardDetailPage() {
               <SearchableSelect
                 options={technicianOptions}
                 value={leadTechnician}
+                valueLabel={technicianNameFromList(leadTechnician, technicians)}
                 onValueChange={setLeadTechnician}
                 placeholder="Search technicians..."
                 isLoading={techniciansLoading}
@@ -3514,6 +3544,17 @@ export default function JobCardDetailPage() {
           )}
         </DetailSheet>
       )}
+
+      <EditLabourLineDialog
+        open={Boolean(labourLineToEdit)}
+        onOpenChange={(open) => {
+          if (!open && !savingLabourEdit) setLabourLineToEdit(null);
+        }}
+        line={labourLineToEdit}
+        canEditPrice={canEditPrice}
+        busy={savingLabourEdit}
+        onSave={(payload) => void saveLabourLineEdit(payload)}
+      />
 
       <AlertDialog
         open={Boolean(lineToDelete)}

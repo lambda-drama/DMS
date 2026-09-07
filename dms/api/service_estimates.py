@@ -97,6 +97,9 @@ def get_service_estimate(name):
 
 	result = doc.as_dict()
 	result["customer_name"] = result.get("customer_name") or _customer_display_name(doc.customer)
+	from dms.api.common import attach_technician_display_names
+
+	attach_technician_display_names(result.get("labour") or [])
 	if doc.vehicle_vin:
 		from dms.api.service_packages import resolve_vehicle_model_from_vin
 
@@ -189,6 +192,9 @@ def update_service_estimate(name, data):
 
 	result = doc.as_dict()
 	result["customer_name"] = result.get("customer_name") or _customer_display_name(doc.customer)
+	from dms.api.common import attach_technician_display_names
+
+	attach_technician_display_names(result.get("labour") or [])
 	if synced_job_card:
 		result["synced_job_card"] = synced_job_card
 	enrich_estimate_row(result)

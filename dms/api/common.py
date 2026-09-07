@@ -390,6 +390,39 @@ def get_technicians(search=None, limit=50):
 	return technicians
 
 
+def attach_technician_display_names(rows, id_field="technician", name_field="technician_name"):
+	"""Resolve Technician link IDs to full_name for UI columns."""
+	if not rows:
+		return rows
+
+	ids = []
+	for row in rows:
+		if not isinstance(row, dict):
+			continue
+		tid = (row.get(id_field) or "").strip()
+		if tid:
+			ids.append(tid)
+	if not ids:
+		return rows
+
+	unique = list(dict.fromkeys(ids))
+	name_map = {
+		d.name: (d.full_name or d.name)
+		for d in frappe.get_all(
+			"Technician",
+			filters={"name": ["in", unique]},
+			fields=["name", "full_name"],
+		)
+	}
+	for row in rows:
+		if not isinstance(row, dict):
+			continue
+		tid = (row.get(id_field) or "").strip()
+		if tid:
+			row[name_field] = name_map.get(tid) or tid
+	return rows
+
+
 @frappe.whitelist()
 def get_service_bays(search=None, limit=50):
 	filters = {"is_active": 1}

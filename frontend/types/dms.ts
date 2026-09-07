@@ -611,6 +611,7 @@ export interface VehicleLabourItem {
   rate_per_hour?: number;
   amount?: number;
   technician?: string;
+  technician_name?: string;
   is_warranty?: boolean;
 }
 
