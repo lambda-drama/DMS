@@ -82,6 +82,7 @@ def import_frt_workbook(file_path: str, brand: str = DEFAULT_BRAND) -> dict:
 		try:
 			result = _import_model_sheet(sheet, sheet_name, brand)
 			if not result:
+				frappe.db.commit()
 				continue
 			summary["sheets_processed"] += 1
 			summary["models_created"] += result["models_created"]
@@ -90,11 +91,12 @@ def import_frt_workbook(file_path: str, brand: str = DEFAULT_BRAND) -> dict:
 			summary["services_updated"] += result["services_updated"]
 			summary["services_skipped"] += result["services_skipped"]
 			summary["details"].append(result)
+			frappe.db.commit()
 		except Exception as exc:
+			frappe.db.rollback()
 			frappe.log_error(title=f"FRT import — {sheet_name}")
 			summary["errors"].append({"sheet": sheet_name, "error": str(exc)})
 
-	frappe.db.commit()
 	return summary
 
 
@@ -328,6 +330,15 @@ def _header_map(row) -> dict:
 	return colmap
 
 
+def _existing_item_name(item_code: str) -> str | None:
+	item_code = (item_code or "").strip()
+	if not item_code:
+		return None
+	return frappe.db.exists("Item", item_code) or frappe.db.get_value(
+		"Item", {"item_code": item_code}, "name"
+	)
+
+
 def ensure_vehicle_model(
 	model_code: str,
 	model_name: str,
@@ -339,18 +350,22 @@ def ensure_vehicle_model(
 	if not model_code:
 		frappe.throw(_("Model code is required"))
 
-	existing = frappe.db.get_value("Vehicle Model", {"model_code": model_code}, "name")
+	existing = (
+		frappe.db.get_value("Vehicle Model", {"model_code": model_code}, "name")
+		or frappe.db.exists("Vehicle Model", model_code)
+	)
 	if existing:
-		doc = frappe.get_doc("Vehicle Model", existing)
-		doc.model_name = model_name
-		doc.brand = brand
-		if model_year:
-			doc.model_year = model_year
-		doc.is_active = 1
-		doc.save(ignore_permissions=True)
-		return doc.name
+		_update_vehicle_model_fields(existing, model_name, brand, model_year)
+		return existing
 
 	item_code = ensure_vehicle_item(model_code, model_name, brand)
+	existing = frappe.db.exists("Vehicle Model", item_code) or frappe.db.get_value(
+		"Vehicle Model", {"model": item_code}, "name"
+	)
+	if existing:
+		_update_vehicle_model_fields(existing, model_name, brand, model_year)
+		return existing
+
 	doc = frappe.get_doc(
 		{
 			"doctype": "Vehicle Model",
@@ -364,31 +379,73 @@ def ensure_vehicle_model(
 			"is_active": 1,
 		}
 	)
-	doc.insert(ignore_permissions=True)
+	try:
+		doc.insert(ignore_permissions=True, ignore_if_duplicate=True)
+	except frappe.DuplicateEntryError:
+		existing = (
+			frappe.db.exists("Vehicle Model", item_code)
+			or frappe.db.get_value("Vehicle Model", {"model_code": model_code}, "name")
+			or item_code
+		)
+		_update_vehicle_model_fields(existing, model_name, brand, model_year)
+		return existing
 	return doc.name
+
+
+def _update_vehicle_model_fields(
+	name: str, model_name: str, brand: str, model_year: int | None = None
+) -> None:
+	"""Write model fields without get_doc/save (avoids TimestampMismatchError)."""
+	current = frappe.db.get_value(
+		"Vehicle Model",
+		name,
+		["model_name", "brand", "is_active", "model_year", "model_code"],
+		as_dict=True,
+	)
+	if not current:
+		return
+
+	updates = {}
+	if (current.get("model_name") or "") != model_name:
+		updates["model_name"] = model_name
+	if (current.get("brand") or "") != brand:
+		updates["brand"] = brand
+	if not cint(current.get("is_active")):
+		updates["is_active"] = 1
+	if model_year and cint(current.get("model_year")) != cint(model_year):
+		updates["model_year"] = model_year
+	if not updates:
+		return
+
+	frappe.db.set_value("Vehicle Model", name, updates, update_modified=False)
 
 
 def ensure_vehicle_item(item_code: str, item_name: str, brand: str) -> str:
 	item_code = (item_code or "").strip().upper()
-	if frappe.db.exists("Item", item_code):
-		return item_code
+	existing = _existing_item_name(item_code)
+	if existing:
+		return existing
 
 	item_group = _vehicle_item_group()
-	frappe.get_doc(
-		{
-			"doctype": "Item",
-			"item_code": item_code,
-			"item_name": item_name[:140] or item_code,
-			"item_group": item_group,
-			"brand": brand,
-			"stock_uom": "Nos",
-			"is_stock_item": 1,
-			"has_serial_no": 1,
-			"is_sales_item": 1,
-			"is_purchase_item": 1,
-		}
-	).insert(ignore_permissions=True)
-	return item_code
+	try:
+		frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": item_code,
+				"item_name": item_name[:140] or item_code,
+				"item_group": item_group,
+				"brand": brand,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"has_serial_no": 1,
+				"is_sales_item": 1,
+				"is_purchase_item": 1,
+			}
+		).insert(ignore_permissions=True, ignore_if_duplicate=True)
+	except frappe.DuplicateEntryError:
+		return _existing_item_name(item_code) or item_code
+
+	return _existing_item_name(item_code) or item_code
 
 
 def _vehicle_item_group() -> str:
@@ -449,6 +506,7 @@ def upsert_vehicle_service_item(
 
 	if existing_name:
 		doc = frappe.get_doc("Vehicle Service Item", existing_name)
+		doc.flags.ignore_if_modified = True
 		doc.update(values)
 		if not (doc.get(link_field) or "").strip():
 			ensure_labour_erpnext_item(doc, link_field)
