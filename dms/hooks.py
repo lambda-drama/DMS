@@ -66,6 +66,7 @@ fixtures = [
                     "Vehicle Service Item-custom_service_code",
                     "Sales Invoice-custom_missing_dms",
                     "Quotation Item-custom_serial_no",
+                    "Vehicle Service Item-custom_active"
                     
                 ]
             ]

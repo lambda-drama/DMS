@@ -599,10 +599,17 @@ export interface JobCardPartItem {
 
 export interface VehicleLabourItem {
   name: string;
-  operation: string;
-  hours: number;
-  rate: number;
-  amount: number;
+  vehicle_service_item?: string;
+  service_name?: string;
+  display_name?: string;
+  custom_display_name?: string;
+  operation?: string;
+  estimated_hours?: number;
+  actual_hours?: number;
+  hours?: number;
+  rate?: number;
+  rate_per_hour?: number;
+  amount?: number;
   technician?: string;
   is_warranty?: boolean;
 }

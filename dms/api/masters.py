@@ -194,15 +194,21 @@ def update_spare_part(name, data):
 
 
 @frappe.whitelist()
-def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset=0):
+def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset=0, active_filter=None):
 	frappe.has_permission("Vehicle Service Item", "read", throw=True)
 
 	limit = cint(limit) or 50
 	offset = cint(offset) or 0
 	filters: dict = {}
 	meta = frappe.get_meta("Vehicle Service Item")
-	if meta.has_field("disabled") and not meta.get_field("disabled").default:
-		filters["disabled"] = 0
+	status = (active_filter or "active").strip().lower()
+	if status not in ("active", "all", "inactive"):
+		status = "active"
+	if status != "all":
+		if meta.has_field("custom_active"):
+			filters["custom_active"] = 1 if status == "active" else 0
+		elif meta.has_field("disabled"):
+			filters["disabled"] = 0 if status == "active" else 1
 
 	or_filters = None
 	if search and str(search).strip():
@@ -227,6 +233,7 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 			"custom_estimated_timehours",
 			"custom_description",
 			"disabled",
+			"custom_active",
 			"custom_erpnext_item",
 			"custom_service_code",
 			"custom_frt",
@@ -358,6 +365,7 @@ def add_vehicle_service_item_models(name, vehicle_models=None):
 		"custom_estimated_timehours": source.get("custom_estimated_timehours"),
 		"custom_rate": source.get("custom_rate"),
 		"custom_description": source.get("custom_description"),
+		"custom_active": source.get("custom_active") if source.meta.has_field("custom_active") else 1,
 	}
 	return _insert_vehicle_service_item_docs(payload, require_model_code=True)
 
@@ -503,6 +511,7 @@ def _shared_service_item_values(data: dict, meta) -> dict:
 		"custom_estimated_timehours",
 		"custom_rate",
 		"custom_description",
+		"custom_active",
 	]
 	values: dict = {}
 	for field in optional:
@@ -512,6 +521,8 @@ def _shared_service_item_values(data: dict, meta) -> dict:
 		if value in (None, ""):
 			continue
 		values[field] = value
+	if meta.has_field("custom_active") and "custom_active" not in values:
+		values["custom_active"] = 1
 	return values
 
 
@@ -538,6 +549,7 @@ def update_vehicle_service_item(name, data):
 		"custom_cat_code",
 		"custom_sub_code",
 		"disabled",
+		"custom_active",
 	]
 	meta = frappe.get_meta("Vehicle Service Item")
 	fields = [f for f in allowed_fields if meta.has_field(f) and f in data]

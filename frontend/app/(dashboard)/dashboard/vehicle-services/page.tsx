@@ -8,6 +8,7 @@ import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet
 import { EditServiceItemDialog } from "@/components/services/edit-service-item-dialog";
 import { AddServiceItemModelDialog } from "@/components/services/add-service-item-model-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
+import { ImportServiceItemsButton } from "@/components/services/import-service-items-button";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { ListRowActions } from "@/components/list-row-actions";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search,
   Wrench,
@@ -51,6 +53,8 @@ function formatMoney(n?: number | null) {
   }).format(Number(n));
 }
 
+type ActiveFilter = "active" | "all" | "inactive";
+
 function serviceItemId(row: VehicleServiceItemMaster | null | undefined): string {
   if (!row) return "";
   return (
@@ -61,11 +65,19 @@ function serviceItemId(row: VehicleServiceItemMaster | null | undefined): string
   );
 }
 
+function isServiceActive(row: VehicleServiceItemMaster | null | undefined): boolean {
+  if (!row) return false;
+  if (row.custom_active != null) return Number(row.custom_active) === 1;
+  return !row.disabled;
+}
+
 export default function VehicleServicesPage() {
-  const { canCreate } = usePermissions();
+  const { canCreate, canWrite } = usePermissions();
   const canAddModel = canCreate("vehicle-services");
+  const canToggleActive = canWrite("vehicle-services");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("active");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -83,13 +95,14 @@ export default function VehicleServicesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debounced]);
+  }, [debounced, activeFilter]);
 
   const { data, isLoading, error, mutate } = useSWR(
-    ["vehicle-service-items-master", debounced, page, pageSize],
+    ["vehicle-service-items-master", debounced, activeFilter, page, pageSize],
     () =>
       mastersSvc.listVehicleServiceItems({
         search: debounced || undefined,
+        active_filter: activeFilter,
         limit: pageSize,
         offset: (page - 1) * pageSize,
       })
@@ -102,7 +115,6 @@ export default function VehicleServicesPage() {
 
   const rows = data?.data || [];
   const total = data?.total || 0;
-  const supportsDisabled = rows.some((r) => Object.prototype.hasOwnProperty.call(r, "disabled"));
 
   function openEdit(row: VehicleServiceItemMaster) {
     const id = serviceItemId(row);
@@ -117,21 +129,18 @@ export default function VehicleServicesPage() {
     setAddModelOpen(true);
   }
 
-  async function toggleDisabled(row: VehicleServiceItemMaster) {
+  async function toggleActive(row: VehicleServiceItemMaster) {
+    if (!canToggleActive) return;
     const id = serviceItemId(row);
     if (!id) {
       toast.error("Cannot identify this service item");
       return;
     }
-    if (!row.custom_erpnext_item) {
-      toast.error("This service has no linked Item to disable");
-      return;
-    }
-    const next = row.disabled ? 0 : 1;
+    const next = isServiceActive(row) ? 0 : 1;
     setTogglingId(id);
     try {
-      await mastersSvc.updateVehicleServiceItem(id, { disabled: next });
-      toast.success(next ? "Service disabled" : "Service enabled");
+      await mastersSvc.updateVehicleServiceItem(id, { custom_active: next });
+      toast.success(next ? "Service enabled" : "Service disabled");
       void mutate();
       if (selectedId === id) void mutateDetail();
     } catch (err: unknown) {
@@ -148,23 +157,45 @@ export default function VehicleServicesPage() {
           <h1 className="dms-stat-value text-xl tracking-tight">Services</h1>
           <p className="text-muted-foreground">Vehicle service / labour item masters</p>
         </div>
-        <PermittedCreateButton
-          module="vehicle-services"
-          label="New Service Item"
-          onClick={() => setCreateOpen(true)}
-        />
+        <div className="flex items-center gap-2">
+          <ImportServiceItemsButton onImported={() => void mutate()} />
+          <PermittedCreateButton
+            module="vehicle-services"
+            label="New Service Item"
+            onClick={() => setCreateOpen(true)}
+          />
+        </div>
       </div>
 
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Search service name, code, FRT…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search service name, code, FRT…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Tabs
+              value={activeFilter}
+              onValueChange={(value) => setActiveFilter(value as ActiveFilter)}
+              className="w-full sm:w-auto"
+            >
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="active" className="flex-1 sm:flex-none">
+                  Active
+                </TabsTrigger>
+                <TabsTrigger value="all" className="flex-1 sm:flex-none">
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="inactive" className="flex-1 sm:flex-none">
+                  Inactive
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
 
           {isLoading ? (
@@ -190,7 +221,7 @@ export default function VehicleServicesPage() {
                     <TableHead>Model</TableHead>
                     <TableHead>Hours</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
-                    {supportsDisabled ? <TableHead>Status</TableHead> : null}
+                    <TableHead>Status</TableHead>
                     <TableHead className="w-[1%] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -225,17 +256,15 @@ export default function VehicleServicesPage() {
                         <TableCell className="text-right tabular-nums">
                           {formatMoney(row.custom_rate)}
                         </TableCell>
-                        {supportsDisabled ? (
                         <TableCell>
-                          {row.disabled ? (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Disabled
-                            </Badge>
-                          ) : (
+                          {isServiceActive(row) ? (
                             <Badge variant="secondary">Active</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Inactive
+                            </Badge>
                           )}
                         </TableCell>
-                        ) : null}
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <ListRowActions
                             doctype="Vehicle Service Item"
@@ -286,24 +315,24 @@ export default function VehicleServicesPage() {
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
                                 </DropdownMenuItem>
-                                {supportsDisabled ? (
+                                {canToggleActive ? (
                                 <DropdownMenuItem
                                   className={
-                                    row.disabled
-                                      ? undefined
-                                      : "text-destructive focus:text-destructive"
+                                    isServiceActive(row)
+                                      ? "text-destructive focus:text-destructive"
+                                      : undefined
                                   }
-                                  onClick={() => void toggleDisabled(row)}
+                                  onClick={() => void toggleActive(row)}
                                 >
-                                  {row.disabled ? (
-                                    <>
-                                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                                      Enable
-                                    </>
-                                  ) : (
+                                  {isServiceActive(row) ? (
                                     <>
                                       <Ban className="mr-2 h-4 w-4" />
                                       Disable
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Enable
                                     </>
                                   )}
                                 </DropdownMenuItem>
@@ -356,13 +385,13 @@ export default function VehicleServicesPage() {
               <Pencil className="h-4 w-4 mr-2" />
               Edit
             </Button>
-            {supportsDisabled && (selected || editTarget)?.custom_erpnext_item ? (
+            {canToggleActive && (selected || editTarget) ? (
               <Button
                 variant="outline"
                 className="w-full sm:w-auto"
-                onClick={() => void toggleDisabled(selected || editTarget!)}
+                onClick={() => void toggleActive(selected || editTarget!)}
               >
-                {(selected || editTarget)?.disabled ? "Enable" : "Disable"}
+                {isServiceActive(selected || editTarget) ? "Disable" : "Enable"}
               </Button>
             ) : null}
           </div>
@@ -377,8 +406,11 @@ export default function VehicleServicesPage() {
             <DetailSection title="Service">
               <DetailRow label="Name" value={selected.service_item} />
               <DetailRow label="Code" value={selected.custom_service_code} />
-              <DetailRow label="Display name" value={selected.custom_item_name} />
               <DetailRow label="Linked Item" value={selected.custom_erpnext_item} />
+              <DetailRow
+                label="Status"
+                value={isServiceActive(selected) ? "Active" : "Inactive"}
+              />
             </DetailSection>
             <DetailSection title="Classification">
               <DetailRow label="Vehicle model" value={selected.custom_vehicle_model} />

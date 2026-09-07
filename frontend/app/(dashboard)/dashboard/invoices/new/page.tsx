@@ -251,7 +251,7 @@ export default function NewInvoicePage() {
     const labour: LabourRow[] = (jobCard.labour || []).map((sl) => ({
       source_row: sl.name,
       vehicle_service_item: sl.vehicle_service_item || "",
-      vehicle_service_item_name: sl.service_name || sl.vehicle_service_item || "",
+      vehicle_service_item_name: sl.custom_display_name || sl.display_name || sl.service_name || sl.vehicle_service_item || "",
       estimated_hours: sl.actual_hours || sl.estimated_hours || 1,
       rate_per_hour: sl.rate_per_hour || 0,
     }));

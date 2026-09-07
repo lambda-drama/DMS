@@ -113,6 +113,7 @@ interface JobItemRow {
 interface LabourRow {
   vehicle_service_item: string;
   vehicle_service_item_name: string;
+  display_name: string;
   technician: string;
   technician_name: string;
   estimated_hours: number;
@@ -142,6 +143,7 @@ function emptyLabourRow(): LabourRow {
   return {
     vehicle_service_item: "",
     vehicle_service_item_name: "",
+    display_name: "",
     technician: "",
     technician_name: "",
     estimated_hours: 0,
@@ -498,6 +500,7 @@ export default function NewJobCardPage() {
               ...row,
               vehicle_service_item: itemName,
               vehicle_service_item_name: serviceLabel,
+              display_name: serviceLabel,
               estimated_hours: estHours,
               rate_per_hour: rate || row.rate_per_hour,
             }
@@ -621,6 +624,10 @@ export default function NewJobCardPage() {
             ? lines.labour.map((row) => ({
                 vehicle_service_item: row.vehicle_service_item,
                 vehicle_service_item_name:
+                  row.service_code
+                    ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
+                    : (row.service_name || row.vehicle_service_item),
+                display_name:
                   row.service_code
                     ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
                     : (row.service_name || row.vehicle_service_item),
@@ -1034,6 +1041,8 @@ export default function NewJobCardPage() {
       })),
       labour: filledLabourRows.map((lr) => ({
         vehicle_service_item: lr.vehicle_service_item,
+        service_name: lr.vehicle_service_item_name || undefined,
+        custom_display_name: lr.display_name.trim() || lr.vehicle_service_item_name || undefined,
         technician: lr.technician || undefined,
         estimated_hours: lr.estimated_hours,
         rate_per_hour: lr.rate_per_hour,
@@ -1636,7 +1645,8 @@ export default function NewJobCardPage() {
               Labour Lines
             </CardTitle>
             <CardDescription>
-              Filled from the service package above, or add lines manually
+              Filled from the service package above, or add lines manually.
+              Edit Display name on this job card only — the master service item stays unchanged.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1738,6 +1748,15 @@ export default function NewJobCardPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                </div>
+                <div className="space-y-1 sm:col-span-12">
+                  <Label className="text-xs">Display name</Label>
+                  <Input
+                    value={row.display_name}
+                    placeholder="Name on this job card only"
+                    disabled={!row.vehicle_service_item}
+                    onChange={(e) => updateLabourRow(idx, { display_name: e.target.value })}
+                  />
                 </div>
               </div>
             ))}

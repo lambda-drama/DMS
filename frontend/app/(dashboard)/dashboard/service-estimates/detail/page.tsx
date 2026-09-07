@@ -132,6 +132,7 @@ function defaultScheduleEndLocal(startLocal: string) {
 type EstimateLabourRow = {
   vehicle_service_item: string;
   vehicle_service_item_name: string;
+  display_name: string;
   estimated_hours: number;
   rate_per_hour: number;
 };
@@ -148,6 +149,7 @@ function emptyLabourRow(): EstimateLabourRow {
   return {
     vehicle_service_item: "",
     vehicle_service_item_name: "",
+    display_name: "",
     estimated_hours: 0,
     rate_per_hour: 0,
   };
@@ -248,6 +250,12 @@ export default function ServiceEstimateDetailPage() {
       vehicle_service_item: row.vehicle_service_item || "",
       vehicle_service_item_name:
         row.service_name || row.vehicle_service_item || "",
+      display_name:
+        (row as { custom_display_name?: string; display_name?: string }).custom_display_name ||
+        (row as { display_name?: string }).display_name ||
+        row.service_name ||
+        row.vehicle_service_item ||
+        "",
       estimated_hours: row.estimated_hours ?? 1,
       rate_per_hour: row.rate_per_hour ?? 0,
     }));
@@ -330,14 +338,18 @@ export default function ServiceEstimateDetailPage() {
       });
       setLabourRows(
         lines.labour.length
-          ? lines.labour.map((row) => ({
-              vehicle_service_item: row.vehicle_service_item,
-              vehicle_service_item_name: row.service_code
+          ? lines.labour.map((row) => {
+              const label = row.service_code
                 ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
-                : (row.service_name || row.vehicle_service_item),
-              estimated_hours: row.estimated_hours,
-              rate_per_hour: row.rate_per_hour,
-            }))
+                : (row.service_name || row.vehicle_service_item);
+              return {
+                vehicle_service_item: row.vehicle_service_item,
+                vehicle_service_item_name: label,
+                display_name: label,
+                estimated_hours: row.estimated_hours,
+                rate_per_hour: row.rate_per_hour,
+              };
+            })
           : [emptyLabourRow()]
       );
       setPartRows(
@@ -606,6 +618,7 @@ export default function ServiceEstimateDetailPage() {
         labour: filledLabour.map((row) => ({
           vehicle_service_item: row.vehicle_service_item,
           service_name: row.vehicle_service_item_name,
+          custom_display_name: row.display_name.trim() || row.vehicle_service_item_name,
           estimated_hours: row.estimated_hours,
           rate_per_hour: row.rate_per_hour,
           amount: (row.estimated_hours || 0) * (row.rate_per_hour || 0),
@@ -681,6 +694,7 @@ export default function ServiceEstimateDetailPage() {
               ...row,
               vehicle_service_item: itemName,
               vehicle_service_item_name: serviceLabel,
+              display_name: serviceLabel,
               estimated_hours: estHours > 0 ? estHours : row.estimated_hours || 1,
               rate_per_hour: rate || row.rate_per_hour,
             }
@@ -1090,7 +1104,9 @@ export default function ServiceEstimateDetailPage() {
                 <Wrench className="h-5 w-5" />
                 Labour Lines
               </CardTitle>
-              <CardDescription>Add labour operations for the repair estimate</CardDescription>
+              <CardDescription>
+                Pick a service item, then edit Display name on this estimate only
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {(canEditEstimate ? labourRows : filledLabourRows).map((row, idx) => (
@@ -1172,6 +1188,15 @@ export default function ServiceEstimateDetailPage() {
                       </Button>
                     </div>
                   )}
+                  <div className="space-y-1 sm:col-span-12">
+                    <Label className="text-xs">Display name</Label>
+                    <Input
+                      value={row.display_name}
+                      placeholder="Name on this estimate only"
+                      disabled={!canEditEstimate || !row.vehicle_service_item}
+                      onChange={(e) => updateLabourRow(idx, { display_name: e.target.value })}
+                    />
+                  </div>
                 </div>
               ))}
               {canEditEstimate && <AddLineButton onClick={addLabourRow} />}

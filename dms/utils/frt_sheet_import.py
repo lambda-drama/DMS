@@ -22,18 +22,49 @@ DEFAULT_FUEL_TYPE = "Petrol"
 DEFAULT_TRANSMISSION = "Automatic (AT)"
 
 
-def import_frt_workbook(file_path: str, brand: str = DEFAULT_BRAND) -> dict:
-	"""Parse workbook and upsert Vehicle Models + Vehicle Service Items per sheet."""
+class _SheetView:
+	"""Minimal sheet API shared by xlrd and openpyxl loaders."""
+
+	def __init__(self, rows: list[list]):
+		self._rows = rows
+		self.nrows = len(rows)
+		self.ncols = max((len(r) for r in rows), default=0)
+
+	def cell_value(self, row: int, col: int):
+		if row < 0 or row >= self.nrows or col < 0 or col >= len(self._rows[row]):
+			return ""
+		value = self._rows[row][col]
+		return "" if value is None else value
+
+
+def _load_workbook_sheets(file_path: str) -> list[tuple[str, object]]:
+	lower = (file_path or "").lower()
+	if lower.endswith((".xlsx", ".xlsm")):
+		try:
+			from openpyxl import load_workbook
+		except ImportError as exc:
+			raise ImportError(_("Excel import requires openpyxl. Install it in the bench environment.")) from exc
+		book = load_workbook(file_path, data_only=True, read_only=True)
+		try:
+			return [(name, _SheetView([list(row) for row in book[name].iter_rows(values_only=True)])) for name in book.sheetnames]
+		finally:
+			book.close()
+
 	try:
 		import xlrd
 	except ImportError as exc:
 		raise ImportError(_("Excel import requires xlrd. Install it in the bench environment.")) from exc
+	book = xlrd.open_workbook(file_path)
+	return [(name, book.sheet_by_name(name)) for name in book.sheet_names()]
 
+
+def import_frt_workbook(file_path: str, brand: str = DEFAULT_BRAND) -> dict:
+	"""Parse workbook and upsert Vehicle Models + Vehicle Service Items per sheet."""
 	if not os.path.isfile(file_path):
 		frappe.throw(_("File not found: {0}").format(file_path))
 
 	ensure_brand(brand)
-	book = xlrd.open_workbook(file_path)
+	sheets = _load_workbook_sheets(file_path)
 	summary = {
 		"models_created": 0,
 		"models_updated": 0,
@@ -45,11 +76,11 @@ def import_frt_workbook(file_path: str, brand: str = DEFAULT_BRAND) -> dict:
 		"details": [],
 	}
 
-	for sheet_name in book.sheet_names():
+	for sheet_name, sheet in sheets:
 		if sheet_name in SKIP_SHEETS:
 			continue
 		try:
-			result = _import_model_sheet(book.sheet_by_name(sheet_name), sheet_name, brand)
+			result = _import_model_sheet(sheet, sheet_name, brand)
 			if not result:
 				continue
 			summary["sheets_processed"] += 1
@@ -132,7 +163,7 @@ def _import_model_sheet(sheet, sheet_name: str, brand: str) -> dict | None:
 	if not _is_frt_model_sheet(sheet_name, colmap):
 		return None
 
-	model_name, model_code, model_year = _sheet_model_meta(sheet, sheet_name)
+	model_name, model_code, model_year = _sheet_model_meta(sheet, sheet_name, header_row_idx, colmap)
 	if not model_code:
 		return None
 
@@ -167,10 +198,10 @@ def _import_model_sheet(sheet, sheet_name: str, brand: str) -> dict | None:
 		cat_code = _text(row, colmap.get("cat_code"))
 		sub_code_raw = row[colmap["sub_code"]] if colmap.get("sub_code") is not None else ""
 		sub_code = _format_sub_code(sub_code_raw, cat_code)
-		service_code = _text(row, colmap.get("service_code"))
+		service_code = _normalize_service_code(_text(row, colmap.get("service_code")))
 
 		if not service_code and row_model_code and cat_code and sub_code:
-			service_code = f"{row_model_code}{cat_code.upper()}{sub_code}"
+			service_code = _normalize_service_code(f"{row_model_code}{cat_code.upper()}{sub_code}")
 
 		if not service_code:
 			stats["services_skipped"] += 1
@@ -210,27 +241,39 @@ def _parse_sheet_vehicle_model(sheet_name: str) -> tuple[str, str] | None:
 
 
 def _is_frt_model_sheet(sheet_name: str, colmap: dict) -> bool:
-	"""Only import per-model tabs (Name-CODE) with a service-code column."""
-	if _parse_sheet_vehicle_model(sheet_name) is None:
-		return False
+	"""Import any tab that looks like labour services for one vehicle model."""
 	if colmap.get("description") is None:
 		return False
-	if colmap.get("model_code") is None:
-		return False
-	if colmap.get("service_code") is None:
-		return False
-	return True
+	if colmap.get("service_code") is not None:
+		return True
+	return colmap.get("model_code") is not None and colmap.get("cat_code") is not None
 
 
-def _sheet_model_meta(sheet, sheet_name: str) -> tuple[str, str, int | None]:
+def _first_row_model_code(sheet, header_row_idx: int, colmap: dict) -> str:
+	idx = colmap.get("model_code")
+	if idx is None:
+		return ""
+	for row_idx in range(header_row_idx + 1, sheet.nrows):
+		code = _text([_cell(sheet, row_idx, col) for col in range(sheet.ncols)], idx)
+		if code:
+			return code.upper()
+	return ""
+
+
+def _sheet_model_meta(sheet, sheet_name: str, header_row_idx: int = 0, colmap: dict | None = None) -> tuple[str, str, int | None]:
 	model_year = None
 	parsed = _parse_sheet_vehicle_model(sheet_name)
+	colmap = colmap or {}
 
 	if parsed:
 		model_name, model_code = parsed
 	else:
-		model_name = ""
+		model_name = (sheet_name or "").strip()
 		model_code = ""
+
+	row_model_code = _first_row_model_code(sheet, header_row_idx, colmap)
+	if row_model_code:
+		model_code = row_model_code
 
 	# Row 0 may carry the model year at the end of the sheet.
 	if sheet.nrows:
@@ -242,8 +285,7 @@ def _sheet_model_meta(sheet, sheet_name: str) -> tuple[str, str, int | None]:
 					model_year = year
 					break
 
-	if not parsed:
-		model_name = model_name or sheet_name.strip()
+	if not model_code:
 		model_code = _slug_code(model_name)
 
 	return model_name, model_code.upper(), model_year
@@ -275,7 +317,7 @@ def _header_map(row) -> dict:
 			colmap.setdefault("category", idx)
 		elif key in ("hours", "frt", "front"):
 			colmap.setdefault("hours", idx)
-		elif "model code" in key:
+		elif key == "model" or "model code" in key:
 			colmap.setdefault("model_code", idx)
 		elif "cat code" in key:
 			colmap.setdefault("cat_code", idx)
@@ -368,7 +410,7 @@ def upsert_vehicle_service_item(
 	hours: float,
 	model_code: str,
 ) -> bool:
-	service_code = (service_code or "").strip().upper()
+	service_code = _normalize_service_code(service_code)
 	description = (description or service_code).strip()
 	if not service_code:
 		return False
@@ -402,6 +444,8 @@ def upsert_vehicle_service_item(
 
 	if meta.has_field("custom_estimated_timehours"):
 		values["custom_estimated_timehours"] = _hours_text(hours)
+	if meta.has_field("custom_active"):
+		values["custom_active"] = 1
 
 	if existing_name:
 		doc = frappe.get_doc("Vehicle Service Item", existing_name)
@@ -439,6 +483,10 @@ def _service_item_display_name(
 		return fallback
 
 	return service_code
+
+
+def _normalize_service_code(value: str) -> str:
+	return re.sub(r"\s+", "", (value or "")).upper()
 
 
 def _hours_text(hours: float) -> str:

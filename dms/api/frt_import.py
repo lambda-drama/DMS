@@ -9,7 +9,7 @@ from dms.utils.frt_sheet_import import DEFAULT_BRAND, import_frt_file_url
 @frappe.whitelist()
 def import_frt_sheet(file_url=None, brand=None):
 	"""Import Vehicle Models and Vehicle Service Items from an uploaded FRT Excel workbook."""
-	frappe.only_for(("System Manager", "Dealer Manager", "Administrator"))
+	frappe.has_permission("Vehicle Service Item", "create", throw=True)
 
 	file_url = (file_url or "").strip()
 	if not file_url:

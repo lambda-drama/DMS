@@ -170,6 +170,75 @@ def add_part_line_to_job_card(
 	return result
 
 
+_REMOVE_PART_BLOCKED_STATUSES = frozenset(
+	{
+		"Reserved",
+		"Ready for Issue",
+		"Issued",
+		"Received",
+		"Returned",
+	}
+)
+
+
+@frappe.whitelist()
+def remove_part_line_from_job_card(job_card, part_row):
+	"""Remove a spare part line from an open job card."""
+	jc_name = (job_card or "").strip()
+	row_name = (part_row or "").strip()
+	if not jc_name:
+		frappe.throw(_("Job Card is required."))
+	if not row_name:
+		frappe.throw(_("Part line is required."))
+
+	jc = frappe.get_doc("DMS Job Card", jc_name)
+	jc.check_permission("write")
+
+	if jc.status not in _ADD_PART_ALLOWED_STATUSES:
+		frappe.throw(
+			_("Cannot remove parts when job card status is {0}.").format(jc.status or _("Unknown"))
+		)
+
+	if jc.invoice:
+		frappe.throw(_("Cannot remove parts after an invoice has been created."))
+
+	row = next((r for r in (jc.parts or []) if r.name == row_name), None)
+	if not row:
+		frappe.throw(_("Part line {0} was not found on this job card.").format(row_name))
+
+	line_status = (row.line_status or "Requested").strip()
+	if line_status in _REMOVE_PART_BLOCKED_STATUSES:
+		frappe.throw(_("Cannot remove a part that is already {0}.").format(line_status))
+
+	if flt(row.quantity_issued or 0) > 0:
+		frappe.throw(_("Cannot remove a part that has already been issued."))
+
+	parts_request = (row.parts_request or "").strip()
+	if parts_request:
+		pr_status = frappe.db.get_value("DMS Parts Request", parts_request, "status")
+		if pr_status and pr_status != "Cancelled":
+			frappe.throw(
+				_("Cannot remove this part while it is on parts request {0}.").format(
+					frappe.bold(parts_request)
+				)
+			)
+
+	jc.remove(row)
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"job_card": jc.name,
+		"removed": row_name,
+		"total_parts_cost": jc.total_parts_cost,
+		"total_amount": jc.total_amount,
+		"net_amount": getattr(jc, "net_amount", None),
+	}
+
+
 @frappe.whitelist()
 def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 	"""Update selling price on part rows and/or rate/hour on labour rows.

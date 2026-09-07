@@ -73,6 +73,16 @@ import {
   Copy,
   FilePenLine,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult } from "@/types/dms";
 import { htmlToPlainText } from "@/lib/plain-text";
@@ -112,6 +122,7 @@ import { AdditionalWorkSection } from "@/components/job-card/additional-work-sec
 import { AddExtraPartSection } from "@/components/job-card/add-extra-part-section";
 import { AddExtraLabourSection } from "@/components/job-card/add-extra-labour-section";
 import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-dialog";
+import { EditEstimateLinesDialog } from "@/components/job-card/edit-estimate-lines-dialog";
 import * as partsRequestsSvc from "@/services/partsRequests";
 import type { AdditionalWorkRequestSummary } from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
@@ -243,6 +254,7 @@ export default function JobCardDetailPage() {
   const [savedSignatureUrl, setSavedSignatureUrl] = useState<string | null>(null);
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
+  const [promisedDelivery, setPromisedDelivery] = useState("");
   const [leadTechnician, setLeadTechnician] = useState("");
   const [assignedBay, setAssignedBay] = useState("");
   const [assistantRows, setAssistantRows] = useState<Array<{ technician: string }>>([]);
@@ -261,6 +273,14 @@ export default function JobCardDetailPage() {
   const [bayLinkedWorkshop, setBayLinkedWorkshop] = useState<string>("");
   const [bayLinkedWarehouse, setBayLinkedWarehouse] = useState<string>("");
   const [savingLinePrice, setSavingLinePrice] = useState<string | null>(null);
+  const [lineToDelete, setLineToDelete] = useState<{
+    kind: "labour" | "part";
+    name: string;
+    label: string;
+  } | null>(null);
+  const [deletingLine, setDeletingLine] = useState(false);
+  const [stageEditActive, setStageEditActive] = useState(false);
+  const [showEstimateEditDialog, setShowEstimateEditDialog] = useState(false);
   const autoPartsTabJobRef = useRef<string | null>(null);
 
   const hasActivePartsRequest = (requests?: Array<{ status: string }>) =>
@@ -325,6 +345,7 @@ export default function JobCardDetailPage() {
     if (!jobCard) return;
     setScheduleStart(toDatetimeLocal(jobCard.schedule_start_time));
     setScheduleEnd(toDatetimeLocal(jobCard.schedule_end_time));
+    setPromisedDelivery(toDatetimeLocal(jobCard.promised_delivery_date_time));
     setLeadTechnician(jobCard.lead_technician || "");
     setAssignedBay(jobCard.assigned_bay || "");
     setAssistantRows(
@@ -336,6 +357,7 @@ export default function JobCardDetailPage() {
     jobCard?.name,
     jobCard?.schedule_start_time,
     jobCard?.schedule_end_time,
+    jobCard?.promised_delivery_date_time,
     jobCard?.lead_technician,
     jobCard?.assigned_bay,
     jobCard?.assistant_technicians,
@@ -499,7 +521,9 @@ export default function JobCardDetailPage() {
   const workflowStatus = resolveJobCardWorkflowStatus(status, docstatus);
   const workshopAssigned = isJobCardWorkshopAssigned(jobCard);
   const isInternal = jobCard.job_card_type === "Internal";
-  const assignmentEditable = canEditJobCardAssignment(status);
+  const canActivateStageEdit = !["Completed", "Delivered", "Cancelled"].includes(workflowStatus);
+  const stageEditing = canActivateStageEdit && stageEditActive;
+  const assignmentEditable = canEditJobCardAssignment(status) || stageEditing;
   const displayWorkshop = bayLinkedWorkshop || jobCard.workshop || "";
   const displayWarehouse = bayLinkedWarehouse || jobCard.warehouse || "";
   const hasWorkshopWarehouse = Boolean(displayWarehouse.trim());
@@ -524,6 +548,8 @@ export default function JobCardDetailPage() {
     String(invoiceDetail?.status || "").toLowerCase() === "cancelled";
   /** Cancelled invoices do not block creating a new one. */
   const hasActiveInvoice = Boolean(jobCard.invoice) && !invoiceIsCancelled;
+  const canDeleteLabourLine = canAddExtraLabour && !hasActiveInvoice;
+  const canDeletePartLine = canAddExtraPart && !hasActiveInvoice;
   const canEditLinePricing =
     canEditPrice &&
     !hasActiveInvoice &&
@@ -578,6 +604,55 @@ export default function JobCardDetailPage() {
     }
   };
 
+  const scrollToSection = (sectionId: string) => {
+    window.requestAnimationFrame(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const handleStageClick = (stageKey: string) => {
+    if (stageKey === "Open") {
+      setActiveTab("overview");
+      scrollToSection("job-card-dates");
+      return;
+    }
+    if (stageKey === "Estimation") {
+      if (jobCard.service_estimate) {
+        setShowEstimateEditDialog(true);
+      } else {
+        toast.error("This job card has no service estimate yet");
+      }
+      return;
+    }
+    if (stageKey === "Approval") {
+      setActiveTab("overview");
+      scrollToSection("job-card-dates");
+      return;
+    }
+    if (stageKey === "Repair") {
+      setActiveTab("services");
+      return;
+    }
+    if (stageKey === "Road Test") {
+      setActiveTab("workshop");
+      return;
+    }
+    if (stageKey === "QC") {
+      setActiveTab("workshop");
+    }
+  };
+
+  const handleSaveDates = () =>
+    runAction("Dates updated", async () => {
+      await jobCardsSvc.updateJobCard(id, {
+        schedule_start_time: scheduleStart ? toFrappeDatetime(scheduleStart) : null,
+        schedule_end_time: scheduleEnd ? toFrappeDatetime(scheduleEnd) : null,
+        promised_delivery_date_time: promisedDelivery
+          ? toFrappeDatetime(promisedDelivery)
+          : null,
+      });
+    });
+
   const handleSaveAssignment = () => {
     if (!leadTechnician) {
       toast.error("Lead technician is required");
@@ -588,7 +663,10 @@ export default function JobCardDetailPage() {
       return;
     }
     runAction("Assignment updated", async () => {
-      if (["Open", "Estimation Approved", "Draft", "Assigned"].includes(status)) {
+      if (
+        !stageEditing &&
+        ["Open", "Estimation Approved", "Draft", "Assigned"].includes(status)
+      ) {
         await partsRequestsSvc.assignJobCardWorkshop(id, leadTechnician, assignedBay);
       } else {
         await jobCardsSvc.updateJobCard(id, {
@@ -748,6 +826,53 @@ export default function JobCardDetailPage() {
       toast.error(err instanceof Error ? err.message : "Failed to update part price");
     } finally {
       setSavingLinePrice(null);
+    }
+  };
+
+  const labourLineLabel = (line: {
+    custom_display_name?: string;
+    display_name?: string;
+    service_name?: string;
+    vehicle_service_item?: string;
+  }) =>
+    line.custom_display_name ||
+    line.display_name ||
+    line.service_name ||
+    line.vehicle_service_item ||
+    "this service line";
+
+  const partLineCanBeDeleted = (part: {
+    line_status?: string;
+    status?: string;
+    quantity_issued?: number;
+    parts_request?: string;
+  }) => {
+    const status = (part.line_status || part.status || "Requested").trim();
+    if (["Reserved", "Ready for Issue", "Issued", "Received", "Returned"].includes(status)) {
+      return false;
+    }
+    if ((part.quantity_issued || 0) > 0) return false;
+    if ((part.parts_request || "").trim()) return false;
+    return true;
+  };
+
+  const confirmDeleteLine = async () => {
+    if (!lineToDelete?.name) return;
+    setDeletingLine(true);
+    try {
+      if (lineToDelete.kind === "part") {
+        await partsRequestsSvc.removePartLineFromJobCard(id, lineToDelete.name);
+        toast.success("Part line deleted");
+      } else {
+        await jobCardsSvc.removeLabourLineFromJobCard(id, lineToDelete.name);
+        toast.success("Service line deleted");
+      }
+      setLineToDelete(null);
+      await mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete line");
+    } finally {
+      setDeletingLine(false);
     }
   };
 
@@ -1004,7 +1129,9 @@ export default function JobCardDetailPage() {
 
   const labourDiagnosisBlocks = (jobCard.labour || [])
     .map((line) => {
-      const svc = (line as { service_name?: string; vehicle_service_item?: string }).service_name
+      const svc = (line as { custom_display_name?: string; display_name?: string; service_name?: string; vehicle_service_item?: string }).custom_display_name
+        || (line as { display_name?: string }).display_name
+        || (line as { service_name?: string }).service_name
         || (line as { vehicle_service_item?: string }).vehicle_service_item;
       const text = htmlToPlainText((line as { diagnosis?: string }).diagnosis || "").trim();
       return text ? { label: svc || "Labour line", text } : null;
@@ -1140,6 +1267,20 @@ export default function JobCardDetailPage() {
               New Version
             </Button>
           ) : null}
+          {canActivateStageEdit ? (
+            <Button
+              type="button"
+              variant={stageEditing ? "default" : "outline"}
+              size="icon"
+              className="shrink-0"
+              title={stageEditing ? "Turn off stage editing" : "Enable stage editing"}
+              aria-pressed={stageEditing}
+              aria-label={stageEditing ? "Turn off stage editing" : "Enable stage editing"}
+              onClick={() => setStageEditActive((on) => !on)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          ) : null}
           <ListRowActions doctype="DMS Job Card" docName={id}>
             {status === "Draft" ||
             workflowStatus === "Cancelled" ||
@@ -1216,7 +1357,14 @@ export default function JobCardDetailPage() {
         status={status}
         docstatus={docstatus}
         jobCardType={jobCard.job_card_type}
+        editMode={stageEditing}
+        onStageClick={handleStageClick}
       />
+      {stageEditing ? (
+        <p className="text-sm text-muted-foreground">
+          Stage editing is on. Click Open, Estimation, Approval, or Repair above to go back and change that step.
+        </p>
+      ) : null}
 
       {/* Repair Timer */}
       <RepairTimer
@@ -1871,7 +2019,7 @@ export default function JobCardDetailPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="job-card-assignment">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <Wrench className="h-5 w-5" />
@@ -1886,7 +2034,9 @@ export default function JobCardDetailPage() {
               <CardContent className="space-y-4">
                 {assignmentEditable && (
                   <p className="text-sm text-muted-foreground">
-                    Lead technician and service bay can be changed until repair starts.
+                    {stageEditing
+                      ? "Stage editing is on — you can change technician and bay until the job is completed."
+                      : "Lead technician and service bay can be changed until repair starts."}
                   </p>
                 )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1964,12 +2114,17 @@ export default function JobCardDetailPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
+            <Card id="job-card-dates">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
                   Dates
                 </CardTitle>
+                {assignmentEditable ? (
+                  <Button size="sm" onClick={handleSaveDates} disabled={busy}>
+                    Save dates
+                  </Button>
+                ) : null}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1997,30 +2152,62 @@ export default function JobCardDetailPage() {
                         : "N/A"}
                     </p>
                   </div>
-                  {jobCard.schedule_start_time && (
+                  {assignmentEditable ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="overview-schedule-start">Schedule start</Label>
+                      <Input
+                        id="overview-schedule-start"
+                        type="datetime-local"
+                        value={scheduleStart}
+                        onChange={(e) => setScheduleStart(e.target.value)}
+                      />
+                    </div>
+                  ) : jobCard.schedule_start_time ? (
                     <div>
                       <p className="text-sm text-muted-foreground">Schedule start</p>
                       <p className="font-medium">
                         {new Date(jobCard.schedule_start_time).toLocaleString()}
                       </p>
                     </div>
-                  )}
-                  {jobCard.schedule_end_time && (
+                  ) : null}
+                  {assignmentEditable ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="overview-schedule-end">Schedule end</Label>
+                      <Input
+                        id="overview-schedule-end"
+                        type="datetime-local"
+                        value={scheduleEnd}
+                        onChange={(e) => setScheduleEnd(e.target.value)}
+                      />
+                    </div>
+                  ) : jobCard.schedule_end_time ? (
                     <div>
                       <p className="text-sm text-muted-foreground">Schedule end</p>
                       <p className="font-medium">
                         {new Date(jobCard.schedule_end_time).toLocaleString()}
                       </p>
                     </div>
+                  ) : null}
+                  {assignmentEditable ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="overview-promised-delivery">Promised Delivery</Label>
+                      <Input
+                        id="overview-promised-delivery"
+                        type="datetime-local"
+                        value={promisedDelivery}
+                        onChange={(e) => setPromisedDelivery(e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Promised Delivery</p>
+                      <p className="font-medium">
+                        {jobCard.promised_delivery_date_time
+                          ? new Date(jobCard.promised_delivery_date_time).toLocaleString()
+                          : "N/A"}
+                      </p>
+                    </div>
                   )}
-                  <div>
-                    <p className="text-sm text-muted-foreground">Promised Delivery</p>
-                    <p className="font-medium">
-                      {jobCard.promised_delivery_date_time
-                        ? new Date(jobCard.promised_delivery_date_time).toLocaleString()
-                        : "N/A"}
-                    </p>
-                  </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Completed</p>
                     <p className="font-medium">
@@ -2173,12 +2360,13 @@ export default function JobCardDetailPage() {
                         <TableHead className="text-right">Rate</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead>Warranty</TableHead>
+                        {canDeleteLabourLine ? <TableHead className="w-12" /> : null}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {jobCard.labour.map((line, idx) => (
                         <TableRow key={line.name || idx}>
-                          <TableCell className="font-medium">{line.service_name || line.vehicle_service_item}</TableCell>
+                          <TableCell className="font-medium">{labourLineLabel(line)}</TableCell>
                           <TableCell>{line.technician || "–"}</TableCell>
                           <TableCell className="text-right">{line.actual_hours || line.estimated_hours || 0}</TableCell>
                           <TableCell className="text-right">
@@ -2213,6 +2401,27 @@ export default function JobCardDetailPage() {
                               </Badge>
                             ) : "–"}
                           </TableCell>
+                          {canDeleteLabourLine ? (
+                            <TableCell className="text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                disabled={!line.name || deletingLine}
+                                aria-label="Delete service line"
+                                onClick={() =>
+                                  setLineToDelete({
+                                    kind: "labour",
+                                    name: line.name,
+                                    label: labourLineLabel(line),
+                                  })
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          ) : null}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -2276,6 +2485,7 @@ export default function JobCardDetailPage() {
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Warranty</TableHead>
+                        {canDeletePartLine ? <TableHead className="w-12" /> : null}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2322,6 +2532,29 @@ export default function JobCardDetailPage() {
                               </Badge>
                             ) : "–"}
                           </TableCell>
+                          {canDeletePartLine ? (
+                            <TableCell className="text-right">
+                              {part.name && partLineCanBeDeleted(part) ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  disabled={deletingLine}
+                                  aria-label="Delete part line"
+                                  onClick={() =>
+                                    setLineToDelete({
+                                      kind: "part",
+                                      name: part.name,
+                                      label: part.part_name || part.item_code || "this part",
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                            </TableCell>
+                          ) : null}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -2746,7 +2979,9 @@ export default function JobCardDetailPage() {
                         {jobCard.labour.map((line, idx) => (
                           <TableRow key={line.name || idx}>
                             <TableCell className="font-medium">
-                              {(line as { service_name?: string }).service_name
+                              {(line as { custom_display_name?: string }).custom_display_name
+                                || (line as { display_name?: string }).display_name
+                                || (line as { service_name?: string }).service_name
                                 || (line as { vehicle_service_item?: string }).vehicle_service_item
                                 || "—"}
                             </TableCell>
@@ -3079,6 +3314,15 @@ export default function JobCardDetailPage() {
         onCreated={(name) => navigate("job-card-detail", { id: name })}
       />
 
+      <EditEstimateLinesDialog
+        open={showEstimateEditDialog}
+        onOpenChange={setShowEstimateEditDialog}
+        estimateName={jobCard.service_estimate || ""}
+        vehicleVin={jobCard.vehicle_vin}
+        vehicleModel={jobCard.vehicle_model}
+        onSaved={() => void mutate()}
+      />
+
       <CreateInvoiceDialog
         open={showCreateInvoiceDialog}
         onOpenChange={setShowCreateInvoiceDialog}
@@ -3270,6 +3514,38 @@ export default function JobCardDetailPage() {
           )}
         </DetailSheet>
       )}
+
+      <AlertDialog
+        open={Boolean(lineToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deletingLine) setLineToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Do you want to delete this?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes {lineToDelete?.label || "this line"} from the job card.
+              {lineToDelete?.kind === "part"
+                ? " The spare part master is not changed."
+                : " The master service item is not changed."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingLine}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletingLine}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDeleteLine();
+              }}
+            >
+              {deletingLine ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {jobCard.invoice && (
         <CollectPaymentDialog

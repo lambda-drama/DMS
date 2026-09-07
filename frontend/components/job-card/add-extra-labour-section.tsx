@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DecimalInput } from "@/components/ui/decimal-input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/searchable-select";
@@ -44,6 +45,7 @@ export function AddExtraLabourSection({
   );
   const [vehicleServiceItem, setVehicleServiceItem] = useState("");
   const [serviceLabel, setServiceLabel] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [estimatedHours, setEstimatedHours] = useState(1);
   const [ratePerHour, setRatePerHour] = useState(0);
   const [notes, setNotes] = useState("");
@@ -53,6 +55,7 @@ export function AddExtraLabourSection({
     if (!itemName) {
       setVehicleServiceItem("");
       setServiceLabel("");
+      setDisplayName("");
       setEstimatedHours(1);
       setRatePerHour(0);
       return;
@@ -83,6 +86,7 @@ export function AddExtraLabourSection({
 
     setVehicleServiceItem(itemName);
     setServiceLabel(label);
+    setDisplayName(label);
     setEstimatedHours(hours || 1);
     setRatePerHour(rate || 0);
   };
@@ -90,6 +94,7 @@ export function AddExtraLabourSection({
   const resetForm = () => {
     setVehicleServiceItem("");
     setServiceLabel("");
+    setDisplayName("");
     setEstimatedHours(1);
     setRatePerHour(0);
     setNotes("");
@@ -110,6 +115,8 @@ export function AddExtraLabourSection({
     try {
       await jobCardsSvc.addLabourLineToJobCard(jobCardId, {
         vehicle_service_item: vehicleServiceItem,
+        service_name: serviceLabel || undefined,
+        custom_display_name: displayName.trim() || serviceLabel || undefined,
         estimated_hours: estimatedHours,
         rate_per_hour: ratePerHour || undefined,
         notes: notes.trim() || undefined,
@@ -190,6 +197,15 @@ export function AddExtraLabourSection({
               )}
             </Button>
           </div>
+          <div className="space-y-1 sm:col-span-12">
+            <Label className="text-xs">Display name</Label>
+            <Input
+              value={displayName}
+              placeholder="Name on this job card only"
+              disabled={disabled || busy || !vehicleServiceItem}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Notes (optional)</Label>
@@ -209,7 +225,7 @@ export function AddExtraLabourSection({
                 minimumFractionDigits: 2,
               })}
             </strong>
-            {` · ${serviceLabel}`}
+            {` · ${displayName.trim() || serviceLabel}`}
           </p>
         ) : null}
       </CardContent>

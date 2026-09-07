@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -54,6 +55,7 @@ export function EditServiceItemDialog({
     custom_estimated_timehours: '',
     custom_rate: '',
     custom_description: '',
+    custom_active: true,
   });
 
   const { data: vehicleModels } = useVehicleModels(modelSearch);
@@ -83,6 +85,7 @@ export function EditServiceItemDialog({
           : '',
       custom_rate: serviceItem.custom_rate != null ? String(serviceItem.custom_rate) : '',
       custom_description: serviceItem.custom_description || '',
+      custom_active: Number(serviceItem.custom_active) === 1,
     });
     setModelSearch('');
     setCategorySearch('');
@@ -139,6 +142,7 @@ export function EditServiceItemDialog({
           : null,
         custom_rate: form.custom_rate ? Number(form.custom_rate) : null,
         custom_description: form.custom_description.trim() || null,
+        custom_active: form.custom_active ? 1 : 0,
       });
       await mutate(
         (key) =>
@@ -211,8 +215,20 @@ export function EditServiceItemDialog({
                 />
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit-service-item-active"
+                checked={form.custom_active}
+                onCheckedChange={(checked) =>
+                  setForm((p) => ({ ...p, custom_active: Boolean(checked) }))
+                }
+              />
+              <Label htmlFor="edit-service-item-active" className="cursor-pointer font-normal">
+                Active
+              </Label>
+            </div>
             <div className="space-y-1">
-              <Label>Item name (display)</Label>
+              <Label>Item name</Label>
               <Input
                 value={form.custom_item_name}
                 onChange={(e) => setForm((p) => ({ ...p, custom_item_name: e.target.value }))}

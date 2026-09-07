@@ -1047,6 +1047,11 @@ def _format_service_name_then_code(name: str, code: str) -> str:
 
 def _labour_row_service_name(row) -> str:
 	"""Service name first, then code — not complaint / diagnosis."""
+	display = strip_html(
+		getattr(row, "custom_display_name", None) or getattr(row, "display_name", None) or ""
+	).strip()
+	if display:
+		return display
 	vsi = (getattr(row, "vehicle_service_item", None) or "").strip()
 	name, code = _vehicle_service_item_name_and_code(vsi)
 	if not name:

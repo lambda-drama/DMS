@@ -502,8 +502,10 @@ def get_vehicle_service_items(search=None, limit=20, vehicle_model=None, vin=Non
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 		vehicle_service_item_estimated_hours,
 	)
+	from dms.overrides.vehicle_service_item import active_vehicle_service_item_filters
+
 	meta = frappe.get_meta("Vehicle Service Item")
-	filters = {}
+	filters = active_vehicle_service_item_filters()
 
 	vehicle_model = (vehicle_model or "").strip()
 	vin = (vin or "").strip()
