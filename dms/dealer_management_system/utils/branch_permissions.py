@@ -1,8 +1,5 @@
 """Branch scoping via standard Frappe User Permissions (Allow = Branch).
 
-Expects a Link field to Branch on each transaction doctype (added via Customize Form /
-Property Setter — not shipped in this app's JSON or fixtures). Filtering is skipped when
-the field is not present on the doctype yet.
 """
 
 from __future__ import annotations
