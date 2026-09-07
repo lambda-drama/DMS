@@ -4,6 +4,9 @@
 frappe.ui.form.on("Vehicle Model", {
 	refresh(frm) {
         apply_vehicle_item_filter(frm)
+		frm.set_query("labor_operation", "standard_labor_operations", () => ({
+			filters: { custom_active: 1 },
+		}));
 	},
 });
 

@@ -60,6 +60,7 @@ export type VehicleServiceItemMaster = {
   custom_estimated_timehours?: number | string;
   custom_rate?: number;
   custom_description?: string;
+  custom_active?: number;
   disabled?: number;
   item_price?: {
     name?: string;
@@ -129,6 +130,7 @@ export async function listVehicleServiceItems(options?: {
   vehicle_model?: string;
   limit?: number;
   offset?: number;
+  active_filter?: 'active' | 'all' | 'inactive';
 }): Promise<Paginated<VehicleServiceItemMaster>> {
   return apiRequest(`/api/method/${API}.list_vehicle_service_items`, {
     method: 'POST',
@@ -137,6 +139,7 @@ export async function listVehicleServiceItems(options?: {
       vehicle_model: options?.vehicle_model || null,
       limit: options?.limit ?? 50,
       offset: options?.offset ?? 0,
+      active_filter: options?.active_filter || 'active',
     }),
   });
 }

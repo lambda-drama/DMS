@@ -70,14 +70,17 @@ export function SearchableSelect({
   const closedDisplayLabel =
     selectedOption?.label || (value && valueLabel ? valueLabel : "");
 
-  const filtered = search
-    ? options.filter(
-        (o) =>
-          o.label.toLowerCase().includes(search.toLowerCase()) ||
-          o.value.toLowerCase().includes(search.toLowerCase()) ||
-          (o.description?.toLowerCase().includes(search.toLowerCase()) ?? false)
-      )
-    : options;
+  // When the parent searches on the server, do not also filter locally —
+  // labels may omit the query (service code, item name) and hide valid hits.
+  const filtered =
+    onSearchChange || !search
+      ? options
+      : options.filter(
+          (o) =>
+            o.label.toLowerCase().includes(search.toLowerCase()) ||
+            o.value.toLowerCase().includes(search.toLowerCase()) ||
+            (o.description?.toLowerCase().includes(search.toLowerCase()) ?? false)
+        );
 
   const updateDropdownPosition = useCallback(() => {
     if (!portaled || !inputRef.current) return;
@@ -87,7 +90,7 @@ export function SearchableSelect({
       top: rect.bottom + 4,
       left: rect.left,
       width: rect.width,
-      zIndex: 200,
+      zIndex: 300,
     });
   }, [portaled]);
 

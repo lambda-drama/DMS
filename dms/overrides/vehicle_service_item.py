@@ -14,6 +14,17 @@ from frappe.utils import flt
 LABOUR_ITEM_GROUP = "Service"
 
 
+def active_vehicle_service_item_filters() -> dict:
+	"""Filters for labour pickers and service listings: Active ticked, not disabled."""
+	meta = frappe.get_meta("Vehicle Service Item")
+	filters: dict = {}
+	if meta.has_field("custom_active"):
+		filters["custom_active"] = 1
+	if meta.has_field("disabled"):
+		filters["disabled"] = 0
+	return filters
+
+
 def validate_vehicle_service_item(doc, method=None):
 	"""On first save, create ERPNext Item from service name if no Item link yet."""
 	link_field = _erpnext_item_link_fieldname()

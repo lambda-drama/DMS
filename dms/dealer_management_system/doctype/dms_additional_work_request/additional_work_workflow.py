@@ -118,6 +118,9 @@ def accept_supplementary_estimate_and_update_job_card(
 			{
 				"vehicle_service_item": row.vehicle_service_item,
 				"service_name": row.service_name,
+				"custom_display_name": row.get("custom_display_name")
+				or row.get("display_name")
+				or row.service_name,
 				"estimated_hours": row.estimated_hours,
 				"rate_per_hour": row.rate_per_hour,
 				"amount": row.amount,

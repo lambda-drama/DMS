@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DecimalInput } from "@/components/ui/decimal-input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -34,6 +35,7 @@ import { toast } from "sonner";
 type RepeatLabourRow = {
   vehicle_service_item: string;
   service_name: string;
+  display_name: string;
   estimated_hours: number;
   rate_per_hour: number;
 };
@@ -49,6 +51,7 @@ function emptyLabourRow(): RepeatLabourRow {
   return {
     vehicle_service_item: "",
     service_name: "",
+    display_name: "",
     estimated_hours: 0,
     rate_per_hour: 0,
   };
@@ -160,6 +163,7 @@ export function CreateRepeatJobDialog({
           ? {
               vehicle_service_item: itemName,
               service_name: label,
+              display_name: label,
               estimated_hours: hours || 1,
               rate_per_hour: rate || 0,
             }
@@ -241,6 +245,7 @@ export function CreateRepeatJobDialog({
         labour: filledLabour.map((row) => ({
           vehicle_service_item: row.vehicle_service_item,
           service_name: row.service_name,
+          custom_display_name: row.display_name.trim() || row.service_name,
           estimated_hours: row.estimated_hours,
           rate_per_hour: row.rate_per_hour,
           complaint: complaint.trim() || undefined,
@@ -327,6 +332,15 @@ export function CreateRepeatJobDialog({
                       setShowCreateServiceItemDialog(true);
                     }}
                     createNewLabel="New Service Item"
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-12">
+                  <Label className="text-xs">Display name</Label>
+                  <Input
+                    value={row.display_name}
+                    placeholder="Name on this job card only"
+                    disabled={busy || !row.vehicle_service_item}
+                    onChange={(e) => updateLabourRow(idx, { display_name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-2">

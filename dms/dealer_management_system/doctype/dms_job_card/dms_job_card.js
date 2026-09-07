@@ -199,6 +199,9 @@ frappe.ui.form.on("DMS Job Card", {
         }
 
         set_job_card_warehouse_queries(frm);
+        frm.set_query("vehicle_service_item", "labour", () => ({
+            filters: { custom_active: 1 },
+        }));
         add_vehicle_delivery_button(frm);
         add_sales_invoice_button(frm);
         add_repeat_job_button(frm);

@@ -3,6 +3,7 @@
 
 from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (  # noqa: F401
 	add_part_line_to_job_card,
+	remove_part_line_from_job_card,
 	assign_job_card_workshop,
 	approve_parts_request,
 	cancel_parts_request,

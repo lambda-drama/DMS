@@ -441,6 +441,8 @@ export async function createRepeatJobCard(
     labour?: Array<{
       vehicle_service_item: string;
       service_name?: string;
+      display_name?: string;
+      custom_display_name?: string;
       estimated_hours?: number;
       rate_per_hour?: number;
       technician?: string;
@@ -488,6 +490,9 @@ export async function addLabourLineToJobCard(
   jobCard: string,
   data: {
     vehicle_service_item: string;
+    service_name?: string;
+    display_name?: string;
+    custom_display_name?: string;
     estimated_hours?: number;
     rate_per_hour?: number;
     technician?: string;
@@ -500,6 +505,7 @@ export async function addLabourLineToJobCard(
   labour_row: string;
   vehicle_service_item: string;
   service_name: string;
+  display_name?: string;
   estimated_hours: number;
   rate_per_hour: number;
   amount: number;
@@ -511,12 +517,34 @@ export async function addLabourLineToJobCard(
     body: JSON.stringify({
       job_card: jobCard,
       vehicle_service_item: data.vehicle_service_item,
+      service_name: data.service_name || null,
+      display_name: data.display_name || data.custom_display_name || null,
+      custom_display_name: data.custom_display_name || data.display_name || null,
       estimated_hours: data.estimated_hours ?? null,
       rate_per_hour: data.rate_per_hour ?? null,
       technician: data.technician || null,
       complaint: data.complaint || null,
       notes: data.notes || null,
       is_warranty: data.is_warranty ? 1 : 0,
+    }),
+  });
+}
+
+export async function removeLabourLineFromJobCard(
+  jobCard: string,
+  labourRow: string
+): Promise<{
+  job_card: string;
+  removed: string;
+  total_labor_cost: number;
+  total_amount: number;
+  net_amount?: number;
+}> {
+  return apiRequest(`/api/method/${API}.remove_labour_line_from_job_card`, {
+    method: "POST",
+    body: JSON.stringify({
+      job_card: jobCard,
+      labour_row: labourRow,
     }),
   });
 }

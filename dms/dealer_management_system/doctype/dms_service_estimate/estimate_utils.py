@@ -222,6 +222,9 @@ def make_dms_job_card_from_estimate(
 			{
 				"vehicle_service_item": row.vehicle_service_item,
 				"service_name": row.service_name,
+				"custom_display_name": row.get("custom_display_name")
+				or row.get("display_name")
+				or row.service_name,
 				"complaint": row.complaint,
 				"diagnosis": row.diagnosis or _estimate_diagnosis_text(est),
 				"technician": row.technician or lead_technician,
@@ -301,6 +304,9 @@ def sync_job_card_from_accepted_estimate(est) -> str | None:
 			{
 				"vehicle_service_item": row.vehicle_service_item,
 				"service_name": row.service_name,
+				"custom_display_name": row.get("custom_display_name")
+				or row.get("display_name")
+				or row.service_name,
 				"complaint": row.complaint,
 				"diagnosis": row.diagnosis or _estimate_diagnosis_text(est),
 				"technician": row.technician or jc.lead_technician,

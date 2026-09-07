@@ -80,10 +80,14 @@ export function WorkflowStepper({
   status,
   jobCardType,
   docstatus,
+  editMode = false,
+  onStageClick,
 }: {
   status: JobCardStatus;
   jobCardType?: string;
   docstatus?: number;
+  editMode?: boolean;
+  onStageClick?: (stageKey: string) => void;
 }) {
   const workflowStatus = resolveJobCardWorkflowStatus(status, docstatus);
   const isInternal = jobCardType === "Internal";
@@ -104,24 +108,39 @@ export function WorkflowStepper({
             const isCompleted = index < currentIndex;
             const isCurrent = index === currentIndex;
             const Icon = stage.icon;
+            const canOpenStage =
+              editMode &&
+              Boolean(onStageClick) &&
+              stage.key !== "Completed" &&
+              (isCompleted || isCurrent);
             return (
               <div key={stage.key} className="flex items-center">
                 <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
-                  <div
+                  <button
+                    type="button"
+                    disabled={!canOpenStage}
+                    onClick={() => canOpenStage && onStageClick?.(stage.key)}
+                    title={
+                      canOpenStage
+                        ? `Edit ${stage.label}`
+                        : editMode && stage.key !== "Completed"
+                          ? `${stage.label} has not started yet`
+                          : undefined
+                    }
                     className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
                       isCompleted
                         ? "bg-primary border-primary text-primary-foreground"
                         : isCurrent
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-muted bg-muted/30 text-muted-foreground"
-                    }`}
+                    } ${canOpenStage ? "cursor-pointer hover:ring-2 hover:ring-primary/40" : "cursor-default"}`}
                   >
                     {isCompleted ? (
                       <CheckCircle2 className="h-5 w-5" />
                     ) : (
                       <Icon className="h-5 w-5" />
                     )}
-                  </div>
+                  </button>
                   <span
                     className={`text-xs font-medium text-center ${
                       isCompleted || isCurrent ? "text-foreground" : "text-muted-foreground"

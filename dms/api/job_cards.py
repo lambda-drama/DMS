@@ -46,14 +46,6 @@ def _sync_workshop_warehouse_from_bay(doc, bay_name=None):
 
 
 ASSIGNMENT_LOCKED_STATUSES = frozenset({
-	"Repair In Progress",
-	"Repair Completed",
-	"Waiting Parts",
-	"Road Test In Progress",
-	"Road Test Completed",
-	"QC In Progress",
-	"QC Failed",
-	"Rework",
 	"Completed",
 	"Delivered",
 	"Cancelled",
@@ -557,15 +549,24 @@ def _append_labour_line_payload(doc, line, default_complaint=None):
 	if rate <= 0:
 		rate = vehicle_service_item_labour_rate(vsi)
 
+	from dms.dealer_management_system.doctype.vehicle_labour_item.vehicle_labour_item import (
+		LABOUR_DISPLAY_NAME_FIELD,
+		ensure_labour_display_name_field,
+		labour_payload_display_name,
+	)
+
+	ensure_labour_display_name_field()
 	complaint = (line.get("complaint") or "").strip() or (default_complaint or "")
 	technician = (line.get("technician") or "").strip() or None
 	service_name = (line.get("service_name") or "").strip() or _labour_service_name(vsi)
+	display_name = labour_payload_display_name(line, service_name)
 
 	doc.append(
 		"labour",
 		{
 			"vehicle_service_item": vsi,
 			"service_name": service_name,
+			LABOUR_DISPLAY_NAME_FIELD: display_name,
 			"technician": technician,
 			"estimated_hours": hours,
 			"rate_per_hour": rate,
@@ -633,6 +634,9 @@ def add_labour_line_to_job_card(
 	complaint=None,
 	notes=None,
 	is_warranty=0,
+	display_name=None,
+	custom_display_name=None,
+	service_name=None,
 ):
 	"""Add a service/labour line to an open job card (same window as add extra part)."""
 	vsi = (vehicle_service_item or "").strip()
@@ -668,6 +672,8 @@ def add_labour_line_to_job_card(
 		jc,
 		{
 			"vehicle_service_item": vsi,
+			"service_name": service_name,
+			"custom_display_name": custom_display_name or display_name,
 			"estimated_hours": estimated_hours,
 			"rate_per_hour": rate_per_hour,
 			"technician": technician,
@@ -691,9 +697,52 @@ def add_labour_line_to_job_card(
 		"labour_row": row.name,
 		"vehicle_service_item": row.vehicle_service_item,
 		"service_name": row.service_name,
+		"display_name": row.get("custom_display_name") or row.get("display_name"),
+		"custom_display_name": row.get("custom_display_name") or row.get("display_name"),
 		"estimated_hours": row.estimated_hours,
 		"rate_per_hour": row.rate_per_hour,
 		"amount": row.amount,
+		"total_labor_cost": jc.total_labor_cost,
+		"total_amount": jc.total_amount,
+		"net_amount": getattr(jc, "net_amount", None),
+	}
+
+
+@frappe.whitelist()
+def remove_labour_line_from_job_card(job_card, labour_row):
+	"""Remove a service/labour line from an open job card."""
+	jc_name = (job_card or "").strip()
+	row_name = (labour_row or "").strip()
+	if not jc_name:
+		frappe.throw(_("Job Card is required."))
+	if not row_name:
+		frappe.throw(_("Labour line is required."))
+
+	jc = frappe.get_doc("DMS Job Card", jc_name)
+	jc.check_permission("write")
+
+	if jc.status not in _ADD_LABOUR_ALLOWED_STATUSES:
+		frappe.throw(
+			_("Cannot remove labour when job card status is {0}.").format(jc.status or _("Unknown"))
+		)
+
+	if jc.invoice:
+		frappe.throw(_("Cannot remove labour after an invoice has been created."))
+
+	row = next((r for r in (jc.labour or []) if r.name == row_name), None)
+	if not row:
+		frappe.throw(_("Labour line {0} was not found on this job card.").format(row_name))
+
+	jc.remove(row)
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"job_card": jc.name,
+		"removed": row_name,
 		"total_labor_cost": jc.total_labor_cost,
 		"total_amount": jc.total_amount,
 		"net_amount": getattr(jc, "net_amount", None),
@@ -779,13 +828,7 @@ def create_job_card(data):
 
 	if data.get("labour"):
 		for line in data["labour"]:
-			doc.append("labour", {
-				"vehicle_service_item": line.get("vehicle_service_item"),
-				"technician": line.get("technician"),
-				"estimated_hours": line.get("estimated_hours"),
-				"rate_per_hour": line.get("rate_per_hour"),
-				"complaint": line.get("complaint"),
-			})
+			_append_labour_line_payload(doc, line)
 
 	if data.get("parts"):
 		job_warehouse = (data.get("warehouse") or "").strip() or None

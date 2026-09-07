@@ -125,6 +125,25 @@ export async function addPartLineToJobCard(
   });
 }
 
+export async function removePartLineFromJobCard(
+  jobCard: string,
+  partRow: string
+): Promise<{
+  job_card: string;
+  removed: string;
+  total_parts_cost: number;
+  total_amount: number;
+  net_amount?: number;
+}> {
+  return apiRequest(`/api/method/${API}.remove_part_line_from_job_card`, {
+    method: "POST",
+    body: JSON.stringify({
+      job_card: jobCard,
+      part_row: partRow,
+    }),
+  });
+}
+
 export async function updateJobCardLinePricing(
   jobCard: string,
   payload: {

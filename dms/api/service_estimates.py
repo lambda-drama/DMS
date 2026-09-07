@@ -161,6 +161,20 @@ def update_service_estimate(name, data):
 	if any(k in data for k in ("labour_discount", "parts_discount")):
 		apply_discount_fields_from_payload(doc, data)
 
+	if "labour" in data:
+		from dms.dealer_management_system.doctype.vehicle_labour_item.vehicle_labour_item import (
+			ensure_labour_display_name_field,
+			labour_payload_display_name,
+		)
+
+		ensure_labour_display_name_field()
+		for row in data.get("labour") or []:
+			if not isinstance(row, dict):
+				continue
+			label = labour_payload_display_name(row, row.get("service_name") or "")
+			if label:
+				row["custom_display_name"] = label
+
 	for table in allowed_child:
 		if table in data and isinstance(data[table], list):
 			doc.set(table, [])
