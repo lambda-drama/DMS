@@ -49,10 +49,13 @@ def _erpnext_item_link_fieldname() -> str:
 def ensure_labour_erpnext_item(doc, link_field: str) -> str:
 	"""Create or link labour Sales Item under group Service on the VSI."""
 	item_code = _item_code_from_vehicle_service_item(doc)
-	if frappe.db.exists("Item", item_code):
-		doc.set(link_field, item_code)
-		_update_linked_item_name(item_code, doc)
-		return item_code
+	existing = frappe.db.exists("Item", item_code) or frappe.db.get_value(
+		"Item", {"item_code": item_code}, "name"
+	)
+	if existing:
+		doc.set(link_field, existing)
+		_update_linked_item_name(existing, doc)
+		return existing
 
 	ensure_labour_item_group()
 
@@ -73,7 +76,13 @@ def ensure_labour_erpnext_item(doc, link_field: str) -> str:
 			"standard_rate": flt(doc.get("custom_rate")),
 		}
 	)
-	item.insert(ignore_permissions=True)
+	try:
+		item.insert(ignore_permissions=True, ignore_if_duplicate=True)
+	except frappe.DuplicateEntryError:
+		existing = frappe.db.exists("Item", item_code) or item_code
+		doc.set(link_field, existing)
+		_update_linked_item_name(existing, doc)
+		return existing
 	doc.set(link_field, item.name)
 
 	if doc.meta.has_field("custom_item_name") and not doc.get("custom_item_name"):

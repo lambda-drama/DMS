@@ -28,6 +28,7 @@ export function ImportServiceItemsButton({
     setLoading(true);
     try {
       const fileUrl = await uploadFrtWorkbook(file);
+      toast.info('FRT import started in the background…');
       const summary = await importFrtSheet(fileUrl);
       const sheets = summary.sheets_processed || 0;
       toast.success(

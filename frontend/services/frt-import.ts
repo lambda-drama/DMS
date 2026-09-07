@@ -57,9 +57,49 @@ export async function uploadFrtWorkbook(file: File): Promise<string> {
   return fileUrl as string;
 }
 
-export async function importFrtSheet(fileUrl: string, brand = 'JETOUR'): Promise<FrtImportResult> {
-  return apiRequest<FrtImportResult>(`/api/method/${API}.import_frt_sheet`, {
+export async function queueFrtImport(
+  fileUrl: string,
+  brand = 'JETOUR'
+): Promise<{ queued?: number; job_id?: string } & Partial<FrtImportResult>> {
+  return apiRequest(`/api/method/${API}.import_frt_sheet`, {
     method: 'POST',
     body: JSON.stringify({ file_url: fileUrl, brand }),
   });
+}
+
+export async function getFrtImportStatus(jobId: string): Promise<{
+  status: string;
+  result?: FrtImportResult;
+  error?: string;
+}> {
+  return apiRequest(`/api/method/${API}.get_frt_import_status`, {
+    method: 'POST',
+    body: JSON.stringify({ job_id: jobId }),
+  });
+}
+
+export async function importFrtSheet(fileUrl: string, brand = 'JETOUR'): Promise<FrtImportResult> {
+  const queued = await queueFrtImport(fileUrl, brand);
+  if (queued.sheets_processed != null || queued.details) {
+    return queued as FrtImportResult;
+  }
+  if (!queued.job_id) {
+    throw new Error('Import did not start');
+  }
+  return pollFrtImport(queued.job_id);
+}
+
+async function pollFrtImport(jobId: string, timeoutMs = 60 * 60 * 1000): Promise<FrtImportResult> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const status = await getFrtImportStatus(jobId);
+    if (status.status === 'finished' && status.result) {
+      return status.result;
+    }
+    if (status.status === 'failed') {
+      throw new Error(status.error || 'Import failed');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+  }
+  throw new Error('Import is still running in the background. Check Error Log if it does not finish.');
 }

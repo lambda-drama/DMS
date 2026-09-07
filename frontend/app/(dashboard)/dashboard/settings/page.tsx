@@ -27,11 +27,19 @@ export default function SettingsPage() {
     setResult(null);
     try {
       const fileUrl = await uploadFrtWorkbook(file);
+      toast.info('FRT import started in the background…');
       const summary = await importFrtSheet(fileUrl, brand.trim() || 'JETOUR');
       setResult(summary);
       toast.success(
         `Imported ${summary.sheets_processed} model sheet(s): ${summary.services_created} new services, ${summary.services_updated} updated`
       );
+      if (summary.errors?.length) {
+        toast.error(
+          `${summary.errors.length} sheet(s) failed: ${summary.errors
+            .map((err) => err.sheet)
+            .join(', ')}`
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Import failed');
     } finally {
@@ -88,7 +96,7 @@ export default function SettingsPage() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Importing…
+                Importing in background…
               </>
             ) : (
               <>
