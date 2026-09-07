@@ -39,6 +39,7 @@ import * as vehiclesSvc from "@/services/vehicles";
 import { fetchServicePackageLines } from "@/services/service-packages";
 import { getInspection } from "@/services/inspections";
 import { htmlToPlainText } from "@/lib/plain-text";
+import { technicianNameFromList } from "@/lib/technician-label";
 import {
   COMPLAINT_SEVERITY_OPTIONS,
   DEFAULT_COMPLAINT_SEVERITY,
@@ -1392,6 +1393,7 @@ export default function NewJobCardPage() {
                       })) || []
                     }
                     value={leadTechnician}
+                    valueLabel={technicianNameFromList(leadTechnician, technicians)}
                     onValueChange={setLeadTechnician}
                     placeholder="Search technicians..."
                     isLoading={techniciansLoading}
@@ -1703,6 +1705,7 @@ export default function NewJobCardPage() {
                         })) || []
                       }
                       value={row.technician}
+                      valueLabel={row.technician_name || technicianNameFromList(row.technician, technicians)}
                       onValueChange={(val) => {
                         const tech = technicians?.find((t) => t.name === val);
                         updateLabourRow(idx, {

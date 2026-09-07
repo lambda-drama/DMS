@@ -169,15 +169,14 @@ def get_job_card(name):
 		order_by="idx asc",
 	)
 
+	from dms.api.common import attach_technician_display_names
+
 	for row in data.get("time_logs") or []:
 		if row.get("start_time"):
 			row["start_time"] = str(row["start_time"])
 		if row.get("end_time"):
 			row["end_time"] = str(row["end_time"])
-		if row.get("technician") and not row.get("technician_name"):
-			row["technician_name"] = frappe.db.get_value(
-				"Technician", row["technician"], "full_name"
-			) or row["technician"]
+	attach_technician_display_names(data.get("time_logs") or [])
 
 	session_ms = repair_session_start_ms(data.get("time_logs"))
 	data["repair_session_start_ms"] = session_ms
@@ -230,6 +229,8 @@ def get_job_card(name):
 
 def _attach_job_card_people_names(data: dict) -> dict:
 	"""Resolve Service Advisor / Technician link IDs to full_name for UI display."""
+	from dms.api.common import attach_technician_display_names
+
 	advisor = (data.get("service_advisor") or "").strip()
 	if advisor:
 		data["service_advisor_name"] = (
@@ -242,12 +243,8 @@ def _attach_job_card_people_names(data: dict) -> dict:
 			frappe.db.get_value("Technician", tech, "full_name") or tech
 		)
 
-	for row in data.get("assistant_technicians") or []:
-		if not isinstance(row, dict):
-			continue
-		tid = (row.get("technician") or "").strip()
-		if tid and not (row.get("technician_name") or "").strip():
-			row["technician_name"] = frappe.db.get_value("Technician", tid, "full_name") or tid
+	attach_technician_display_names(data.get("assistant_technicians") or [])
+	attach_technician_display_names(data.get("labour") or [])
 
 	return data
 
@@ -743,6 +740,84 @@ def remove_labour_line_from_job_card(job_card, labour_row):
 	return {
 		"job_card": jc.name,
 		"removed": row_name,
+		"total_labor_cost": jc.total_labor_cost,
+		"total_amount": jc.total_amount,
+		"net_amount": getattr(jc, "net_amount", None),
+	}
+
+
+@frappe.whitelist()
+def update_labour_line_on_job_card(
+	job_card,
+	labour_row,
+	estimated_hours=None,
+	rate_per_hour=None,
+	display_name=None,
+	custom_display_name=None,
+):
+	"""Update hours, rate, or display name on a job card labour line."""
+	jc_name = (job_card or "").strip()
+	row_name = (labour_row or "").strip()
+	if not jc_name:
+		frappe.throw(_("Job Card is required."))
+	if not row_name:
+		frappe.throw(_("Labour line is required."))
+
+	jc = frappe.get_doc("DMS Job Card", jc_name)
+	jc.check_permission("write")
+
+	if jc.status not in _ADD_LABOUR_ALLOWED_STATUSES:
+		frappe.throw(
+			_("Cannot edit labour when job card status is {0}.").format(jc.status or _("Unknown"))
+		)
+
+	if jc.invoice:
+		frappe.throw(_("Cannot edit labour after an invoice has been created."))
+
+	row = next((r for r in (jc.labour or []) if r.name == row_name), None)
+	if not row:
+		frappe.throw(_("Labour line {0} was not found on this job card.").format(row_name))
+
+	from dms.dealer_management_system.doctype.vehicle_labour_item.vehicle_labour_item import (
+		LABOUR_DISPLAY_NAME_FIELD,
+		ensure_labour_display_name_field,
+		labour_payload_display_name,
+	)
+	from dms.dealer_management_system.utils.price_permissions import (
+		assert_price_allowed_if_changed,
+	)
+
+	if rate_per_hour is not None:
+		assert_price_allowed_if_changed(row.rate_per_hour, rate_per_hour)
+		row.rate_per_hour = flt(rate_per_hour)
+
+	if estimated_hours is not None:
+		hours = flt(estimated_hours)
+		if hours < 0:
+			frappe.throw(_("Hours cannot be negative."))
+		row.estimated_hours = hours
+
+	ensure_labour_display_name_field()
+	label = labour_payload_display_name(
+		{"custom_display_name": custom_display_name, "display_name": display_name},
+		row.get("service_name") or row.vehicle_service_item or "",
+	)
+	if label:
+		row.set(LABOUR_DISPLAY_NAME_FIELD, label)
+
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"job_card": jc.name,
+		"labour_row": row.name,
+		"display_name": row.get("custom_display_name") or row.get("display_name"),
+		"estimated_hours": row.estimated_hours,
+		"rate_per_hour": row.rate_per_hour,
+		"amount": row.amount,
 		"total_labor_cost": jc.total_labor_cost,
 		"total_amount": jc.total_amount,
 		"net_amount": getattr(jc, "net_amount", None),

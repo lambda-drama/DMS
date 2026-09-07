@@ -530,6 +530,39 @@ export async function addLabourLineToJobCard(
   });
 }
 
+export async function updateLabourLineOnJobCard(
+  jobCard: string,
+  labourRow: string,
+  data: {
+    estimated_hours?: number;
+    rate_per_hour?: number;
+    display_name?: string;
+    custom_display_name?: string;
+  }
+): Promise<{
+  job_card: string;
+  labour_row: string;
+  display_name?: string;
+  estimated_hours?: number;
+  rate_per_hour?: number;
+  amount?: number;
+  total_labor_cost?: number;
+  total_amount?: number;
+  net_amount?: number;
+}> {
+  return apiRequest(`/api/method/${API}.update_labour_line_on_job_card`, {
+    method: "POST",
+    body: JSON.stringify({
+      job_card: jobCard,
+      labour_row: labourRow,
+      estimated_hours: data.estimated_hours ?? null,
+      rate_per_hour: data.rate_per_hour ?? null,
+      display_name: data.display_name || data.custom_display_name || null,
+      custom_display_name: data.custom_display_name || data.display_name || null,
+    }),
+  });
+}
+
 export async function removeLabourLineFromJobCard(
   jobCard: string,
   labourRow: string

@@ -31,8 +31,11 @@ import {
   useServiceEstimate,
   useServicePackagesForVin,
   useSpareParts,
+  useTechnicians,
   useVehicleServiceItems,
 } from "@/hooks/use-dms";
+import { LinkWithCreate } from "@/components/link-with-create";
+import { technicianNameFromList } from "@/lib/technician-label";
 import {
   fetchLabourRate,
   fetchSparePartPrice,
@@ -52,6 +55,8 @@ type LabourRow = {
   vehicle_service_item: string;
   vehicle_service_item_name: string;
   display_name: string;
+  technician: string;
+  technician_name: string;
   estimated_hours: number;
   rate_per_hour: number;
 };
@@ -69,6 +74,8 @@ function emptyLabourRow(): LabourRow {
     vehicle_service_item: "",
     vehicle_service_item_name: "",
     display_name: "",
+    technician: "",
+    technician_name: "",
     estimated_hours: 0,
     rate_per_hour: 0,
   };
@@ -149,6 +156,7 @@ export function EditEstimateLinesDialog({
   );
   const { data: servicePackagesForVin, isLoading: servicePackagesLoading } =
     useServicePackagesForVin(vin || null, model || null);
+  const { data: technicians, isLoading: techniciansLoading } = useTechnicians();
 
   useEffect(() => {
     if (!open || !estimate) return;
@@ -164,6 +172,8 @@ export function EditEstimateLinesDialog({
         row.service_name ||
         row.vehicle_service_item ||
         "",
+      technician: row.technician || "",
+      technician_name: row.technician_name || "",
       estimated_hours: row.estimated_hours ?? 1,
       rate_per_hour: row.rate_per_hour ?? 0,
     }));
@@ -211,6 +221,8 @@ export function EditEstimateLinesDialog({
                   vehicle_service_item: row.vehicle_service_item,
                   vehicle_service_item_name: label,
                   display_name: label,
+                  technician: "",
+                  technician_name: "",
                   estimated_hours: row.estimated_hours,
                   rate_per_hour: row.rate_per_hour,
                 };
@@ -374,6 +386,7 @@ export function EditEstimateLinesDialog({
           vehicle_service_item: row.vehicle_service_item,
           service_name: row.vehicle_service_item_name,
           custom_display_name: row.display_name.trim() || row.vehicle_service_item_name,
+          technician: row.technician || undefined,
           estimated_hours: row.estimated_hours,
           rate_per_hour: row.rate_per_hour,
           amount: (row.estimated_hours || 0) * (row.rate_per_hour || 0),
@@ -511,7 +524,7 @@ export function EditEstimateLinesDialog({
                     key={idx}
                     className="grid grid-cols-1 gap-2 rounded-lg border p-3 sm:grid-cols-12 sm:items-end"
                   >
-                    <div className="space-y-1 sm:col-span-4">
+                    <div className="space-y-1 sm:col-span-3">
                       <Label className="text-xs">Service item</Label>
                       <SearchableSelect
                         portaled
@@ -532,6 +545,42 @@ export function EditEstimateLinesDialog({
                         createNewLabel="New Service Item"
                       />
                     </div>
+                    <div className="space-y-1 sm:col-span-3">
+                      <Label className="text-xs">Technician</Label>
+                      <LinkWithCreate
+                        doctype="Technician"
+                        onCreated={(name, label) => {
+                          updateLabourRow(idx, {
+                            technician: name,
+                            technician_name: label || name,
+                          });
+                        }}
+                      >
+                        <SearchableSelect
+                          portaled
+                          options={
+                            technicians?.map((t) => ({
+                              value: t.name,
+                              label: t.full_name || t.name,
+                            })) || []
+                          }
+                          value={row.technician}
+                          valueLabel={
+                            row.technician_name ||
+                            technicianNameFromList(row.technician, technicians)
+                          }
+                          onValueChange={(val) => {
+                            const tech = technicians?.find((t) => t.name === val);
+                            updateLabourRow(idx, {
+                              technician: val,
+                              technician_name: tech?.full_name || val,
+                            });
+                          }}
+                          placeholder="Search technicians…"
+                          isLoading={techniciansLoading}
+                        />
+                      </LinkWithCreate>
+                    </div>
                     <div className="space-y-1 sm:col-span-2">
                       <Label className="text-xs">Hours</Label>
                       <DecimalInput
@@ -542,7 +591,7 @@ export function EditEstimateLinesDialog({
                         }
                       />
                     </div>
-                    <div className="space-y-1 sm:col-span-3">
+                    <div className="space-y-1 sm:col-span-2">
                       <Label className="text-xs">Rate/hr</Label>
                       <DecimalInput
                         min={0}
@@ -552,7 +601,7 @@ export function EditEstimateLinesDialog({
                         }
                       />
                     </div>
-                    <div className="flex justify-end sm:col-span-3">
+                    <div className="flex justify-end sm:col-span-2">
                       <Button
                         type="button"
                         variant="ghost"
