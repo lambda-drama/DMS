@@ -47,12 +47,15 @@ export async function getJobCard(name: string): Promise<DMSJobCard> {
 
 // ─── Create & Update ─────────────────────────────────────────
 
-export async function createJobCard(data: Partial<DMSJobCard>): Promise<{
+export async function createJobCard(
+  data: Partial<DMSJobCard> & { as_draft?: boolean | number }
+): Promise<{
   name: string;
   status: string;
   customer: string;
   customer_name: string;
   repair_started?: boolean;
+  as_draft?: number;
 }> {
   return apiRequest(`/api/method/${API}.create_job_card`, {
     method: 'POST',
@@ -63,7 +66,7 @@ export async function createJobCard(data: Partial<DMSJobCard>): Promise<{
 export async function updateJobCard(
   name: string,
   data: Record<string, unknown>
-): Promise<{ name: string; status: string }> {
+): Promise<{ name: string; status: string; repair_started?: boolean; as_draft?: number }> {
   return apiRequest(`/api/method/${API}.update_job_card`, {
     method: 'POST',
     body: JSON.stringify({ name, data }),

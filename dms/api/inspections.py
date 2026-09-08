@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import today
+from frappe.utils import cint, today
 
 from dms.api.utils import (
 	LIST_ORDER_LATEST_CREATED,
@@ -69,7 +69,7 @@ def _get_or_create_warning_light(warning_light_value, notes=None):
 	return doc.name
 
 
-def _resolve_service_advisor(data):
+def _resolve_service_advisor(data, required=True):
 	advisor = data.get("service_advisor")
 	if advisor and frappe.db.exists("Service Advisor", advisor):
 		return advisor
@@ -80,10 +80,12 @@ def _resolve_service_advisor(data):
 		)
 		if advisor:
 			return advisor
+	if not required:
+		return None
 	frappe.throw(_("Service Advisor is required. Select an advisor or link your user to a Service Advisor record."))
 
 
-def _resolve_customer_vehicle(data):
+def _resolve_customer_vehicle(data, required=True):
 	vehicle = data.get("customer_vehicle")
 	if vehicle and frappe.db.exists("Item", vehicle):
 		return vehicle
@@ -92,6 +94,8 @@ def _resolve_customer_vehicle(data):
 		linked = frappe.db.get_value("VIN No", vin, "linked_item")
 		if linked:
 			return linked
+	if not required:
+		return None
 	frappe.throw(_("Vehicle model (Item) is required. Set Linked Item on the VIN record."))
 
 
@@ -234,69 +238,137 @@ def get_inspection(name):
 			"Company", doc.company, "company_name"
 		)
 	enrich_inspection_row(result)
+	result["warning_light_labels"] = _warning_light_ui_labels(doc)
 	return result
 
 
-@frappe.whitelist()
-def create_inspection(data):
-	if isinstance(data, str):
-		import json
-		data = json.loads(data)
+WARNING_LIGHT_REVERSE = {v: k for k, v in WARNING_LIGHT_MAP.items()}
 
-	exterior_photos = data.get("exterior_photos") or _first_photo(data.get("exterior_view_photos"))
-	service_advisor = _resolve_service_advisor(data)
-	customer_vehicle = _resolve_customer_vehicle(data)
 
+def _warning_light_ui_labels(doc):
+	labels = []
+	for row in doc.get("warning_lights") or []:
+		name = row.get("vehicle_warning_light") if isinstance(row, dict) else row.vehicle_warning_light
+		if not name:
+			continue
+		info = frappe.db.get_value(
+			"Vehicle Warning Light", name, ["warning_light", "notes"], as_dict=True
+		) or {}
+		erp = (info.get("warning_light") or "").strip()
+		notes = info.get("notes") or ""
+		if "No illuminated warning lights" in notes:
+			labels.append("None")
+			continue
+		labels.append(WARNING_LIGHT_REVERSE.get(erp, erp))
+	return labels
+
+
+def _inspection_response(doc, as_draft):
+	return {
+		"name": doc.name,
+		"docstatus": doc.docstatus,
+		"customer": doc.customer,
+		"customer_name": _customer_display_name(doc.customer),
+		"inspection_date": str(doc.inspection_date) if doc.inspection_date else None,
+		"as_draft": 1 if as_draft or doc.docstatus == 0 else 0,
+	}
+
+
+def _validate_inspection_company(data, as_draft):
 	company = (data.get("company") or "").strip()
 	allowed = get_dms_companies()
 	if allowed:
-		if not company:
-			frappe.throw(_("Company is required"))
-		if company not in allowed:
+		if company and company not in allowed:
 			frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
+		if not company and not as_draft:
+			frappe.throw(_("Company is required"))
+	if as_draft and not data.get("customer") and not (data.get("vin_chassis") or data.get("vehicle_vin")):
+		frappe.throw(_("Select at least a customer or vehicle before saving a draft"))
+	return company
 
-	doc = frappe.get_doc({
-		"doctype": "Vehicle Inspection",
-		"customer": resolve_dms_customer(data.get("customer")),
-		"service_advisor": service_advisor,
-		"customer_vehicle": customer_vehicle,
-		"vin_chassis": data.get("vin_chassis") or data.get("vehicle_vin"),
-		"license_plate": data.get("license_plate"),
-		"odometer": data.get("odometer") or data.get("current_odometer"),
-		"odometer_unit": data.get("odometer_unit", "km"),
-		"odometer_photo": data.get("odometer_photo"),
-		"fuel_level": data.get("fuel_level"),
-		"fuel_photo": data.get("fuel_photo"),
-		"dashboard_photo": data.get("dashboard_photo"),
-		"exterior_photos": exterior_photos,
-		"inspection_date": data.get("inspection_date") or today(),
-		"inspector": data.get("inspector"),
-		"appointment": data.get("appointment"),
-		"customer_present": data.get("customer_present", 1),
-		"scan_performed": data.get("scan_performed", 0),
-		"customer_signature": data.get("customer_signature"),
-		"advisor_signature": data.get("advisor_signature"),
-		"company": company or None,
-	})
 
+def _normalize_received_from_phone(phone):
+	"""Store as E.164 (+251…) so Phone validation passes before/after migrate."""
+	raw = (phone or "").strip()
+	if not raw:
+		return None
+	if raw.startswith("+"):
+		digits = "".join(c for c in raw if c.isdigit())
+		return f"+{digits}" if digits else None
+	digits = "".join(c for c in raw if c.isdigit())
+	if not digits:
+		return None
+	if digits.startswith("251"):
+		return f"+{digits}"
+	if digits.startswith("0"):
+		digits = digits[1:]
+	return f"+251{digits}"
+
+
+def _apply_inspection_payload(doc, data, as_draft):
+	exterior_photos = data.get("exterior_photos") or _first_photo(data.get("exterior_view_photos"))
+	service_advisor = _resolve_service_advisor(data, required=not as_draft)
+	customer_vehicle = _resolve_customer_vehicle(data, required=not as_draft)
+	company = (data.get("company") or "").strip()
+
+	doc.customer = resolve_dms_customer(data.get("customer")) if data.get("customer") else None
+	doc.service_advisor = service_advisor
+	doc.customer_vehicle = customer_vehicle
+	doc.vin_chassis = data.get("vin_chassis") or data.get("vehicle_vin")
+	doc.license_plate = data.get("license_plate")
+	doc.odometer = data.get("odometer") or data.get("current_odometer")
+	doc.odometer_unit = data.get("odometer_unit") or "km"
+	doc.odometer_photo = data.get("odometer_photo")
+	doc.fuel_level = data.get("fuel_level")
+	doc.fuel_photo = data.get("fuel_photo")
+	doc.dashboard_photo = data.get("dashboard_photo")
+	doc.exterior_photos = exterior_photos
+	doc.inspection_date = data.get("inspection_date") or doc.inspection_date or today()
+	if "inspector" in data:
+		doc.inspector = data.get("inspector")
+	doc.appointment = data.get("appointment")
+	# Always persist explicit 0/1 — falsy 0 must not fall back to "present".
+	if "customer_present" in data:
+		doc.customer_present = 1 if cint(data.get("customer_present")) else 0
+	elif doc.is_new() and doc.customer_present is None:
+		doc.customer_present = 1
+
+	if cint(doc.customer_present):
+		doc.received_from_name = None
+		doc.received_from_phone = None
+		doc.received_from_relationship = None
+	else:
+		doc.received_from_name = (data.get("received_from_name") or "").strip() or None
+		doc.received_from_phone = _normalize_received_from_phone(data.get("received_from_phone"))
+		doc.received_from_relationship = (data.get("received_from_relationship") or "").strip() or None
+
+	doc.scan_performed = data.get("scan_performed", 0)
+	doc.customer_signature = data.get("customer_signature")
+	doc.advisor_signature = data.get("advisor_signature")
+	doc.company = company or None
+
+	doc.set("exterior_checklist", [])
 	for row in data.get("exterior_checklist") or []:
 		row = dict(row)
 		row["component"] = EXTERIOR_COMPONENT_ALIASES.get(row.get("component"), row.get("component"))
 		row.setdefault("condition", "OK")
 		doc.append("exterior_checklist", row)
 
+	doc.set("interior_checklist", [])
 	for row in data.get("interior_checklist") or []:
 		row = dict(row)
 		row.setdefault("condition", "OK")
 		doc.append("interior_checklist", row)
 
+	doc.set("tires_checklist", [])
 	for row in data.get("tires_checklist") or []:
 		row = dict(row)
 		row.setdefault("tire_condition", "OK")
 		doc.append("tires_checklist", row)
 
+	doc.set("customer_complaints", [])
 	complaints = data.get("customer_complaints") or []
-	if not complaints:
+	if not complaints and not as_draft:
 		complaints = [{
 			"customer_exact_words": "No customer complaints reported at intake.",
 			"symptom_category": "Other",
@@ -315,26 +387,42 @@ def create_inspection(data):
 			"severity": row.get("severity") or "3 - Moderate",
 		})
 
-	if not doc.get("customer_complaints"):
+	if not as_draft and not doc.get("customer_complaints"):
 		frappe.throw(_("At least one customer complaint is required."))
 
-	_append_warning_lights(doc, data.get("warning_lights"))
+	doc.set("warning_lights", [])
+	if data.get("warning_lights"):
+		_append_warning_lights(doc, data.get("warning_lights"))
+	elif not as_draft:
+		_append_warning_lights(doc, None)
 
 	from dms.dealer_management_system.utils.customer_terms import require_and_record_terms_acceptance
 
-	require_and_record_terms_acceptance(doc, data.get("terms_accepted"))
+	if not as_draft:
+		require_and_record_terms_acceptance(doc, data.get("terms_accepted"))
+	elif cint(data.get("terms_accepted")):
+		require_and_record_terms_acceptance(doc, data.get("terms_accepted"))
 
+	if as_draft:
+		doc.flags.ignore_mandatory = True
+
+
+@frappe.whitelist()
+def create_inspection(data):
+	if isinstance(data, str):
+		import json
+		data = json.loads(data)
+
+	as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
+	_validate_inspection_company(data, as_draft)
+
+	doc = frappe.new_doc("Vehicle Inspection")
+	_apply_inspection_payload(doc, data, as_draft)
 	doc.insert()
-	doc.submit()
+	if not as_draft:
+		doc.submit()
 	frappe.db.commit()
-
-	return {
-		"name": doc.name,
-		"docstatus": doc.docstatus,
-		"customer": doc.customer,
-		"customer_name": _customer_display_name(doc.customer),
-		"inspection_date": str(doc.inspection_date),
-	}
+	return _inspection_response(doc, as_draft)
 
 
 @frappe.whitelist()
@@ -346,19 +434,38 @@ def update_inspection(name, data):
 	doc = frappe.get_doc("Vehicle Inspection", name)
 	doc.check_permission("write")
 
-	updatable = [
-		"inspector", "fuel_level", "overall_condition",
-		"customer_concerns", "inspector_notes",
-	]
+	full_form = (
+		"as_draft" in data
+		or "save_as_draft" in data
+		or "vin_chassis" in data
+		or "vehicle_vin" in data
+		or "exterior_checklist" in data
+		or "customer_complaints" in data
+	)
 
-	for field in updatable:
-		if field in data:
-			doc.set(field, data[field])
+	if doc.docstatus != 0 or not full_form:
+		updatable = [
+			"inspector", "fuel_level", "overall_condition",
+			"customer_concerns", "inspector_notes",
+		]
+		for field in updatable:
+			if field in data:
+				doc.set(field, data[field])
+		doc.save()
+		frappe.db.commit()
+		return _inspection_response(doc, cint(doc.docstatus == 0))
 
+	as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
+	if as_draft == 0 and "as_draft" not in data and "save_as_draft" not in data:
+		as_draft = 0
+
+	_validate_inspection_company(data, as_draft)
+	_apply_inspection_payload(doc, data, as_draft)
 	doc.save()
+	if not as_draft:
+		doc.submit()
 	frappe.db.commit()
-
-	return {"name": doc.name}
+	return _inspection_response(doc, as_draft)
 
 
 @frappe.whitelist()

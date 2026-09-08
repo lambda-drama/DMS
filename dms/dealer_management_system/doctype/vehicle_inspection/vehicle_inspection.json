@@ -143,7 +143,7 @@
   },
   {
    "fieldname": "received_from_phone",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",
    "label": "Received From Phone",
    "mandatory_depends_on": "eval:doc.customer_present == 0"
   },

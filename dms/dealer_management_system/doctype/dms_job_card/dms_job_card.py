@@ -282,6 +282,8 @@ class DMSJobCard(Document):
 			prepare_internal_job_card,
 		)
 
+		if (self.status or "") == "Draft":
+			return
 		if is_internal_job_card(self):
 			prepare_internal_job_card(self)
 
@@ -290,6 +292,8 @@ class DMSJobCard(Document):
 			is_internal_job_card,
 		)
 
+		if (self.status or "") == "Draft":
+			return
 		if is_internal_job_card(self):
 			return
 		if cint(self.get("skip_vehicle_inspection")):

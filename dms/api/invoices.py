@@ -300,6 +300,55 @@ def cancel_sales_invoice(sales_invoice):
 
 
 @frappe.whitelist()
+def delete_draft_sales_invoice(sales_invoice):
+	"""Permanently delete a draft DMS Sales Invoice (Desk-style delete)."""
+	_ensure_erpnext()
+
+	name = (sales_invoice or "").strip()
+	if not name:
+		frappe.throw(_("Sales Invoice name is required."))
+
+	si = frappe.get_doc("Sales Invoice", name)
+	if not _is_dms_sales_invoice(si):
+		frappe.throw(_("This invoice was not created from DMS."))
+	if si.docstatus != 0:
+		frappe.throw(_("Only draft invoices can be deleted. Cancel submitted invoices instead."))
+
+	si.check_permission("delete")
+
+	job_card = (
+		si.get("custom_dms_job_card")
+		if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card")
+		else None
+	)
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		clear_job_card_invoice_link_on_cancel,
+	)
+
+	clear_job_card_invoice_link_on_cancel(si.name, job_card)
+
+	# Free service estimates that pointed at this draft diagnostic invoice.
+	if frappe.db.exists("DocType", "DMS Service Estimate"):
+		for est_name in frappe.get_all(
+			"DMS Service Estimate",
+			filters={"diagnostic_invoice": name},
+			pluck="name",
+		):
+			frappe.db.set_value(
+				"DMS Service Estimate",
+				est_name,
+				"diagnostic_invoice",
+				None,
+				update_modified=True,
+			)
+
+	frappe.delete_doc("Sales Invoice", name, force=1)
+	frappe.db.commit()
+	return {"deleted": name}
+
+
+@frappe.whitelist()
 def amend_sales_invoice(sales_invoice):
 	"""
 	Amend a cancelled DMS Sales Invoice (same idea as Desk Amend).
@@ -488,30 +537,38 @@ def update_draft_sales_invoice(data):
 
 	items_payload = data.get("items") or []
 	if items_payload:
-		# Discounts may change line rates — that is allowed without Edit Price.
-		# Only direct unit-price edits (without a discount action) require Edit Price.
-		if not has_discount:
-			from dms.dealer_management_system.utils.price_permissions import (
-				assert_price_allowed_if_changed,
-			)
+		# Always apply qty/rate from the UI. Invoice-level discount may change rates
+		# without Edit Price; direct rate edits still require Edit Price.
+		discount_mode = (data.get("discount_mode") or "").strip().lower()
+		applying_invoice_discount = discount_mode in ("percentage", "amount")
+		if not applying_invoice_discount and isinstance(discount, dict):
+			applying_invoice_discount = flt(discount.get("value")) > 0
 
-			by_name = {str(r.get("name")): r for r in items_payload if r.get("name")}
-			has_dms_disc = frappe.get_meta("Sales Invoice Item").has_field("custom_dms_discount")
-			for row in si.get("items") or []:
-				payload = by_name.get(str(row.name))
-				if not payload:
-					continue
-				if "rate" in payload and payload.get("rate") is not None:
-					assert_price_allowed_if_changed(flt(row.rate), payload.get("rate"))
-				if "qty" in payload and payload.get("qty") is not None:
-					row.qty = flt(payload.get("qty"))
-				if "rate" in payload and payload.get("rate") is not None:
-					row.rate = flt(payload.get("rate"))
-					row.price_list_rate = flt(payload.get("rate"))
-					row.discount_percentage = 0
-					row.discount_amount = 0
-				if has_dms_disc and "dms_discount" in payload:
-					row.custom_dms_discount = flt(payload.get("dms_discount"))
+		from dms.dealer_management_system.utils.price_permissions import (
+			assert_price_allowed_if_changed,
+		)
+
+		by_name = {str(r.get("name")): r for r in items_payload if r.get("name")}
+		has_dms_disc = frappe.get_meta("Sales Invoice Item").has_field("custom_dms_discount")
+		for row in si.get("items") or []:
+			payload = by_name.get(str(row.name))
+			if not payload:
+				continue
+			if (
+				not applying_invoice_discount
+				and "rate" in payload
+				and payload.get("rate") is not None
+			):
+				assert_price_allowed_if_changed(flt(row.rate), payload.get("rate"))
+			if "qty" in payload and payload.get("qty") is not None:
+				row.qty = flt(payload.get("qty"))
+			if "rate" in payload and payload.get("rate") is not None:
+				row.rate = flt(payload.get("rate"))
+				row.price_list_rate = flt(payload.get("rate"))
+				row.discount_percentage = 0
+				row.discount_amount = 0
+			if has_dms_disc and "dms_discount" in payload:
+				row.custom_dms_discount = flt(payload.get("dms_discount"))
 
 	if hasattr(si, "ignore_pricing_rule"):
 		si.ignore_pricing_rule = 1

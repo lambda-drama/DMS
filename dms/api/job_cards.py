@@ -830,18 +830,28 @@ def create_job_card(data):
 		import json
 		data = json.loads(data)
 
+	as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
+
 	company = (data.get("company") or "").strip() or None
 	currency = _resolve_job_card_currency(data.get("currency"), company)
 
 	posting_date = data.get("posting_date") or None
 
-	doc = frappe.get_doc({
+	if as_draft and not data.get("customer") and not data.get("vehicle_vin"):
+		frappe.throw(_("Select at least a customer or vehicle before saving a draft"))
+
+	if as_draft:
+		customer = resolve_dms_customer(data.get("customer")) if data.get("customer") else None
+	else:
+		customer = resolve_dms_customer(data.get("customer"))
+
+	doc_payload = {
 		"doctype": "DMS Job Card",
 		"job_card_type": data.get("job_card_type"),
 		"posting_date": posting_date,
 		"company": company,
 		"currency": currency,
-		"customer": resolve_dms_customer(data.get("customer")),
+		"customer": customer,
 		"vehicle_vin": data.get("vehicle_vin"),
 		"license_plate": data.get("license_plate"),
 		"current_odometer": data.get("current_odometer"),
@@ -865,7 +875,11 @@ def create_job_card(data):
 		"terms_and_conditions": data.get("terms_and_conditions"),
 		"schedule_start_time": data.get("schedule_start_time"),
 		"schedule_end_time": data.get("schedule_end_time"),
-	})
+	}
+	if as_draft:
+		doc_payload["status"] = "Draft"
+
+	doc = frappe.get_doc(doc_payload)
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
 		apply_discount_fields_from_payload,
@@ -929,8 +943,11 @@ def create_job_card(data):
 		prepare_internal_job_card,
 	)
 
-	if is_internal_job_card(doc):
+	if not as_draft and is_internal_job_card(doc):
 		prepare_internal_job_card(doc)
+
+	if as_draft:
+		doc.flags.ignore_mandatory = True
 
 	doc.insert()
 
@@ -954,9 +971,10 @@ def create_job_card(data):
 		"customer": doc.customer,
 		"customer_name": doc.customer_name,
 		"current_odometer": doc.current_odometer,
+		"as_draft": 1 if as_draft else 0,
 	}
 
-	if is_internal_job_card(doc):
+	if not as_draft and is_internal_job_card(doc):
 		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
 			bootstrap_internal_job_card_to_repair,
 		)
@@ -1031,15 +1049,119 @@ def update_job_card(name, data):
 	if "assigned_bay" in data:
 		_sync_workshop_warehouse_from_bay(doc, data.get("assigned_bay"))
 
-	doc.save()
-	frappe.db.commit()
+	as_draft_sent = "as_draft" in data or "save_as_draft" in data
+	as_draft = cint(data.get("as_draft") or data.get("save_as_draft")) if as_draft_sent else None
+	is_draft_doc = (doc.status or "") == "Draft"
 
-	return {
+	if is_draft_doc:
+		if as_draft_sent and as_draft and not data.get("customer") and not data.get("vehicle_vin"):
+			frappe.throw(_("Select at least a customer or vehicle before saving a draft"))
+
+		if "job_card_type" in data:
+			doc.job_card_type = data.get("job_card_type")
+		if "company" in data:
+			doc.company = (data.get("company") or "").strip() or None
+		if "customer" in data:
+			doc.customer = resolve_dms_customer(data.get("customer")) if data.get("customer") else None
+		if "vehicle_vin" in data:
+			doc.vehicle_vin = data.get("vehicle_vin")
+		if "appointment" in data:
+			doc.appointment = data.get("appointment")
+		if "skip_vehicle_inspection" in data:
+			doc.skip_vehicle_inspection = 1 if data.get("skip_vehicle_inspection") else 0
+		if "inspection" in data:
+			doc.inspection = data.get("inspection")
+
+		if "job_items" in data:
+			doc.set("job_items", [])
+			for item in data.get("job_items") or []:
+				complaint = (item.get("complaint_description") or item.get("complaint") or "").strip()
+				if not complaint:
+					continue
+				doc.append("job_items", {
+					"complaint_description": complaint,
+					"symptom_category": item.get("symptom_category"),
+					"severity": item.get("severity"),
+					"labor_operation": item.get("labor_operation"),
+				})
+			if not doc.get("job_items"):
+				summary = (data.get("customer_complaint_summary") or "").strip()
+				if summary:
+					doc.append("job_items", {
+						"complaint_description": summary,
+						"severity": "3 - Moderate",
+					})
+
+		if "labour" in data:
+			doc.set("labour", [])
+			for line in data.get("labour") or []:
+				_append_labour_line_payload(doc, line)
+
+		if "parts" in data:
+			doc.set("parts", [])
+			job_warehouse = (data.get("warehouse") or doc.warehouse or "").strip() or None
+			for part in data.get("parts") or []:
+				part_warehouse = (part.get("warehouse") or "").strip() or job_warehouse
+				part_code = part.get("item_code")
+				if not part_code:
+					continue
+				bin_location = (part.get("bin_location") or "").strip()
+				if not bin_location:
+					bin_location = frappe.db.get_value("Spare Part", part_code, "bin_location") or ""
+				doc.append("parts", {
+					"item_code": part_code,
+					"quantity_requested": part.get("quantity_requested", 1),
+					"unit_price": part.get("unit_price"),
+					"bin_location": bin_location,
+					"warehouse": part_warehouse,
+				})
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+		is_internal_job_card,
+		prepare_internal_job_card,
+	)
+
+	if as_draft_sent and as_draft:
+		doc.status = "Draft"
+		doc.flags.ignore_mandatory = True
+	elif as_draft_sent and not as_draft and is_draft_doc:
+		if is_internal_job_card(doc):
+			prepare_internal_job_card(doc)
+		else:
+			doc.status = "Estimation Pending"
+
+	doc.save()
+
+	odo = data.get("current_odometer")
+	if odo is not None and odo != "":
+		odo = cint(odo)
+		if odo >= 0 and cint(doc.current_odometer or 0) != odo:
+			frappe.db.set_value(
+				"DMS Job Card", doc.name, "current_odometer", odo, update_modified=False
+			)
+			doc.current_odometer = odo
+		doc.sync_vin_odometer_from_job_card()
+
+	result = {
 		"name": doc.name,
 		"status": doc.status,
 		"workshop": doc.workshop,
 		"warehouse": doc.warehouse,
+		"as_draft": 1 if (doc.status or "") == "Draft" else 0,
 	}
+
+	if as_draft_sent and not as_draft and is_internal_job_card(doc):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
+			bootstrap_internal_job_card_to_repair,
+		)
+
+		boot = bootstrap_internal_job_card_to_repair(doc.name)
+		result["status"] = boot["status"]
+		result["repair_started"] = boot.get("repair_started")
+
+	frappe.db.commit()
+
+	return result
 
 
 @frappe.whitelist()

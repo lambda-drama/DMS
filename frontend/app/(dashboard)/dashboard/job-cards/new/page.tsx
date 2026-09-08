@@ -5,6 +5,7 @@ import { useNavigation } from "@/contexts/navigation-context";
 import { usePermissions } from "@/contexts/permissions-context";
 import {
   useCreateJobCard,
+  useJobCard,
   useCustomers,
   useVINs,
   useServiceAdvisors,
@@ -36,6 +37,7 @@ import {
   vehicleServiceItemEstimatedHours,
 } from "@/services/common";
 import * as vehiclesSvc from "@/services/vehicles";
+import * as jobCardsSvc from "@/services/jobCards";
 import { fetchServicePackageLines } from "@/services/service-packages";
 import { getInspection } from "@/services/inspections";
 import { htmlToPlainText } from "@/lib/plain-text";
@@ -68,7 +70,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Trash2, Car, User, Wrench, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Car, User, Wrench, Package, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import {
@@ -166,7 +168,20 @@ function emptyPartRow(warehouse?: string): PartRow {
 export default function NewJobCardPage() {
   const { navigate, viewParams } = useNavigation();
   const { canEditPrice } = usePermissions();
-  const { trigger: createJobCard, isMutating } = useCreateJobCard();
+  const resumeId = viewParams.get("id") || "";
+  const [draftName, setDraftName] = useState(resumeId);
+  const [hydratedId, setHydratedId] = useState("");
+  const { trigger: createJobCard, isMutating: isCreating } = useCreateJobCard();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const isMutating = isCreating || isUpdating;
+  const { data: existingDraft, isLoading: draftLoading } = useJobCard(resumeId || null);
+
+  useEffect(() => {
+    if (resumeId && resumeId !== draftName) {
+      setDraftName(resumeId);
+      setHydratedId("");
+    }
+  }, [resumeId, draftName]);
 
   // Search states for searchable selects
   const [customerSearch, setCustomerSearch] = useState("");
@@ -253,7 +268,7 @@ export default function NewJobCardPage() {
       customer_name: d.customer_name || d.default_customer!,
       mobile_no: d.mobile_no || undefined,
     });
-  });
+  }, { enabled: !draftName });
 
   const [licensePlate, setLicensePlate] = useState("");
   const [currentOdometer, setCurrentOdometer] = useState<number>(0);
@@ -804,6 +819,7 @@ export default function NewJobCardPage() {
   }, [companies]);
 
   useEffect(() => {
+    if (draftName) return;
     if (!inspectionId) {
       lastAppliedInspectionRef.current = null;
       return;
@@ -813,7 +829,149 @@ export default function NewJobCardPage() {
     }
     lastAppliedInspectionRef.current = inspectionId;
     void populateFromInspection(inspectionId);
-  }, [inspectionId, populateFromInspection]);
+  }, [inspectionId, populateFromInspection, draftName]);
+
+  useEffect(() => {
+    if (!resumeId || !existingDraft) return;
+    if (hydratedId === resumeId) return;
+    if (existingDraft.status !== "Draft") {
+      toast.error("Only draft job cards can be continued here");
+      navigate("job-card-detail", { id: resumeId });
+      return;
+    }
+
+    setDraftName(existingDraft.name);
+    setJobCardType(existingDraft.job_card_type || "");
+    setPriority(existingDraft.priority || "Normal");
+    setEstimatedDurationHours(Number(existingDraft.estimated_duration_hours) || 0);
+    setPromisedDelivery(
+      existingDraft.promised_delivery_date_time
+        ? String(existingDraft.promised_delivery_date_time).replace(" ", "T").slice(0, 16)
+        : ""
+    );
+    setCompany(existingDraft.company || "");
+    setCurrency(existingDraft.currency || "ETB");
+    setWarehouse(existingDraft.warehouse || "");
+    setWorkshop(existingDraft.workshop || "");
+    setPostingDate(
+      existingDraft.posting_date
+        ? String(existingDraft.posting_date).slice(0, 10)
+        : postingDate
+    );
+    if (existingDraft.customer) {
+      setCustomer(existingDraft.customer);
+      setSelectedCustomer({
+        name: existingDraft.customer,
+        customer_name: existingDraft.customer_name || existingDraft.customer,
+        mobile_no: existingDraft.customer_mobile,
+      });
+    }
+    setLicensePlate(existingDraft.license_plate || "");
+    setCurrentOdometer(Number(existingDraft.current_odometer) || 0);
+    setWarrantyStatus(existingDraft.warranty_status || "");
+    setWarrantyApplicationType(existingDraft.warranty_application_type || "");
+    setServiceAdvisor(existingDraft.service_advisor || "");
+    setLeadTechnician(existingDraft.lead_technician || "");
+    setAssignedBay(existingDraft.assigned_bay || "");
+    setServiceAdvisorNotes(existingDraft.service_advisor_notes || "");
+    setInternalNotes(existingDraft.internal_notes || "");
+    setTerms(existingDraft.terms || "");
+    setTermsAndConditions(htmlToPlainText(existingDraft.terms_and_conditions || ""));
+    setAppointmentId(existingDraft.appointment || "");
+    setInspectionId(existingDraft.inspection || "");
+    setSkipVehicleInspection(Boolean(existingDraft.skip_vehicle_inspection));
+    lastAppliedInspectionRef.current = existingDraft.inspection || null;
+
+    if (existingDraft.labour_discount_type && Number(existingDraft.labour_discount_value) > 0) {
+      const mode = existingDraft.labour_discount_type === "Percentage" ? "percentage" : "amount";
+      setLabourDiscountMode(mode);
+      setLabourDiscountInput(String(existingDraft.labour_discount_value));
+    }
+    if (existingDraft.parts_discount_type && Number(existingDraft.parts_discount_value) > 0) {
+      const mode = existingDraft.parts_discount_type === "Percentage" ? "percentage" : "amount";
+      setPartsDiscountMode(mode);
+      setPartsDiscountInput(String(existingDraft.parts_discount_value));
+    }
+
+    const jobItemRows = (existingDraft.job_items || [])
+      .map((ji) => ({
+        complaint_description: ji.complaint_description || ji.complaint || "",
+        symptom_category: ji.symptom_category || DEFAULT_SYMPTOM_CATEGORY,
+        severity: ji.severity || DEFAULT_COMPLAINT_SEVERITY,
+        labor_operation: ji.labor_operation || "",
+      }))
+      .filter((ji) => ji.complaint_description);
+    setJobItems(jobItemRows.length ? jobItemRows : [emptyJobItem()]);
+    setCustomerComplaintSummary(
+      jobItemRows.map((r) => r.complaint_description).join("\n\n")
+    );
+
+    const labour = (existingDraft.labour || [])
+      .filter((lr) => lr.vehicle_service_item)
+      .map((lr) => ({
+        vehicle_service_item: lr.vehicle_service_item || "",
+        vehicle_service_item_name: lr.service_name || "",
+        display_name: lr.custom_display_name || lr.display_name || lr.service_name || "",
+        technician: lr.technician || "",
+        technician_name: lr.technician_name || "",
+        estimated_hours: Number(lr.estimated_hours) || 0,
+        rate_per_hour: Number(lr.rate_per_hour ?? lr.rate) || 0,
+        complaint: (lr as { complaint?: string }).complaint || "",
+      }));
+    setLabourRows(labour.length ? labour : [emptyLabourRow()]);
+
+    const parts = (existingDraft.parts || [])
+      .filter((pr) => pr.item_code || pr.part_code)
+      .map((pr) => ({
+        item_code: pr.item_code || pr.part_code || "",
+        item_name: pr.part_name || "",
+        bin_location: pr.bin_location || "",
+        quantity_requested: Number(pr.quantity_requested ?? pr.quantity) || 1,
+        unit_price: Number(pr.unit_price) || 0,
+        warehouse: pr.warehouse || existingDraft.warehouse || undefined,
+      }));
+    setPartRows(parts.length ? parts : [emptyPartRow(existingDraft.warehouse || undefined)]);
+
+    const hydrateVin = async () => {
+      if (!existingDraft.vehicle_vin) {
+        setHydratedId(resumeId);
+        return;
+      }
+      setVehicleVin(existingDraft.vehicle_vin);
+      try {
+        const full = await vehiclesSvc.getVehicle(existingDraft.vehicle_vin);
+        applyVinToForm({
+          name: full.name,
+          vin_number: full.vin_number,
+          plate_number: full.plate_number || existingDraft.license_plate,
+          model: full.model,
+          model_name: full.model_name,
+          current_customer: full.current_customer || existingDraft.customer,
+          customer_name: full.customer_name || existingDraft.customer_name,
+          current_odometer: existingDraft.current_odometer ?? full.current_odometer,
+          warranty_status: full.warranty_status || existingDraft.warranty_status,
+          linked_item: full.linked_item,
+          model_year: full.model_year,
+          warranty_end_date: full.warranty_end_date,
+        });
+        setWarrantySummary(full.warranty_summary || null);
+      } catch {
+        setSelectedVin({
+          name: existingDraft.vehicle_vin,
+          vin_number: existingDraft.vin_number || existingDraft.vehicle_vin,
+          plate_number: existingDraft.license_plate,
+          model_name: existingDraft.vehicle_model,
+          current_customer: existingDraft.customer,
+          customer_name: existingDraft.customer_name,
+          current_odometer: existingDraft.current_odometer,
+          warranty_status: existingDraft.warranty_status,
+        });
+      }
+      setHydratedId(resumeId);
+    };
+    void hydrateVin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per draft id
+  }, [resumeId, existingDraft, hydratedId]);
 
   useEffect(() => {
     if (!vehicleVin || !selectedServicePackage) {
@@ -923,26 +1081,34 @@ export default function NewJobCardPage() {
 
   // --- Submit ---
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveJobCard = async (mode: "draft" | "create") => {
+    const asDraft = mode === "draft";
 
     if (!jobCardType) {
       toast.error("Please select a job card type");
       return;
     }
-    if (!customer) {
+    if (!customer && !vehicleVin) {
+      toast.error(
+        asDraft
+          ? "Select at least a customer or vehicle before saving a draft"
+          : "Please select a customer"
+      );
+      return;
+    }
+    if (!asDraft && !customer) {
       toast.error("Please select a customer");
       return;
     }
-    if (!vehicleVin) {
+    if (!asDraft && !vehicleVin) {
       toast.error("Please select a vehicle VIN");
       return;
     }
-    if (jobCardType !== "Internal" && !skipVehicleInspection && !inspectionId) {
+    if (!asDraft && jobCardType !== "Internal" && !skipVehicleInspection && !inspectionId) {
       toast.error("Please select a vehicle inspection");
       return;
     }
-    if (jobCardType === "Internal") {
+    if (!asDraft && jobCardType === "Internal") {
       if (!serviceAdvisor) {
         toast.error("Service advisor is required for internal job cards");
         return;
@@ -952,12 +1118,12 @@ export default function NewJobCardPage() {
         return;
       }
     }
-    if (filledJobItems.length === 0) {
+    if (!asDraft && filledJobItems.length === 0) {
       toast.error("Please add at least one job item");
       return;
     }
 
-    if (warrantyApplicationType === "Discount") {
+    if (!asDraft && warrantyApplicationType === "Discount") {
       if (combinedDiscountTotal < 1) {
         toast.error("Set a labour and/or parts discount (total at least 1)");
         return;
@@ -998,6 +1164,7 @@ export default function NewJobCardPage() {
     );
 
     const payload: Partial<DMSJobCard> & {
+      as_draft?: number;
       labour_discount?: { type: string; value: number };
       parts_discount?: { type: string; value: number };
     } = {
@@ -1005,8 +1172,8 @@ export default function NewJobCardPage() {
       priority: priority as Priority,
       estimated_duration_hours: estimatedDurationHours || undefined,
       promised_delivery_date_time: promisedDelivery || undefined,
-      customer,
-      vehicle_vin: vehicleVin,
+      customer: customer || undefined,
+      vehicle_vin: vehicleVin || undefined,
       license_plate: licensePlate || undefined,
       current_odometer: Number.isFinite(currentOdometer) ? currentOdometer : undefined,
       warranty_status: warrantyStatus || undefined,
@@ -1033,6 +1200,7 @@ export default function NewJobCardPage() {
       appointment: appointmentId || undefined,
       skip_vehicle_inspection: skipVehicleInspection ? 1 : 0,
       inspection: skipVehicleInspection ? undefined : inspectionId || undefined,
+      as_draft: asDraft ? 1 : 0,
       job_items: filledJobItems.map((ji) => ({
         name: "",
         complaint_description: ji.complaint_description,
@@ -1056,23 +1224,51 @@ export default function NewJobCardPage() {
         unit_price: pr.unit_price,
         warehouse: pr.warehouse || warehouse || undefined,
       })),
-    } as Partial<DMSJobCard>;
+    } as Partial<DMSJobCard> & { as_draft?: number };
 
     try {
-      const result = await createJobCard(payload);
-      if (jobCardType === "Internal") {
+      if (draftName) {
+        setIsUpdating(true);
+      }
+      const result = draftName
+        ? await jobCardsSvc.updateJobCard(draftName, payload as Record<string, unknown>)
+        : await createJobCard(payload);
+      if (asDraft) {
+        setDraftName(result.name);
+        setHydratedId(result.name);
+        toast.success("Job card saved as draft", {
+          description: result.name,
+        });
+        if (!resumeId || resumeId !== result.name) {
+          navigate("job-card-new", { id: result.name });
+        }
+      } else if (jobCardType === "Internal") {
         toast.success(
           result.status === "Repair In Progress"
             ? "Internal job card created — repair in progress"
             : "Internal job card created"
         );
+        navigate("job-card-detail", { id: result.name });
       } else {
         toast.success("Job card created successfully");
+        navigate("job-card-detail", { id: result.name });
       }
-      navigate("job-card-detail", { id: result.name });
-    } catch {
-      toast.error("Failed to create job card");
+    } catch (err) {
+      toast.error(asDraft ? "Failed to save draft" : "Failed to create job card", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setIsUpdating(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveJobCard("create");
+  };
+
+  const handleSaveDraft = async () => {
+    await saveJobCard("draft");
   };
 
   return (
@@ -1087,13 +1283,23 @@ export default function NewJobCardPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-foreground sm:text-2xl">New Job Card</h1>
+          <h1 className="text-xl font-bold text-foreground sm:text-2xl">
+            {draftName ? "Continue Job Card" : "New Job Card"}
+          </h1>
           <p className="text-muted-foreground mt-0.5 text-sm sm:mt-1">
-            Create a new workshop job card
+            {draftName
+              ? `${draftName} — keep editing, then create when ready`
+              : "Create a new workshop job card"}
           </p>
         </div>
       </div>
 
+      {resumeId && draftLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
       <form
         id="new-job-card-form"
         onSubmit={handleSubmit}
@@ -2001,6 +2207,25 @@ export default function NewJobCardPage() {
           Cancel
         </Button>
         <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 w-full sm:w-auto"
+          onClick={handleSaveDraft}
+          disabled={isMutating}
+        >
+          {isMutating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save as Draft
+            </>
+          )}
+        </Button>
+        <Button
           type="submit"
           form="new-job-card-form"
           disabled={isMutating}
@@ -2032,6 +2257,8 @@ export default function NewJobCardPage() {
           toast.success(`Service item created and selected.`);
         }}
       />
+        </>
+      )}
     </div>
   );
 }

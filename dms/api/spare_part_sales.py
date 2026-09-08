@@ -311,7 +311,7 @@ def list_spare_part_proformas(search=None, status=None, limit=50, offset=0):
 	frappe.has_permission("Sales Order", "read", throw=True)
 
 	filters = dict(_proforma_so_filters())
-	filters["docstatus"] = ["<", 2]
+	# Include cancelled so Amend is available from the list.
 	if status:
 		filters["status"] = status
 
@@ -357,9 +357,20 @@ def list_spare_part_proformas(search=None, status=None, limit=50, offset=0):
 		start=int(offset),
 	)
 
+	amended_map = {}
+	if rows:
+		for link in frappe.get_all(
+			"Sales Order",
+			filters={"amended_from": ["in", [r.name for r in rows]]},
+			fields=["name", "amended_from"],
+		):
+			amended_map[link.amended_from] = link.name
+
 	for row in rows:
 		row["converted"] = flt(row.get("per_billed")) >= 100
 		row["sales_order"] = row["name"]
+		row["already_amended"] = 1 if amended_map.get(row.name) else 0
+		row["amended_as"] = amended_map.get(row.name)
 
 	return {"data": rows, "total": total}
 
@@ -377,21 +388,100 @@ def get_spare_part_proforma(name):
 	so.check_permission("read")
 
 	items = []
+	labour = []
+	parts = []
+	warehouse = None
+
+	vsi_meta = (
+		frappe.get_meta("Vehicle Service Item")
+		if frappe.db.exists("DocType", "Vehicle Service Item")
+		else None
+	)
+	vsi_item_field = None
+	if vsi_meta:
+		if vsi_meta.has_field("custom_erpnext_item"):
+			vsi_item_field = "custom_erpnext_item"
+		else:
+			for df in vsi_meta.fields:
+				if df.fieldtype == "Link" and df.options == "Item":
+					vsi_item_field = df.fieldname
+					break
+
 	for row in so.get("items") or []:
 		sp_name = frappe.db.get_value("Spare Part", {"spare_part_item": row.item_code}, "name")
 		if not sp_name:
 			sp_name = frappe.db.get_value("Spare Part", row.item_code, "name")
-		items.append(
-			{
-				"item_code": row.item_code,
-				"spare_part": sp_name or row.item_code,
-				"item_name": row.item_name,
-				"qty": flt(row.qty),
-				"rate": flt(row.rate),
-				"amount": flt(row.amount),
-				"warehouse": row.warehouse,
-			}
-		)
+
+		vsi_name = None
+		if not sp_name and vsi_item_field:
+			vsi_name = frappe.db.get_value(
+				"Vehicle Service Item", {vsi_item_field: row.item_code}, "name"
+			)
+
+		line = {
+			"item_code": row.item_code,
+			"spare_part": sp_name or row.item_code,
+			"item_name": row.item_name,
+			"qty": flt(row.qty),
+			"rate": flt(row.rate),
+			"amount": flt(row.amount),
+			"warehouse": row.warehouse,
+		}
+		items.append(line)
+
+		if (row.warehouse or "").strip() and not warehouse:
+			warehouse = row.warehouse.strip()
+
+		if sp_name:
+			parts.append(
+				{
+					"spare_part": sp_name,
+					"item_code": row.item_code,
+					"item_name": row.item_name,
+					"qty": flt(row.qty),
+					"rate": flt(row.rate),
+					"amount": flt(row.amount),
+					"warehouse": row.warehouse,
+				}
+			)
+		elif vsi_name:
+			vsi_label = row.item_name or vsi_name
+			if vsi_meta and vsi_meta.has_field("custom_item_name"):
+				vsi_label = (
+					frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_item_name")
+					or vsi_label
+				)
+			labour.append(
+				{
+					"vehicle_service_item": vsi_name,
+					"vehicle_service_item_name": vsi_label,
+					"hours": flt(row.qty),
+					"rate_per_hour": flt(row.rate),
+					"amount": flt(row.amount),
+				}
+			)
+		elif not cint(frappe.db.get_value("Item", row.item_code, "is_stock_item")):
+			labour.append(
+				{
+					"vehicle_service_item": row.item_code,
+					"vehicle_service_item_name": row.item_name or row.item_code,
+					"hours": flt(row.qty),
+					"rate_per_hour": flt(row.rate),
+					"amount": flt(row.amount),
+				}
+			)
+		else:
+			parts.append(
+				{
+					"spare_part": sp_name or row.item_code,
+					"item_code": row.item_code,
+					"item_name": row.item_name,
+					"qty": flt(row.qty),
+					"rate": flt(row.rate),
+					"amount": flt(row.amount),
+					"warehouse": row.warehouse,
+				}
+			)
 
 	linked_invoices = frappe.get_all(
 		"Sales Invoice Item",
@@ -401,12 +491,45 @@ def get_spare_part_proforma(name):
 	)
 	invoice_names = sorted({r.parent for r in linked_invoices if r.parent})
 
+	amended_as = frappe.db.get_value("Sales Order", {"amended_from": name}, "name")
+
+	raw_remarks = so.get("remarks") if frappe.get_meta("Sales Order").has_field("remarks") else None
+	user_remarks = (raw_remarks or "").strip()
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		get_sales_order_vehicle_vin,
+	)
+
+	vehicle_vin = get_sales_order_vehicle_vin(so)
+	if not vehicle_vin and user_remarks:
+		# Legacy drafts stored VIN only in remarks text (Sales Order often has no remarks field).
+		if user_remarks.startswith(PROFORMA_REMARKS_PREFIX):
+			user_remarks = user_remarks[len(PROFORMA_REMARKS_PREFIX) :].lstrip("\n ").strip()
+		# Last line may be "VIN: … | Make: … | Model: …"
+		lines = [ln.strip() for ln in user_remarks.splitlines() if ln.strip()]
+		vin_line = next(
+			(ln for ln in reversed(lines) if "VIN:" in ln.upper() or ln.upper().startswith("VIN")),
+			None,
+		)
+		if vin_line:
+			# Accept "VIN: ABC | Make: …" or translated variants containing VIN:
+			segment = vin_line.split("|")[0].strip()
+			vin_number = segment.split(":", 1)[-1].strip() if ":" in segment else segment
+			if vin_number:
+				vehicle_vin = (
+					frappe.db.get_value("VIN No", {"vin_number": vin_number}, "name")
+					or frappe.db.get_value("VIN No", vin_number, "name")
+					or vin_number
+				)
+			lines = [ln for ln in lines if ln != vin_line]
+			user_remarks = "\n".join(lines).strip()
+
 	return {
 		"name": so.name,
 		"sales_order": so.name,
 		"customer": so.customer,
 		"customer_name": so.customer_name,
 		"company": so.company,
+		"warehouse": warehouse,
 		"transaction_date": so.transaction_date,
 		"delivery_date": so.delivery_date,
 		"grand_total": flt(so.grand_total),
@@ -415,10 +538,118 @@ def get_spare_part_proforma(name):
 		"docstatus": so.docstatus,
 		"per_billed": flt(so.per_billed),
 		"converted": flt(so.per_billed) >= 100,
-		"remarks": so.get("remarks") if frappe.get_meta("Sales Order").has_field("remarks") else None,
+		"already_amended": 1 if amended_as else 0,
+		"amended_as": amended_as,
+		"amended_from": so.get("amended_from"),
+		"remarks": user_remarks or None,
+		"vehicle_vin": vehicle_vin,
 		"items": items,
+		"labour": labour,
+		"parts": parts,
 		"sales_invoices": invoice_names,
 	}
+
+
+@frappe.whitelist()
+def cancel_spare_part_proforma(name):
+	"""Cancel a submitted spare part proforma (Sales Order)."""
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Proforma is required."))
+
+	so = frappe.get_doc("Sales Order", name)
+	_ensure_spare_part_proforma(so)
+
+	if so.docstatus != 1:
+		frappe.throw(_("Only submitted proformas can be cancelled."))
+	if flt(so.per_billed) >= 100:
+		frappe.throw(_("This proforma has already been converted to a sales invoice."))
+
+	so.check_permission("cancel")
+	so.cancel()
+	frappe.db.commit()
+	so.reload()
+
+	return {
+		"name": so.name,
+		"sales_order": so.name,
+		"docstatus": so.docstatus,
+		"status": so.status,
+	}
+
+
+@frappe.whitelist()
+def delete_draft_spare_part_proforma(name):
+	"""Permanently delete a draft spare part proforma (Sales Order)."""
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Proforma is required."))
+
+	so = frappe.get_doc("Sales Order", name)
+	_ensure_spare_part_proforma(so)
+
+	if so.docstatus != 0:
+		frappe.throw(_("Only draft proformas can be deleted. Cancel submitted proformas instead."))
+
+	so.check_permission("delete")
+	frappe.delete_doc("Sales Order", name, force=1)
+	frappe.db.commit()
+	return {"deleted": name}
+
+
+@frappe.whitelist()
+def amend_spare_part_proforma(name):
+	"""
+	Amend a cancelled spare part proforma (Sales Order).
+
+	Creates a new draft copy with amended_from set so the UI can continue editing.
+	"""
+	from frappe.model.document import copy_doc
+	from frappe.utils import nowdate
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		mark_sales_order_as_spare_part_proforma,
+	)
+
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Proforma is required."))
+
+	so = frappe.get_doc("Sales Order", name)
+	_ensure_spare_part_proforma(so)
+
+	if so.docstatus != 2:
+		frappe.throw(_("Only cancelled proformas can be amended. Cancel the proforma first."))
+
+	existing = frappe.db.exists("Sales Order", {"amended_from": name})
+	if existing:
+		frappe.throw(_("This proforma is already amended as {0}.").format(frappe.bold(existing)))
+
+	frappe.has_permission("Sales Order", "create", throw=True)
+	so.check_permission("read")
+
+	amended = copy_doc(so, ignore_no_copy=True)
+	amended.amended_from = name
+	if amended.meta.has_field("amendment_date"):
+		amended.amendment_date = nowdate()
+
+	amended.docstatus = 0
+	if amended.meta.has_field("status"):
+		amended.status = "Draft"
+
+	for fieldname in ("per_billed", "per_delivered"):
+		if amended.meta.has_field(fieldname):
+			amended.set(fieldname, 0)
+	if amended.meta.has_field("billing_status"):
+		amended.billing_status = "Not Billed"
+	if amended.meta.has_field("delivery_status"):
+		amended.delivery_status = "Not Delivered"
+
+	mark_sales_order_as_spare_part_proforma(amended)
+	amended.insert()
+	frappe.db.commit()
+
+	return get_spare_part_proforma(amended.name)
 
 
 @frappe.whitelist()
@@ -449,9 +680,63 @@ def create_spare_part_proforma(data):
 		submit=cint(data.get("submit", 1)),
 		labour_discount=data.get("labour_discount"),
 		parts_discount=data.get("parts_discount"),
+		vehicle_vin=ctx.get("vin"),
 	)
 
 	so = frappe.get_doc("Sales Order", name)
+	frappe.db.commit()
+	return {
+		"name": so.name,
+		"sales_order": so.name,
+		"docstatus": so.docstatus,
+		"customer": so.customer,
+		"customer_name": so.customer_name,
+		"grand_total": flt(so.grand_total),
+		"status": so.status,
+	}
+
+
+@frappe.whitelist()
+def update_spare_part_proforma(data):
+	"""Update a draft spare part proforma (Sales Order), optionally submit."""
+	if isinstance(data, str):
+		data = json.loads(data)
+
+	name = (data.get("name") or data.get("sales_order") or "").strip()
+	if not name:
+		frappe.throw(_("Proforma name is required."))
+
+	so = frappe.get_doc("Sales Order", name)
+	_ensure_spare_part_proforma(so)
+	if so.docstatus != 0:
+		frappe.throw(_("Only draft proformas can be edited."))
+	so.check_permission("write")
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		update_standalone_dms_sales_order,
+	)
+
+	ctx = _validate_spare_part_lines(data, check_stock=False)
+	remarks = _build_spare_part_remarks(ctx, data, default_remarks=PROFORMA_REMARKS_PREFIX)
+
+	updated_name = update_standalone_dms_sales_order(
+		name=name,
+		customer=ctx["customer"],
+		company=ctx["company"],
+		labour_lines=ctx.get("labour_lines") or [],
+		parts_lines=ctx["parts_lines"],
+		warehouse=ctx["warehouse"],
+		currency=data.get("currency") or so.currency,
+		delivery_date=data.get("due_date") or data.get("delivery_date"),
+		transaction_date=data.get("posting_date") or data.get("transaction_date"),
+		remarks=remarks,
+		submit=cint(data.get("submit", 0)),
+		labour_discount=data.get("labour_discount"),
+		parts_discount=data.get("parts_discount"),
+		vehicle_vin=ctx.get("vin"),
+	)
+
+	so = frappe.get_doc("Sales Order", updated_name)
 	frappe.db.commit()
 	return {
 		"name": so.name,

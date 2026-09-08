@@ -212,7 +212,17 @@ export default function AppointmentDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {appointment.status !== 'Cancelled' && appointment.status !== 'Completed' && (
+          {normalizeDocstatus(appointment.docstatus) === 0 &&
+          (appointment.status === 'Draft' || !appointment.status) ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('appointment-new', { id: appointment.name })}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Continue Editing
+            </Button>
+          ) : appointment.status !== 'Cancelled' && appointment.status !== 'Completed' ? (
             <Button
               variant="outline"
               size="sm"
@@ -221,7 +231,7 @@ export default function AppointmentDetailPage() {
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
-          )}
+          ) : null}
           {canMarkArrived(appointment) && (
             <Button size="sm" onClick={handleMarkArrived} disabled={isMarkingArrived}>
               {isMarkingArrived ? (

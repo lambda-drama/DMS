@@ -42,12 +42,15 @@ export async function getCurrentServiceAdvisor(): Promise<{
   });
 }
 
-export async function createInspection(data: Partial<VehicleInspection>): Promise<{
+export async function createInspection(
+  data: Partial<VehicleInspection> & { as_draft?: boolean | number }
+): Promise<{
   name: string;
   docstatus: number;
   customer: string;
   customer_name: string;
   inspection_date: string;
+  as_draft?: number;
 }> {
   return apiRequest(`/api/method/${API}.create_inspection`, {
     method: 'POST',
@@ -57,8 +60,12 @@ export async function createInspection(data: Partial<VehicleInspection>): Promis
 
 export async function updateInspection(
   name: string,
-  data: Partial<VehicleInspection>
-): Promise<{ name: string }> {
+  data: Partial<VehicleInspection> & { as_draft?: boolean | number }
+): Promise<{
+  name: string;
+  docstatus?: number;
+  as_draft?: number;
+}> {
   return apiRequest(`/api/method/${API}.update_inspection`, {
     method: 'POST',
     body: JSON.stringify({ name, data }),

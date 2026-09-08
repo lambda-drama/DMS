@@ -174,6 +174,15 @@ export async function cancelSalesInvoice(salesInvoice: string): Promise<{
   });
 }
 
+export async function deleteDraftSalesInvoice(
+  salesInvoice: string
+): Promise<{ deleted: string }> {
+  return apiRequest(`/api/method/${API}.delete_draft_sales_invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ sales_invoice: salesInvoice }),
+  });
+}
+
 export async function amendSalesInvoice(salesInvoice: string): Promise<SalesInvoiceDetail> {
   return apiRequest<SalesInvoiceDetail>(`/api/method/${API}.amend_sales_invoice`, {
     method: 'POST',

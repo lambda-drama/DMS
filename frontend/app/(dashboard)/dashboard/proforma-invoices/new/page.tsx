@@ -49,7 +49,7 @@ import {
 import * as sparePartSalesSvc from '@/services/sparePartSales';
 import * as vehiclesSvc from '@/services/vehicles';
 import type { VINNo, VehicleModelOption } from '@/types/dms';
-import { Loader2, Package, Receipt, Trash2 } from 'lucide-react';
+import { Loader2, Package, Receipt, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type LineRow = {
@@ -99,8 +99,12 @@ function vehicleModelSelectDescription(vm: VehicleModelOption): string {
 }
 
 export default function ProformaInvoiceNewPage() {
-  const { canCreate } = usePermissions();
-  const { navigate } = useNavigation();
+  const { canCreate, canWrite } = usePermissions();
+  const { navigate, viewParams } = useNavigation();
+  const resumeId = viewParams.get('id') || '';
+  const [draftName, setDraftName] = useState(resumeId);
+  const [hydratedId, setHydratedId] = useState('');
+  const [draftLoading, setDraftLoading] = useState(Boolean(resumeId));
 
   const [company, setCompany] = useState('');
   const [companySearch, setCompanySearch] = useState('');
@@ -124,7 +128,6 @@ export default function ProformaInvoiceNewPage() {
   const [postingDate, setPostingDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [remarks, setRemarks] = useState('');
-  const [submitProforma, setSubmitProforma] = useState(true);
   const [inStockOnly, setInStockOnly] = useState(true);
   const [lines, setLines] = useState<LineRow[]>([emptyLine()]);
   const [labourRows, setLabourRows] = useState<LabourRow[]>([emptyLabour()]);
@@ -141,6 +144,14 @@ export default function ProformaInvoiceNewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [partsDiscountInput, setPartsDiscountInput] = useState('');
+
+  const canSave = canCreate('proforma-invoices') || canWrite('proforma-invoices');
+
+  useEffect(() => {
+    if (resumeId && resumeId !== draftName) {
+      setDraftName(resumeId);
+    }
+  }, [resumeId, draftName]);
 
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
@@ -240,14 +251,18 @@ export default function ProformaInvoiceNewPage() {
     { search: companySearch }
   );
 
-  useAutofillDefaultCustomer(customer, (d) => {
-    setCustomer(d.default_customer!);
-    setCustomerMeta({
-      name: d.default_customer!,
-      customer_name: d.customer_name || d.default_customer!,
-      mobile_no: d.mobile_no || undefined,
-    });
-  });
+  useAutofillDefaultCustomer(
+    customer,
+    (d) => {
+      setCustomer(d.default_customer!);
+      setCustomerMeta({
+        name: d.default_customer!,
+        customer_name: d.customer_name || d.default_customer!,
+        mobile_no: d.mobile_no || undefined,
+      });
+    },
+    { enabled: !resumeId && !draftName }
+  );
 
   const companyOptions = useMemo(() => {
     const names = defaults?.companies?.length
@@ -291,6 +306,112 @@ export default function ProformaInvoiceNewPage() {
       });
     }
   };
+
+  useEffect(() => {
+    if (!resumeId) {
+      setDraftLoading(false);
+      return;
+    }
+    if (hydratedId === resumeId) {
+      setDraftLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setDraftLoading(true);
+      try {
+        const detail = await sparePartSalesSvc.getSparePartProforma(resumeId);
+        if (cancelled) return;
+        if (Number(detail.docstatus) !== 0) {
+          toast.error('Only draft proformas can be edited');
+          navigate('proforma-invoices');
+          return;
+        }
+
+        setDraftName(detail.name);
+        setCompany(detail.company || '');
+        if (detail.warehouse) setWarehouse(detail.warehouse);
+        if (detail.transaction_date) {
+          setPostingDate(String(detail.transaction_date).slice(0, 10));
+        }
+        if (detail.delivery_date) {
+          setDueDate(String(detail.delivery_date).slice(0, 10));
+        }
+        setRemarks(detail.remarks || '');
+
+        const labour = detail.labour || [];
+        setLabourRows(
+          labour.length
+            ? labour.map((row) => ({
+                id: crypto.randomUUID(),
+                vehicle_service_item: row.vehicle_service_item || '',
+                vehicle_service_item_name: row.vehicle_service_item_name || '',
+                hours: String(row.hours ?? 1),
+                rate_per_hour: String(row.rate_per_hour ?? ''),
+              }))
+            : [emptyLabour()]
+        );
+
+        const parts = detail.parts || [];
+        setLines(
+          parts.length
+            ? parts.map((row) => ({
+                id: crypto.randomUUID(),
+                spare_part: row.spare_part || row.item_code || '',
+                item_name: row.item_name || '',
+                qty: String(row.qty ?? 1),
+                unit_price: String(row.rate ?? ''),
+              }))
+            : [emptyLine()]
+        );
+
+        setLabourDiscountMode('none');
+        setLabourDiscountInput('');
+        setPartsDiscountMode('none');
+        setPartsDiscountInput('');
+
+        if (detail.vehicle_vin) {
+          setVehicleVin(detail.vehicle_vin);
+          try {
+            const full = await vehiclesSvc.getVehicle(detail.vehicle_vin);
+            if (!cancelled) {
+              setSelectedVin(full as VINNo);
+              setVehicleBrand(full.brand || '');
+              setVehicleBrandLabel(full.brand_label || full.brand || '');
+              setVehicleModel(full.model || full.resolved_vehicle_model || '');
+            }
+          } catch {
+            // VIN optional on resume
+          }
+        }
+
+        // Prefer customer saved on the draft over VIN-linked customer.
+        setCustomer(detail.customer || '');
+        setCustomerMeta(
+          detail.customer
+            ? {
+                name: detail.customer,
+                customer_name: detail.customer_name || detail.customer,
+              }
+            : null
+        );
+
+        setHydratedId(detail.name);
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : 'Failed to load draft proforma');
+          navigate('proforma-invoices');
+        }
+      } finally {
+        if (!cancelled) setDraftLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeId, hydratedId, navigate]);
 
   const handleVehicleModelChange = (vm: string) => {
     setVehicleModel(vm);
@@ -452,8 +573,11 @@ export default function ProformaInvoiceNewPage() {
   );
   const grandTotal = labourTotal - labourDiscountTotal + partsTotal - partsDiscountTotal;
 
-  const handleSubmit = async () => {
-    if (!canCreate('proforma-invoices')) return;
+  const saveProforma = async (mode: 'draft' | 'create') => {
+    if (!canSave) return;
+
+    const asDraft = mode === 'draft';
+    const shouldSubmit = !asDraft;
 
     const payloadParts = lines
       .filter((l) => l.spare_part && Number(l.qty) > 0)
@@ -472,7 +596,11 @@ export default function ProformaInvoiceNewPage() {
       }));
 
     if (!payloadParts.length && !payloadLabour.length) {
-      toast.error('Add at least one labour or spare part line');
+      toast.error(
+        asDraft
+          ? 'Add at least one labour or spare part line before saving a draft'
+          : 'Add at least one labour or spare part line'
+      );
       return;
     }
 
@@ -481,46 +609,67 @@ export default function ProformaInvoiceNewPage() {
       return;
     }
 
+    const payload = {
+      customer: customer || undefined,
+      company: company || defaults?.company || '',
+      warehouse: warehouse || undefined,
+      labour: payloadLabour.length ? payloadLabour : undefined,
+      parts: payloadParts.length ? payloadParts : undefined,
+      posting_date: postingDate,
+      due_date: dueDate,
+      remarks: remarks || undefined,
+      submit: shouldSubmit,
+      labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
+      parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
+      vehicle_vin: vehicleVin || undefined,
+      vehicle_brand: vehicleBrand || undefined,
+      vehicle_model: vehicleModel || undefined,
+    };
+
     setSubmitting(true);
     try {
-      const result = await sparePartSalesSvc.createSparePartProforma({
-        customer: customer || undefined,
-        company: company || defaults?.company || '',
-        warehouse: warehouse || undefined,
-        labour: payloadLabour.length ? payloadLabour : undefined,
-        parts: payloadParts.length ? payloadParts : undefined,
-        posting_date: postingDate,
-        due_date: dueDate,
-        remarks: remarks || undefined,
-        submit: submitProforma,
-        labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
-        parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
-        vehicle_vin: vehicleVin || undefined,
-        vehicle_brand: vehicleBrand || undefined,
-        vehicle_model: vehicleModel || undefined,
-      });
-      toast.success(
-        submitProforma
-          ? `Proforma ${result.name} submitted (${result.grand_total})`
-          : `Proforma ${result.name} saved as draft`
-      );
-      setLines([emptyLine()]);
-      setLabourRows([emptyLabour()]);
-      setLabourDiscountMode('none');
-      setLabourDiscountInput('');
-      setPartsDiscountMode('none');
-      setPartsDiscountInput('');
-      setRemarks('');
-      setVehicleVin('');
-      setSelectedVin(null);
-      setVehicleBrand('');
-      setVehicleBrandLabel('');
-      setVehicleModel('');
-      setCustomer('');
-      setCustomerMeta(null);
-      navigate('proforma-invoices');
+      const result = draftName
+        ? await sparePartSalesSvc.updateSparePartProforma({
+            name: draftName,
+            ...payload,
+          })
+        : await sparePartSalesSvc.createSparePartProforma(payload);
+
+      if (asDraft) {
+        setDraftName(result.name);
+        setHydratedId(result.name);
+        toast.success(`Proforma ${result.name} saved as draft`);
+        if (!resumeId || resumeId !== result.name) {
+          navigate('proforma-invoice-new', { id: result.name });
+        }
+      } else {
+        toast.success(`Proforma ${result.name} submitted (${result.grand_total})`);
+        setLines([emptyLine()]);
+        setLabourRows([emptyLabour()]);
+        setLabourDiscountMode('none');
+        setLabourDiscountInput('');
+        setPartsDiscountMode('none');
+        setPartsDiscountInput('');
+        setRemarks('');
+        setVehicleVin('');
+        setSelectedVin(null);
+        setVehicleBrand('');
+        setVehicleBrandLabel('');
+        setVehicleModel('');
+        setCustomer('');
+        setCustomerMeta(null);
+        setDraftName('');
+        setHydratedId('');
+        navigate('proforma-invoices');
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create proforma');
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : asDraft
+            ? 'Failed to save draft proforma'
+            : 'Failed to create proforma'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -531,16 +680,25 @@ export default function ProformaInvoiceNewPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Receipt className="h-6 w-6" />
-          Proforma Invoice
+          {draftName ? 'Continue Proforma' : 'Proforma Invoice'}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Saved as a Sales Order for customer approval — convert to sales invoice when ready.
+          {draftName
+            ? `Editing draft ${draftName} — save again or submit when ready.`
+            : 'Saved as a Sales Order for customer approval — convert to sales invoice when ready.'}
         </p>
       </div>
 
+      {draftLoading ? (
+        <div className="flex items-center justify-center py-16 text-muted-foreground">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Loading draft…
+        </div>
+      ) : (
+      <>
       <Card>
         <CardHeader>
-          <CardTitle>New proforma</CardTitle>
+          <CardTitle>{draftName ? 'Edit draft proforma' : 'New proforma'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -875,17 +1033,6 @@ export default function ProformaInvoiceNewPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="submit-proforma"
-              checked={submitProforma}
-              onCheckedChange={(v) => setSubmitProforma(Boolean(v))}
-            />
-            <Label htmlFor="submit-proforma" className="text-sm font-normal cursor-pointer">
-              Submit proforma (Sales Order)
-            </Label>
-          </div>
-
           <div className="rounded-lg border bg-muted/30 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Package className="h-4 w-4" />
@@ -903,11 +1050,32 @@ export default function ProformaInvoiceNewPage() {
           <FormActionsBar>
             <Button
               type="button"
-              onClick={() => void handleSubmit()}
-              disabled={submitting || !canCreate('proforma-invoices')}
+              variant="outline"
+              onClick={() => navigate('proforma-invoices')}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void saveProforma('draft')}
+              disabled={submitting || !canSave}
+            >
+              {submitting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Save as Draft
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void saveProforma('create')}
+              disabled={submitting || !canSave}
             >
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save proforma
+              Submit proforma
             </Button>
           </FormActionsBar>
         </CardContent>
@@ -975,6 +1143,8 @@ export default function ProformaInvoiceNewPage() {
           if (targetId) void applyServiceItemToLabourRow(targetId, name);
         }}
       />
+      </>
+      )}
     </div>
   );
 }

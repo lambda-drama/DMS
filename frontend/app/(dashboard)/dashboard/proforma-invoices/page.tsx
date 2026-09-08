@@ -17,6 +17,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,7 +37,17 @@ import { PrintFormatDropdown } from '@/components/print-format-dropdown';
 import { ListRowActions } from '@/components/list-row-actions';
 import * as sparePartSalesSvc from '@/services/sparePartSales';
 import type { SparePartProformaDetail, SparePartProformaListItem } from '@/services/sparePartSales';
-import { FileText, Loader2, Receipt, Search } from 'lucide-react';
+import {
+  Eye,
+  FilePenLine,
+  FileText,
+  Loader2,
+  MoreHorizontal,
+  Receipt,
+  Search,
+  Trash2,
+  XCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 function formatMoney(amount?: number, currency?: string) {
@@ -44,7 +60,7 @@ function formatMoney(amount?: number, currency?: string) {
 
 export default function ProformaInvoicesPage() {
   const { navigate } = useNavigation();
-  const { canCreate } = usePermissions();
+  const { canCancel, canCreate, canDelete, canWrite } = usePermissions();
 
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState<SparePartProformaListItem[]>([]);
@@ -53,6 +69,35 @@ export default function ProformaInvoicesPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [convertTarget, setConvertTarget] = useState<SparePartProformaListItem | null>(null);
   const [converting, setConverting] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [amending, setAmending] = useState(false);
+
+  const canContinueDraft = canCreate('proforma-invoices') || canWrite('proforma-invoices');
+
+  const isDraft = (row: Pick<SparePartProformaListItem, 'docstatus' | 'status'>) =>
+    row.docstatus === 0 || row.status === 'Draft';
+
+  const isCancelled = (row: Pick<SparePartProformaListItem, 'docstatus' | 'status'>) =>
+    row.docstatus === 2 || row.status === 'Cancelled';
+
+  const canCancelFor = (row: SparePartProformaListItem) =>
+    canCancel('proforma-invoices') &&
+    row.docstatus === 1 &&
+    !row.converted &&
+    !isCancelled(row);
+
+  const canDeleteDraftFor = (row: SparePartProformaListItem) =>
+    canDelete('proforma-invoices') && isDraft(row);
+
+  const canAmendFor = (row: SparePartProformaListItem) =>
+    canContinueDraft && isCancelled(row) && !row.already_amended;
+
+  const continueEditing = (name: string) => {
+    navigate('proforma-invoice-new', { id: name });
+  };
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -105,6 +150,57 @@ export default function ProformaInvoicesPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to convert proforma');
     } finally {
       setConverting(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      await sparePartSalesSvc.cancelSparePartProforma(cancelTarget);
+      toast.success('Proforma cancelled');
+      setCancelTarget(null);
+      if (selected?.name === cancelTarget) {
+        setSelected(await sparePartSalesSvc.getSparePartProforma(cancelTarget));
+      }
+      await loadRows();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel proforma');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await sparePartSalesSvc.deleteDraftSparePartProforma(deleteTarget);
+      toast.success('Draft proforma deleted');
+      setDeleteTarget(null);
+      if (selected?.name === deleteTarget) {
+        setSelected(null);
+      }
+      await loadRows();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete proforma');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleAmend = async (name: string) => {
+    setAmending(true);
+    try {
+      const draft = await sparePartSalesSvc.amendSparePartProforma(name);
+      toast.success(`Amended draft ${draft.name} created`);
+      setSelected(null);
+      await loadRows();
+      continueEditing(draft.name);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to amend proforma');
+    } finally {
+      setAmending(false);
     }
   };
 
@@ -184,20 +280,55 @@ export default function ProformaInvoicesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <ListRowActions doctype="Sales Order" docName={row.name}>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => void openDetail(row.name)}>
-                          View
-                        </Button>
-                        {!row.converted && row.docstatus === 1 && canCreate('invoices') ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setConvertTarget(row)}
-                          >
-                            <Receipt className="h-3.5 w-3.5 mr-1" />
-                            To invoice
-                          </Button>
-                        ) : null}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" title="More actions" disabled={amending}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => void openDetail(row.name)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </DropdownMenuItem>
+                            {isDraft(row) && canContinueDraft ? (
+                              <DropdownMenuItem onClick={() => continueEditing(row.name)}>
+                                <FilePenLine className="h-4 w-4 mr-2" />
+                                Continue Editing
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canDeleteDraftFor(row) ? (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setDeleteTarget(row.name)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete draft
+                              </DropdownMenuItem>
+                            ) : null}
+                            {!row.converted && row.docstatus === 1 && canCreate('invoices') ? (
+                              <DropdownMenuItem onClick={() => setConvertTarget(row)}>
+                                <Receipt className="h-4 w-4 mr-2" />
+                                To invoice
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canCancelFor(row) ? (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setCancelTarget(row.name)}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Cancel proforma
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canAmendFor(row) ? (
+                              <DropdownMenuItem onClick={() => void handleAmend(row.name)}>
+                                <FilePenLine className="h-4 w-4 mr-2" />
+                                Amend proforma
+                              </DropdownMenuItem>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </ListRowActions>
                     </TableCell>
                   </TableRow>
@@ -225,9 +356,61 @@ export default function ProformaInvoicesPage() {
                 docName={selected.name}
                 className="w-full"
               />
+              {isDraft(selected) && canContinueDraft ? (
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => {
+                    const name = selected.name;
+                    setSelected(null);
+                    continueEditing(name);
+                  }}
+                >
+                  <FilePenLine className="h-4 w-4 mr-2" />
+                  Continue Editing
+                </Button>
+              ) : null}
+              {canDeleteDraftFor(selected) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={() => setDeleteTarget(selected.name)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Draft
+                </Button>
+              ) : null}
               {!selected.converted && selected.docstatus === 1 && canCreate('invoices') ? (
                 <Button type="button" className="w-full" onClick={() => setConvertTarget(selected)}>
                   Convert to sales invoice
+                </Button>
+              ) : null}
+              {canCancelFor(selected) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={() => setCancelTarget(selected.name)}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancel Proforma
+                </Button>
+              ) : null}
+              {canAmendFor(selected) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={amending}
+                  onClick={() => void handleAmend(selected.name)}
+                >
+                  {amending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FilePenLine className="h-4 w-4 mr-2" />
+                  )}
+                  Amend Proforma
                 </Button>
               ) : null}
             </div>
@@ -274,6 +457,79 @@ export default function ProformaInvoicesPage() {
             <AlertDialogAction disabled={converting} onClick={() => void handleConvert()}>
               {converting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Convert
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(cancelTarget)}
+        onOpenChange={(open) => {
+          if (!open) setCancelTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel proforma</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cancel <strong>{cancelTarget}</strong>? This reverses the submitted Sales Order in
+              ERPNext. You can amend it afterward to create a new draft.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>Keep proforma</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelling}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleCancel();
+              }}
+            >
+              {cancelling ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Cancelling…
+                </>
+              ) : (
+                'Cancel proforma'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete draft proforma</AlertDialogTitle>
+            <AlertDialogDescription>
+              Permanently delete draft <strong>{deleteTarget}</strong>? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Keep draft</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDelete();
+              }}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                'Delete draft'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

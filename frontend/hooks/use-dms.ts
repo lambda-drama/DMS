@@ -123,7 +123,7 @@ export function useInspection(name: string | null) {
 export function useCreateInspection() {
   return useSWRMutation(
     'inspections',
-    (_, { arg }: { arg: Partial<VehicleInspection> }) =>
+    (_, { arg }: { arg: Partial<VehicleInspection> & { as_draft?: boolean | number } }) =>
       inspectionsSvc.createInspection(arg)
   );
 }
@@ -193,7 +193,7 @@ export function useJobCard(name: string | null) {
 export function useCreateJobCard() {
   return useSWRMutation(
     'jobcards',
-    (_, { arg }: { arg: Partial<DMSJobCard> }) =>
+    (_, { arg }: { arg: Partial<DMSJobCard> & { as_draft?: boolean | number } }) =>
       jobCardsSvc.createJobCard(arg)
   );
 }

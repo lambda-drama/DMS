@@ -161,9 +161,9 @@ export default function InspectionDetailPage() {
           )}
           {isDraft && (
             <>
-              <Button variant="outline" size="sm" onClick={() => navigate('inspection-detail', { id, mode: 'edit' })}>
+              <Button variant="outline" size="sm" onClick={() => navigate('inspection-new', { id })}>
                 <Pencil className="h-4 w-4 mr-2" />
-                Edit
+                Continue Editing
               </Button>
               <Button size="sm" onClick={handleSubmit} disabled={isMutating}>
                 <ClipboardCheck className="h-4 w-4 mr-2" />

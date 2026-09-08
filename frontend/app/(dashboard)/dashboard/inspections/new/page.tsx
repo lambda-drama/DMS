@@ -229,6 +229,10 @@ const TIRE_POSITION_MAP: Record<string, string> = {
   Spare: 'Spare',
 };
 
+const TIRE_POSITION_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(TIRE_POSITION_MAP).map(([label, stored]) => [stored, label])
+);
+
 /** Matches doctype mandatory_depends_on for inspection item photos */
 function conditionNeedsPhoto(condition: string) {
   return Boolean(condition && condition !== 'OK' && condition !== 'Not Checked');
@@ -256,6 +260,18 @@ const steps = [
 export default function NewInspectionPage() {
   const { navigate, viewParams } = useNavigation();
   const appointmentId = viewParams.get('appointment');
+  const resumeId = viewParams.get('id') || '';
+  const [draftName, setDraftName] = useState(resumeId);
+  const [hydratedId, setHydratedId] = useState('');
+  const [draftLoading, setDraftLoading] = useState(Boolean(resumeId));
+
+  useEffect(() => {
+    if (resumeId && resumeId !== draftName) {
+      setDraftName(resumeId);
+      setHydratedId('');
+      setDraftLoading(true);
+    }
+  }, [resumeId, draftName]);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -309,6 +325,10 @@ export default function NewInspectionPage() {
   const { data: advisors } = useServiceAdvisors();
   const { trigger: createInspection } = useCreateInspection();
   const [customerPresent, setCustomerPresent] = useState(true);
+  const [receivedFromName, setReceivedFromName] = useState('');
+  const [receivedFromPhoneCountry, setReceivedFromPhoneCountry] = useState('+251');
+  const [receivedFromPhone, setReceivedFromPhone] = useState('');
+  const [receivedFromRelationship, setReceivedFromRelationship] = useState('');
   const [selectedWarnings, setSelectedWarnings] = useState<string[]>(['None']);
   const [exteriorConditions, setExteriorConditions] = useState<Record<string, string>>(() =>
     defaultOkConditions(exteriorAreas),
@@ -326,10 +346,11 @@ export default function NewInspectionPage() {
 
   useEffect(() => {
     if (appointmentId) return;
+    if (resumeId) return;
     inspectionsSvc.getCurrentServiceAdvisor().then((adv) => {
       if (adv?.name) setServiceAdvisor(adv.name);
     }).catch(() => {});
-  }, [appointmentId]);
+  }, [appointmentId, resumeId]);
 
   useEffect(() => {
     if (currentStep !== 8) return;
@@ -373,7 +394,7 @@ export default function NewInspectionPage() {
       customer_name: d.customer_name || d.default_customer!,
       mobile_no: d.mobile_no || undefined,
     });
-  });
+  }, { enabled: !draftName });
 
   const applyVinToForm = (vin: VINNo) => {
     setSelectedVin(vin);
@@ -425,6 +446,7 @@ export default function NewInspectionPage() {
   };
 
   useEffect(() => {
+    if (resumeId) return;
     if (!appointmentId || !linkedAppointment) {
       if (!appointmentId) lastAppliedAppointmentRef.current = null;
       return;
@@ -481,7 +503,165 @@ export default function NewInspectionPage() {
 
     void applyFromAppointment();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per linked appointment
-  }, [appointmentId, linkedAppointment]);
+  }, [appointmentId, linkedAppointment, resumeId]);
+
+  useEffect(() => {
+    if (!resumeId) {
+      setDraftLoading(false);
+      return;
+    }
+    if (hydratedId === resumeId) {
+      setDraftLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setDraftLoading(true);
+    void inspectionsSvc
+      .getInspection(resumeId)
+      .then(async (insp) => {
+        if (cancelled) return;
+        if (Number(insp.docstatus) !== 0) {
+          toast.error('Only draft inspections can be continued here');
+          navigate('inspection-detail', { id: resumeId });
+          return;
+        }
+        setDraftName(insp.name);
+        if (insp.company) setCompany(insp.company);
+        if (insp.service_advisor) setServiceAdvisor(insp.service_advisor);
+        if (insp.customer) {
+          setSelectedCustomer(insp.customer);
+          setSelectedCustomerMeta({
+            name: insp.customer,
+            customer_name: insp.customer_name || insp.customer,
+          });
+        }
+        if (insp.customer_vehicle) setCustomerVehicle(insp.customer_vehicle);
+        if (insp.license_plate) setLicensePlate(insp.license_plate);
+        if (insp.odometer != null) setCurrentOdometer(Number(insp.odometer) || 0);
+        if (insp.odometer_unit === 'miles' || insp.odometer_unit === 'km') {
+          setOdometerUnit(insp.odometer_unit);
+        }
+        if (insp.odometer_photo) setOdometerPhoto(insp.odometer_photo);
+        if (insp.fuel_level) setFuelLevel(insp.fuel_level as FuelLevel);
+        if (insp.fuel_photo) setFuelPhoto(insp.fuel_photo);
+        if (insp.dashboard_photo) setDashboardPhoto(insp.dashboard_photo);
+        if (insp.exterior_photos) {
+          setExteriorViewPhotos((prev) => ({ ...prev, front: insp.exterior_photos }));
+        }
+        setCustomerPresent(Boolean(Number(insp.customer_present ?? 1)));
+        setReceivedFromName(insp.received_from_name || '');
+        {
+          const rawPhone = String(insp.received_from_phone || '').trim();
+          const knownCodes = ['+251', '+254', '+255', '+971', '+966', '+1', '+44'];
+          const matched = knownCodes.find((code) => rawPhone.startsWith(code));
+          if (matched) {
+            setReceivedFromPhoneCountry(matched);
+            setReceivedFromPhone(rawPhone.slice(matched.length).replace(/^[\s\-]+/, ''));
+          } else if (rawPhone.startsWith('+')) {
+            const m = rawPhone.match(/^(\+\d{1,3})\s*(.*)$/);
+            setReceivedFromPhoneCountry(m?.[1] || '+251');
+            setReceivedFromPhone((m?.[2] || '').trim());
+          } else {
+            setReceivedFromPhoneCountry('+251');
+            setReceivedFromPhone(rawPhone);
+          }
+        }
+        setReceivedFromRelationship(insp.received_from_relationship || '');
+        setScanPerformed(Boolean(insp.scan_performed));
+        setTermsAccepted(Boolean(insp.terms_accepted));
+        if (insp.customer_signature) setCustomerSignatureUrl(insp.customer_signature);
+        if (insp.advisor_signature) setAdvisorSignatureUrl(insp.advisor_signature);
+
+        const labels = insp.warning_light_labels || [];
+        setSelectedWarnings(labels.length ? labels : ['None']);
+
+        const nextExterior = defaultOkConditions(exteriorAreas);
+        const nextExteriorPhotos: Record<string, string | undefined> = {};
+        for (const row of insp.exterior_checklist || []) {
+          const component = (row as { component?: string; area?: string }).component
+            || (row as { area?: string }).area
+            || '';
+          if (!component) continue;
+          nextExterior[component] = row.condition || 'OK';
+          if (row.photo) nextExteriorPhotos[component] = row.photo;
+        }
+        setExteriorConditions(nextExterior);
+        setExteriorItemPhotos(nextExteriorPhotos);
+
+        const nextInterior = defaultOkConditions(interiorAreas);
+        const nextInteriorPhotos: Record<string, string | undefined> = {};
+        for (const row of insp.interior_checklist || []) {
+          const component = (row as { component?: string; area?: string }).component
+            || (row as { area?: string }).area
+            || '';
+          if (!component) continue;
+          nextInterior[component] = row.condition || 'OK';
+          if ((row as { photo?: string }).photo) {
+            nextInteriorPhotos[component] = (row as { photo?: string }).photo;
+          }
+        }
+        setInteriorConditions(nextInterior);
+        setInteriorItemPhotos(nextInteriorPhotos);
+
+        const nextTires = defaultOkConditions(tirePositions);
+        const nextTirePhotos: Record<string, string | undefined> = {};
+        const nextTread: Record<string, number | undefined> = {};
+        const nextPressure: Record<string, number | undefined> = {};
+        for (const row of insp.tires_checklist || []) {
+          const stored = (row as { position?: string }).position || '';
+          const label = TIRE_POSITION_REVERSE[stored] || stored;
+          if (!label) continue;
+          nextTires[label] = (row as { tire_condition?: string; condition?: string }).tire_condition
+            || row.condition
+            || 'OK';
+          if ((row as { photo?: string }).photo) nextTirePhotos[label] = (row as { photo?: string }).photo;
+          if ((row as { tread_depth_mm?: number }).tread_depth_mm != null) {
+            nextTread[label] = Number((row as { tread_depth_mm?: number }).tread_depth_mm);
+          }
+          if ((row as { tire_pressure_psi?: number; pressure_psi?: number }).tire_pressure_psi != null
+            || (row as { pressure_psi?: number }).pressure_psi != null) {
+            nextPressure[label] = Number(
+              (row as { tire_pressure_psi?: number }).tire_pressure_psi
+              ?? (row as { pressure_psi?: number }).pressure_psi
+            );
+          }
+        }
+        setTireConditions(nextTires);
+        setTireItemPhotos(nextTirePhotos);
+        setTireTreadDepth(nextTread);
+        setTirePressure(nextPressure);
+
+        const complaintRows = (insp.customer_complaints || [])
+          .map((c) => ({
+            text: htmlToPlainText(c.customer_exact_words || c.complaint || ''),
+            category: c.symptom_category || c.category || DEFAULT_SYMPTOM_CATEGORY,
+            severity: c.severity || DEFAULT_COMPLAINT_SEVERITY,
+          }))
+          .filter((c) => c.text);
+        setComplaints(
+          complaintRows.length
+            ? complaintRows
+            : [{ text: '', category: DEFAULT_SYMPTOM_CATEGORY, severity: DEFAULT_COMPLAINT_SEVERITY }]
+        );
+
+        if (insp.vin_chassis) {
+          await handleVinSelect(insp.vin_chassis);
+        }
+        setHydratedId(insp.name);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        toast.error(err instanceof Error ? err.message : 'Failed to load draft inspection');
+        navigate('inspections');
+      })
+      .finally(() => {
+        if (!cancelled) setDraftLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per draft id
+  }, [resumeId, hydratedId]);
 
   const vinFromReturn = viewParams.get('vin');
 
@@ -494,6 +674,7 @@ export default function NewInspectionPage() {
   const goToNewVehicle = () => {
     const params: Record<string, string> = { returnTo: 'inspection-new' };
     if (appointmentId) params.appointment = appointmentId;
+    if (draftName) params.draft = draftName;
     navigate('vehicle-new', params);
   };
 
@@ -597,11 +778,86 @@ export default function NewInspectionPage() {
     exteriorViewPhotos.left ||
     exteriorViewPhotos.right;
 
+  function buildInspectionPayload(asDraft: boolean) {
+    const filledComplaints = complaints.filter((c) => c.text.trim());
+    return {
+      customer: selectedCustomer || undefined,
+      vin_chassis: selectedVehicle || undefined,
+      customer_vehicle: customerVehicle || undefined,
+      service_advisor: serviceAdvisor || undefined,
+      license_plate: licensePlate,
+      odometer: currentOdometer,
+      odometer_unit: odometerUnit,
+      odometer_photo: odometerPhoto,
+      fuel_level: fuelLevel,
+      fuel_photo: fuelPhoto,
+      dashboard_photo: dashboardPhoto,
+      exterior_photos: firstExteriorViewPhoto(),
+      exterior_view_photos: exteriorViewPhotos,
+      appointment: appointmentId || undefined,
+      company,
+      customer_present: customerPresent ? 1 : 0,
+      received_from_name: customerPresent ? '' : (receivedFromName || ''),
+      received_from_phone: customerPresent
+        ? ''
+        : receivedFromPhone
+          ? `${receivedFromPhoneCountry}${receivedFromPhone.replace(/^0+/, '')}`
+          : '',
+      received_from_relationship: customerPresent ? '' : (receivedFromRelationship || ''),
+      warning_lights: selectedWarnings.length > 0 ? selectedWarnings : undefined,
+      scan_performed: scanPerformed ? 1 : 0,
+      exterior_checklist: exteriorAreas.map((area) => ({
+        component: area,
+        condition: exteriorConditions[area] || 'OK',
+        photo: exteriorItemPhotos[area],
+      })),
+      interior_checklist: interiorAreas.map((area) => ({
+        component: area,
+        condition: interiorConditions[area] || 'OK',
+        photo: interiorItemPhotos[area],
+      })),
+      tires_checklist: tirePositions.map((position) => ({
+        position: TIRE_POSITION_MAP[position] || position,
+        tire_condition: tireConditions[position] || 'OK',
+        tread_depth_mm: tireTreadDepth[position],
+        tire_pressure_psi: tirePressure[position],
+        photo: tireItemPhotos[position],
+      })),
+      customer_complaints: filledComplaints.map((c) => ({
+        customer_exact_words: c.text.trim(),
+        symptom_category: c.category,
+        severity: c.severity,
+      })),
+      customer_signature: customerSignatureUrl,
+      advisor_signature: advisorSignatureUrl,
+      terms_accepted: termsAccepted ? 1 : 0,
+      as_draft: asDraft ? 1 : 0,
+    };
+  }
+
   async function handleSaveDraft() {
+    if (!selectedCustomer && !selectedVehicle) {
+      toast.error('Select at least a customer or vehicle before saving a draft');
+      return;
+    }
     setIsSaving(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      toast.success('Draft saved');
+      const payload = buildInspectionPayload(true);
+      const result = draftName
+        ? await inspectionsSvc.updateInspection(draftName, payload)
+        : await createInspection(payload);
+      setDraftName(result.name);
+      setHydratedId(result.name);
+      toast.success('Inspection saved as draft', {
+        description: result.name,
+      });
+      if (!resumeId || resumeId !== result.name) {
+        navigate('inspection-new', { id: result.name });
+      }
+    } catch (err) {
+      toast.error('Failed to save draft', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -679,58 +935,20 @@ export default function NewInspectionPage() {
 
     setIsSubmitting(true);
     try {
-      const formData = {
-        customer: selectedCustomer,
-        vin_chassis: selectedVehicle,
-        customer_vehicle: customerVehicle,
-        service_advisor: serviceAdvisor,
-        license_plate: licensePlate,
-        odometer: currentOdometer,
-        odometer_unit: odometerUnit,
-        odometer_photo: odometerPhoto,
-        fuel_level: fuelLevel,
-        fuel_photo: fuelPhoto,
-        dashboard_photo: dashboardPhoto,
-        exterior_photos: firstExteriorViewPhoto(),
-        exterior_view_photos: exteriorViewPhotos,
-        appointment: appointmentId || undefined,
-        company,
-        customer_present: customerPresent,
-        warning_lights: selectedWarnings,
-        scan_performed: scanPerformed ? 1 : 0,
-        exterior_checklist: exteriorAreas.map((area) => ({
-          component: area,
-          condition: exteriorConditions[area] || 'OK',
-          photo: exteriorItemPhotos[area],
-        })),
-        interior_checklist: interiorAreas.map((area) => ({
-          component: area,
-          condition: interiorConditions[area] || 'OK',
-          photo: interiorItemPhotos[area],
-        })),
-        tires_checklist: tirePositions.map((position) => ({
-          position: TIRE_POSITION_MAP[position] || position,
-          tire_condition: tireConditions[position] || 'OK',
-          tread_depth_mm: tireTreadDepth[position],
-          tire_pressure_psi: tirePressure[position],
-          photo: tireItemPhotos[position],
-        })),
-        customer_complaints: filledComplaints.map((c) => ({
-          customer_exact_words: c.text.trim(),
-          symptom_category: c.category,
-          severity: c.severity,
-        })),
-        customer_signature: customerSignatureUrl,
-        advisor_signature: advisorSignatureUrl,
-        terms_accepted: 1,
-      };
-      await createInspection(formData);
+      const payload = buildInspectionPayload(false);
+      if (draftName) {
+        await inspectionsSvc.updateInspection(draftName, payload);
+      } else {
+        await createInspection(payload);
+      }
       toast.success('Inspection submitted successfully', {
         description: 'You can now create a job card.',
       });
       navigate('inspections');
-    } catch {
-      toast.error('Failed to submit inspection');
+    } catch (err) {
+      toast.error('Failed to submit inspection', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -866,15 +1084,47 @@ export default function NewInspectionPage() {
                 <div className="grid gap-4 rounded-lg border bg-muted/30 p-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Received From (Name)</Label>
-                    <Input placeholder="Name" />
+                    <Input
+                      placeholder="Name"
+                      value={receivedFromName}
+                      onChange={(e) => setReceivedFromName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Phone</Label>
-                    <Input type="tel" placeholder="Phone" />
+                    <div className="flex gap-2">
+                      <Select
+                        value={receivedFromPhoneCountry}
+                        onValueChange={setReceivedFromPhoneCountry}
+                      >
+                        <SelectTrigger className="w-[7.5rem] shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="+251">+251</SelectItem>
+                          <SelectItem value="+254">+254</SelectItem>
+                          <SelectItem value="+255">+255</SelectItem>
+                          <SelectItem value="+971">+971</SelectItem>
+                          <SelectItem value="+966">+966</SelectItem>
+                          <SelectItem value="+1">+1</SelectItem>
+                          <SelectItem value="+44">+44</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="tel"
+                        placeholder="9xx xxx xxx"
+                        className="flex-1"
+                        value={receivedFromPhone}
+                        onChange={(e) => setReceivedFromPhone(e.target.value)}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Relationship</Label>
-                    <Select>
+                    <Select
+                      value={receivedFromRelationship || undefined}
+                      onValueChange={setReceivedFromRelationship}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -883,6 +1133,7 @@ export default function NewInspectionPage() {
                         <SelectItem value="Family Member">Family Member</SelectItem>
                         <SelectItem value="Fleet Manager">Fleet Manager</SelectItem>
                         <SelectItem value="Towing Company">Towing Company</SelectItem>
+                        <SelectItem value="Insurance Adjuster">Insurance Adjuster</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1459,18 +1710,27 @@ export default function NewInspectionPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">New Vehicle Inspection</h1>
+            <h1 className="text-2xl font-bold">
+              {draftName ? 'Continue Vehicle Inspection' : 'New Vehicle Inspection'}
+            </h1>
             <p className="text-sm text-muted-foreground">
+              {draftName ? `${draftName} · ` : ''}
               Step {currentStep} of {steps.length}: {steps[currentStep - 1].name}
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
+        <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving || isSubmitting || draftLoading}>
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Save Draft
+          Save as Draft
         </Button>
       </div>
 
+      {draftLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
       {/* Progress */}
       <div className="space-y-2">
         <Progress value={progress} className="h-2" />
@@ -1513,11 +1773,13 @@ export default function NewInspectionPage() {
 
       {/* Step Content */}
       {renderStep()}
+        </>
+      )}
     </div>
 
       <FormActionsBar align="between">
         {currentStep === 1 ? (
-          <Button variant="outline" className="min-w-0 w-full sm:w-auto" onClick={() => navigate('inspections')}>
+          <Button variant="outline" className="min-w-0 w-full sm:w-auto" onClick={() => navigate('inspections')} disabled={draftLoading}>
             Cancel
           </Button>
         ) : (
@@ -1525,6 +1787,7 @@ export default function NewInspectionPage() {
             variant="outline"
             className="min-w-0 w-full sm:w-auto"
             onClick={() => setCurrentStep(currentStep - 1)}
+            disabled={draftLoading}
           >
             <ArrowLeft className="mr-2 h-4 w-4 shrink-0" />
             <span className="truncate">Previous</span>
@@ -1532,24 +1795,54 @@ export default function NewInspectionPage() {
         )}
 
         {currentStep < steps.length ? (
-          <Button className="min-w-0 w-full sm:w-auto" onClick={() => setCurrentStep(currentStep + 1)}>
-            <span className="truncate">Next</span>
-            <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
-          </Button>
-        ) : (
-          <Button className="min-w-0 w-full sm:w-auto" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
+          <div className="flex min-w-0 w-full sm:w-auto flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              className="min-w-0 w-full sm:w-auto"
+              onClick={handleSaveDraft}
+              disabled={isSaving || isSubmitting || draftLoading}
+            >
+              {isSaving ? (
                 <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
-                <span className="truncate">Submitting...</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4 shrink-0" />
-                <span className="truncate">Submit</span>
-              </>
-            )}
-          </Button>
+              ) : (
+                <Save className="mr-2 h-4 w-4 shrink-0" />
+              )}
+              <span className="truncate">Save as Draft</span>
+            </Button>
+            <Button className="min-w-0 w-full sm:w-auto" onClick={() => setCurrentStep(currentStep + 1)}>
+              <span className="truncate">Next</span>
+              <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex min-w-0 w-full sm:w-auto flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              className="min-w-0 w-full sm:w-auto"
+              onClick={handleSaveDraft}
+              disabled={isSaving || isSubmitting || draftLoading}
+            >
+              {isSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4 shrink-0" />
+              )}
+              <span className="truncate">Save as Draft</span>
+            </Button>
+            <Button className="min-w-0 w-full sm:w-auto" onClick={handleSubmit} disabled={isSubmitting || isSaving || draftLoading}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
+                  <span className="truncate">Submitting...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="truncate">Submit</span>
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </FormActionsBar>
     </>

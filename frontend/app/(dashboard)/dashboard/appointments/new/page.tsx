@@ -498,10 +498,15 @@ export default function NewAppointmentPage() {
           if (!asDraft && existing && Number(existing.docstatus) === 0) {
             await appointmentsSvc.confirmAppointment(editId);
             toast.success('Appointment updated and confirmed');
+            navigate('appointment-detail', { id: editId });
+          } else if (asDraft) {
+            toast.success('Appointment saved as draft', {
+              description: editId,
+            });
           } else {
             toast.success('Appointment updated');
+            navigate('appointment-detail', { id: editId });
           }
-          navigate('appointment-detail', { id: editId });
         } finally {
           setIsUpdating(false);
         }
@@ -518,13 +523,13 @@ export default function NewAppointmentPage() {
         toast.success('Appointment saved as draft', {
           description: result.name,
         });
+        navigate('appointment-new', { id: result.name });
       } else {
         toast.success('Appointment created successfully', {
           description: 'The appointment has been confirmed.',
         });
+        navigate('appointments');
       }
-
-      navigate('appointments');
     } catch (err) {
       toast.error(
         isEdit
@@ -579,10 +584,22 @@ export default function NewAppointmentPage() {
             <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{isEdit ? 'Edit Appointment' : 'New Appointment'}</h1>
+          <h1 className="text-2xl font-bold">
+            {isEdit
+              ? Number(existing?.docstatus) === 0 &&
+                (existing?.status === 'Draft' || !existing?.status)
+                ? 'Continue Appointment'
+                : 'Edit Appointment'
+              : 'New Appointment'}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {isEdit
-              ? existing?.name || 'Update this service appointment'
+              ? Number(existing?.docstatus) === 0 &&
+                (existing?.status === 'Draft' || !existing?.status)
+                ? existing?.name
+                  ? `Resume draft ${existing.name}`
+                  : 'Resume this draft appointment'
+                : existing?.name || 'Update this service appointment'
               : 'Schedule a new service appointment'}
           </p>
         </div>

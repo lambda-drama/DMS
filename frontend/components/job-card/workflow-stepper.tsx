@@ -82,12 +82,15 @@ export function WorkflowStepper({
   docstatus,
   editMode = false,
   onStageClick,
+  onContinueDraft,
 }: {
   status: JobCardStatus;
   jobCardType?: string;
   docstatus?: number;
   editMode?: boolean;
   onStageClick?: (stageKey: string) => void;
+  /** When status is Draft, clicking the progress bar continues editing the form. */
+  onContinueDraft?: () => void;
 }) {
   const workflowStatus = resolveJobCardWorkflowStatus(status, docstatus);
   const isInternal = jobCardType === "Internal";
@@ -96,8 +99,66 @@ export function WorkflowStepper({
     ? getInternalStageIndex(workflowStatus)
     : getCustomerStageIndex(workflowStatus);
 
-  if (workflowStatus === "Draft" || workflowStatus === "Cancelled") {
+  if (workflowStatus === "Cancelled") {
     return null;
+  }
+
+  if (workflowStatus === "Draft") {
+    const draftStages = isInternal
+      ? ["Draft", "Repair", "Road Test", "QC", "Done"]
+      : ["Draft", "Estimate", "Approval", "Repair", "Road Test", "QC", "Done"];
+    return (
+      <Card className="min-w-0 overflow-hidden">
+        <CardContent className="p-4">
+          <button
+            type="button"
+            onClick={() => onContinueDraft?.()}
+            disabled={!onContinueDraft}
+            title={onContinueDraft ? "Continue editing draft job card" : undefined}
+            className={`dms-tabs-scroll flex w-full items-center justify-between rounded-md p-1 text-left ${
+              onContinueDraft
+                ? "cursor-pointer hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                : "cursor-default"
+            }`}
+          >
+            {draftStages.map((label, index) => (
+              <div key={label} className="flex items-center">
+                <div className="flex min-w-[72px] flex-col items-center gap-1.5">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                      index === 0
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-muted bg-muted/30 text-muted-foreground"
+                    }`}
+                  >
+                    {index === 0 ? (
+                      <ClipboardList className="h-5 w-5" />
+                    ) : (
+                      <Clock className="h-5 w-5" />
+                    )}
+                  </div>
+                  <span
+                    className={`text-center text-xs font-medium ${
+                      index === 0 ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                </div>
+                {index < draftStages.length - 1 ? (
+                  <div className="mx-1 h-0.5 w-8 bg-muted" />
+                ) : null}
+              </div>
+            ))}
+          </button>
+          {onContinueDraft ? (
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              Draft — click the progress bar to continue editing
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

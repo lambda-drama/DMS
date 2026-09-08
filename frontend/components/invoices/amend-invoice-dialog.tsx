@@ -9,13 +9,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { DecimalInput } from '@/components/ui/decimal-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, FilePenLine } from 'lucide-react';
+import { Loader2, FilePenLine, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePermissions } from '@/contexts/permissions-context';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
 import {
   groupDiscountAmount,
@@ -51,6 +62,8 @@ interface AmendInvoiceDialogProps {
   onAmended?: (draftName: string) => void;
   /** Fired after save/submit when the modal is closing. */
   onSaved?: (invoiceName: string) => void;
+  /** Fired when a draft is deleted. */
+  onDeleted?: (invoiceName: string) => void;
 }
 
 export function AmendInvoiceDialog({
@@ -59,9 +72,13 @@ export function AmendInvoiceDialog({
   salesInvoice,
   onAmended,
   onSaved,
+  onDeleted,
 }: AmendInvoiceDialogProps) {
+  const { canDelete } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [invoice, setInvoice] = useState<SalesInvoiceDetail | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [lines, setLines] = useState<EditableLine[]>([]);
@@ -69,6 +86,9 @@ export function AmendInvoiceDialog({
   const [discountMode, setDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [discountInput, setDiscountInput] = useState('');
   const [submitAfterSave, setSubmitAfterSave] = useState(false);
+
+  const canDeleteDraft =
+    isEditMode && canDelete('invoices') && Boolean(invoice) && invoice?.docstatus === 0;
 
   useEffect(() => {
     if (!open || !salesInvoice) return;
@@ -207,7 +227,25 @@ export function AmendInvoiceDialog({
     }
   };
 
+  const handleDelete = async () => {
+    if (!invoice?.name || !canDeleteDraft) return;
+    setDeleting(true);
+    try {
+      const name = invoice.name;
+      await invoicesSvc.deleteDraftSalesInvoice(name);
+      toast.success('Draft invoice deleted');
+      setShowDeleteDialog(false);
+      onOpenChange(false);
+      onDeleted?.(name);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete invoice');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
@@ -340,24 +378,72 @@ export function AmendInvoiceDialog({
           </div>
         ) : null}
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Close
-          </Button>
-          <Button type="button" onClick={() => void handleSave()} disabled={loading || saving || !invoice}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : submitAfterSave ? (
-              'Save & submit'
-            ) : (
-              'Save draft'
-            )}
-          </Button>
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+          {canDeleteDraft ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="border-destructive/50 text-destructive hover:bg-destructive/10 sm:mr-auto"
+              disabled={loading || saving || deleting}
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete draft
+            </Button>
+          ) : (
+            <span className="hidden sm:block sm:mr-auto" />
+          )}
+          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving || deleting}>
+              Close
+            </Button>
+            <Button type="button" onClick={() => void handleSave()} disabled={loading || saving || deleting || !invoice}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : submitAfterSave ? (
+                'Save & submit'
+              ) : (
+                'Save draft'
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete draft invoice</AlertDialogTitle>
+          <AlertDialogDescription>
+            Permanently delete draft <strong>{invoice?.name}</strong>? This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleting}>Keep draft</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={deleting}
+            onClick={(e) => {
+              e.preventDefault();
+              void handleDelete();
+            }}
+          >
+            {deleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting…
+              </>
+            ) : (
+              'Delete draft'
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

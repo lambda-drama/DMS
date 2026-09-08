@@ -48,6 +48,7 @@ import {
   XCircle,
   Loader2,
   FilePenLine,
+  Trash2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -97,8 +98,11 @@ export default function InvoicesPage() {
   const [cancelling, setCancelling] = useState(false);
   const [showAmendDialog, setShowAmendDialog] = useState(false);
   const [amendInvoiceId, setAmendInvoiceId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
-  const { canCancel, canCreate, canWrite } = usePermissions();
+  const { canCancel, canCreate, canWrite, canDelete } = usePermissions();
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -141,6 +145,10 @@ export default function InvoicesPage() {
     inv: Pick<SalesInvoiceListItem, "docstatus" | "status">
   ) => (canCreate("invoices") || canWrite("invoices")) && isDraftInvoice(inv);
 
+  const canDeleteDraftFor = (
+    inv: Pick<SalesInvoiceListItem, "docstatus" | "status">
+  ) => canDelete("invoices") && isDraftInvoice(inv);
+
   const canAmendCancelledFor = (
     inv: Pick<SalesInvoiceListItem, "docstatus" | "status" | "already_amended">
   ) => {
@@ -154,6 +162,7 @@ export default function InvoicesPage() {
   const canCollectPayment = invoiceDetail ? canCollectFor(invoiceDetail) : false;
   const canCancelInvoice = invoiceDetail ? canCancelFor(invoiceDetail) : false;
   const canEditDraftInvoice = invoiceDetail ? canEditDraftFor(invoiceDetail) : false;
+  const canDeleteDraftInvoice = invoiceDetail ? canDeleteDraftFor(invoiceDetail) : false;
   const canAmendCancelledInvoice = invoiceDetail
     ? canAmendCancelledFor(invoiceDetail)
     : false;
@@ -174,6 +183,11 @@ export default function InvoicesPage() {
     setInvoiceDetail(null);
     setAmendInvoiceId(invoiceName);
     setShowAmendDialog(true);
+  };
+
+  const openDeleteInvoice = (invoiceName: string) => {
+    setDeleteInvoiceId(invoiceName);
+    setShowDeleteDialog(true);
   };
 
   const refreshAfterInvoiceAction = async (invoiceName: string) => {
@@ -202,6 +216,31 @@ export default function InvoicesPage() {
       toast.error(err instanceof Error ? err.message : "Failed to cancel invoice");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleDeleteInvoice = async () => {
+    const target = deleteInvoiceId ?? selectedId;
+    if (!target) return;
+    setDeleting(true);
+    try {
+      await invoicesSvc.deleteDraftSalesInvoice(target);
+      toast.success("Draft invoice deleted");
+      setShowDeleteDialog(false);
+      setDeleteInvoiceId(null);
+      if (selectedId === target) {
+        setSelectedId(null);
+        setInvoiceDetail(null);
+      }
+      await mutate(
+        (key) => Array.isArray(key) && key[0] === "invoices",
+        undefined,
+        { revalidate: true }
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete invoice");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -452,6 +491,15 @@ export default function InvoicesPage() {
                                     Edit invoice
                                   </DropdownMenuItem>
                                 ) : null}
+                                {canDeleteDraftFor(invoice) ? (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => openDeleteInvoice(invoice.name)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete draft
+                                  </DropdownMenuItem>
+                                ) : null}
                                 {canAmendCancelledFor(invoice) ? (
                                   <DropdownMenuItem onClick={() => openInvoiceEditor(invoice.name)}>
                                     <FilePenLine className="h-4 w-4 mr-2" />
@@ -516,6 +564,16 @@ export default function InvoicesPage() {
                 >
                   <FilePenLine className="h-4 w-4 mr-2" />
                   Edit Invoice
+                </Button>
+              ) : null}
+              {canDeleteDraftInvoice && selectedId ? (
+                <Button
+                  variant="outline"
+                  className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={() => openDeleteInvoice(selectedId)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Draft
                 </Button>
               ) : null}
               {canAmendCancelledInvoice && selectedId ? (
@@ -701,6 +759,44 @@ export default function InvoicesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          setShowDeleteDialog(open);
+          if (!open) setDeleteInvoiceId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete draft invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Permanently delete draft <strong>{deleteInvoiceId ?? selectedId}</strong>? This cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Keep draft</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteInvoice();
+              }}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete draft"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {(paymentInvoiceId ?? selectedId) && (
         <CollectPaymentDialog
           open={showPaymentDialog}
@@ -733,6 +829,11 @@ export default function InvoicesPage() {
             void mutate((key) => Array.isArray(key) && key[0] === "invoices");
             setSelectedId(invoiceName);
             void invoicesSvc.getSalesInvoiceDetail(invoiceName).then(setInvoiceDetail);
+          }}
+          onDeleted={() => {
+            setSelectedId(null);
+            setInvoiceDetail(null);
+            void mutate((key) => Array.isArray(key) && key[0] === "invoices");
           }}
         />
       ) : null}
