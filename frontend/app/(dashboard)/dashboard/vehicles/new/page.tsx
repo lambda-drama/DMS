@@ -48,6 +48,7 @@ export default function NewVehiclePage() {
   const returnTo = viewParams.get("returnTo");
   const returnAppointment = viewParams.get("appointment");
   const returnAppointmentId = viewParams.get("appointmentId");
+  const returnDraft = viewParams.get("draft");
   const vinDraft = viewParams.get("vinDraft");
   const companyDraft = viewParams.get("company");
 
@@ -80,6 +81,7 @@ export default function NewVehiclePage() {
     if (returnTarget.view === "inspection-new") {
       const params: Record<string, string> = {};
       if (returnAppointment) params.appointment = returnAppointment;
+      if (returnDraft) params.id = returnDraft;
       if (vinDocName) params.vin = vinDocName;
       navigate("inspection-new", params);
       return;

@@ -2162,6 +2162,44 @@ def mark_sales_order_as_spare_part_proforma(so) -> None:
 		so.custom_spare_parts_proforma = 1
 
 
+def ensure_sales_order_vehicle_vin_field() -> None:
+	"""Ensure Sales Order has a durable VIN link for DMS proformas."""
+	if frappe.db.exists("Custom Field", {"dt": "Sales Order", "fieldname": "custom_dms_vehicle_vin"}):
+		return
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+	create_custom_fields(
+		{
+			"Sales Order": [
+				{
+					"fieldname": "custom_dms_vehicle_vin",
+					"label": "DMS Vehicle VIN",
+					"fieldtype": "Link",
+					"options": "VIN No",
+					"insert_after": "custom_spare_parts_proforma",
+					"depends_on": "eval:doc.custom_spare_parts_proforma",
+				}
+			]
+		},
+		update=True,
+	)
+
+
+def set_sales_order_vehicle_vin(so, vehicle_vin: str | None) -> None:
+	ensure_sales_order_vehicle_vin_field()
+	if frappe.get_meta("Sales Order").has_field("custom_dms_vehicle_vin"):
+		so.custom_dms_vehicle_vin = (vehicle_vin or "").strip() or None
+
+
+def get_sales_order_vehicle_vin(so) -> str | None:
+	ensure_sales_order_vehicle_vin_field()
+	if frappe.get_meta("Sales Order").has_field("custom_dms_vehicle_vin"):
+		vin = (so.get("custom_dms_vehicle_vin") or "").strip()
+		if vin:
+			return vin
+	return None
+
+
 def _apply_standalone_stock_warehouse_so(so_row, erp_item: str, warehouse: str, company: str) -> None:
 	"""Set warehouse on Sales Order item row for stock spare parts."""
 	if not cint(frappe.db.get_value("Item", erp_item, "is_stock_item")):
@@ -2198,8 +2236,10 @@ def create_standalone_dms_sales_order(
 	submit: bool = False,
 	labour_discount=None,
 	parts_discount=None,
+	existing_name: str | None = None,
+	vehicle_vin: str | None = None,
 ) -> str:
-	"""Create a Sales Order for DMS proforma (labour and/or spare parts)."""
+	"""Create or update a Sales Order for DMS proforma (labour and/or spare parts)."""
 	_ensure_erpnext()
 
 	customer = (customer or "").strip()
@@ -2214,6 +2254,10 @@ def create_standalone_dms_sales_order(
 	labour_lines = labour_lines or []
 	parts_lines = parts_lines or []
 	warehouse = (warehouse or "").strip()
+	existing_name = (existing_name or "").strip() or None
+	vehicle_vin = (vehicle_vin or "").strip() or None
+	# Create VIN custom field before loading/building the Sales Order doc.
+	ensure_sales_order_vehicle_vin_field()
 
 	# Discounts reduce line rates — allowed without Edit Price. Only direct
 	# unit-price/rate edits (no discounts) require Edit Price permission.
@@ -2256,16 +2300,30 @@ def create_standalone_dms_sales_order(
 			title=_("Warehouse required"),
 		)
 
-	so = frappe.new_doc("Sales Order")
-	so.company = company
-	so.customer = customer
-	so.transaction_date = transaction_date or today()
-	so.delivery_date = delivery_date or so.transaction_date
-	if remarks and frappe.get_meta("Sales Order").has_field("remarks"):
-		so.remarks = remarks
+	if existing_name:
+		so = frappe.get_doc("Sales Order", existing_name)
+		if so.docstatus != 0:
+			frappe.throw(_("Only draft proformas can be edited."))
+		so.check_permission("write")
+		so.company = company
+		so.customer = customer
+		so.transaction_date = transaction_date or so.transaction_date or today()
+		so.delivery_date = delivery_date or so.delivery_date or so.transaction_date
+		if frappe.get_meta("Sales Order").has_field("remarks"):
+			so.remarks = remarks or ""
+		so.set("items", [])
+	else:
+		so = frappe.new_doc("Sales Order")
+		so.company = company
+		so.customer = customer
+		so.transaction_date = transaction_date or today()
+		so.delivery_date = delivery_date or so.transaction_date
+		if remarks and frappe.get_meta("Sales Order").has_field("remarks"):
+			so.remarks = remarks
 	mark_sales_order_as_spare_part_proforma(so)
+	set_sales_order_vehicle_vin(so, vehicle_vin)
 
-	order_currency = (currency or "ETB").strip() or "ETB"
+	order_currency = (currency or so.currency or "ETB").strip() or "ETB"
 	if not frappe.db.exists("Currency", order_currency):
 		frappe.throw(_("Currency {0} is not defined in ERPNext.").format(frappe.bold(order_currency)))
 	so.currency = order_currency
@@ -2395,9 +2453,47 @@ def create_standalone_dms_sales_order(
 			item_row.discount_amount = 0
 
 	so.run_method("calculate_taxes_and_totals")
-	so.insert()
+	if existing_name:
+		so.save()
+	else:
+		so.insert()
 
 	if submit:
 		so.submit()
 
 	return so.name
+
+
+def update_standalone_dms_sales_order(
+	name: str,
+	customer: str,
+	company: str,
+	labour_lines=None,
+	parts_lines=None,
+	warehouse: str | None = None,
+	currency: str | None = "ETB",
+	delivery_date: str | None = None,
+	transaction_date: str | None = None,
+	remarks: str | None = None,
+	submit: bool = False,
+	labour_discount=None,
+	parts_discount=None,
+	vehicle_vin: str | None = None,
+) -> str:
+	"""Update a draft DMS proforma Sales Order (same payload as create)."""
+	return create_standalone_dms_sales_order(
+		customer=customer,
+		company=company,
+		labour_lines=labour_lines,
+		parts_lines=parts_lines,
+		warehouse=warehouse,
+		currency=currency,
+		delivery_date=delivery_date,
+		transaction_date=transaction_date,
+		remarks=remarks,
+		submit=submit,
+		labour_discount=labour_discount,
+		parts_discount=parts_discount,
+		existing_name=name,
+		vehicle_vin=vehicle_vin,
+	)

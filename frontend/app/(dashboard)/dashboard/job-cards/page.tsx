@@ -194,7 +194,11 @@ function WorkflowProgress({
       type="button"
       onClick={onOpen}
       className="rounded-md p-1 -m-1 text-left transition-colors hover:bg-muted/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-      title="Open job card to continue workflow"
+      title={
+        workflowStatus === "Draft"
+          ? "Continue editing draft job card"
+          : "Open job card to continue workflow"
+      }
     >
       {bar}
     </button>
@@ -463,6 +467,14 @@ export default function JobCardsPage() {
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Open Job Card
                                 </DropdownMenuItem>
+                                {jc.status === "Draft" ? (
+                                  <DropdownMenuItem
+                                    onClick={() => navigate("job-card-new", { id: jc.name })}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Continue Editing
+                                  </DropdownMenuItem>
+                                ) : null}
                                 {canCreateRepeatJob(jc) ? (
                                   <DropdownMenuItem onClick={() => openRepeatDialog(jc)}>
                                     <RotateCcw className="mr-2 h-4 w-4" />
@@ -591,7 +603,11 @@ export default function JobCardsPage() {
                         <WorkflowProgress
                           status={jc.status}
                           docstatus={jc.docstatus}
-                          onOpen={() => navigate("job-card-detail", { id: jc.name })}
+                          onOpen={() =>
+                            jc.status === "Draft"
+                              ? navigate("job-card-new", { id: jc.name })
+                              : navigate("job-card-detail", { id: jc.name })
+                          }
                         />
                       </TableCell>
                       <TableCell>
@@ -616,6 +632,12 @@ export default function JobCardsPage() {
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
+                              {jc.status === "Draft" ? (
+                                <DropdownMenuItem onClick={() => navigate("job-card-new", { id: jc.name })}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Continue Editing
+                                </DropdownMenuItem>
+                              ) : null}
                               {canCreateRepeatJob(jc) ? (
                                 <DropdownMenuItem onClick={() => openRepeatDialog(jc)}>
                                   <RotateCcw className="h-4 w-4 mr-2" />

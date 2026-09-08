@@ -375,6 +375,7 @@ export interface VehicleInspection {
   
   // Warning Lights
   warning_lights: VehicleWarningLight[];
+  warning_light_labels?: string[];
   dashboard_photo?: string;
   scan_performed: boolean;
   dtc_codes?: VehicleDTCCode[];

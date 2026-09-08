@@ -1307,10 +1307,10 @@ export default function JobCardDetailPage() {
                 <DropdownMenuContent align="end">
                   {status === "Draft" && (
                     <DropdownMenuItem
-                      onClick={() => navigate("job-card-detail", { id, mode: "edit" })}
+                      onClick={() => navigate("job-card-new", { id })}
                     >
                       <Pencil className="mr-2 h-4 w-4" />
-                      Edit
+                      Continue Editing
                     </DropdownMenuItem>
                   )}
                   {canAmendCancelled ? (
@@ -1371,6 +1371,7 @@ export default function JobCardDetailPage() {
         jobCardType={jobCard.job_card_type}
         editMode={stageEditing}
         onStageClick={handleStageClick}
+        onContinueDraft={() => navigate("job-card-new", { id })}
       />
       {stageEditing ? (
         <p className="text-sm text-muted-foreground">

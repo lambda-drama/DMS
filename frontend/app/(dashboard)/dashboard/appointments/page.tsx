@@ -49,6 +49,7 @@ import {
   MessageCircle,
   ChevronDown,
   BarChart3,
+  FilePenLine,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ListRowActions } from '@/components/list-row-actions';
@@ -78,6 +79,13 @@ function canConfirmAppointment(apt: ServiceAppointment) {
     normalizeDocstatus(apt.docstatus) === 0 &&
     !TERMINAL_STATUSES.has(apt.status) &&
     !ARRIVED_STATUSES.has(apt.status)
+  );
+}
+
+function isDraftAppointment(apt: ServiceAppointment) {
+  return (
+    normalizeDocstatus(apt.docstatus) === 0 &&
+    (apt.status === 'Draft' || !apt.status)
   );
 }
 
@@ -468,13 +476,24 @@ export default function AppointmentsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    navigate('appointment-new', { id: apt.name })
-                                  }
-                                >
-                                  Edit
-                                </DropdownMenuItem>
+                                {isDraftAppointment(apt) ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      navigate('appointment-new', { id: apt.name })
+                                    }
+                                  >
+                                    <FilePenLine className="h-4 w-4 mr-2" />
+                                    Continue Editing
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      navigate('appointment-new', { id: apt.name })
+                                    }
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 {canConfirmAppointment(apt) && (
                                   <DropdownMenuItem
@@ -679,9 +698,16 @@ export default function AppointmentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate('appointment-new', { id: apt.name })}>
-                                Edit
-                              </DropdownMenuItem>
+                              {isDraftAppointment(apt) ? (
+                                <DropdownMenuItem onClick={() => navigate('appointment-new', { id: apt.name })}>
+                                  <FilePenLine className="h-4 w-4 mr-2" />
+                                  Continue Editing
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => navigate('appointment-new', { id: apt.name })}>
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               {canConfirmAppointment(apt) && (
                                 <DropdownMenuItem
@@ -917,6 +943,18 @@ export default function AppointmentsPage() {
               </DetailSection>
             )}
             <div className="flex flex-wrap justify-end gap-2 pt-2">
+              {selectedAppointment && isDraftAppointment(selectedAppointment) && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setSelectedId(null);
+                    navigate('appointment-new', { id: selectedAppointment.name });
+                  }}
+                >
+                  <FilePenLine className="mr-2 h-4 w-4" />
+                  Continue Editing
+                </Button>
+              )}
               {selectedAppointment && canConfirmAppointment(selectedAppointment) && (
                 <Button
                   size="sm"

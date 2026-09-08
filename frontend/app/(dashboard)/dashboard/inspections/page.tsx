@@ -248,7 +248,7 @@ export default function InspectionsPage() {
                                 {normalizeInspectionDocstatus(insp.docstatus) === 0 && (
                                   <DropdownMenuItem
                                     onClick={() =>
-                                      navigate('inspection-detail', { id: insp.name, mode: 'edit' })
+                                      navigate('inspection-new', { id: insp.name })
                                     }
                                   >
                                     Continue Editing
@@ -446,7 +446,7 @@ export default function InspectionsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {normalizeInspectionDocstatus(insp.docstatus) === 0 && (
-                                <DropdownMenuItem onClick={() => navigate('inspection-detail', { id: insp.name, mode: 'edit' })}>
+                                <DropdownMenuItem onClick={() => navigate('inspection-new', { id: insp.name })}>
                                   Continue Editing
                                 </DropdownMenuItem>
                               )}

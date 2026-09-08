@@ -36,7 +36,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, AlertTriangle, FileText, Receipt, Trash2, User, Wrench } from "lucide-react";
+import {
+  ArrowLeft,
+  AlertTriangle,
+  FileText,
+  Loader2,
+  Receipt,
+  Save,
+  Trash2,
+  User,
+  Wrench,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchLabourRate,
@@ -156,7 +166,6 @@ export default function NewInvoicePage() {
   const [postingDate, setPostingDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(defaultDueDate());
   const [remarks, setRemarks] = useState("");
-  const [submitInvoice, setSubmitInvoice] = useState(true);
   const [applyTaxes, setApplyTaxes] = useState(false);
 
   const isStandalone = !jobCardId;
@@ -576,8 +585,9 @@ export default function NewInvoicePage() {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveInvoice = async (mode: "draft" | "create") => {
+    const asDraft = mode === "draft";
+    const shouldSubmit = !asDraft;
 
     if (jobCardId) {
       setIsMutating(true);
@@ -597,15 +607,21 @@ export default function NewInvoicePage() {
         await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
           dueDate,
           postingDate,
-          submit: submitInvoice,
+          submit: shouldSubmit,
           applyTaxes,
           rateOverrides: buildRateOverridesFromRows(filledLabourRows, filledPartRows),
           excludeRows: removedUnrequested.length ? removedUnrequested : undefined,
         });
-        toast.success("Invoice created successfully");
+        toast.success(asDraft ? "Invoice saved as draft" : "Invoice created successfully");
         navigate("invoices");
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to create invoice");
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : asDraft
+              ? "Failed to save draft invoice"
+              : "Failed to create invoice"
+        );
       } finally {
         setIsMutating(false);
       }
@@ -621,7 +637,11 @@ export default function NewInvoicePage() {
       return;
     }
     if (filledLabourRows.length === 0 && filledPartRows.length === 0) {
-      toast.error("Add at least one labour or parts line");
+      toast.error(
+        asDraft
+          ? "Add at least one labour or parts line before saving a draft"
+          : "Add at least one labour or parts line"
+      );
       return;
     }
     if (filledPartRows.length > 0 && !warehouse) {
@@ -664,7 +684,7 @@ export default function NewInvoicePage() {
         posting_date: postingDate,
         due_date: dueDate,
         remarks: remarks || undefined,
-        submit: submitInvoice,
+        submit: shouldSubmit,
         labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
         parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
         labour: filledLabourRows.map((r) => ({
@@ -687,13 +707,24 @@ export default function NewInvoicePage() {
             : undefined,
         apply_taxes: applyTaxes,
       });
-      toast.success("Invoice created successfully");
+      toast.success(asDraft ? "Invoice saved as draft" : "Invoice created successfully");
       navigate("invoices");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create invoice");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : asDraft
+            ? "Failed to save draft invoice"
+            : "Failed to create invoice"
+      );
     } finally {
       setIsMutating(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveInvoice("create");
   };
 
   return (
@@ -925,16 +956,6 @@ export default function NewInvoicePage() {
                     onChange={(e) => setDueDate(e.target.value)}
                   />
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="submit_invoice"
-                  checked={submitInvoice}
-                  onCheckedChange={(c) => setSubmitInvoice(Boolean(c))}
-                />
-                <Label htmlFor="submit_invoice" className="cursor-pointer font-normal">
-                  Submit invoice in ERPNext
-                </Label>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -1242,6 +1263,24 @@ export default function NewInvoicePage() {
         <FormActionsBar>
           <Button type="button" variant="outline" onClick={() => navigate("invoices")}>
             Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isMutating}
+            onClick={() => void saveInvoice("draft")}
+          >
+            {isMutating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save as Draft
+              </>
+            )}
           </Button>
           <Button type="submit" form="new-invoice-form" disabled={isMutating}>
             <Receipt className="mr-2 h-4 w-4" />
