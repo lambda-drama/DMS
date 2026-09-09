@@ -716,6 +716,83 @@ def on_sales_invoice_cancel(doc, method=None):
 		doc.name,
 		doc.get("custom_dms_job_card") if hasattr(doc, "get") else None,
 	)
+	jc = resolve_job_card_for_sales_invoice(doc)
+	if jc:
+		_set_job_card_payment_status(jc, "Unpaid")
+
+
+def payment_status_from_sales_invoice(si) -> str:
+	"""Map Sales Invoice payment state onto DMS Job Card payment_status options."""
+	if not si or cint(getattr(si, "docstatus", 0)) == 2:
+		return "Unpaid"
+	if cint(getattr(si, "docstatus", 0)) != 1:
+		return "Unpaid"
+
+	outstanding = flt(getattr(si, "outstanding_amount", 0))
+	grand = flt(getattr(si, "grand_total", 0))
+	status = (getattr(si, "status", None) or "").strip()
+
+	if outstanding <= 0.01 or status == "Paid":
+		return "Paid"
+	if status == "Partly Paid":
+		return "Partially Paid"
+
+	paid = grand - outstanding if grand > 0 else flt(getattr(si, "paid_amount", 0))
+	if paid > 0.01 and outstanding > 0.01:
+		return "Partially Paid"
+	return "Unpaid"
+
+
+def _set_job_card_payment_status(job_card_name: str, status: str) -> None:
+	if not job_card_name or not frappe.db.exists("DMS Job Card", job_card_name):
+		return
+	if not frappe.get_meta("DMS Job Card").has_field("payment_status"):
+		return
+	current = (frappe.db.get_value("DMS Job Card", job_card_name, "payment_status") or "").strip()
+	# Never overwrite Internal billing with invoice-derived status.
+	if current == "Internal" and status != "Internal":
+		return
+	if current == status:
+		return
+	frappe.db.set_value(
+		"DMS Job Card", job_card_name, "payment_status", status, update_modified=False
+	)
+
+
+def sync_job_card_payment_status_from_invoice(
+	job_card_name: str | None = None,
+	sales_invoice: str | None = None,
+) -> str | None:
+	"""Refresh Job Card.payment_status from the linked Sales Invoice (Paid / Partially Paid / Unpaid)."""
+	jc_name = (job_card_name or "").strip() or None
+	si_name = (sales_invoice or "").strip() or None
+
+	if not jc_name and si_name and frappe.db.exists("Sales Invoice", si_name):
+		jc_name = resolve_job_card_for_sales_invoice(frappe.get_doc("Sales Invoice", si_name))
+
+	if not jc_name:
+		return None
+
+	if not si_name:
+		si_name = get_active_job_card_invoice(jc_name)
+
+	if not si_name or not frappe.db.exists("Sales Invoice", si_name):
+		_set_job_card_payment_status(jc_name, "Unpaid")
+		return "Unpaid"
+
+	si = frappe.get_doc("Sales Invoice", si_name)
+	status = payment_status_from_sales_invoice(si)
+	_set_job_card_payment_status(jc_name, status)
+	return status
+
+
+def sync_linked_job_card_payment_from_sales_invoice(doc, method=None):
+	"""Doc event: keep linked Job Card payment_status aligned with this Sales Invoice."""
+	jc = resolve_job_card_for_sales_invoice(doc)
+	if not jc:
+		return
+	status = payment_status_from_sales_invoice(doc)
+	_set_job_card_payment_status(jc, status)
 
 
 def _sync_job_card_warranty_for_invoice(

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { htmlToPlainText } from "@/lib/plain-text";
+import { getFinancialPaymentLabel } from "@/lib/financial-payment-label";
 import type { DMSJobCard, JobCardItem } from "@/types/dms";
 import { QCResultsGroupedList } from "@/components/job-card/qc-grouped-list";
 
@@ -162,7 +163,15 @@ export function JobCardDetailSheetContent({
             <DetailRow label="Parts Cost" value={jobCard.total_parts_cost?.toLocaleString()} />
             <DetailRow label="Total Amount" value={jobCard.total_amount?.toLocaleString()} />
             <DetailRow label="Approval Status" value={jobCard.customer_approval_status} />
-            <DetailRow label="Payment Status" value={jobCard.payment_status} />
+            <DetailRow
+              label="Payment Status"
+              value={getFinancialPaymentLabel({
+                jobCardType: jobCard.job_card_type,
+                paymentStatus: jobCard.payment_status,
+                warrantyApplicationType: jobCard.warranty_application_type,
+                hasActiveInvoice: Boolean(jobCard.invoice || jobCard.has_active_invoice),
+              })}
+            />
             <DetailRow label="Invoice" value={jobCard.invoice} />
           </DetailSection>
         </TabsContent>

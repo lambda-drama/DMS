@@ -778,6 +778,8 @@ export interface DMSJobCard {
   
   // Billing & Payment
   invoice?: string;
+  /** 1 when an active (non-cancelled) Sales Invoice is linked */
+  has_active_invoice?: number | boolean;
   material_issue?: string;
   wip_material_transfer?: string;
   payment_status: PaymentStatus;
