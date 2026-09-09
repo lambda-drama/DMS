@@ -29,7 +29,6 @@ def spare_record(spare_docname: str) -> dict | None:
 	if not spare_docname or not frappe.db.exists("Spare Part", spare_docname):
 		return None
 
-	print("Fetching spare record for", spare_docname)
 	return frappe.db.get_value(
 		"Spare Part",
 		spare_docname,
@@ -46,6 +45,33 @@ def spare_record(spare_docname: str) -> dict | None:
 def spare_part_erp_item_code(spare_docname: str) -> str | None:
 	row = spare_record(spare_docname)
 	return row.get("spare_part_item") if row else None
+
+
+def item_live_selling_rate(item_code: str | None) -> float:
+	"""Current selling rate from Item Price (DMS default list, then any selling list)."""
+	item_code = (item_code or "").strip()
+	if not item_code:
+		return 0.0
+
+	from dms.dealer_management_system.utils.stock_operations import (
+		get_dms_default_selling_price_list,
+		get_item_price_list_rate,
+	)
+
+	price_list = get_dms_default_selling_price_list()
+	if price_list:
+		rate = get_item_price_list_rate(item_code, price_list)
+		if rate > 0:
+			return rate
+
+	rows = frappe.get_all(
+		"Item Price",
+		filters={"item_code": item_code, "selling": 1},
+		fields=["price_list_rate"],
+		order_by="modified desc",
+		limit_page_length=1,
+	)
+	return flt(rows[0].price_list_rate) if rows else 0.0
 
 
 def spare_part_unit_cost(spare_docname: str) -> float:
@@ -79,17 +105,27 @@ def dms_spare_part_markup() -> float:
 
 
 def spare_part_default_selling_price(spare_docname: str) -> float:
-	"""Default customer unit price when line is blank."""
+	"""Default customer unit price when line is blank.
+
+	Prefer live Item Price so Job Card / Sales Invoice pick up rates updated
+	on the Item Prices screen (Spare Part.selling_price can lag behind).
+	"""
 	sp = spare_record(spare_docname)
 	if not sp:
 		return 0.0
+
+	it = sp.get("spare_part_item")
+	if it:
+		ip_rate = item_live_selling_rate(it)
+		if ip_rate > 0:
+			return round(ip_rate, 2)
+
 	if flt(sp.get("selling_price")) > 0:
 		return round(flt(sp["selling_price"]) * (1 + dms_spare_part_markup() / 100.0), 2)
 	cost = flt(sp.get("selling_price")) or flt(sp.get("last_purchase_price")) or spare_part_unit_cost(spare_docname)
 	if cost > 0 and sp.get("markup_percentage") is not None:
 		return round(cost * (1 + flt(sp["markup_percentage"]) / 100.0), 2)
 
-	it = sp.get("spare_part_item")
 	if it:
 		sr = flt(frappe.db.get_value("Item", it, "standard_rate") or 0)
 		if sr > 0:
@@ -116,7 +152,7 @@ def vehicle_service_item_estimated_hours(vsi_name: str | None) -> float:
 
 
 def vehicle_service_item_labour_rate(vsi_name: str | None) -> float:
-	"""Resolve labour rate: VSI custom_rate → ERP Item standard_rate → DMS default service fee."""
+	"""Resolve labour rate: VSI custom_rate → Item Price → ERP Item standard_rate → DMS default."""
 	if not vsi_name or not frappe.db.exists("DocType", "Vehicle Service Item"):
 		return 0.0
 
@@ -126,6 +162,9 @@ def vehicle_service_item_labour_rate(vsi_name: str | None) -> float:
 
 	item_code = resolve_vehicle_service_item_to_item_code(vsi_name)
 	if item_code:
+		ip_rate = item_live_selling_rate(item_code)
+		if ip_rate > 0:
+			return ip_rate
 		sr = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
 		if sr > 0:
 			return sr

@@ -215,6 +215,20 @@ export async function updateDraftSalesInvoice(data: {
   });
 }
 
+export async function updateJobCardPricesFromInvoice(
+  salesInvoice: string
+): Promise<{
+  sales_invoice: string;
+  job_card: string;
+  updated_lines?: number;
+  message?: string;
+}> {
+  return apiRequest(`/api/method/${API}.update_job_card_prices_from_invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ sales_invoice: salesInvoice }),
+  });
+}
+
 export async function collectPayment(params: {
   salesInvoice: string;
   modeOfPayment?: string;

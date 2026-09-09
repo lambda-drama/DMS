@@ -49,6 +49,7 @@ import {
   Loader2,
   FilePenLine,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -101,6 +102,7 @@ export default function InvoicesPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [updatingJobCardPrices, setUpdatingJobCardPrices] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
   const { canCancel, canCreate, canWrite, canDelete } = usePermissions();
 
@@ -166,6 +168,9 @@ export default function InvoicesPage() {
   const canAmendCancelledInvoice = invoiceDetail
     ? canAmendCancelledFor(invoiceDetail)
     : false;
+  const linkedJobCard = (invoiceDetail?.dms_job_card || "").trim();
+  const canUpdateJobCardPrices =
+    Boolean(linkedJobCard) && (canCreate("invoices") || canWrite("invoices"));
 
   const openCollectPayment = (invoiceName: string) => {
     setPaymentInvoiceId(invoiceName);
@@ -188,6 +193,24 @@ export default function InvoicesPage() {
   const openDeleteInvoice = (invoiceName: string) => {
     setDeleteInvoiceId(invoiceName);
     setShowDeleteDialog(true);
+  };
+
+  const handleUpdateJobCardPrices = async () => {
+    if (!selectedId || !linkedJobCard) return;
+    setUpdatingJobCardPrices(true);
+    try {
+      const result = await invoicesSvc.updateJobCardPricesFromInvoice(selectedId);
+      toast.success(
+        result.message ||
+          (result.updated_lines
+            ? `Updated ${result.updated_lines} line(s) on ${result.job_card}`
+            : `Job Card ${result.job_card} already matches invoice rates`)
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update job card prices");
+    } finally {
+      setUpdatingJobCardPrices(false);
+    }
   };
 
   const refreshAfterInvoiceAction = async (invoiceName: string) => {
@@ -586,6 +609,21 @@ export default function InvoicesPage() {
                   Amend Invoice
                 </Button>
               ) : null}
+              {canUpdateJobCardPrices && selectedId ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  disabled={updatingJobCardPrices}
+                  onClick={() => void handleUpdateJobCardPrices()}
+                >
+                  {updatingJobCardPrices ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Update Job Card Prices
+                </Button>
+              ) : null}
             </div>
           ) : undefined
         }
@@ -632,6 +670,9 @@ export default function InvoicesPage() {
             <DetailSection title="Info">
               <DetailRow label="Status" value={selectedInvoice.status} />
               <DetailRow label="Currency" value={selectedInvoice.currency} />
+              {linkedJobCard ? (
+                <DetailRow label="Job Card" value={linkedJobCard} />
+              ) : null}
             </DetailSection>
             {invoiceDetail?.items && invoiceDetail.items.length > 0 && (
               <DetailSection title="Line Items">

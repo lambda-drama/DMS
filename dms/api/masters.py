@@ -186,6 +186,12 @@ def update_spare_part(name, data):
 	fields = [f for f in allowed_fields if meta.has_field(f) and f in data]
 	_set_if_present(doc, data, fields)
 	doc.save(ignore_permissions=False)
+	if "selling_price" in data and doc.spare_part_item:
+		from dms.dealer_management_system.utils.stock_operations import (
+			upsert_dms_selling_item_price,
+		)
+
+		upsert_dms_selling_item_price(doc.spare_part_item, flt(doc.selling_price))
 	frappe.db.commit()
 	return {"name": doc.name, "item_code": doc.spare_part_item, "item_name": doc.item_name}
 
@@ -625,6 +631,11 @@ def update_item_price(name, data):
 	fields = [f for f in allowed_fields if meta.has_field(f) and f in data]
 	_set_if_present(doc, data, fields)
 	doc.save(ignore_permissions=False)
+	from dms.dealer_management_system.utils.stock_operations import (
+		sync_spare_part_price_from_item_price,
+	)
+
+	sync_spare_part_price_from_item_price(doc.item_code, doc.price_list_rate)
 	frappe.db.commit()
 	return {"name": doc.name, "item_code": doc.item_code, "price_list_rate": doc.price_list_rate}
 
