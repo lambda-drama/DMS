@@ -85,6 +85,7 @@ export function AmendInvoiceDialog({
   const [remarks, setRemarks] = useState('');
   const [discountMode, setDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [discountInput, setDiscountInput] = useState('');
+  const [applyTaxes, setApplyTaxes] = useState(false);
   const [submitAfterSave, setSubmitAfterSave] = useState(false);
 
   const canDeleteDraft =
@@ -101,6 +102,7 @@ export function AmendInvoiceDialog({
     setRemarks('');
     setDiscountMode('none');
     setDiscountInput('');
+    setApplyTaxes(false);
     setSubmitAfterSave(false);
 
     (async () => {
@@ -135,6 +137,10 @@ export function AmendInvoiceDialog({
           }))
         );
         setRemarks(detail.remarks || '');
+        setApplyTaxes(
+          Boolean(detail.apply_taxes) ||
+            (Number(detail.total_taxes_and_charges) || 0) > 0
+        );
 
         const pct = Number(detail.additional_discount_percentage) || 0;
         const amt = Number(detail.discount_amount) || 0;
@@ -211,6 +217,7 @@ export function AmendInvoiceDialog({
                 value: discountValue,
               },
         apply_discount_on: 'Net Total',
+        apply_taxes: applyTaxes,
         submit: submitAfterSave,
       });
       toast.success(
@@ -361,6 +368,23 @@ export function AmendInvoiceDialog({
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Optional remarks"
               />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="amend_apply_taxes"
+                  checked={applyTaxes}
+                  onCheckedChange={(c) => setApplyTaxes(Boolean(c))}
+                />
+                <Label htmlFor="amend_apply_taxes" className="cursor-pointer font-normal">
+                  Include taxes / tax withholding
+                </Label>
+              </div>
+              <p className="pl-6 text-xs text-muted-foreground">
+                Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked
+                to save the invoice without taxes.
+              </p>
             </div>
 
             <div className="flex items-center gap-2">

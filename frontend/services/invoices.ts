@@ -206,6 +206,7 @@ export async function updateDraftSalesInvoice(data: {
   additional_discount_percentage?: number;
   discount_amount?: number;
   apply_discount_on?: string;
+  apply_taxes?: boolean;
   submit?: boolean;
 }): Promise<SalesInvoiceDetail> {
   return apiRequest<SalesInvoiceDetail>(`/api/method/${API}.update_draft_sales_invoice`, {

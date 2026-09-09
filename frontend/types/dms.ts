@@ -1387,6 +1387,7 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
   additional_discount_percentage?: number;
   discount_amount?: number;
   apply_discount_on?: string;
+  apply_taxes?: number | boolean;
   missing_dms?: number;
   is_dms_transaction?: number;
   dms_job_card?: string;

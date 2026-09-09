@@ -245,6 +245,7 @@ def get_sales_invoice_detail(sales_invoice):
 		"additional_discount_percentage": flt(si.get("additional_discount_percentage")),
 		"discount_amount": flt(si.get("discount_amount")),
 		"apply_discount_on": si.get("apply_discount_on") or "Net Total",
+		"apply_taxes": 1 if (si.get("taxes") or flt(si.total_taxes_and_charges)) else 0,
 	}
 	amended_as = frappe.db.exists("Sales Invoice", {"amended_from": si.name})
 	result["already_amended"] = 1 if amended_as else 0
@@ -573,6 +574,13 @@ def update_draft_sales_invoice(data):
 	if hasattr(si, "ignore_pricing_rule"):
 		si.ignore_pricing_rule = 1
 
+	if "apply_taxes" in data:
+		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+			_apply_sales_invoice_tax_choice,
+		)
+
+		_apply_sales_invoice_tax_choice(si, bool(cint(data.get("apply_taxes"))))
+
 	si.run_method("calculate_taxes_and_totals")
 	si.save()
 	si.reload()
@@ -774,12 +782,28 @@ def collect_payment(
 	total = sum(flt(row["amount"]) for row in rows)
 	if total <= 0:
 		frappe.throw(_("Payment amount must be greater than zero."))
-	if total > outstanding + 0.01:
-		frappe.throw(
-			_("Payment total ({0}) cannot exceed outstanding amount ({1}).").format(
-				total, outstanding
+
+	# Overpayment is allowed: allocate up to outstanding and leave the rest
+	# unallocated on the Payment Entry (customer advance / change).
+	remaining_outstanding = outstanding
+	payment_specs: list[dict] = []
+	for row in rows:
+		requested = flt(row["amount"])
+		allocate = min(requested, remaining_outstanding)
+		remaining_outstanding = max(remaining_outstanding - allocate, 0)
+		if allocate > 0 or not payment_specs:
+			payment_specs.append(
+				{
+					"mode_of_payment": row["mode_of_payment"],
+					"reference_no": row.get("reference_no"),
+					"paid_amount": requested,
+					"allocated_amount": allocate,
+				}
 			)
-		)
+		else:
+			# Invoice already fully allocated — fold further receipts into the
+			# last PE so excess stays unallocated on that entry.
+			payment_specs[-1]["paid_amount"] = flt(payment_specs[-1]["paid_amount"]) + requested
 
 	from erpnext.accounts.doctype.payment_entry.payment_entry import (
 		get_bank_cash_account,
@@ -789,23 +813,23 @@ def collect_payment(
 	created: list[str] = []
 	paid_total = 0.0
 
-	for row in rows:
+	for spec in payment_specs:
 		si.reload()
 		current_outstanding = flt(si.outstanding_amount)
-		if current_outstanding <= 0:
-			break
-
-		amount = min(flt(row["amount"]), current_outstanding)
-		if amount <= 0:
+		paid_amount = flt(spec["paid_amount"])
+		allocated = min(flt(spec["allocated_amount"]), current_outstanding)
+		if paid_amount <= 0:
 			continue
+		if allocated <= 0 and current_outstanding <= 0 and not created:
+			frappe.throw(_("This invoice has no outstanding amount to collect."))
 
 		pe = get_payment_entry("Sales Invoice", invoice_name)
 		if isinstance(pe, dict):
 			pe = frappe.get_doc(pe)
 
-		pe.mode_of_payment = row["mode_of_payment"]
-		if row.get("reference_no"):
-			pe.reference_no = row["reference_no"]
+		pe.mode_of_payment = spec["mode_of_payment"]
+		if spec.get("reference_no"):
+			pe.reference_no = spec["reference_no"]
 
 		# Point paid_to / paid_from at the account for this mode of payment.
 		try:
@@ -819,17 +843,16 @@ def collect_payment(
 		except Exception:
 			pass
 
-		if amount < current_outstanding - 0.01:
-			pe.paid_amount = amount
-			pe.received_amount = amount
-			for ref in pe.get("references") or []:
-				ref.allocated_amount = amount
-				break
+		pe.paid_amount = paid_amount
+		pe.received_amount = paid_amount
+		for ref in pe.get("references") or []:
+			ref.allocated_amount = allocated
+			break
 
 		pe.insert()
 		pe.submit()
 		created.append(pe.name)
-		paid_total += amount
+		paid_total += paid_amount
 
 	if not created:
 		frappe.throw(_("No payment entries were created."))

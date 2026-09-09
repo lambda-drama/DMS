@@ -103,7 +103,10 @@ export function CollectPaymentDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, salesInvoice, onOpenChange]);
+    // Only reload when the dialog opens or the invoice changes — not when parent
+    // recreates onOpenChange on each render (that was wiping payment rows).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [open, salesInvoice]);
 
   const outstanding = invoice?.outstanding_amount || 0;
   const totalPaid = useMemo(
@@ -117,11 +120,15 @@ export function CollectPaymentDialog({
   };
 
   const addRow = () => {
-    const nextMode =
-      modes.find((m) => !rows.some((r) => r.mode_of_payment === m.name))?.name ||
-      modes[0]?.name ||
-      '';
-    setRows((prev) => [...prev, newPaymentRow(nextMode, Math.max(remaining, 0))]);
+    setRows((prev) => {
+      const paid = prev.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+      const rem = Math.round((outstanding - paid) * 100) / 100;
+      const nextMode =
+        modes.find((m) => !prev.some((r) => r.mode_of_payment === m.name))?.name ||
+        modes[0]?.name ||
+        '';
+      return [...prev, newPaymentRow(nextMode, Math.max(rem, 0))];
+    });
   };
 
   const removeRow = (id: string) => {
@@ -159,13 +166,6 @@ export function CollectPaymentDialog({
       return;
     }
 
-    if (totalPaid > outstanding + 0.01) {
-      toast.error(
-        `Payment total (${formatMoney(totalPaid, invoice.currency)}) exceeds outstanding (${formatMoney(outstanding, invoice.currency)})`
-      );
-      return;
-    }
-
     setSubmitting(true);
     try {
       const result = await invoicesSvc.collectPayment({
@@ -194,8 +194,8 @@ export function CollectPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] w-full flex-col gap-4 overflow-hidden sm:max-w-3xl">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
             Collect Payment
@@ -205,78 +205,69 @@ export function CollectPaymentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : invoice ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
-              <p>
-                <span className="text-muted-foreground">Customer: </span>
-                {invoice.customer_name || invoice.customer}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Grand total: </span>
-                <span className="font-medium">
-                  {formatMoney(invoice.grand_total || 0, currency)}
-                </span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">Outstanding: </span>
-                <span className="font-semibold text-amber-600 dark:text-amber-400">
-                  {formatMoney(invoice.outstanding_amount || 0, currency)}
-                </span>
-              </p>
-              {invoice.due_date && (
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : invoice ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
                 <p>
-                  <span className="text-muted-foreground">Due date: </span>
-                  {new Date(invoice.due_date).toLocaleDateString()}
+                  <span className="text-muted-foreground">Customer: </span>
+                  {invoice.customer_name || invoice.customer}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Grand total: </span>
+                  <span className="font-medium">
+                    {formatMoney(invoice.grand_total || 0, currency)}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Outstanding: </span>
+                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                    {formatMoney(invoice.outstanding_amount || 0, currency)}
+                  </span>
+                </p>
+                {invoice.due_date && (
+                  <p>
+                    <span className="text-muted-foreground">Due date: </span>
+                    {new Date(invoice.due_date).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {invoice.docstatus !== 1 && (
+                <p className="text-sm text-destructive">
+                  This invoice is still a draft. Submit it before collecting payment.
                 </p>
               )}
-            </div>
 
-            {invoice.docstatus !== 1 && (
-              <p className="text-sm text-destructive">
-                This invoice is still a draft. Submit it before collecting payment.
-              </p>
-            )}
+              {canPay && (
+                <div className="space-y-3">
+                  <div className="hidden items-center gap-2 px-1 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(7rem,0.7fr)_minmax(0,1fr)_2.25rem]">
+                    <span>Mode *</span>
+                    <span>Amount *</span>
+                    <span>Reference (optional)</span>
+                    <span className="sr-only">Remove</span>
+                  </div>
 
-            {canPay && (
-              <div className="space-y-3">
-                <Label>Modes of payment *</Label>
+                  <Label className="sm:hidden">Modes of payment *</Label>
 
-                {rows.map((row, index) => (
-                  <div
-                    key={row.id}
-                    className="space-y-3 rounded-lg border p-3"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Payment {index + 1}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        disabled={rows.length <= 1}
-                        onClick={() => removeRow(row.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Mode *</Label>
+                  {rows.map((row) => (
+                    <div
+                      key={row.id}
+                      className="grid items-center gap-2 rounded-lg border p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(7rem,0.7fr)_minmax(0,1fr)_2.25rem] sm:border-0 sm:p-0"
+                    >
+                      <div className="space-y-1 sm:space-y-0">
+                        <Label className="text-xs sm:hidden">Mode *</Label>
                         <Select
                           value={row.mode_of_payment || undefined}
                           onValueChange={(mode_of_payment) =>
                             updateRow(row.id, { mode_of_payment })
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select mode" />
                           </SelectTrigger>
                           <SelectContent>
@@ -294,8 +285,9 @@ export function CollectPaymentDialog({
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Amount *</Label>
+
+                      <div className="space-y-1 sm:space-y-0">
+                        <Label className="text-xs sm:hidden">Amount *</Label>
                         <DecimalInput
                           min={0}
                           blankWhenZero={false}
@@ -303,52 +295,62 @@ export function CollectPaymentDialog({
                           onValueChange={(amount) => updateRow(row.id, { amount })}
                         />
                       </div>
+
+                      <div className="space-y-1 sm:space-y-0">
+                        <Label className="text-xs sm:hidden">Reference</Label>
+                        <Input
+                          value={row.reference_no}
+                          onChange={(e) =>
+                            updateRow(row.id, { reference_no: e.target.value })
+                          }
+                          placeholder="Cheque / txn ref"
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 justify-self-end text-destructive sm:justify-self-center"
+                        disabled={rows.length <= 1}
+                        onClick={() => removeRow(row.id)}
+                        aria-label="Remove payment mode"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
+                  ))}
 
-                    <div className="space-y-2">
-                      <Label className="text-xs">Reference no. (optional)</Label>
-                      <Input
-                        value={row.reference_no}
-                        onChange={(e) =>
-                          updateRow(row.id, { reference_no: e.target.value })
-                        }
-                        placeholder="Cheque / transaction reference"
-                      />
+                  <AddLineButton onClick={addRow} label="Add mode" />
+
+                  <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm space-y-1">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Total collecting</span>
+                      <span className="font-medium">{formatMoney(totalPaid, currency)}</span>
                     </div>
-                  </div>
-                ))}
-
-                <AddLineButton onClick={addRow} label="Add mode" />
-
-                <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm space-y-1">
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">Total collecting</span>
-                    <span className="font-medium">{formatMoney(totalPaid, currency)}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">Still outstanding</span>
-                    <span
-                      className={
-                        remaining < -0.01
-                          ? 'font-medium text-destructive'
-                          : 'font-medium'
-                      }
-                    >
-                      {formatMoney(Math.max(remaining, 0), currency)}
-                      {remaining < -0.01 ? ' (over)' : ''}
-                    </span>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">
+                        {remaining < -0.01 ? 'Change / advance' : 'Still outstanding'}
+                      </span>
+                      <span className="font-medium">
+                        {formatMoney(
+                          remaining < -0.01 ? Math.abs(remaining) : Math.max(remaining, 0),
+                          currency
+                        )}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {(invoice.outstanding_amount || 0) <= 0 && invoice.docstatus === 1 && (
-              <p className="text-sm text-muted-foreground">This invoice is fully paid.</p>
-            )}
-          </div>
-        ) : null}
+              {(invoice.outstanding_amount || 0) <= 0 && invoice.docstatus === 1 && (
+                <p className="text-sm text-muted-foreground">This invoice is fully paid.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="shrink-0 gap-2 border-t pt-4 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
           </Button>
