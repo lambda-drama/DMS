@@ -224,6 +224,33 @@ def get_job_card(name):
 	_attach_original_stage_reuse(data, doc=doc)
 	_attach_job_card_people_names(data)
 
+	# Keep Job Card.invoice in sync with any active SI linked via custom_dms_job_card
+	# (otherwise UI still shows Create Sales Invoice while create API correctly blocks).
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		get_active_job_card_invoice,
+		sync_job_card_payment_status_from_invoice,
+	)
+
+	active_invoice = get_active_job_card_invoice(name)
+	stored_invoice = (data.get("invoice") or "").strip() or None
+	if active_invoice and active_invoice != stored_invoice:
+		frappe.db.set_value(
+			"DMS Job Card", name, "invoice", active_invoice, update_modified=False
+		)
+		data["invoice"] = active_invoice
+	elif not active_invoice and stored_invoice:
+		# Stale pointer (cancelled / deleted SI) — clear so Create can show again.
+		frappe.db.set_value("DMS Job Card", name, "invoice", None, update_modified=False)
+		data["invoice"] = None
+	data["has_active_invoice"] = 1 if active_invoice else 0
+
+	# Keep Financials → Payment Status aligned with linked invoice (Paid / Partially Paid).
+	payment_status = sync_job_card_payment_status_from_invoice(
+		job_card_name=name, sales_invoice=active_invoice
+	)
+	if payment_status:
+		data["payment_status"] = payment_status
+
 	return data
 
 

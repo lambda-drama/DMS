@@ -928,6 +928,12 @@ def collect_payment(
 
 	si.reload()
 
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		sync_job_card_payment_status_from_invoice,
+	)
+
+	sync_job_card_payment_status_from_invoice(sales_invoice=si.name)
+
 	return {
 		"payment_entry": created[0],
 		"payment_entries": created,

@@ -259,6 +259,8 @@ doc_events = {
 		"after_insert": "dms.utils.serial_vin_sync.sync_vin_on_stock_ledger_entry",
 	},
 	"Sales Invoice": {
+		"on_submit": "dms.dealer_management_system.doctype.dms_job_card.invoice_utils.sync_linked_job_card_payment_from_sales_invoice",
+		"on_update_after_submit": "dms.dealer_management_system.doctype.dms_job_card.invoice_utils.sync_linked_job_card_payment_from_sales_invoice",
 		"on_cancel": "dms.dealer_management_system.doctype.dms_job_card.invoice_utils.on_sales_invoice_cancel",
 	},
 }

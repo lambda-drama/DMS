@@ -129,6 +129,7 @@ import * as partsRequestsSvc from "@/services/partsRequests";
 import type { AdditionalWorkRequestSummary } from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
 import * as invoicesSvc from "@/services/invoices";
+import { getFinancialPaymentLabel } from "@/lib/financial-payment-label";
 import type { SalesInvoiceDetail } from "@/types/dms";
 function toDatetimeLocal(value?: string) {
   if (!value) return "";
@@ -550,8 +551,23 @@ export default function JobCardDetailPage() {
   const invoiceIsCancelled =
     invoiceDetail?.docstatus === 2 ||
     String(invoiceDetail?.status || "").toLowerCase() === "cancelled";
-  /** Cancelled invoices do not block creating a new one. */
-  const hasActiveInvoice = Boolean(jobCard.invoice) && !invoiceIsCancelled;
+  /** Active SI blocks create — cancelled invoices do not. Prefer API heal of jobCard.invoice. */
+  const hasActiveInvoice =
+    Boolean(jobCard.has_active_invoice) ||
+    (Boolean(jobCard.invoice) && !invoiceIsCancelled);
+  /**
+   * Financials UI only — derive Warranty Paid / Discount / Paid.
+   * Does not change Job Card.payment_status in the backend.
+   */
+  const financialPaymentLabel = getFinancialPaymentLabel({
+    jobCardType: jobCard.job_card_type,
+    paymentStatus: jobCard.payment_status,
+    warrantyApplicationType: jobCard.warranty_application_type,
+    hasActiveInvoice,
+    invoiceOutstanding: invoiceDetail?.outstanding_amount,
+    invoiceGrandTotal: invoiceDetail?.grand_total,
+    invoiceStatus: invoiceDetail?.status,
+  });
   const canDeleteLabourLine = canAddExtraLabour && !hasActiveInvoice;
   const canDeletePartLine = canAddExtraPart && !hasActiveInvoice;
   const canEditLinePricing =
@@ -1998,7 +2014,7 @@ export default function JobCardDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Payment Status</p>
-                    <Badge variant="outline">{jobCard.payment_status}</Badge>
+                    <Badge variant="outline">{financialPaymentLabel}</Badge>
                   </div>
                 </div>
 
