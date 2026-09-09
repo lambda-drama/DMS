@@ -397,6 +397,12 @@ def amend_sales_invoice(sales_invoice):
 	# workflow's draft state so insert does not try Draft → Submitted.
 	_reset_sales_invoice_workflow_to_draft(amended)
 
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		disable_sales_invoice_round_off,
+	)
+
+	disable_sales_invoice_round_off(amended)
+
 	# Clear payment / return leftovers that should not carry into the amendment draft.
 	for fieldname in (
 		"outstanding_amount",
@@ -580,6 +586,12 @@ def update_draft_sales_invoice(data):
 		)
 
 		_apply_sales_invoice_tax_choice(si, bool(cint(data.get("apply_taxes"))))
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		disable_sales_invoice_round_off,
+	)
+
+	disable_sales_invoice_round_off(si)
 
 	si.run_method("calculate_taxes_and_totals")
 	si.save()

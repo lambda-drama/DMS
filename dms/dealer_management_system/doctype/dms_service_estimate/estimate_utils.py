@@ -12,6 +12,7 @@ from frappe.utils import add_to_date, flt, now_datetime, strip_html, today
 from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 	_apply_dms_settings_dimensions_to_sales_invoice,
 	_generate_invoice_no,
+	disable_sales_invoice_round_off,
 	normalize_warranty_application_type,
 )
 from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
@@ -416,6 +417,7 @@ def create_diagnostic_invoice_from_estimate(estimate_name: str, submit: bool = T
 	si.set_missing_values()
 	_apply_dms_settings_dimensions_to_sales_invoice(si, est.company)
 	apply_company_letter_head(si, est.company)
+	disable_sales_invoice_round_off(si)
 	si.run_method("calculate_taxes_and_totals")
 	si.insert()
 

@@ -974,6 +974,7 @@ def create_sales_invoice_from_dms_job_card(
 	_apply_sales_invoice_tax_choice(si, apply_taxes)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
 	apply_company_letter_head(si, jc.company)
+	disable_sales_invoice_round_off(si)
 
 	# Keep selling rates on the lines (site script forbids rate=0). Warranty is
 	# applied as an invoice-level discount after loyalty so it wins.
@@ -1644,6 +1645,12 @@ def mark_sales_invoice_as_dms_ui_transaction(si) -> None:
 		si.custom_spare_parts = 1
 
 
+def disable_sales_invoice_round_off(si) -> None:
+	"""Always disable rounded total on DMS-created Sales Invoices."""
+	if frappe.get_meta("Sales Invoice").has_field("disable_rounded_total"):
+		si.disable_rounded_total = 1
+
+
 def mark_sales_invoice_as_missing_dms(si) -> None:
 	"""Flag catch-up invoices for past data that should have been DMS-linked."""
 	if frappe.get_meta("Sales Invoice").has_field("custom_missing_dms"):
@@ -2067,6 +2074,7 @@ def create_standalone_dms_sales_invoice(
 	_apply_sales_invoice_tax_choice(si, apply_taxes)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, company)
 	apply_company_letter_head(si, company)
+	disable_sales_invoice_round_off(si)
 
 	# set_missing_values / margin math can wipe net rates — force discounted pricing.
 	_apply_standalone_line_pricing(si, line_pricing, use_dms_discount_field)

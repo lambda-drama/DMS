@@ -803,6 +803,7 @@ def convert_proforma_to_sales_invoice(name, data=None):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		_apply_dms_settings_dimensions_to_sales_invoice,
 		_generate_invoice_no,
+		disable_sales_invoice_round_off,
 		mark_sales_invoice_as_dms_ui_transaction,
 	)
 	from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
@@ -826,6 +827,7 @@ def convert_proforma_to_sales_invoice(name, data=None):
 	si.set_missing_values()
 	_apply_dms_settings_dimensions_to_sales_invoice(si, so.company)
 	apply_company_letter_head(si, so.company)
+	disable_sales_invoice_round_off(si)
 	si.run_method("calculate_taxes_and_totals")
 	si.insert()
 	submit = cint(data.get("submit", 1))
