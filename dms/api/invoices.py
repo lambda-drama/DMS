@@ -597,6 +597,15 @@ def update_draft_sales_invoice(data):
 	si.save()
 	si.reload()
 
+	# Amended / edited rates on a job-card invoice → push onto the Job Card
+	# (db.set_value so submitted job cards still update).
+	if items_payload:
+		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+			sync_sales_invoice_rates_to_job_card,
+		)
+
+		sync_sales_invoice_rates_to_job_card(si)
+
 	if cint(data.get("submit")):
 		_submit_draft_sales_invoice(si)
 		si.reload()
@@ -649,12 +658,60 @@ def _apply_draft_invoice_discount(si, data) -> None:
 
 def _relink_job_card_after_amend_submit(si) -> None:
 	"""If amended invoice still points at a job card, restore Job Card.invoice."""
-	jc = None
-	if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
-		jc = (si.get("custom_dms_job_card") or "").strip()
-	if not jc or not frappe.db.exists("DMS Job Card", jc):
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		resolve_job_card_for_sales_invoice,
+		sync_sales_invoice_rates_to_job_card,
+	)
+
+	jc = resolve_job_card_for_sales_invoice(si)
+	if not jc:
 		return
 	frappe.db.set_value("DMS Job Card", jc, "invoice", si.name, update_modified=True)
+	# Final rate sync at submit (covers rates saved only on last submit).
+	sync_sales_invoice_rates_to_job_card(si)
+
+
+@frappe.whitelist()
+def update_job_card_prices_from_invoice(sales_invoice):
+	"""Push this Sales Invoice's line rates onto the linked Job Card (manual sync)."""
+	_ensure_erpnext()
+
+	name = (sales_invoice or "").strip()
+	if not name:
+		frappe.throw(_("Sales Invoice name is required."))
+
+	frappe.has_permission("Sales Invoice", "read", name, throw=True)
+	si = frappe.get_doc("Sales Invoice", name)
+	if not _is_dms_sales_invoice(si):
+		frappe.throw(_("This invoice was not created from DMS."))
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		resolve_job_card_for_sales_invoice,
+		sync_sales_invoice_rates_to_job_card,
+	)
+
+	jc = resolve_job_card_for_sales_invoice(si)
+	if not jc:
+		frappe.throw(_("This invoice is not linked to a Job Card."))
+
+	frappe.has_permission("DMS Job Card", "write", jc, throw=True)
+	result = sync_sales_invoice_rates_to_job_card(si)
+	frappe.db.commit()
+
+	updated = cint(result.get("updated_lines") or 0)
+	if updated:
+		message = _("Updated {0} line(s) on Job Card {1} from invoice rates.").format(
+			updated, jc
+		)
+	else:
+		message = _("Job Card {0} already matches invoice rates.").format(jc)
+
+	return {
+		"sales_invoice": si.name,
+		"job_card": jc,
+		"updated_lines": updated,
+		"message": message,
+	}
 
 
 @frappe.whitelist()

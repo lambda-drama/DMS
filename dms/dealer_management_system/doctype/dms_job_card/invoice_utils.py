@@ -1263,6 +1263,116 @@ def _apply_rate_overrides_to_job_card(jc, overrides: dict[str, float]) -> None:
 	frappe.db.commit()
 
 
+def resolve_job_card_for_sales_invoice(si) -> str | None:
+	"""Job card linked to this SI (current, amended-from, or JC.invoice pointer)."""
+	jc = None
+	if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
+		jc = (si.get("custom_dms_job_card") or "").strip() or None
+	if jc and frappe.db.exists("DMS Job Card", jc):
+		return jc
+
+	for inv_name in ((si.name or "").strip(), (si.get("amended_from") or "").strip()):
+		if not inv_name:
+			continue
+		found = frappe.db.get_value("DMS Job Card", {"invoice": inv_name}, "name")
+		if found:
+			return found
+	return None
+
+
+def sync_sales_invoice_rates_to_job_card(si) -> dict:
+	"""After amending/editing invoice rates, mirror them onto the linked Job Card.
+
+	Uses ``frappe.db.set_value`` so submitted job cards update without Document.save().
+	Matches SI lines to JC labour/parts by ERP item code (document order).
+	"""
+	from collections import defaultdict, deque
+
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		labour_row_hours,
+		part_issue_qty,
+		resolve_vehicle_service_item_to_item_code,
+		spare_part_erp_item_code,
+	)
+
+	jc_name = resolve_job_card_for_sales_invoice(si)
+	if not jc_name:
+		return {"job_card": None, "updated_lines": 0}
+
+	rates_by_item: dict[str, deque] = defaultdict(deque)
+	for row in si.get("items") or []:
+		code = (row.item_code or "").strip()
+		if not code:
+			continue
+		rates_by_item[code].append(flt(row.rate))
+
+	if not rates_by_item:
+		return {"job_card": jc_name, "updated_lines": 0}
+
+	jc = frappe.get_doc("DMS Job Card", jc_name)
+	updated_lines = 0
+
+	for row in jc.get("labour") or []:
+		item_code = resolve_vehicle_service_item_to_item_code(row.vehicle_service_item)
+		if not item_code or not rates_by_item.get(item_code):
+			continue
+		new_rate = flt(rates_by_item[item_code].popleft())
+		if abs(flt(row.rate_per_hour or 0) - new_rate) < 0.01:
+			continue
+		hours = labour_row_hours(row)
+		amount = round(hours * new_rate, 2)
+		frappe.db.set_value(
+			"Vehicle Labour Item",
+			row.name,
+			{"rate_per_hour": new_rate, "amount": amount},
+			update_modified=False,
+		)
+		row.rate_per_hour = new_rate
+		row.amount = amount
+		updated_lines += 1
+
+	for row in jc.get("parts") or []:
+		if not row.item_code:
+			continue
+		erp_item = spare_part_erp_item_code(row.item_code) or (row.item_code or "").strip()
+		if not erp_item or not rates_by_item.get(erp_item):
+			continue
+		new_rate = flt(rates_by_item[erp_item].popleft())
+		if abs(flt(row.unit_price or 0) - new_rate) < 0.01:
+			continue
+		qty = part_issue_qty(row)
+		total_amount = round(qty * new_rate, 2)
+		frappe.db.set_value(
+			"Job Card Part Item",
+			row.name,
+			{"unit_price": new_rate, "total_amount": total_amount},
+			update_modified=False,
+		)
+		row.unit_price = new_rate
+		row.total_amount = total_amount
+		updated_lines += 1
+
+	if updated_lines:
+		if hasattr(jc, "calculate_costing_and_totals"):
+			jc.calculate_costing_and_totals()
+
+		parent_updates = {}
+		for fieldname in (
+			"total_labor_cost",
+			"total_parts_cost",
+			"total_amount",
+			"net_amount",
+			"discount_amount",
+		):
+			if jc.meta.has_field(fieldname):
+				parent_updates[fieldname] = flt(jc.get(fieldname))
+
+		if parent_updates:
+			frappe.db.set_value("DMS Job Card", jc_name, parent_updates, update_modified=True)
+
+	return {"job_card": jc_name, "updated_lines": updated_lines}
+
+
 def _group_discount_total_amount(group_total: float, discount: dict | None) -> float:
 	if not discount:
 		return 0.0

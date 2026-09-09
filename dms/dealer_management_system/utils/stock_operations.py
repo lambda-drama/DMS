@@ -342,17 +342,45 @@ def list_dms_buying_price_lists() -> list[dict]:
 
 
 def get_item_price_list_rate(item_code: str | None, price_list: str | None) -> float:
-	"""Item Price rate for a price list (buying or selling)."""
+	"""Item Price rate for a price list (prefer selling rows)."""
 	item_code = (item_code or "").strip()
 	price_list = (price_list or "").strip()
 	if not item_code or not price_list:
 		return 0.0
 	rate = frappe.db.get_value(
 		"Item Price",
+		{"item_code": item_code, "price_list": price_list, "selling": 1},
+		"price_list_rate",
+	)
+	if rate is not None:
+		return flt(rate)
+	rate = frappe.db.get_value(
+		"Item Price",
 		{"item_code": item_code, "price_list": price_list},
 		"price_list_rate",
 	)
 	return flt(rate)
+
+
+def sync_spare_part_price_from_item_price(item_code: str | None, rate: float) -> None:
+	"""Keep Spare Part.selling_price and Item.standard_rate aligned with Item Price."""
+	item_code = (item_code or "").strip()
+	rate = flt(rate)
+	if not item_code or rate <= 0:
+		return
+
+	if frappe.db.exists("Item", item_code) and frappe.get_meta("Item").has_field("standard_rate"):
+		frappe.db.set_value("Item", item_code, "standard_rate", rate, update_modified=False)
+
+	if not frappe.db.exists("DocType", "Spare Part"):
+		return
+	sp_name = frappe.db.get_value("Spare Part", {"spare_part_item": item_code}, "name")
+	if not sp_name:
+		# Spare Part name often equals item_code
+		if frappe.db.exists("Spare Part", item_code):
+			sp_name = item_code
+	if sp_name and frappe.get_meta("Spare Part").has_field("selling_price"):
+		frappe.db.set_value("Spare Part", sp_name, "selling_price", rate, update_modified=False)
 
 
 def get_company_default_currency(company: str | None = None) -> str:
@@ -399,10 +427,12 @@ def upsert_dms_selling_item_price(
 		for fieldname, value in price_data.items():
 			setattr(doc, fieldname, value)
 		doc.save(ignore_permissions=True)
+		sync_spare_part_price_from_item_price(item_code, rate)
 		return existing
 
 	doc = frappe.get_doc({"doctype": "Item Price", **price_data})
 	doc.insert(ignore_permissions=True)
+	sync_spare_part_price_from_item_price(item_code, rate)
 	return doc.name
 
 

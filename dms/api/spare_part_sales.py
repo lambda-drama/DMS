@@ -131,7 +131,7 @@ def search_spare_parts_for_sale(
 		qty_on_hand = _stock_available(row.name, warehouse) if warehouse else None
 		if cint(in_stock_only) and warehouse and flt(qty_on_hand) <= 0:
 			continue
-		unit_price = flt(row.selling_price) or spare_part_default_selling_price(row.name)
+		unit_price = spare_part_default_selling_price(row.name) or flt(row.selling_price)
 		out.append(
 			{
 				"name": row.name,
