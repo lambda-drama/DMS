@@ -1409,6 +1409,11 @@ def create_sales_invoice_from_opportunity(name):
 		if frappe.db.get_value("Item", row.item_code, "is_stock_item")
 	]
 	invoice.update_stock = cint(bool(stock_rows) and all(row.warehouse for row in stock_rows))
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		disable_sales_invoice_round_off,
+	)
+
+	disable_sales_invoice_round_off(invoice)
 	invoice.insert()
 	doc.sales_invoice = invoice.name
 	doc.stage = "Order Confirmed"
