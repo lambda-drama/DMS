@@ -146,6 +146,22 @@ class DMSJobCard(Document):
 		# Must run before Frappe's select-option validation.
 		self.normalize_job_item_severity()
 
+	def _validate_links(self):
+		"""Allow Original Job Card to point at a cancelled predecessor (Amend / New Version).
+
+		Frappe only exempts ``amended_from`` from cancelled-link checks; our
+		``original_job_card`` is the same idea for New Version (and a stable
+		pointer alongside Amend).
+		"""
+		original = self.get("original_job_card")
+		if original:
+			self.set("original_job_card", None)
+		try:
+			super()._validate_links()
+		finally:
+			if original:
+				self.set("original_job_card", original)
+
 	def validate(self):
 		if self.warranty_application_type != "Discount":
 			from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
