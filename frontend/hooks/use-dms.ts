@@ -103,9 +103,6 @@ export function useInspections(options?: {
   limit?: number;
   offset?: number;
 }) {
-
-  console.log('useInspections options:', options); // Debug log to check options
-  console.log("Customer", options?.customer);
   return useSWR<PaginatedResponse<VehicleInspection>>(
     ['inspections', options],
     () => inspectionsSvc.listInspections(options),

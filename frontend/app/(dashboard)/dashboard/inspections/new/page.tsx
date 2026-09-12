@@ -67,7 +67,13 @@ import {
   Wrench,
 } from 'lucide-react';
 import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
-import type { FuelLevel, ArrivalMethod, VINNo, VehicleWarrantySummary } from '@/types/dms';
+import type {
+  FuelLevel,
+  ArrivalMethod,
+  RemoteCondition,
+  VINNo,
+  VehicleWarrantySummary,
+} from '@/types/dms';
 import * as vehiclesSvc from '@/services/vehicles';
 import { htmlToPlainText } from '@/lib/plain-text';
 
@@ -183,6 +189,13 @@ const interiorAreas = [
   'Driver Seat Belt',
   'Passenger Seat Belt',
   'Rear Seat Belts',
+  'Spare Tire',
+  'Jack & Tools',
+  'Owner Manual',
+  'Service Booklet',
+  'Fire Extinguisher',
+  'Warning Triangle',
+  'First Aid Kit',
   'Trunk/Cargo Area',
 ];
 
@@ -301,6 +314,13 @@ export default function NewInspectionPage() {
   const [odometerPhoto, setOdometerPhoto] = useState<string | undefined>();
   const [fuelLevel, setFuelLevel] = useState<FuelLevel>('1/2');
   const [fuelPhoto, setFuelPhoto] = useState<string | undefined>();
+  const [batteryVoltage, setBatteryVoltage] = useState<number | undefined>();
+  const [arrivalMethod, setArrivalMethod] = useState<ArrivalMethod>('Driven In');
+  const [keysReceived, setKeysReceived] = useState(1);
+  const [remoteCondition, setRemoteCondition] = useState<RemoteCondition>('Working');
+  const [personalItems, setPersonalItems] = useState('');
+  const [serviceAdvisorNotes, setServiceAdvisorNotes] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
   const [dashboardPhoto, setDashboardPhoto] = useState<string | undefined>();
   const [exteriorViewPhotos, setExteriorViewPhotos] = useState<Record<string, string | undefined>>({});
   const [exteriorItemPhotos, setExteriorItemPhotos] = useState<Record<string, string | undefined>>({});
@@ -545,6 +565,15 @@ export default function NewInspectionPage() {
         if (insp.fuel_level) setFuelLevel(insp.fuel_level as FuelLevel);
         if (insp.fuel_photo) setFuelPhoto(insp.fuel_photo);
         if (insp.dashboard_photo) setDashboardPhoto(insp.dashboard_photo);
+        if (insp.battery_voltage != null && insp.battery_voltage !== '') {
+          setBatteryVoltage(Number(insp.battery_voltage));
+        }
+        if (insp.arrival_method) setArrivalMethod(insp.arrival_method as ArrivalMethod);
+        if (insp.keys_received != null) setKeysReceived(Number(insp.keys_received) || 1);
+        if (insp.remote_condition) setRemoteCondition(insp.remote_condition as RemoteCondition);
+        setPersonalItems(insp.personal_items || '');
+        setServiceAdvisorNotes(insp.service_advisor_notes || '');
+        setInternalNotes(insp.internal_notes || '');
         if (insp.exterior_photos) {
           setExteriorViewPhotos((prev) => ({ ...prev, front: insp.exterior_photos }));
         }
@@ -791,6 +820,13 @@ export default function NewInspectionPage() {
       odometer_photo: odometerPhoto,
       fuel_level: fuelLevel,
       fuel_photo: fuelPhoto,
+      battery_voltage: batteryVoltage,
+      arrival_method: arrivalMethod,
+      keys_received: keysReceived,
+      remote_condition: remoteCondition,
+      personal_items: personalItems || undefined,
+      service_advisor_notes: serviceAdvisorNotes || undefined,
+      internal_notes: internalNotes || undefined,
       dashboard_photo: dashboardPhoto,
       exterior_photos: firstExteriorViewPhoto(),
       exterior_view_photos: exteriorViewPhotos,
@@ -1220,7 +1256,17 @@ export default function NewInspectionPage() {
 
               <div className="space-y-2">
                 <Label>Battery Voltage (V)</Label>
-                <Input type="number" step="0.1" placeholder="e.g., 12.6" className="max-w-32" />
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g., 12.6"
+                  className="max-w-32"
+                  value={batteryVoltage ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBatteryVoltage(v === '' ? undefined : Number(v));
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
@@ -1240,7 +1286,10 @@ export default function NewInspectionPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Arrival Method</Label>
-                  <Select defaultValue="Driven In">
+                  <Select
+                    value={arrivalMethod}
+                    onValueChange={(val) => setArrivalMethod(val as ArrivalMethod)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -1256,12 +1305,21 @@ export default function NewInspectionPage() {
 
                 <div className="space-y-2">
                   <Label>Number of Keys Received</Label>
-                  <Input type="number" min="1" defaultValue="1" className="max-w-24" />
+                  <Input
+                    type="number"
+                    min="1"
+                    className="max-w-24"
+                    value={keysReceived}
+                    onChange={(e) => setKeysReceived(Math.max(1, Number(e.target.value) || 1))}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Remote Key Condition</Label>
-                  <Select defaultValue="Working">
+                  <Select
+                    value={remoteCondition}
+                    onValueChange={(val) => setRemoteCondition(val as RemoteCondition)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -1277,7 +1335,11 @@ export default function NewInspectionPage() {
 
               <div className="space-y-2">
                 <Label>Personal Items in Vehicle</Label>
-                <Textarea placeholder="List any valuables or personal items found..." />
+                <Textarea
+                  placeholder="List any valuables or personal items found..."
+                  value={personalItems}
+                  onChange={(e) => setPersonalItems(e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -1630,12 +1692,20 @@ export default function NewInspectionPage() {
 
               <div className="space-y-2">
                 <Label>Service Advisor Notes</Label>
-                <Textarea placeholder="Additional notes for the technician..." />
+                <Textarea
+                  placeholder="Additional notes for the technician..."
+                  value={serviceAdvisorNotes}
+                  onChange={(e) => setServiceAdvisorNotes(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Internal Notes (Not for Customer)</Label>
-                <Textarea placeholder="Internal observations..." />
+                <Textarea
+                  placeholder="Internal observations..."
+                  value={internalNotes}
+                  onChange={(e) => setInternalNotes(e.target.value)}
+                />
               </div>
 
               <CustomerTermsAcceptance

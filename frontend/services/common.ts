@@ -374,7 +374,6 @@ export async function fetchSparePartPrice(sparePart: string): Promise<number> {
     body: JSON.stringify({ spare_part: sparePart }),
   });
 
-  console.log('Fetched price for', sparePart, ':', raw);
   const n = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
   return Number.isFinite(n) ? n : 0;
 }
