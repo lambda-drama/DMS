@@ -398,10 +398,13 @@ def amend_sales_invoice(sales_invoice):
 	_reset_sales_invoice_workflow_to_draft(amended)
 
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		_apply_dms_selling_price_list_to_sales_invoice,
 		disable_sales_invoice_round_off,
 	)
 
 	disable_sales_invoice_round_off(amended)
+	# Prefer DMS Settings price list over whatever was on the cancelled invoice.
+	_apply_dms_selling_price_list_to_sales_invoice(amended)
 
 	# Clear payment / return leftovers that should not carry into the amendment draft.
 	for fieldname in (
@@ -588,10 +591,12 @@ def update_draft_sales_invoice(data):
 		_apply_sales_invoice_tax_choice(si, bool(cint(data.get("apply_taxes"))))
 
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		_apply_dms_selling_price_list_to_sales_invoice,
 		disable_sales_invoice_round_off,
 	)
 
 	disable_sales_invoice_round_off(si)
+	_apply_dms_selling_price_list_to_sales_invoice(si)
 
 	si.run_method("calculate_taxes_and_totals")
 	si.save()
