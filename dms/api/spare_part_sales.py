@@ -801,6 +801,7 @@ def convert_proforma_to_sales_invoice(name, data=None):
 
 	from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		_apply_dms_selling_price_list_to_sales_invoice,
 		_apply_dms_settings_dimensions_to_sales_invoice,
 		_generate_invoice_no,
 		disable_sales_invoice_round_off,
@@ -825,6 +826,7 @@ def convert_proforma_to_sales_invoice(name, data=None):
 				item.warehouse = warehouse
 
 	si.set_missing_values()
+	_apply_dms_selling_price_list_to_sales_invoice(si)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, so.company)
 	apply_company_letter_head(si, so.company)
 	disable_sales_invoice_round_off(si)

@@ -439,6 +439,31 @@ def _apply_sales_invoice_currency_from_job_card(si, jc):
 		si.currency = cur
 
 
+def _apply_dms_selling_price_list_to_sales_invoice(si) -> None:
+	"""Force DMS Settings Default Price List (override Selling Settings / customer GL lists)."""
+	from dms.dealer_management_system.utils.stock_operations import (
+		_dms_settings_configured_price_list,
+		get_dms_default_selling_price_list,
+	)
+
+	if not si.meta.has_field("selling_price_list"):
+		return
+
+	price_list = get_dms_default_selling_price_list() or _dms_settings_configured_price_list()
+	if not price_list:
+		return
+
+	si.selling_price_list = price_list
+	pl_currency = (frappe.db.get_value("Price List", price_list, "currency") or "").strip()
+	if pl_currency and si.meta.has_field("price_list_currency"):
+		si.price_list_currency = pl_currency
+
+	inv_currency = (si.currency or "").strip()
+	if si.meta.has_field("plc_conversion_rate") and pl_currency and inv_currency:
+		if pl_currency == inv_currency:
+			si.plc_conversion_rate = 1.0
+
+
 def _apply_dms_settings_dimensions_to_sales_invoice(si, company: str):
 	"""
 	Copy accounting dimensions from DMS Settings → Company Defaults row for `company`
@@ -1048,6 +1073,7 @@ def create_sales_invoice_from_dms_job_card(
 	si.set_missing_values()
 	# set_missing_values can reset currency from company / price list — re-apply from job card
 	_apply_sales_invoice_currency_from_job_card(si, jc)
+	_apply_dms_selling_price_list_to_sales_invoice(si)
 	_apply_sales_invoice_tax_choice(si, apply_taxes)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
 	apply_company_letter_head(si, jc.company)
@@ -2258,6 +2284,7 @@ def create_standalone_dms_sales_invoice(
 
 	si.set_missing_values()
 	si.currency = invoice_currency
+	_apply_dms_selling_price_list_to_sales_invoice(si)
 	_apply_sales_invoice_tax_choice(si, apply_taxes)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, company)
 	apply_company_letter_head(si, company)

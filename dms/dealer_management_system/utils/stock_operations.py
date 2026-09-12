@@ -257,16 +257,21 @@ def get_stock_item_create_defaults() -> dict:
 def _dms_settings_default_selling_price_list() -> str | None:
 	"""Read configured selling price list from DMS Settings."""
 	meta = frappe.get_meta("DMS Settings")
-	for fieldname in ("default_selling_list", "default_price_list"):
-		if not meta.has_field(fieldname):
-			continue
-		price_list = (frappe.db.get_single_value("DMS Settings", fieldname) or "").strip()
-		if not price_list or not frappe.db.exists("Price List", price_list):
-			continue
-		enabled, selling = frappe.db.get_value(
-			"Price List", price_list, ["enabled", "selling"]
-		) or (0, 0)
-		if cint(enabled) and cint(selling):
+	# Prefer an enabled selling list; fall back to enabled configured list.
+	for require_selling in (True, False):
+		for fieldname in ("default_selling_list", "default_price_list"):
+			if not meta.has_field(fieldname):
+				continue
+			price_list = (frappe.db.get_single_value("DMS Settings", fieldname) or "").strip()
+			if not price_list or not frappe.db.exists("Price List", price_list):
+				continue
+			enabled, selling = frappe.db.get_value(
+				"Price List", price_list, ["enabled", "selling"]
+			) or (0, 0)
+			if not cint(enabled):
+				continue
+			if require_selling and not cint(selling):
+				continue
 			return price_list
 	return None
 
