@@ -27,6 +27,15 @@ _REMINDER_STATUSES = frozenset({
 })
 
 
+def _license_plate_from_vin(vin_chassis) -> str | None:
+	"""Plate from VIN No master — never use vin_number as license plate."""
+	vin = (vin_chassis or "").strip()
+	if not vin or not frappe.db.exists("VIN No", vin):
+		return None
+	plate = (frappe.db.get_value("VIN No", vin, "plate_number") or "").strip()
+	return plate or None
+
+
 def _apply_confirm_status(doc):
 	"""Map to Appendix A Confirmed when already requested/scheduled; keep Booked for drafts."""
 	if doc.status in ("Draft", None, ""):
@@ -241,6 +250,11 @@ def create_appointment(data):
 	if vin_chassis and not vehicle and not as_draft:
 		frappe.throw(_("Selected vehicle has no linked model item. Update the VIN record first."))
 
+	# Prefer plate from VIN master; never fall back to VIN number as plate.
+	license_plate = (data.get("license_plate") or "").strip() or None
+	if vin_chassis:
+		license_plate = _license_plate_from_vin(vin_chassis) or license_plate
+
 	company = (data.get("company") or "").strip()
 	allowed = get_dms_companies()
 	if allowed:
@@ -268,7 +282,7 @@ def create_appointment(data):
 		"customer": resolve_dms_customer(data.get("customer")) if data.get("customer") else None,
 		"vehicle": vehicle or None,
 		"vin_chassis": vin_chassis or None,
-		"license_plate": data.get("license_plate") or None,
+		"license_plate": license_plate,
 		"current_odometer": data.get("current_odometer"),
 		"customer_complaint_summary": data.get("customer_complaint_summary") or None,
 		"preferred_advisor": data.get("preferred_advisor") or None,
@@ -396,6 +410,9 @@ def update_appointment(name, data):
 	if "vin_chassis" in data or "vehicle" in data:
 		doc.vin_chassis = vin_chassis or None
 		doc.vehicle = vehicle or None
+		plate = _license_plate_from_vin(vin_chassis)
+		if plate is not None or "license_plate" not in data:
+			doc.license_plate = plate
 
 	if "preferred_advisor" in data and "assigned_service_advisor" not in data:
 		doc.assigned_service_advisor = data.get("preferred_advisor") or None

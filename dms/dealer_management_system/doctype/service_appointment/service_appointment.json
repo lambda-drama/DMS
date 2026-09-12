@@ -257,11 +257,11 @@
    "options": "VIN No"
   },
   {
-   "fetch_from": "vin_chassis.vin_number",
+   "allow_on_submit": 1,
+   "fetch_from": "vin_chassis.plate_number",
    "fieldname": "license_plate",
    "fieldtype": "Read Only",
-   "label": "License Plate",
-   "read_only": 1
+   "label": "License Plate"
   },
   {
    "description": "Last recorded odometer from vehicle master",
@@ -625,7 +625,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-12 02:27:16.756692",
+ "modified": "2026-09-12 18:11:29.248564",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Appointment",

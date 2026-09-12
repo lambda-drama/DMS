@@ -347,6 +347,27 @@ def _apply_inspection_payload(doc, data, as_draft):
 	doc.advisor_signature = data.get("advisor_signature")
 	doc.company = company or None
 
+	if "battery_voltage" in data:
+		doc.battery_voltage = data.get("battery_voltage")
+	if data.get("arrival_method"):
+		doc.arrival_method = data.get("arrival_method")
+	elif doc.is_new() and not doc.arrival_method:
+		doc.arrival_method = "Driven In"
+	if "keys_received" in data:
+		doc.keys_received = cint(data.get("keys_received")) or 1
+	elif doc.is_new() and not doc.keys_received:
+		doc.keys_received = 1
+	if data.get("remote_condition"):
+		doc.remote_condition = data.get("remote_condition")
+	elif doc.is_new() and not doc.remote_condition:
+		doc.remote_condition = "Working"
+	if "personal_items" in data:
+		doc.personal_items = data.get("personal_items") or None
+	if "service_advisor_notes" in data:
+		doc.service_advisor_notes = data.get("service_advisor_notes") or None
+	if "internal_notes" in data:
+		doc.internal_notes = data.get("internal_notes") or None
+
 	doc.set("exterior_checklist", [])
 	for row in data.get("exterior_checklist") or []:
 		row = dict(row)

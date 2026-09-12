@@ -156,3 +156,56 @@ def get_vehicle_vins(doctype, txt, searchfield, start, page_len, filters):
     
     # Format results as (value, label) pairs
     return [(r[0], f"{r[1]} - {r[3]} ({r[2] or 'No Plate'})") for r in results]
+
+@frappe.whitelist()
+def fix_license_plates_from_vin():
+	"""
+	One-shot repair: Service Appointment.license_plate was wrongly fetched from
+	vin_chassis.vin_number. Re-sync every appointment from VIN No.plate_number.
+	"""
+	frappe.only_for("System Manager")
+
+	rows = frappe.get_all(
+		"Service Appointment",
+		filters={"vin_chassis": ["is", "set"]},
+		fields=["name", "vin_chassis", "license_plate"],
+	)
+	if not rows:
+		return {"updated": 0, "skipped": 0, "total": 0}
+
+	vins = list({(r.vin_chassis or "").strip() for r in rows if r.vin_chassis})
+	vin_map = {
+		v.name: v
+		for v in frappe.get_all(
+			"VIN No",
+			filters={"name": ["in", vins]},
+			fields=["name", "vin_number", "plate_number"],
+		)
+	}
+
+	updated = 0
+	skipped = 0
+	for row in rows:
+		vin = (row.vin_chassis or "").strip()
+		info = vin_map.get(vin)
+		if not info:
+			skipped += 1
+			continue
+
+		correct_plate = (info.plate_number or "").strip() or None
+		current = (row.license_plate or "").strip() or None
+		if current == correct_plate:
+			skipped += 1
+			continue
+
+		frappe.db.set_value(
+			"Service Appointment",
+			row.name,
+			"license_plate",
+			correct_plate,
+			update_modified=False,
+		)
+		updated += 1
+
+	frappe.db.commit()
+	return {"updated": updated, "skipped": skipped, "total": len(rows)}
