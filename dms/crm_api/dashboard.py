@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import frappe
-from frappe.utils import add_days, flt, getdate, today
+from frappe.utils import add_days, cint, flt, getdate, today
 
 from dms.crm_api.common import ensure_crm_read, user_display_name
 
@@ -110,13 +110,24 @@ def get_dashboard():
 			else 0
 		)
 
-	# Lead target gauge (simple monthly target placeholder)
+	# Lead target gauge — from DMS CRM Settings (0 = no configured target)
 	month_start = getdate(today_str).replace(day=1)
 	leads_this_month = _count(LEAD, {"creation": [">=", month_start]})
-	lead_target = 100
+	lead_target = 0
+	if frappe.db.exists("DocType", "DMS CRM Settings"):
+		lead_target = cint(
+			frappe.db.get_single_value("DMS CRM Settings", "monthly_lead_target") or 0
+		)
+	lead_target_configured = lead_target > 0
+	if not lead_target_configured:
+		# Avoid a fake "100" target in production — gauge tracks actual intake.
+		lead_target = max(leads_this_month, 1)
 	stats["lead_target"] = lead_target
+	stats["lead_target_configured"] = 1 if lead_target_configured else 0
 	stats["leads_this_month"] = leads_this_month
-	stats["lead_target_remaining"] = max(lead_target - leads_this_month, 0)
+	stats["lead_target_remaining"] = (
+		max(lead_target - leads_this_month, 0) if lead_target_configured else 0
+	)
 
 	my_leads = []
 	if frappe.db.exists("DocType", LEAD):
@@ -143,11 +154,16 @@ def get_dashboard():
 	if frappe.db.exists("DocType", OPP):
 		for stage in (
 			"New",
+			"Contact Attempted",
+			"Contacted",
 			"Qualified",
+			"Appointment Scheduled",
 			"Test Drive",
 			"Quotation Submitted",
 			"Negotiation",
 			"Booking / Deposit",
+			"Order Confirmed",
+			"Nurture",
 		):
 			stage_pipeline.append(
 				{

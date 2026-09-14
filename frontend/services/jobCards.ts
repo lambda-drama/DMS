@@ -22,6 +22,10 @@ export async function listJobCards(options?: {
   filter?: 'active' | 'qc' | 'qc_failed' | 'overdue';
   customer?: string;
   search?: string;
+  opened_from?: string;
+  opened_to?: string;
+  completed_from?: string;
+  completed_to?: string;
   limit?: number;
   offset?: number;
 }): Promise<PaginatedResponse<DMSJobCard>> {
@@ -32,6 +36,10 @@ export async function listJobCards(options?: {
       filter: options?.filter || null,
       customer: options?.customer || null,
       search: options?.search || null,
+      opened_from: options?.opened_from || null,
+      opened_to: options?.opened_to || null,
+      completed_from: options?.completed_from || null,
+      completed_to: options?.completed_to || null,
       limit: options?.limit || 50,
       offset: options?.offset || 0,
     }),

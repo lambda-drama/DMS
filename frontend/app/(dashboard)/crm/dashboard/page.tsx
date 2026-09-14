@@ -215,13 +215,25 @@ export default function CrmDashboardPage() {
           <CardContent>
             <Gauge
               value={stats?.leads_this_month ?? 0}
-              max={stats?.lead_target ?? 100}
+              max={stats?.lead_target ?? Math.max(stats?.leads_this_month ?? 1, 1)}
             />
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Remaining{' '}
-              <span className="font-semibold text-foreground">
-                {stats?.lead_target_remaining ?? 0}
-              </span>
+              {stats?.lead_target_configured ? (
+                <>
+                  Remaining{' '}
+                  <span className="font-semibold text-foreground">
+                    {stats?.lead_target_remaining ?? 0}
+                  </span>
+                </>
+              ) : (
+                <>
+                  This month{' '}
+                  <span className="font-semibold text-foreground">
+                    {stats?.leads_this_month ?? 0}
+                  </span>
+                  <span className="block text-xs">Set Monthly Lead Target in DMS CRM Settings</span>
+                </>
+              )}
             </p>
           </CardContent>
         </Card>

@@ -169,6 +169,10 @@ export function useJobCards(options?: {
   filter?: 'active' | 'qc' | 'qc_failed' | 'overdue';
   customer?: string;
   search?: string;
+  opened_from?: string;
+  opened_to?: string;
+  completed_from?: string;
+  completed_to?: string;
   limit?: number;
   offset?: number;
 }) {

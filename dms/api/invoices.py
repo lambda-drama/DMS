@@ -90,6 +90,9 @@ def get_invoices(limit=50, offset=0, status=None, search=None):
 
 	if status:
 		query = query.where(SI.status == status)
+	else:
+		# Default list: hide cancelled so they stay out of the active queue
+		query = query.where((SI.status != "Cancelled") & (SI.docstatus != 2))
 
 	if search:
 		like = f"%{search}%"

@@ -18,6 +18,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
 import { CreateServiceItemDialog } from '@/components/create-service-item-dialog';
+import { CreateSparePartDialog } from '@/components/create-spare-part-dialog';
 import { Button } from '@/components/ui/button';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
@@ -134,6 +135,8 @@ export default function ProformaInvoiceNewPage() {
   const [serviceItemSearch, setServiceItemSearch] = useState('');
   const [showCreateServiceItemDialog, setShowCreateServiceItemDialog] = useState(false);
   const [labourCreateTargetId, setLabourCreateTargetId] = useState<string | null>(null);
+  const [showCreateSparePartDialog, setShowCreateSparePartDialog] = useState(false);
+  const [partCreateTargetId, setPartCreateTargetId] = useState<string | null>(null);
   const [labourDiscountMode, setLabourDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [labourDiscountInput, setLabourDiscountInput] = useState('');
   const [partSearch, setPartSearch] = useState('');
@@ -551,6 +554,57 @@ export default function ProformaInvoiceNewPage() {
     );
   };
 
+  const applySparePartToLine = async (rowId: string, value: string, itemName?: string) => {
+    if (!value) {
+      setLines((prev) =>
+        prev.map((row) =>
+          row.id === rowId
+            ? { ...row, spare_part: '', item_name: '', unit_price: '' }
+            : row
+        )
+      );
+      return;
+    }
+
+    const opt = partOptions.find((o) => o.value === value);
+    let unitPrice = '';
+    let label = itemName || opt?.label || value;
+    try {
+      const rows = await sparePartSalesSvc.searchSparePartsForSale({
+        search: value,
+        warehouse: warehouse || defaults?.default_warehouse || undefined,
+        inStockOnly: false,
+        limit: 5,
+      });
+      const match = rows.find((r) => r.name === value);
+      if (match) {
+        if (match.unit_price != null) unitPrice = String(match.unit_price);
+        if (match.item_name) label = match.item_name;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    setPartOptions((prev) =>
+      prev.some((o) => o.value === value)
+        ? prev
+        : [{ value, label }, ...prev]
+    );
+
+    setLines((prev) =>
+      prev.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              spare_part: value,
+              item_name: label,
+              unit_price: unitPrice || row.unit_price,
+            }
+          : row
+      )
+    );
+  };
+
   const partsTotal = lines.reduce((sum, row) => {
     const qty = Number(row.qty) || 0;
     const rate = Number(row.unit_price) || 0;
@@ -925,38 +979,16 @@ export default function ProformaInvoiceNewPage() {
                   <SearchableSelect
                     options={partOptions}
                     value={line.spare_part}
-                    onValueChange={async (value) => {
-                      const opt = partOptions.find((o) => o.value === value);
-                      let unitPrice = line.unit_price;
-                      try {
-                        const rows = await sparePartSalesSvc.searchSparePartsForSale({
-                          search: value,
-                          warehouse: warehouse || defaults?.default_warehouse || undefined,
-                          limit: 1,
-                        });
-                        const match = rows.find((r) => r.name === value);
-                        if (match && !unitPrice && match.unit_price != null) {
-                          unitPrice = String(match.unit_price);
-                        }
-                      } catch {
-                        /* ignore */
-                      }
-                      setLines((prev) =>
-                        prev.map((row, i) =>
-                          i === idx
-                            ? {
-                                ...row,
-                                spare_part: value,
-                                item_name: opt?.label || value,
-                                unit_price: unitPrice,
-                              }
-                            : row
-                        )
-                      );
-                    }}
+                    valueLabel={line.item_name || undefined}
+                    onValueChange={(value) => void applySparePartToLine(line.id, value)}
                     onSearchChange={setPartSearch}
                     placeholder="Search spare part"
                     isLoading={partsLoading}
+                    onCreateNew={() => {
+                      setPartCreateTargetId(line.id);
+                      setShowCreateSparePartDialog(true);
+                    }}
+                    createNewLabel="New Spare Part"
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
@@ -1141,6 +1173,20 @@ export default function ProformaInvoiceNewPage() {
           setShowCreateServiceItemDialog(false);
           setLabourCreateTargetId(null);
           if (targetId) void applyServiceItemToLabourRow(targetId, name);
+        }}
+      />
+      <CreateSparePartDialog
+        open={showCreateSparePartDialog}
+        onOpenChange={(open) => {
+          setShowCreateSparePartDialog(open);
+          if (!open) setPartCreateTargetId(null);
+        }}
+        onCreated={(itemCode, itemName) => {
+          const targetId = partCreateTargetId || lines[lines.length - 1]?.id;
+          setShowCreateSparePartDialog(false);
+          setPartCreateTargetId(null);
+          setPartSearch(itemCode);
+          if (targetId) void applySparePartToLine(targetId, itemCode, itemName);
         }}
       />
       </>
