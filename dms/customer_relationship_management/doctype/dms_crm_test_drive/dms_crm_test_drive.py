@@ -214,9 +214,9 @@ class DMSCRMTestDrive(Document):
 			return
 		if not (self.vehicle_vin or "").strip():
 			return
-		# Checklist already covers verification / consent — ensure header flags match.
-		self.id_verified = 1
-		self.customer_consent = 1
+		# Require explicit ID / consent (user tick or checklist sync) — never invent compliance.
+		if not cint(self.id_verified) or not cint(self.customer_consent):
+			return
 		self.status = "Completed"
 		if not self.completed_on:
 			self.completed_on = now_datetime()

@@ -911,6 +911,7 @@ def enroll_customer_in_loyalty(customer, program=None, sync_tier=1):
 @frappe.whitelist()
 def enroll_customers_bulk(limit=200, only_unenrolled=1):
 	"""Enroll customers into retail/fleet programs (batch)."""
+	frappe.only_for(("System Manager", "DMS CRM Manager"))
 	ensure_crm_write("Customer")
 	limit = min(cint(limit) or 200, 2000)
 	if cint(only_unenrolled) and frappe.get_meta("Customer").has_field("loyalty_program"):

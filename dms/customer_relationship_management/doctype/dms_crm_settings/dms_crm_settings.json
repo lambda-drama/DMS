@@ -7,6 +7,7 @@
   "section_general",
   "default_company",
   "default_lead_owner_role",
+  "monthly_lead_target",
   "default_warehouse",
   "apply_loyalty_discount",
   "column_break_1",
@@ -80,6 +81,13 @@
    "fieldtype": "Link",
    "label": "Default Lead Owner Role",
    "options": "Role"
+  },
+  {
+   "default": "0",
+   "description": "Monthly lead intake target for the CRM dashboard gauge. Leave 0 to hide a fake target and show actual intake only.",
+   "fieldname": "monthly_lead_target",
+   "fieldtype": "Int",
+   "label": "Monthly Lead Target"
   },
   {
    "fieldname": "column_break_1",

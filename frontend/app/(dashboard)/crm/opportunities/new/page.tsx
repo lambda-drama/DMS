@@ -22,13 +22,18 @@ import useSWR from 'swr';
 
 const FALLBACK_STAGES = [
   'New',
+  'Contact Attempted',
+  'Contacted',
   'Qualified',
+  'Appointment Scheduled',
   'Test Drive',
   'Quotation Submitted',
   'Negotiation',
   'Booking / Deposit',
+  'Order Confirmed',
   'Won',
   'Lost',
+  'Nurture',
 ];
 
 export default function CrmOpportunityNewPage() {

@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CrmVinLink } from '@/components/crm/crm-vin-link';
 import { CrmDriverLink } from '@/components/crm/crm-driver-link';
+import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -50,8 +51,8 @@ export default function CrmTestDriveDetailPage() {
     set('checklist', next);
   };
 
-  // When every mandatory checklist row is done + outcome/VIN exist, flip Status to Completed
-  // so the Deal next-step button advances past "Complete Test Drive Checklist".
+  // When checklist + outcome + VIN are ready, flip Status to Completed.
+  // Do not auto-tick ID verified / consent — those must stay user (or checklist) actions.
   useEffect(() => {
     const status = String(form.status || '');
     if (['Completed', 'Failed', 'No-Show', 'Cancelled'].includes(status)) return;
@@ -69,8 +70,6 @@ export default function CrmTestDriveDetailPage() {
     setForm((prev) => ({
       ...prev,
       status: 'Completed',
-      id_verified: 1,
-      customer_consent: 1,
     }));
   }, [checklist, form.outcome, form.vehicle_vin, form.status]);
 
@@ -378,6 +377,14 @@ export default function CrmTestDriveDetailPage() {
               )}
             </select>
           </Field>
+          {String(form.outcome || '') === 'Model Changed' ? (
+            <Field label="Changed To Model *">
+              <CrmVehicleModelLink
+                value={String(form.model_changed_to || '')}
+                onValueChange={(value) => set('model_changed_to', value || '')}
+              />
+            </Field>
+          ) : null}
           <Field label="Failure / No-show Reason">
             <Input
               value={String(form.failure_reason || '')}

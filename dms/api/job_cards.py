@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, getdate
 
 from dms.api.utils import (
 	LIST_ORDER_LATEST_CREATED,
@@ -72,8 +72,42 @@ JOB_CARD_FILTER_PRESETS = {
 }
 
 
+def _parse_filter_date(value):
+	if not value:
+		return None
+	try:
+		return getdate(value)
+	except Exception:
+		return None
+
+
+def _apply_datetime_day_range(filters, fieldname, date_from=None, date_to=None):
+	"""Filter a Datetime field by calendar day(s). One bound is enough."""
+	start = _parse_filter_date(date_from)
+	end = _parse_filter_date(date_to)
+	if start and end and start > end:
+		start, end = end, start
+	if start and end:
+		filters[fieldname] = ["between", [f"{start} 00:00:00", f"{end} 23:59:59"]]
+	elif start:
+		filters[fieldname] = [">=", f"{start} 00:00:00"]
+	elif end:
+		filters[fieldname] = ["<=", f"{end} 23:59:59"]
+
+
 @frappe.whitelist()
-def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, search=None):
+def get_job_cards(
+	limit=50,
+	offset=0,
+	status=None,
+	filter=None,
+	customer=None,
+	search=None,
+	opened_from=None,
+	opened_to=None,
+	completed_from=None,
+	completed_to=None,
+):
 	from frappe.utils import now_datetime
 
 	filters = {}
@@ -89,6 +123,9 @@ def get_job_cards(limit=50, offset=0, status=None, filter=None, customer=None, s
 		filters["status"] = ["!=", "Cancelled"]
 	if customer:
 		filters["customer"] = customer
+
+	_apply_datetime_day_range(filters, "opened_date_time", opened_from, opened_to)
+	_apply_datetime_day_range(filters, "completed_date_time", completed_from, completed_to)
 
 	or_filters = {}
 	if search:

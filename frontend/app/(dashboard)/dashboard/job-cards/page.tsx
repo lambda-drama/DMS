@@ -212,11 +212,22 @@ const presetFilterLabels: Record<string, string> = {
   overdue: "Overdue promised",
 };
 
+function formatDateRangeLabel(from?: string, to?: string) {
+  if (from && to) return from === to ? from : `${from} – ${to}`;
+  if (from) return `from ${from}`;
+  if (to) return `to ${to}`;
+  return "";
+}
+
 export default function JobCardsPage() {
   const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [presetFilter, setPresetFilter] = useState<"active" | "qc" | "qc_failed" | "overdue" | null>(null);
+  const [openedFrom, setOpenedFrom] = useState("");
+  const [openedTo, setOpenedTo] = useState("");
+  const [completedFrom, setCompletedFrom] = useState("");
+  const [completedTo, setCompletedTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -246,6 +257,10 @@ export default function JobCardsPage() {
   const { data: result, isLoading, error, mutate } = useJobCards({
     status: statusFilter !== "all" ? statusFilter : undefined,
     filter: presetFilter || undefined,
+    opened_from: openedFrom || undefined,
+    opened_to: openedTo || undefined,
+    completed_from: completedFrom || undefined,
+    completed_to: completedTo || undefined,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
@@ -305,11 +320,20 @@ export default function JobCardsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, presetFilter]);
+  }, [statusFilter, presetFilter, openedFrom, openedTo, completedFrom, completedTo]);
+
+  const hasDateFilters = Boolean(openedFrom || openedTo || completedFrom || completedTo);
+  const hasListFilters = Boolean(presetFilter || statusFilter !== "all" || hasDateFilters);
+  const openedRangeLabel = formatDateRangeLabel(openedFrom, openedTo);
+  const completedRangeLabel = formatDateRangeLabel(completedFrom, completedTo);
 
   const clearListFilters = () => {
     setStatusFilter("all");
     setPresetFilter(null);
+    setOpenedFrom("");
+    setOpenedTo("");
+    setCompletedFrom("");
+    setCompletedTo("");
     navigate("job-cards");
   };
 
@@ -358,15 +382,21 @@ export default function JobCardsPage() {
           />
         </CardHeader>
         <CardContent className="min-w-0 space-y-4">
-          {(presetFilter || statusFilter !== "all") && (
+          {hasListFilters && (
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">
-                {presetFilter
-                  ? presetFilterLabels[presetFilter]
-                  : `Status: ${statusFilter}`}
-              </Badge>
+              {presetFilter ? (
+                <Badge variant="outline">{presetFilterLabels[presetFilter]}</Badge>
+              ) : statusFilter !== "all" ? (
+                <Badge variant="outline">Status: {statusFilter}</Badge>
+              ) : null}
+              {openedRangeLabel ? (
+                <Badge variant="outline">Opened: {openedRangeLabel}</Badge>
+              ) : null}
+              {completedRangeLabel ? (
+                <Badge variant="outline">Completed: {completedRangeLabel}</Badge>
+              ) : null}
               <Button variant="ghost" size="sm" onClick={clearListFilters}>
-                Clear filter
+                Clear filters
               </Button>
             </div>
           )}
@@ -400,6 +430,61 @@ export default function JobCardsPage() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="job-card-opened-from" className="text-xs text-muted-foreground">
+                Open date from
+              </Label>
+              <Input
+                id="job-card-opened-from"
+                type="date"
+                value={openedFrom}
+                max={openedTo || undefined}
+                onChange={(e) => setOpenedFrom(e.target.value)}
+                aria-label="Open date from"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="job-card-opened-to" className="text-xs text-muted-foreground">
+                Open date to
+              </Label>
+              <Input
+                id="job-card-opened-to"
+                type="date"
+                value={openedTo}
+                min={openedFrom || undefined}
+                onChange={(e) => setOpenedTo(e.target.value)}
+                aria-label="Open date to"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="job-card-completed-from" className="text-xs text-muted-foreground">
+                Completed date from
+              </Label>
+              <Input
+                id="job-card-completed-from"
+                type="date"
+                value={completedFrom}
+                max={completedTo || undefined}
+                onChange={(e) => setCompletedFrom(e.target.value)}
+                aria-label="Completed date from"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="job-card-completed-to" className="text-xs text-muted-foreground">
+                Completed date to
+              </Label>
+              <Input
+                id="job-card-completed-to"
+                type="date"
+                value={completedTo}
+                min={completedFrom || undefined}
+                onChange={(e) => setCompletedTo(e.target.value)}
+                aria-label="Completed date to"
+              />
+            </div>
           </div>
 
           {isLoading ? (

@@ -907,13 +907,14 @@ export default function CrmVehicleDetailPage() {
     );
   }
 
-  const { vehicle, summary } = data;
+  const { vehicle, summary, owner } = data;
   const title = [vehicle.brand_label || vehicle.brand, vehicle.model_name || vehicle.model]
     .filter(Boolean)
     .join(' ') || vehicle.vin_number || vehicle.name;
+  const customerId = String(owner?.name || vehicle.current_customer || '').trim();
 
   return (
-    <Customer360RecordProvider customerId={vin}>
+    <Customer360RecordProvider customerId={customerId || vin}>
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
