@@ -172,6 +172,7 @@
    "options": "Job Card QC Result"
   },
   {
+   "allow_on_submit": 1,
    "default": "Internal",
    "fieldname": "job_card_type",
    "fieldtype": "Select",
@@ -1028,7 +1029,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-28 14:45:00.000000",
+ "modified": "2026-09-16 00:04:01.646997",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",
