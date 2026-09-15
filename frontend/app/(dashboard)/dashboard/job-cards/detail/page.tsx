@@ -85,7 +85,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, RoadTestItemResult, VehicleLabourItem } from "@/types/dms";
+import type { JobCardStatus, DMSJobCard, JobCardItem, JobCardQCResult, JobCardType, RoadTestItemResult, VehicleLabourItem } from "@/types/dms";
 import { htmlToPlainText } from "@/lib/plain-text";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
@@ -167,6 +167,18 @@ function durationHoursSince(startTime?: string | null) {
 function jobItemComplaintText(item: JobCardItem): string {
   return htmlToPlainText(item.complaint_description || item.complaint || "").trim();
 }
+
+/** Mirrors DMS Job Card.job_card_type options (doctype Select field). */
+const jobCardTypes: JobCardType[] = [
+  "Customer Paid",
+  "Warranty",
+  "Internal",
+  "PDI",
+  "Campaign/Recall",
+  "Insurance",
+  "Goodwill",
+  "Fleet Contract",
+];
 
 function richTextBlock(value?: string | null) {
   const text = htmlToPlainText(value || "").trim();
@@ -258,6 +270,7 @@ export default function JobCardDetailPage() {
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [promisedDelivery, setPromisedDelivery] = useState("");
+  const [jobCardType, setJobCardType] = useState<JobCardType | "">("");
   const [leadTechnician, setLeadTechnician] = useState("");
   const [assignedBay, setAssignedBay] = useState("");
   const [assistantRows, setAssistantRows] = useState<Array<{ technician: string }>>([]);
@@ -351,6 +364,7 @@ export default function JobCardDetailPage() {
     setScheduleStart(toDatetimeLocal(jobCard.schedule_start_time));
     setScheduleEnd(toDatetimeLocal(jobCard.schedule_end_time));
     setPromisedDelivery(toDatetimeLocal(jobCard.promised_delivery_date_time));
+    setJobCardType(jobCard.job_card_type || "");
     setLeadTechnician(jobCard.lead_technician || "");
     setAssignedBay(jobCard.assigned_bay || "");
     setAssistantRows(
@@ -363,6 +377,7 @@ export default function JobCardDetailPage() {
     jobCard?.schedule_start_time,
     jobCard?.schedule_end_time,
     jobCard?.promised_delivery_date_time,
+    jobCard?.job_card_type,
     jobCard?.lead_technician,
     jobCard?.assigned_bay,
     jobCard?.assistant_technicians,
@@ -559,6 +574,18 @@ export default function JobCardDetailPage() {
     Boolean(jobCard.has_active_invoice) ||
     (Boolean(jobCard.invoice) && !invoiceIsCancelled);
   /**
+   * Job Card Type may change until the card is closed or billed — mirrors the
+   * guard in ``dms.api.job_cards._apply_job_card_type_change``.
+   */
+  const jobCardTypeLockedReason = !canMutateJobCard
+    ? "You do not have permission to change the Job Card Type."
+    : hasActiveInvoice || Boolean(jobCard.material_issue)
+      ? "Job Card Type is locked once this job card has been billed."
+      : ["Completed", "Delivered", "Cancelled"].includes(workflowStatus)
+        ? "Job Card Type is locked because this job card is closed."
+        : null;
+  const jobCardTypeEditable = jobCardTypeLockedReason === null;
+  /**
    * Financials UI only — derive Warranty Paid / Discount / Paid.
    * Does not change Job Card.payment_status in the backend.
    */
@@ -609,6 +636,8 @@ export default function JobCardDetailPage() {
   const assignmentDirty =
     leadTechnician !== (jobCard.lead_technician || "") ||
     assignedBay !== (jobCard.assigned_bay || "");
+
+  const jobCardTypeDirty = jobCardType !== (jobCard.job_card_type || "");
 
   const handleAssignedBayChange = async (bayName: string) => {
     setAssignedBay(bayName);
@@ -675,6 +704,17 @@ export default function JobCardDetailPage() {
           : null,
       });
     });
+
+  const handleSaveJobCardType = () => {
+    if (!jobCardType) {
+      toast.error("Job Card Type is required");
+      return;
+    }
+    if (!jobCardTypeDirty) return;
+    runAction("Job card type updated", async () => {
+      await jobCardsSvc.updateJobCard(id, { job_card_type: jobCardType });
+    });
+  };
 
   const handleSaveAssignment = () => {
     if (!leadTechnician) {
@@ -2074,6 +2114,44 @@ export default function JobCardDetailPage() {
                   </p>
                 )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="job-card-type">Job Card Type</Label>
+                    {jobCardTypeEditable ? (
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Select
+                          value={jobCardType}
+                          onValueChange={(value) => setJobCardType(value as JobCardType)}
+                        >
+                          <SelectTrigger id="job-card-type" className="sm:max-w-xs">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {jobCardTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {jobCardTypeDirty ? (
+                          <Button size="sm" onClick={handleSaveJobCardType} disabled={busy}>
+                            Save type
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <Badge variant="outline">{jobCard.job_card_type}</Badge>
+                    )}
+                    {jobCardType === "Internal" ? (
+                      <p className="text-xs text-muted-foreground">
+                        Company / fleet vehicle — no estimate or invoice. Parts are issued from stock on
+                        completion.
+                      </p>
+                    ) : null}
+                    {jobCardTypeLockedReason ? (
+                      <p className="text-xs text-muted-foreground">{jobCardTypeLockedReason}</p>
+                    ) : null}
+                  </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Service Advisor</p>
                     <p className="font-medium">{jobCard.service_advisor_name || jobCard.service_advisor || "N/A"}</p>

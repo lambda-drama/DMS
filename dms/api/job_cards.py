@@ -52,6 +52,65 @@ ASSIGNMENT_LOCKED_STATUSES = frozenset({
 })
 
 
+JOB_CARD_TYPE_LOCKED_STATUSES = frozenset({
+	"Completed",
+	"Delivered",
+	"Cancelled",
+})
+
+
+def _job_card_type_options() -> set[str]:
+	options = frappe.get_meta("DMS Job Card").get_field("job_card_type")
+	return {
+		option.strip()
+		for option in ((options.options if options else "") or "").split("\n")
+		if option.strip()
+	}
+
+
+def _apply_job_card_type_change(doc, value):
+	"""Change Job Card Type while the document is still open for work.
+
+	Job Card Type drives billing (``Internal`` zeroes customer-facing amounts)
+	and the vehicle-inspection requirement, so it may only change while the job
+	card is still active and before billing has started.
+	"""
+	new_type = (value or "").strip()
+	if not new_type:
+		frappe.throw(_("Job Card Type is required"))
+
+	if new_type not in _job_card_type_options():
+		frappe.throw(_("Invalid Job Card Type: {0}").format(frappe.bold(new_type)))
+
+	current_type = (doc.job_card_type or "").strip()
+	if new_type == current_type:
+		return
+
+	if (doc.status or "") in JOB_CARD_TYPE_LOCKED_STATUSES:
+		frappe.throw(
+			_("Job Card Type cannot be changed once the job card is {0}.").format(doc.status),
+			title=_("Not allowed"),
+		)
+	if doc.get("invoice") or doc.get("material_issue"):
+		frappe.throw(
+			_("Job Card Type cannot be changed once billing has started."),
+			title=_("Not allowed"),
+		)
+
+	if doc.docstatus != 0:
+		# The type drives warranty/billing recalculation, which also rewrites
+		# read-only total fields that are not allow_on_submit. Same pattern as
+		# job_card_internal when it prepares a submitted card.
+		doc.flags.ignore_validate_update_after_submit = True
+
+	doc.job_card_type = new_type
+
+	# Leaving Internal: restore the billable defaults so totals are rebuilt.
+	if current_type == "Internal" and new_type != "Internal":
+		doc.payment_status = "Unpaid"
+		doc.customer_approval_status = "Pending"
+
+
 JOB_CARD_FILTER_PRESETS = {
 	"active": [
 		"Estimation Pending",
@@ -1117,12 +1176,13 @@ def update_job_card(name, data):
 	as_draft = cint(data.get("as_draft") or data.get("save_as_draft")) if as_draft_sent else None
 	is_draft_doc = (doc.status or "") == "Draft"
 
+	if "job_card_type" in data:
+		_apply_job_card_type_change(doc, data.get("job_card_type"))
+
 	if is_draft_doc:
 		if as_draft_sent and as_draft and not data.get("customer") and not data.get("vehicle_vin"):
 			frappe.throw(_("Select at least a customer or vehicle before saving a draft"))
 
-		if "job_card_type" in data:
-			doc.job_card_type = data.get("job_card_type")
 		if "company" in data:
 			doc.company = (data.get("company") or "").strip() or None
 		if "customer" in data:
