@@ -118,7 +118,7 @@ export function AddExtraLabourSection({
         service_name: serviceLabel || undefined,
         custom_display_name: displayName.trim() || serviceLabel || undefined,
         estimated_hours: estimatedHours,
-        rate_per_hour: ratePerHour || undefined,
+        rate_per_hour: canEditPrice ? ratePerHour || undefined : undefined,
         notes: notes.trim() || undefined,
       });
       toast.success("Service line added");
