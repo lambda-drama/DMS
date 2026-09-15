@@ -91,7 +91,7 @@ export function AddExtraPartSection({
       const result = await partsSvc.addPartLineToJobCard(jobCardId, {
         item_code: itemCode,
         quantity_requested: quantity,
-        unit_price: unitPrice || undefined,
+        unit_price: canEditPrice ? unitPrice || undefined : undefined,
         notes: notes.trim() || undefined,
         request_immediately: requestImmediately,
         requested_by: leadTechnician,

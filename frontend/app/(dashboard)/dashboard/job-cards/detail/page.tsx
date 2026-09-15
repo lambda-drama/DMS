@@ -224,7 +224,7 @@ function UseMainJobCardToggle({
 export default function JobCardDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
-  const { canEditPrice } = usePermissions();
+  const { canEditPrice, canWrite, canCreate } = usePermissions();
   const { data: jobCard, isLoading, error, mutate } = useJobCard(id || null);
   const { data: linkedEstimate } = useServiceEstimate(jobCard?.service_estimate || null);
   const [additionalWorkRequests, setAdditionalWorkRequests] = useState<AdditionalWorkRequestSummary[]>([]);
@@ -539,14 +539,17 @@ export default function JobCardDetailPage() {
   const canRequestParts =
     hasRequestableParts(jobCard.parts) &&
     !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
-  const canAddExtraPart = [
-    "Open",
-    "Estimation Approved",
-    "Repair In Progress",
-    "Waiting Parts",
-    "Waiting Customer Approval",
-    "Rework",
-  ].includes(workflowStatus);
+  const canMutateJobCard = canWrite("job-cards") || canCreate("job-cards");
+  const canAddExtraPart =
+    canMutateJobCard &&
+    [
+      "Open",
+      "Estimation Approved",
+      "Repair In Progress",
+      "Waiting Parts",
+      "Waiting Customer Approval",
+      "Rework",
+    ].includes(workflowStatus);
   const canAddExtraLabour = canAddExtraPart;
   const invoiceIsCancelled =
     invoiceDetail?.docstatus === 2 ||
@@ -2369,7 +2372,7 @@ export default function JobCardDetailPage() {
             <AddExtraLabourSection
               jobCardId={id}
               vehicleVin={jobCard.vehicle_vin}
-              disabled={!canEditPrice}
+              canEditPrice={canEditPrice}
               onAdded={() => void mutate()}
             />
           )}
@@ -2485,7 +2488,7 @@ export default function JobCardDetailPage() {
               leadTechnician={jobCard.lead_technician}
               warehouse={jobCard.warehouse}
               company={jobCard.company}
-              disabled={!canEditPrice}
+              canEditPrice={canEditPrice}
               onAdded={(result) => {
                 setPartsFlowRefreshKey((k) => k + 1);
                 autoPartsTabJobRef.current = id;
