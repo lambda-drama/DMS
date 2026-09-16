@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -79,9 +80,13 @@ function getSkillBadgeColor(level: string) {
 export default function TechniciansPage() {
   const { navigate } = useNavigation();
   const { canWrite } = usePermissions();
-  const [search, setSearch] = useState("");
-  const [skillFilter, setSkillFilter] = useState("all");
-  const [availabilityFilter, setAvailabilityFilter] = useState("all");
+  const [search, setSearch] = usePersistedFilter("technicians", "search", "");
+  const [skillFilter, setSkillFilter] = usePersistedFilter("technicians", "skill", "all");
+  const [availabilityFilter, setAvailabilityFilter] = usePersistedFilter(
+    "technicians",
+    "availability",
+    "all"
+  );
   const [viewDate, setViewDate] = useState(getTodayISO);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);

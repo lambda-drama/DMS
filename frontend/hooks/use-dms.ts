@@ -100,6 +100,10 @@ export function useMarkAppointmentArrived(name: string) {
 export function useInspections(options?: {
   customer?: string;
   date?: string;
+  inspection_from?: string;
+  inspection_to?: string;
+  completed_from?: string;
+  completed_to?: string;
   limit?: number;
   offset?: number;
 }) {
@@ -145,6 +149,8 @@ export function useServiceEstimates(options?: {
   status?: string;
   customer?: string;
   search?: string;
+  posting_from?: string;
+  posting_to?: string;
   limit?: number;
   offset?: number;
 }) {
@@ -169,6 +175,7 @@ export function useJobCards(options?: {
   filter?: 'active' | 'qc' | 'qc_failed' | 'overdue';
   customer?: string;
   search?: string;
+  job_card_type?: string;
   opened_from?: string;
   opened_to?: string;
   completed_from?: string;
@@ -268,10 +275,17 @@ export function useCreateFollowUp() {
 
 // ============ INVOICES ============
 
-export function useInvoices(options?: { status?: string; search?: string }) {
-  return useSWR<SalesInvoiceListItem[]>(
+export function useInvoices(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  posting_from?: string;
+  posting_to?: string;
+}) {
+  return useSWR<PaginatedResponse<SalesInvoiceListItem>>(
     ['invoices', options],
-    () => invoicesSvc.listInvoices(options),
+    () => invoicesSvc.listInvoicesPaginated(options),
     { refreshInterval: 30000 }
   );
 }

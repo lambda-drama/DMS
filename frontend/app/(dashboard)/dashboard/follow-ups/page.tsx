@@ -45,6 +45,9 @@ import {
   DetailRow,
 } from "@/components/detail-sheet";
 import { ListRowActions } from "@/components/list-row-actions";
+import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import {
   Search,
   MoreHorizontal,
@@ -58,6 +61,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import * as followUpsSvc from "@/services/followUps";
+import type { CustomerFollowUp } from "@/services/followUps";
 import { mutate as globalMutate } from "swr";
 
 const statusFilterOptions = [
@@ -93,15 +97,21 @@ const overdueStatusClass = "bg-destructive/10 text-destructive border-0";
 
 export default function FollowUpsPage() {
   const { navigate, viewParams } = useNavigation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [presetFilter, setPresetFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = usePersistedFilter("follow-ups", "search", "");
+  const [statusFilter, setStatusFilter] = usePersistedFilter("follow-ups", "status", "all");
+  const [presetFilter, setPresetFilter] = usePersistedFilter<string | null>(
+    "follow-ups",
+    "preset",
+    null
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleDue, setScheduleDue] = useState("");
   const [scheduleNext, setScheduleNext] = useState("");
   const [scheduleNotes, setScheduleNotes] = useState("");
   const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -113,19 +123,42 @@ export default function FollowUpsPage() {
     }
   }, [viewParams]);
 
-  const { data: result, isLoading, error, mutate } = useFollowUps({
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, presetFilter, searchQuery]);
+
+  const listFilters = {
     status: statusFilter !== "all" ? statusFilter : undefined,
     filter: presetFilter || undefined,
     search: searchQuery || undefined,
-    limit: 50,
+  };
+
+  const { data: result, isLoading, error, mutate } = useFollowUps({
+    ...listFilters,
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
   });
-  const followUps = result?.data || [];
+  const totalItems = result?.total || 0;
+  const {
+    items: followUps,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<CustomerFollowUp>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: [statusFilter, presetFilter ?? "", searchQuery, page, pageSize].join("|"),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await followUpsSvc.listFollowUps({ ...listFilters, limit, offset })).data,
+  });
   const { data: selected, isLoading: detailLoading, mutate: mutateDetail } = useFollowUp(
     selectedId
   );
 
   const stats = {
-    total: result?.total ?? followUps.length,
+    total: totalItems || followUps.length,
     pending: followUps.filter((f) => f.contact_status === "Pending").length,
     overdue: followUps.filter((f) => f.is_overdue).length,
     reached: followUps.filter((f) => f.contact_status === "Reached").length,
@@ -400,6 +433,21 @@ export default function FollowUpsPage() {
               </Table>
             </div>
           )}
+          {followUps.length > 0 ? (
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              loadedCount={loadedCount}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+              onLoadMore={loadMore}
+              isLoadingMore={isLoadingMore}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

@@ -1,4 +1,6 @@
 import frappe
+from frappe.utils import getdate
+
 from dms.dealer_management_system.utils.company_permissions import (
 	assert_dms_company_access,
 	get_dms_companies,
@@ -6,6 +8,34 @@ from dms.dealer_management_system.utils.company_permissions import (
 
 # Default sort for DMS list views: newest record first.
 LIST_ORDER_LATEST_CREATED = "creation desc"
+
+
+def parse_filter_date(value):
+	"""Best-effort parse of a UI date filter value; returns None when invalid."""
+	if not value:
+		return None
+	try:
+		return getdate(value)
+	except Exception:
+		return None
+
+
+def apply_date_range(filters, fieldname, date_from=None, date_to=None):
+	"""Filter a Date field by an inclusive range. One bound is enough.
+
+	Bounds are swapped when the end date is earlier than the start date so the
+	query still returns a sensible result instead of nothing.
+	"""
+	start = parse_filter_date(date_from)
+	end = parse_filter_date(date_to)
+	if start and end and start > end:
+		start, end = end, start
+	if start and end:
+		filters[fieldname] = ["between", [start, end]]
+	elif start:
+		filters[fieldname] = [">=", start]
+	elif end:
+		filters[fieldname] = ["<=", end]
 
 
 def get_dms_sales_print_formats():

@@ -42,10 +42,13 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { ListRowActions } from "@/components/list-row-actions";
 import { PartsRequestFlowProgress } from "@/components/parts-request/parts-request-flow-progress";
 import { cn } from "@/lib/utils";
 import * as partsSvc from "@/services/partsRequests";
+import type { PartsRequestListItem } from "@/services/partsRequests";
 import * as partsReturnsSvc from "@/services/partsReturns";
 import { toast } from "sonner";
 
@@ -208,8 +211,8 @@ export default function PartsRequisitionsPage() {
   const { navigate, viewParams } = useNavigation();
   const { canWrite } = usePermissions();
   const canManage = canWrite("parts-requisitions");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [searchQuery, setSearchQuery] = usePersistedFilter("parts-requisitions", "search", "");
+  const [statusFilter, setStatusFilter] = usePersistedFilter("parts-requisitions", "status", "active");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
@@ -235,16 +238,37 @@ export default function PartsRequisitionsPage() {
       ? statusFilter
       : undefined;
 
-  const { data: result, isLoading, error, mutate } = usePartsRequisitions({
+  const listFilters: {
+    status?: string;
+    filter?: "active" | "pending_approval" | "ready_for_issue";
+    search?: string;
+  } = {
     status: listStatus,
     filter: listFilter,
     search: searchQuery.trim() || undefined,
+  };
+
+  const { data: result, isLoading, error, mutate } = usePartsRequisitions({
+    ...listFilters,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
 
-  const rows = result?.data ?? [];
   const totalItems = result?.total ?? 0;
+  const {
+    items: rows,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<PartsRequestListItem>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: [statusFilter, searchQuery, page, pageSize].join("|"),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await partsSvc.listAllPartsRequests({ ...listFilters, limit, offset })).data,
+  });
 
   useEffect(() => {
     setPage(1);
@@ -414,8 +438,11 @@ export default function PartsRequisitionsPage() {
                 page={page}
                 pageSize={pageSize}
                 totalItems={totalItems}
+                loadedCount={loadedCount}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
+                onLoadMore={loadMore}
+                isLoadingMore={isLoadingMore}
               />
             </>
           ) : (

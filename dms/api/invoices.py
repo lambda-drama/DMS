@@ -1,9 +1,15 @@
 import frappe
 from frappe import _
 from frappe.query_builder import DocType, Order
+from frappe.query_builder.functions import Count
 from frappe.utils import cint, flt, getdate, today
 
-from dms.api.utils import add_company_filter, get_dms_companies, resolve_dms_customer
+from dms.api.utils import (
+	add_company_filter,
+	get_dms_companies,
+	parse_filter_date,
+	resolve_dms_customer,
+)
 from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
 
 
@@ -54,55 +60,81 @@ def _dms_sales_invoice_condition():
 
 
 @frappe.whitelist()
-def get_invoices(limit=50, offset=0, status=None, search=None):
+def get_invoices(
+	limit=50,
+	offset=0,
+	status=None,
+	search=None,
+	include_total=0,
+	posting_from=None,
+	posting_to=None,
+):
 	_ensure_erpnext()
 
 	dms_cond = _dms_sales_invoice_condition()
 	if dms_cond is None:
-		return []
+		return {"data": [], "total": 0} if cint(include_total) else []
 
 	SI = DocType("Sales Invoice")
-	query = (
-		frappe.qb.from_(SI)
-		.select(
-			SI.name,
-			SI.customer,
-			SI.customer_name,
-			SI.posting_date,
-			SI.due_date,
-			SI.grand_total,
-			SI.outstanding_amount,
-			SI.status,
-			SI.currency,
-			SI.docstatus,
-			SI.creation,
-			SI.modified,
-		)
-		.where(dms_cond)
-		.orderby(SI.creation, order=Order.desc)
-		.limit(int(limit))
-		.offset(int(offset))
-	)
-
 	companies = get_dms_companies()
-	if companies:
-		query = query.where(SI.company.isin(companies))
+	posting_start = parse_filter_date(posting_from)
+	posting_end = parse_filter_date(posting_to)
+	if posting_start and posting_end and posting_start > posting_end:
+		posting_start, posting_end = posting_end, posting_start
 
-	if status:
-		query = query.where(SI.status == status)
-	else:
-		# Default list: hide cancelled so they stay out of the active queue
-		query = query.where((SI.status != "Cancelled") & (SI.docstatus != 2))
+	fields = [
+		SI.name,
+		SI.customer,
+		SI.customer_name,
+		SI.posting_date,
+		SI.due_date,
+		SI.grand_total,
+		SI.outstanding_amount,
+		SI.status,
+		SI.currency,
+		SI.docstatus,
+		SI.creation,
+		SI.modified,
+	]
 
-	if search:
-		like = f"%{search}%"
-		query = query.where((SI.name.like(like)) | (SI.customer_name.like(like)))
+	def build_query(select_fields, with_paging=True):
+		query = frappe.qb.from_(SI).select(*select_fields).where(dms_cond)
 
-	query = apply_branch_filter_to_qb(query, SI, doctype="Sales Invoice")
+		if companies:
+			query = query.where(SI.company.isin(companies))
 
-	rows = query.run(as_dict=True)
+		if status:
+			query = query.where(SI.status == status)
+		else:
+			# Default list: hide cancelled so they stay out of the active queue
+			query = query.where((SI.status != "Cancelled") & (SI.docstatus != 2))
+
+		if search:
+			like = f"%{search}%"
+			query = query.where((SI.name.like(like)) | (SI.customer_name.like(like)))
+
+		if posting_start:
+			query = query.where(SI.posting_date >= posting_start)
+
+		if posting_end:
+			query = query.where(SI.posting_date <= posting_end)
+
+		query = apply_branch_filter_to_qb(query, SI, doctype="Sales Invoice")
+
+		if with_paging:
+			query = query.orderby(SI.creation, order=Order.desc).limit(int(limit)).offset(int(offset))
+
+		return query
+
+	rows = build_query(fields).run(as_dict=True)
+
+	total = None
+	if cint(include_total):
+		count_rows = build_query([Count(SI.name)], with_paging=False).run()
+		total = int(count_rows[0][0] or 0) if count_rows else 0
+
 	if not rows:
-		return []
+		return {"data": [], "total": total or 0} if cint(include_total) else []
 
 	names = [r.name for r in rows if r.get("name")]
 	amended_as_map: dict[str, str] = {}
@@ -120,6 +152,8 @@ def get_invoices(limit=50, offset=0, status=None, search=None):
 		row["already_amended"] = 1 if amended_as else 0
 		row["amended_as"] = amended_as
 
+	if cint(include_total):
+		return {"data": rows, "total": total or 0}
 	return rows
 
 

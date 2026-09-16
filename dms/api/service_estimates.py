@@ -4,7 +4,12 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter, get_dms_companies
+from dms.api.utils import (
+	LIST_ORDER_LATEST_CREATED,
+	add_branch_filter,
+	apply_date_range,
+	get_dms_companies,
+)
 from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils import (
 	sync_job_card_from_accepted_estimate,
 )
@@ -21,12 +26,21 @@ def _customer_display_name(customer):
 
 
 @frappe.whitelist()
-def get_service_estimates(limit=50, offset=0, status=None, customer=None, search=None):
+def get_service_estimates(
+	limit=50,
+	offset=0,
+	status=None,
+	customer=None,
+	search=None,
+	posting_from=None,
+	posting_to=None,
+):
 	filters = {}
 	if status:
 		filters["status"] = status
 	if customer:
 		filters["customer"] = customer
+	apply_date_range(filters, "posting_date", posting_from, posting_to)
 
 	companies = get_dms_companies()
 	if companies:

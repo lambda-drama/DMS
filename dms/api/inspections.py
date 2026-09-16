@@ -5,6 +5,7 @@ from frappe.utils import cint, today
 from dms.api.utils import (
 	LIST_ORDER_LATEST_CREATED,
 	add_branch_filter,
+	apply_date_range,
 	enrich_vin_listing_fields,
 	get_dms_companies,
 	resolve_dms_customer,
@@ -127,12 +128,24 @@ def get_current_service_advisor():
 
 
 @frappe.whitelist()
-def get_inspections(limit=50, offset=0, customer=None, date=None, search=None):
+def get_inspections(
+	limit=50,
+	offset=0,
+	customer=None,
+	date=None,
+	search=None,
+	inspection_from=None,
+	inspection_to=None,
+	completed_from=None,
+	completed_to=None,
+):
 	filters = {}
 	if customer:
 		filters["customer"] = customer
 	if date:
 		filters["inspection_date"] = ["like", f"{date}%"]
+	apply_date_range(filters, "inspection_date", inspection_from, inspection_to)
+	apply_date_range(filters, "inspection_completed_date", completed_from, completed_to)
 
 	or_filters = {}
 	if search:

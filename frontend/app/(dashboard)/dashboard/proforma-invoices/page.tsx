@@ -6,6 +6,7 @@ import { usePermissions } from '@/contexts/permissions-context';
 import { PermittedCreateButton } from '@/components/permitted-create-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -34,6 +35,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { DetailSheet, DetailRow, DetailSection } from '@/components/detail-sheet';
 import { PrintFormatDropdown } from '@/components/print-format-dropdown';
+import { PaginationControls } from '@/components/pagination-controls';
+import { LOAD_MORE_PAGE_SIZE } from '@/hooks/use-load-more';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { ListRowActions } from '@/components/list-row-actions';
 import * as sparePartSalesSvc from '@/services/sparePartSales';
 import type { SparePartProformaDetail, SparePartProformaListItem } from '@/services/sparePartSales';
@@ -62,9 +66,15 @@ export default function ProformaInvoicesPage() {
   const { navigate } = useNavigation();
   const { canCancel, canCreate, canDelete, canWrite } = usePermissions();
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = usePersistedFilter('proforma-invoices', 'search', '');
+  const [fromDate, setFromDate] = usePersistedFilter('proforma-invoices', 'from_date', '');
+  const [toDate, setToDate] = usePersistedFilter('proforma-invoices', 'to_date', '');
   const [rows, setRows] = useState<SparePartProformaListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selected, setSelected] = useState<SparePartProformaDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [convertTarget, setConvertTarget] = useState<SparePartProformaListItem | null>(null);
@@ -99,21 +109,30 @@ export default function ProformaInvoicesPage() {
     navigate('proforma-invoice-new', { id: name });
   };
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, fromDate, toDate]);
+
   const loadRows = useCallback(async () => {
     setLoading(true);
     try {
       const result = await sparePartSalesSvc.listSparePartProformas({
         search: search || undefined,
-        limit: 100,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
       });
       setRows(result.data || []);
+      setTotalItems(result.total || 0);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to load proformas');
       setRows([]);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, fromDate, toDate, page, pageSize]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -121,6 +140,26 @@ export default function ProformaInvoicesPage() {
     }, 250);
     return () => window.clearTimeout(timer);
   }, [loadRows]);
+
+  const loadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const result = await sparePartSalesSvc.listSparePartProformas({
+        search: search || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+        limit: LOAD_MORE_PAGE_SIZE,
+        offset: rows.length,
+      });
+      setRows((prev) => [...prev, ...(result.data || [])]);
+      setTotalItems(result.total || 0);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load more proformas');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const openDetail = async (name: string) => {
     setDetailLoading(true);
@@ -228,14 +267,40 @@ export default function ProformaInvoicesPage() {
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-base">Saved proformas</CardTitle>
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                placeholder="Search proforma or customer..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
+              <div className="space-y-1.5">
+                <Label htmlFor="proforma-date-from" className="text-xs text-muted-foreground">
+                  Date from
+                </Label>
+                <Input
+                  id="proforma-date-from"
+                  type="date"
+                  value={fromDate}
+                  max={toDate || undefined}
+                  onChange={(e) => setFromDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="proforma-date-to" className="text-xs text-muted-foreground">
+                  Date to
+                </Label>
+                <Input
+                  id="proforma-date-to"
+                  type="date"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  onChange={(e) => setToDate(e.target.value)}
+                />
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Search proforma or customer..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -336,6 +401,21 @@ export default function ProformaInvoicesPage() {
               </TableBody>
             </Table>
           )}
+          {rows.length > 0 ? (
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              loadedCount={rows.length}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+              onLoadMore={loadMore}
+              isLoadingMore={loadingMore}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

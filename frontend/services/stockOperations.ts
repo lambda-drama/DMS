@@ -286,6 +286,8 @@ export async function listStockEntries(options?: {
   search?: string;
   limit?: number;
   offset?: number;
+  posting_from?: string;
+  posting_to?: string;
 }): Promise<StockEntryListRow[]> {
   return apiRequest(`/api/method/${API}.get_stock_entries`, {
     method: 'POST',
@@ -293,6 +295,8 @@ export async function listStockEntries(options?: {
       search: options?.search || null,
       limit: options?.limit ?? 30,
       offset: options?.offset ?? 0,
+      posting_from: options?.posting_from || null,
+      posting_to: options?.posting_to || null,
     }),
   });
 }

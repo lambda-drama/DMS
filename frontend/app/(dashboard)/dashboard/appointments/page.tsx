@@ -52,6 +52,8 @@ import {
   FilePenLine,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from '@/hooks/use-load-more';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { ListRowActions } from '@/components/list-row-actions';
 import { cn, vehicleListingLines } from '@/lib/utils';
 import {
@@ -153,10 +155,10 @@ function getPriorityConfig(priority: Priority) {
 
 export default function AppointmentsPage() {
   const { navigate, viewParams } = useNavigation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = usePersistedFilter('appointments', 'search', '');
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string>('appointments', 'status', 'all');
+  const [priorityFilter, setPriorityFilter] = usePersistedFilter<string>('appointments', 'priority', 'all');
+  const [dateFilter, setDateFilter] = usePersistedFilter<string>('appointments', 'date', '');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -184,15 +186,40 @@ export default function AppointmentsPage() {
     }
   }, [viewParams]);
 
-  const { data: result, isLoading, error } = useAppointments({
+  const listFilters = {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     date: dateFilter || undefined,
     search: searchQuery || undefined,
+  };
+
+  const { data: result, isLoading, error } = useAppointments({
+    ...listFilters,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
-  const appointments = result?.data;
   const totalItems = result?.total || 0;
+  const loadMoreResetKey = [
+    statusFilter,
+    priorityFilter,
+    searchQuery,
+    dateFilter,
+    page,
+    pageSize,
+  ].join('|');
+  const {
+    items: appointments,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<ServiceAppointment>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: loadMoreResetKey,
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await appointmentsSvc.listAppointments({ ...listFilters, limit, offset })).data,
+  });
 
   useEffect(() => {
     setPage(1);
@@ -584,8 +611,11 @@ export default function AppointmentsPage() {
                 page={page}
                 pageSize={pageSize}
                 totalItems={totalItems}
+                loadedCount={loadedCount}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
+                onLoadMore={loadMore}
+                isLoadingMore={isLoadingMore}
               />
             </div>
           ) : null}
@@ -813,8 +843,11 @@ export default function AppointmentsPage() {
               page={page}
               pageSize={pageSize}
               totalItems={totalItems}
+              loadedCount={loadedCount}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
+              onLoadMore={loadMore}
+              isLoadingMore={isLoadingMore}
             />
           </div>
         </CardContent>

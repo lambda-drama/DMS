@@ -49,10 +49,12 @@ import {
   FilePenLine,
 } from "lucide-react";
 import { toast } from "sonner";
-import { RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
+import { PaymentStatusBadge, RepeatJobBadge, StatusBadge } from "@/components/job-card/status-badge";
 import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-dialog";
 import { resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { ListRowActions } from "@/components/list-row-actions";
 import { cn, vehicleListingLines } from "@/lib/utils";
 import * as jobCardsSvc from "@/services/jobCards";
@@ -101,6 +103,18 @@ const statusFilterOptions: { value: string; label: string }[] = [
   { value: "Completed", label: "Completed" },
   { value: "Delivered", label: "Delivered" },
   { value: "Cancelled", label: "Cancelled" },
+];
+
+const jobCardTypeFilterOptions: { value: string; label: string }[] = [
+  { value: "all", label: "All job card types" },
+  { value: "Customer Paid", label: "Customer Paid" },
+  { value: "Warranty", label: "Warranty" },
+  { value: "Internal", label: "Internal" },
+  { value: "PDI", label: "PDI" },
+  { value: "Campaign/Recall", label: "Campaign/Recall" },
+  { value: "Insurance", label: "Insurance" },
+  { value: "Goodwill", label: "Goodwill" },
+  { value: "Fleet Contract", label: "Fleet Contract" },
 ];
 
 const ACTIVE_STATUSES = [
@@ -221,13 +235,20 @@ function formatDateRangeLabel(from?: string, to?: string) {
 
 export default function JobCardsPage() {
   const { navigate, viewParams } = useNavigation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [presetFilter, setPresetFilter] = useState<"active" | "qc" | "qc_failed" | "overdue" | null>(null);
-  const [openedFrom, setOpenedFrom] = useState("");
-  const [openedTo, setOpenedTo] = useState("");
-  const [completedFrom, setCompletedFrom] = useState("");
-  const [completedTo, setCompletedTo] = useState("");
+  const [searchQuery, setSearchQuery] = usePersistedFilter("job-cards", "search", "");
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string>("job-cards", "status", "all");
+  const [jobCardTypeFilter, setJobCardTypeFilter] = usePersistedFilter<string>(
+    "job-cards",
+    "job_card_type",
+    "all"
+  );
+  const [presetFilter, setPresetFilter] = usePersistedFilter<
+    "active" | "qc" | "qc_failed" | "overdue" | null
+  >("job-cards", "preset", null);
+  const [openedFrom, setOpenedFrom] = usePersistedFilter("job-cards", "opened_from", "");
+  const [openedTo, setOpenedTo] = usePersistedFilter("job-cards", "opened_to", "");
+  const [completedFrom, setCompletedFrom] = usePersistedFilter("job-cards", "completed_from", "");
+  const [completedTo, setCompletedTo] = usePersistedFilter("job-cards", "completed_to", "");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -254,18 +275,47 @@ export default function JobCardsPage() {
     }
   }, [viewParams]);
 
-  const { data: result, isLoading, error, mutate } = useJobCards({
+  const listFilters = {
     status: statusFilter !== "all" ? statusFilter : undefined,
     filter: presetFilter || undefined,
+    job_card_type: jobCardTypeFilter !== "all" ? jobCardTypeFilter : undefined,
     opened_from: openedFrom || undefined,
     opened_to: openedTo || undefined,
     completed_from: completedFrom || undefined,
     completed_to: completedTo || undefined,
+  };
+
+  const { data: result, isLoading, error, mutate } = useJobCards({
+    ...listFilters,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
-  const jobCards = result?.data;
   const totalItems = result?.total || 0;
+  const loadMoreResetKey = [
+    statusFilter,
+    jobCardTypeFilter,
+    presetFilter ?? "",
+    openedFrom,
+    openedTo,
+    completedFrom,
+    completedTo,
+    page,
+    pageSize,
+  ].join("|");
+  const {
+    items: jobCards,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<DMSJobCard>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: loadMoreResetKey,
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await jobCardsSvc.listJobCards({ ...listFilters, limit, offset })).data,
+  });
   const { data: selectedJobCard, isLoading: detailLoading } = useJobCard(selectedId);
 
   const handleConfirmCancel = async () => {
@@ -320,15 +370,26 @@ export default function JobCardsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, presetFilter, openedFrom, openedTo, completedFrom, completedTo]);
+  }, [
+    statusFilter,
+    jobCardTypeFilter,
+    presetFilter,
+    openedFrom,
+    openedTo,
+    completedFrom,
+    completedTo,
+  ]);
 
   const hasDateFilters = Boolean(openedFrom || openedTo || completedFrom || completedTo);
-  const hasListFilters = Boolean(presetFilter || statusFilter !== "all" || hasDateFilters);
+  const hasListFilters = Boolean(
+    presetFilter || statusFilter !== "all" || jobCardTypeFilter !== "all" || hasDateFilters
+  );
   const openedRangeLabel = formatDateRangeLabel(openedFrom, openedTo);
   const completedRangeLabel = formatDateRangeLabel(completedFrom, completedTo);
 
   const clearListFilters = () => {
     setStatusFilter("all");
+    setJobCardTypeFilter("all");
     setPresetFilter(null);
     setOpenedFrom("");
     setOpenedTo("");
@@ -395,6 +456,9 @@ export default function JobCardsPage() {
               {completedRangeLabel ? (
                 <Badge variant="outline">Completed: {completedRangeLabel}</Badge>
               ) : null}
+              {jobCardTypeFilter !== "all" ? (
+                <Badge variant="outline">Type: {jobCardTypeFilter}</Badge>
+              ) : null}
               <Button variant="ghost" size="sm" onClick={clearListFilters}>
                 Clear filters
               </Button>
@@ -424,6 +488,19 @@ export default function JobCardsPage() {
               </SelectTrigger>
               <SelectContent>
                 {statusFilterOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={jobCardTypeFilter} onValueChange={setJobCardTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filter by job card type" />
+              </SelectTrigger>
+              <SelectContent>
+                {jobCardTypeFilterOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
@@ -518,11 +595,19 @@ export default function JobCardsPage() {
                         onClick={() => setSelectedId(jc.name)}
                         className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
                       >
-                        <p className="font-medium">{jc.customer_name}</p>
+                        <p className="truncate font-medium" title={jc.customer_name}>
+                          {jc.customer_name}
+                        </p>
                         <p className="truncate text-sm text-muted-foreground">{jc.name}</p>
                         <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                          <p className="font-medium text-foreground">{vehicle.primary}</p>
-                          {vehicle.secondary ? <p>{vehicle.secondary}</p> : null}
+                          <p className="truncate font-medium text-foreground" title={vehicle.primary}>
+                            {vehicle.primary}
+                          </p>
+                          {vehicle.secondary ? (
+                            <p className="truncate" title={vehicle.secondary}>
+                              {vehicle.secondary}
+                            </p>
+                          ) : null}
                           <Badge variant="outline" className="mt-1">
                             {jc.job_card_type}
                           </Badge>
@@ -532,6 +617,12 @@ export default function JobCardsPage() {
                         <StatusBadge status={resolveJobCardWorkflowStatus(jc.status, jc.docstatus)} />
                         {jc.is_repeat_repair ? (
                           <RepeatJobBadge reference={jc.repeat_repair_reference} />
+                        ) : null}
+                        {jc.invoice ? (
+                          <PaymentStatusBadge
+                            paymentStatus={jc.payment_status}
+                            hasInvoice
+                          />
                         ) : null}
                         <div className="mt-auto">
                           <ListRowActions doctype="DMS Job Card" docName={jc.name}>
@@ -622,8 +713,11 @@ export default function JobCardsPage() {
                   page={page}
                   pageSize={pageSize}
                   totalItems={totalItems}
+                  loadedCount={loadedCount}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
+                  onLoadMore={loadMore}
+                  isLoadingMore={isLoadingMore}
                 />
               </div>
 
@@ -631,14 +725,15 @@ export default function JobCardsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Job Card ID</TableHead>
-                    <TableHead>Vehicle</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Service Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-[130px]">Job Card ID</TableHead>
+                    <TableHead className="w-[180px]">Vehicle</TableHead>
+                    <TableHead className="w-[160px]">Customer</TableHead>
+                    <TableHead className="w-[170px]">Status</TableHead>
+                    <TableHead className="w-[130px]">Payment Status</TableHead>
+                    <TableHead className="w-[230px]">Progress</TableHead>
+                    <TableHead className="w-[130px]">Service Type</TableHead>
+                    <TableHead className="w-[100px]">Due Date</TableHead>
+                    <TableHead className="w-[56px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -662,19 +757,25 @@ export default function JobCardsPage() {
                           {jc.name}
                         </button>
                       </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{vehicle.primary}</p>
+                      <TableCell className="max-w-[180px]">
+                        <div className="min-w-0">
+                          <p className="max-w-[180px] truncate font-medium" title={vehicle.primary}>
+                            {vehicle.primary}
+                          </p>
                           {vehicle.secondary ? (
-                            <p className="text-sm text-muted-foreground">{vehicle.secondary}</p>
+                            <p
+                              className="max-w-[180px] truncate text-sm text-muted-foreground"
+                              title={vehicle.secondary}
+                            >
+                              {vehicle.secondary}
+                            </p>
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <p className="font-medium">{jc.customer_name}</p>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{jc.job_card_type}</Badge>
+                      <TableCell className="max-w-[160px]">
+                        <p className="max-w-[160px] truncate font-medium" title={jc.customer_name}>
+                          {jc.customer_name}
+                        </p>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col items-start gap-1.5">
@@ -683,6 +784,12 @@ export default function JobCardsPage() {
                             <RepeatJobBadge reference={jc.repeat_repair_reference} />
                           ) : null}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <PaymentStatusBadge
+                          paymentStatus={jc.payment_status}
+                          hasInvoice={Boolean(jc.invoice)}
+                        />
                       </TableCell>
                       <TableCell>
                         <WorkflowProgress
@@ -694,6 +801,9 @@ export default function JobCardsPage() {
                               : navigate("job-card-detail", { id: jc.name })
                           }
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{jc.job_card_type}</Badge>
                       </TableCell>
                       <TableCell>
                         {jc.promised_delivery_date_time
@@ -796,8 +906,11 @@ export default function JobCardsPage() {
                 page={page}
                 pageSize={pageSize}
                 totalItems={totalItems}
+                loadedCount={loadedCount}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
+                onLoadMore={loadMore}
+                isLoadingMore={isLoadingMore}
               />
             </div>
           ) : null}

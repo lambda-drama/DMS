@@ -5,7 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, apply_date_range
 from dms.dealer_management_system.utils.stock_operations import (
 	SPAREPART_STOCK_FIELD,
 	create_dms_material_request,
@@ -85,7 +85,7 @@ def get_stock_entry_detail(name=None):
 
 
 @frappe.whitelist()
-def get_stock_entries(limit=30, offset=0, search=None):
+def get_stock_entries(limit=30, offset=0, search=None, posting_from=None, posting_to=None):
 	frappe.has_permission("Stock Entry", "read", throw=True)
 	filters = {}
 	se_meta = frappe.get_meta("Stock Entry")
@@ -93,6 +93,7 @@ def get_stock_entries(limit=30, offset=0, search=None):
 		filters[SPAREPART_STOCK_FIELD] = 1
 	if search and search.strip():
 		filters["name"] = ["like", f"%{search.strip()}%"]
+	apply_date_range(filters, "posting_date", posting_from, posting_to)
 
 	rows = frappe.get_all(
 		"Stock Entry",

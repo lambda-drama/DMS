@@ -10,6 +10,10 @@ export async function listInspections(options?: {
   customer?: string;
   date?: string;
   search?: string;
+  inspection_from?: string;
+  inspection_to?: string;
+  completed_from?: string;
+  completed_to?: string;
   limit?: number;
   offset?: number;
 }): Promise<PaginatedResponse<VehicleInspection>> {
@@ -19,6 +23,10 @@ export async function listInspections(options?: {
       customer: options?.customer || null,
       date: options?.date || null,
       search: options?.search || null,
+      inspection_from: options?.inspection_from || null,
+      inspection_to: options?.inspection_to || null,
+      completed_from: options?.completed_from || null,
+      completed_to: options?.completed_to || null,
       limit: options?.limit || 50,
       offset: options?.offset || 0,
     }),

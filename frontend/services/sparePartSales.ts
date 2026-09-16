@@ -160,6 +160,8 @@ export async function listSparePartProformas(options?: {
   status?: string;
   limit?: number;
   offset?: number;
+  from_date?: string;
+  to_date?: string;
 }): Promise<{ data: SparePartProformaListItem[]; total: number }> {
   return apiRequest(`/api/method/${API}.list_spare_part_proformas`, {
     method: 'POST',
@@ -168,6 +170,8 @@ export async function listSparePartProformas(options?: {
       status: options?.status || null,
       limit: options?.limit ?? 50,
       offset: options?.offset ?? 0,
+      from_date: options?.from_date || null,
+      to_date: options?.to_date || null,
     }),
   });
 }

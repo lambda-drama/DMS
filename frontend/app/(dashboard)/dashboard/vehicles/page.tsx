@@ -6,6 +6,10 @@ import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useVehicles, useVehicle } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
 import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import * as vehiclesSvc from "@/services/vehicles";
+import type { VINNoListItem } from "@/types/dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { EditVehicleDialog } from "@/components/vehicles/edit-vehicle-dialog";
 import { Button } from "@/components/ui/button";
@@ -83,9 +87,9 @@ export default function VehiclesPage() {
   const { navigate, viewParams } = useNavigation();
   const { canWrite } = usePermissions();
   const customerFromUrl = viewParams.get("customer");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [warrantyFilter, setWarrantyFilter] = useState("all");
+  const [search, setSearch] = usePersistedFilter("vehicles", "search", "");
+  const [statusFilter, setStatusFilter] = usePersistedFilter("vehicles", "status", "all");
+  const [warrantyFilter, setWarrantyFilter] = usePersistedFilter("vehicles", "warranty", "all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -93,16 +97,33 @@ export default function VehiclesPage() {
 
   const { data: selectedVehicle, isLoading: detailLoading, mutate: mutateVehicle } = useVehicle(selectedId);
 
-  const { data: result, isLoading, error } = useVehicles({
+  const listFilters = {
     customer: customerFromUrl || undefined,
     search: search || undefined,
     vehicle_status: statusFilter !== "all" ? statusFilter : undefined,
     warranty_status: warrantyFilter !== "all" ? warrantyFilter : undefined,
+  };
+
+  const { data: result, isLoading, error } = useVehicles({
+    ...listFilters,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
-  const vehicles = result?.data;
   const totalItems = result?.total || 0;
+  const {
+    items: vehicles,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<VINNoListItem>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: [search, statusFilter, warrantyFilter, customerFromUrl ?? "", page, pageSize].join("|"),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await vehiclesSvc.listVehicles({ ...listFilters, limit, offset })).data,
+  });
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -395,8 +416,11 @@ export default function VehiclesPage() {
             page={page}
             pageSize={pageSize}
             totalItems={totalItems}
+            loadedCount={loadedCount}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
+            onLoadMore={loadMore}
+            isLoadingMore={isLoadingMore}
           />
         </CardContent>
       </Card>

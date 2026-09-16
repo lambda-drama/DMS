@@ -7,6 +7,7 @@ import { useServiceEstimates } from '@/hooks/use-dms';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -35,6 +36,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { FileSpreadsheet, Search, User, Car, Pencil, Trash2 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from '@/hooks/use-load-more';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { ListRowActions } from '@/components/list-row-actions';
 import * as estimatesSvc from '@/services/serviceEstimates';
 import type { DMSServiceEstimate, ServiceEstimateStatus } from '@/types/dms';
@@ -69,28 +72,53 @@ function canDeleteEstimateRow(est: DMSServiceEstimate) {
 export default function ServiceEstimatesPage() {
   const { navigate } = useNavigation();
   const { canWrite, canDelete } = usePermissions();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = usePersistedFilter('service-estimates', 'search', '');
+  const [statusFilter, setStatusFilter] = usePersistedFilter('service-estimates', 'status', 'all');
+  const [postingFrom, setPostingFrom] = usePersistedFilter(
+    'service-estimates',
+    'posting_from',
+    ''
+  );
+  const [postingTo, setPostingTo] = usePersistedFilter('service-estimates', 'posting_to', '');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [deleteTarget, setDeleteTarget] = useState<DMSServiceEstimate | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const { data: result, isLoading, error, mutate } = useServiceEstimates({
+  const listFilters = {
     status: statusFilter === 'all' ? undefined : statusFilter,
     search: searchQuery || undefined,
+    posting_from: postingFrom || undefined,
+    posting_to: postingTo || undefined,
+  };
+
+  const { data: result, isLoading, error, mutate } = useServiceEstimates({
+    ...listFilters,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
 
-  const estimates = result?.data ?? [];
   const totalItems = result?.total || 0;
+  const {
+    items: estimates,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<DMSServiceEstimate>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: [statusFilter, searchQuery, postingFrom, postingTo, page, pageSize].join('|'),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await estimatesSvc.listServiceEstimates({ ...listFilters, limit, offset })).data,
+  });
   const canEditAny = canWrite('service-estimates');
   const canDeleteAny = canDelete('service-estimates');
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, postingFrom, postingTo]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -141,6 +169,34 @@ export default function ServiceEstimatesPage() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Posting date range */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl">
+            <div className="space-y-1.5">
+              <Label htmlFor="estimate-posting-from" className="text-xs text-muted-foreground">
+                Posting date from
+              </Label>
+              <Input
+                id="estimate-posting-from"
+                type="date"
+                value={postingFrom}
+                max={postingTo || undefined}
+                onChange={(e) => setPostingFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="estimate-posting-to" className="text-xs text-muted-foreground">
+                Posting date to
+              </Label>
+              <Input
+                id="estimate-posting-to"
+                type="date"
+                value={postingTo}
+                min={postingFrom || undefined}
+                onChange={(e) => setPostingTo(e.target.value)}
+              />
+            </div>
           </div>
 
           {isLoading ? (
@@ -301,11 +357,14 @@ export default function ServiceEstimatesPage() {
                 page={page}
                 pageSize={pageSize}
                 totalItems={totalItems}
+                loadedCount={loadedCount}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
                   setPageSize(size);
                   setPage(1);
                 }}
+                onLoadMore={loadMore}
+                isLoadingMore={isLoadingMore}
               />
             </>
           )}

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { EditItemPriceDialog } from "@/components/item-prices/edit-item-price-dialog";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
@@ -44,8 +46,8 @@ function formatMoney(n?: number | null) {
 }
 
 export default function ItemPricesPage() {
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
+  const [search, setSearch] = usePersistedFilter("item-prices", "search", "");
+  const [debounced, setDebounced] = useState(search);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -77,8 +79,21 @@ export default function ItemPricesPage() {
     () => mastersSvc.getItemPrice(selectedId!)
   );
 
-  const rows = data?.data || [];
   const total = data?.total || 0;
+  const {
+    items: rows,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<ItemPriceMaster>({
+    items: data?.data,
+    total,
+    offset: (page - 1) * pageSize,
+    resetKey: [debounced, page, pageSize].join("|"),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await mastersSvc.listItemPrices({ search: debounced || undefined, limit, offset })).data,
+  });
 
   function openEdit(row: ItemPriceMaster) {
     setSelectedId(row.name);
@@ -201,8 +216,11 @@ export default function ItemPricesPage() {
             page={page}
             pageSize={pageSize}
             totalItems={total}
+            loadedCount={loadedCount}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
+            onLoadMore={loadMore}
+            isLoadingMore={isLoadingMore}
           />
         </CardContent>
       </Card>
