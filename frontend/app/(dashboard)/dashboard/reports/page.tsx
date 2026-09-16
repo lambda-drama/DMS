@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/searchable-select';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { ReportViewer } from '@/components/reports/report-viewer';
 import { SectionDashboardView } from '@/components/reports/section-dashboard';
 import { useNavigation } from '@/contexts/navigation-context';
@@ -183,6 +184,11 @@ export default function ReportsPage() {
     setFromDate(range.from);
     setToDate(range.to);
   };
+
+  /** Date filters are considered cleared when the default period is active. */
+  const hasDateFilters = period !== 'monthly';
+
+  const clearDateFilters = () => applyPeriod('monthly');
 
   useEffect(() => {
     reportsSvc
@@ -518,6 +524,12 @@ export default function ReportsPage() {
                       setPeriod('custom');
                       setToDate(e.target.value);
                     }}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <ClearDateFiltersButton
+                    onClear={clearDateFilters}
+                    disabled={!hasDateFilters}
                   />
                 </div>
                 <div className="space-y-1">

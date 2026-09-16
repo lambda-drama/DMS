@@ -45,6 +45,7 @@ import {
   DetailRow,
 } from "@/components/detail-sheet";
 import { ListRowActions } from "@/components/list-row-actions";
+import { ClearDateFiltersButton } from "@/components/clear-date-filters-button";
 import { PaginationControls } from "@/components/pagination-controls";
 import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
@@ -311,13 +312,11 @@ export default function FollowUpsPage() {
               </SelectContent>
             </Select>
             {presetFilter ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPresetFilter(null)}
-              >
-                Clear filter
-              </Button>
+              <ClearDateFiltersButton
+                label="Clear filter"
+                onClear={() => setPresetFilter(null)}
+                className="self-start sm:self-auto"
+              />
             ) : null}
           </div>
 

@@ -56,6 +56,7 @@ import { PaginationControls } from "@/components/pagination-controls";
 import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { ListRowActions } from "@/components/list-row-actions";
+import { ClearDateFiltersButton } from "@/components/clear-date-filters-button";
 import { cn, vehicleListingLines } from "@/lib/utils";
 import * as jobCardsSvc from "@/services/jobCards";
 import type { DMSJobCard, JobCardStatus } from "@/types/dms";
@@ -459,9 +460,7 @@ export default function JobCardsPage() {
               {jobCardTypeFilter !== "all" ? (
                 <Badge variant="outline">Type: {jobCardTypeFilter}</Badge>
               ) : null}
-              <Button variant="ghost" size="sm" onClick={clearListFilters}>
-                Clear filters
-              </Button>
+              <ClearDateFiltersButton onClear={clearListFilters} />
             </div>
           )}
 

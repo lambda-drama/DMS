@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
 import { useServiceEstimates } from '@/hooks/use-dms';
@@ -39,6 +39,7 @@ import { PaginationControls } from '@/components/pagination-controls';
 import { LOAD_MORE_PAGE_SIZE, useLoadMore } from '@/hooks/use-load-more';
 import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { ListRowActions } from '@/components/list-row-actions';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import * as estimatesSvc from '@/services/serviceEstimates';
 import type { DMSServiceEstimate, ServiceEstimateStatus } from '@/types/dms';
 import { format } from 'date-fns';
@@ -84,6 +85,13 @@ export default function ServiceEstimatesPage() {
   const [pageSize, setPageSize] = useState(50);
   const [deleteTarget, setDeleteTarget] = useState<DMSServiceEstimate | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const hasDateFilters = Boolean(postingFrom || postingTo);
+
+  const clearDateFilters = useCallback(() => {
+    setPostingFrom('');
+    setPostingTo('');
+  }, [setPostingFrom, setPostingTo]);
 
   const listFilters = {
     status: statusFilter === 'all' ? undefined : statusFilter,
@@ -172,31 +180,38 @@ export default function ServiceEstimatesPage() {
           </div>
 
           {/* Posting date range */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl">
-            <div className="space-y-1.5">
-              <Label htmlFor="estimate-posting-from" className="text-xs text-muted-foreground">
-                Posting date from
-              </Label>
-              <Input
-                id="estimate-posting-from"
-                type="date"
-                value={postingFrom}
-                max={postingTo || undefined}
-                onChange={(e) => setPostingFrom(e.target.value)}
-              />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl lg:flex-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="estimate-posting-from" className="text-xs text-muted-foreground">
+                  Posting date from
+                </Label>
+                <Input
+                  id="estimate-posting-from"
+                  type="date"
+                  value={postingFrom}
+                  max={postingTo || undefined}
+                  onChange={(e) => setPostingFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="estimate-posting-to" className="text-xs text-muted-foreground">
+                  Posting date to
+                </Label>
+                <Input
+                  id="estimate-posting-to"
+                  type="date"
+                  value={postingTo}
+                  min={postingFrom || undefined}
+                  onChange={(e) => setPostingTo(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="estimate-posting-to" className="text-xs text-muted-foreground">
-                Posting date to
-              </Label>
-              <Input
-                id="estimate-posting-to"
-                type="date"
-                value={postingTo}
-                min={postingFrom || undefined}
-                onChange={(e) => setPostingTo(e.target.value)}
-              />
-            </div>
+            <ClearDateFiltersButton
+              onClear={clearDateFilters}
+              disabled={!hasDateFilters}
+              className="self-end sm:self-auto"
+            />
           </div>
 
           {isLoading ? (

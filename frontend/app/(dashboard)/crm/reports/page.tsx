@@ -28,6 +28,7 @@ import {
 import { PdfPreviewDialog } from '@/components/reports/pdf-preview-dialog';
 import { useBranches, useCompanies, useAutofillSingleCompany } from '@/hooks/use-dms';
 import { SearchableSelect } from '@/components/searchable-select';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { FileSpreadsheet, FileText, HelpCircle, Loader2, RefreshCw, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { reportActionBtnClass } from '@/components/reports/dashboards/shared';
@@ -133,6 +134,11 @@ export default function CrmReportsPage() {
     setFromDate(range.from);
     setToDate(range.to);
   };
+
+  /** Date filters are considered cleared when the default period is active. */
+  const hasDateFilters = period !== 'monthly';
+
+  const clearDateFilters = () => applyPeriod('monthly');
 
   useEffect(() => {
     crmReports
@@ -397,6 +403,12 @@ export default function CrmReportsPage() {
                 setPeriod('custom');
                 setToDate(e.target.value);
               }}
+            />
+          </div>
+          <div className="flex items-end">
+            <ClearDateFiltersButton
+              onClear={clearDateFilters}
+              disabled={!hasDateFilters}
             />
           </div>
           <div className="space-y-1.5">

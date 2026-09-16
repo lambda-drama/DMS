@@ -57,6 +57,7 @@ import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import * as inspectionsSvc from '@/services/inspections';
 import type { VehicleInspection } from '@/types/dms';
 import { ListRowActions } from '@/components/list-row-actions';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { cn, vehicleListingLines } from '@/lib/utils';
 
 export default function InspectionsPage() {
@@ -99,6 +100,15 @@ export default function InspectionsPage() {
   );
 
   const { data: selectedInspection, isLoading: detailLoading } = useInspection(selectedId);
+
+  const hasDateFilters = Boolean(inspectionFrom || inspectionTo || completedFrom || completedTo);
+
+  const clearDateFilters = useCallback(() => {
+    setInspectionFrom('');
+    setInspectionTo('');
+    setCompletedFrom('');
+    setCompletedTo('');
+  }, [setInspectionFrom, setInspectionTo, setCompletedFrom, setCompletedTo]);
 
   const listFilters = {
     inspection_from: inspectionFrom || undefined,
@@ -217,53 +227,61 @@ export default function InspectionsPage() {
           </div>
 
           {/* Date filters */}
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="inspection-date-from" className="text-xs text-muted-foreground">
-                Inspection date from
-              </Label>
-              <Input
-                id="inspection-date-from"
-                type="date"
-                value={inspectionFrom}
-                max={inspectionTo || undefined}
-                onChange={(e) => setInspectionFrom(e.target.value)}
-              />
+          <div className="mb-4 space-y-3 sm:mb-6">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="inspection-date-from" className="text-xs text-muted-foreground">
+                  Inspection date from
+                </Label>
+                <Input
+                  id="inspection-date-from"
+                  type="date"
+                  value={inspectionFrom}
+                  max={inspectionTo || undefined}
+                  onChange={(e) => setInspectionFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inspection-date-to" className="text-xs text-muted-foreground">
+                  Inspection date to
+                </Label>
+                <Input
+                  id="inspection-date-to"
+                  type="date"
+                  value={inspectionTo}
+                  min={inspectionFrom || undefined}
+                  onChange={(e) => setInspectionTo(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inspection-completed-from" className="text-xs text-muted-foreground">
+                  Completed date from
+                </Label>
+                <Input
+                  id="inspection-completed-from"
+                  type="date"
+                  value={completedFrom}
+                  max={completedTo || undefined}
+                  onChange={(e) => setCompletedFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inspection-completed-to" className="text-xs text-muted-foreground">
+                  Completed date to
+                </Label>
+                <Input
+                  id="inspection-completed-to"
+                  type="date"
+                  value={completedTo}
+                  min={completedFrom || undefined}
+                  onChange={(e) => setCompletedTo(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="inspection-date-to" className="text-xs text-muted-foreground">
-                Inspection date to
-              </Label>
-              <Input
-                id="inspection-date-to"
-                type="date"
-                value={inspectionTo}
-                min={inspectionFrom || undefined}
-                onChange={(e) => setInspectionTo(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="inspection-completed-from" className="text-xs text-muted-foreground">
-                Completed date from
-              </Label>
-              <Input
-                id="inspection-completed-from"
-                type="date"
-                value={completedFrom}
-                max={completedTo || undefined}
-                onChange={(e) => setCompletedFrom(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="inspection-completed-to" className="text-xs text-muted-foreground">
-                Completed date to
-              </Label>
-              <Input
-                id="inspection-completed-to"
-                type="date"
-                value={completedTo}
-                min={completedFrom || undefined}
-                onChange={(e) => setCompletedTo(e.target.value)}
+            <div className="flex justify-end">
+              <ClearDateFiltersButton
+                onClear={clearDateFilters}
+                disabled={!hasDateFilters}
               />
             </div>
           </div>
