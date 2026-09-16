@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -65,6 +66,9 @@ import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dial
 import { AmendInvoiceDialog } from "@/components/invoices/amend-invoice-dialog";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { ListRowActions } from "@/components/list-row-actions";
+import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import * as invoicesSvc from "@/services/invoices";
 import type { SalesInvoiceDetail, SalesInvoiceListItem } from "@/types/dms";
 
@@ -89,8 +93,10 @@ function formatCurrency(amount: number, currency?: string) {
 
 export default function InvoicesPage() {
   const { navigate, viewParams } = useNavigation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = usePersistedFilter("invoices", "search", "");
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string>("invoices", "status", "all");
+  const [postingFrom, setPostingFrom] = usePersistedFilter("invoices", "posting_from", "");
+  const [postingTo, setPostingTo] = usePersistedFilter("invoices", "posting_to", "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
@@ -104,6 +110,8 @@ export default function InvoicesPage() {
   const [deleting, setDeleting] = useState(false);
   const [updatingJobCardPrices, setUpdatingJobCardPrices] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const { canCancel, canCreate, canWrite, canDelete } = usePermissions();
 
   useEffect(() => {
@@ -114,9 +122,39 @@ export default function InvoicesPage() {
       setStatusFilter(status);
     }
   }, [viewParams]);
-  const { data: invoices, isLoading, error } = useInvoices({
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, searchQuery, postingFrom, postingTo]);
+
+  const listFilters = {
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchQuery || undefined,
+    posting_from: postingFrom || undefined,
+    posting_to: postingTo || undefined,
+  };
+
+  const { data: result, isLoading, error } = useInvoices({
+    ...listFilters,
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
+  });
+
+  const totalItems = result?.total || 0;
+  const loadMoreResetKey = [statusFilter, searchQuery, postingFrom, postingTo, page, pageSize].join("|");
+  const {
+    items: invoices,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<SalesInvoiceListItem>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: loadMoreResetKey,
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await invoicesSvc.listInvoicesPaginated({ ...listFilters, limit, offset })).data,
   });
 
   const selectedInvoice = invoices?.find((i) => i.name === selectedId);
@@ -403,6 +441,32 @@ export default function InvoicesPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl">
+            <div className="space-y-1.5">
+              <Label htmlFor="invoice-posting-from" className="text-xs text-muted-foreground">
+                Invoice date from
+              </Label>
+              <Input
+                id="invoice-posting-from"
+                type="date"
+                value={postingFrom}
+                max={postingTo || undefined}
+                onChange={(e) => setPostingFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="invoice-posting-to" className="text-xs text-muted-foreground">
+                Invoice date to
+              </Label>
+              <Input
+                id="invoice-posting-to"
+                type="date"
+                value={postingTo}
+                min={postingFrom || undefined}
+                onChange={(e) => setPostingTo(e.target.value)}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -548,6 +612,18 @@ export default function InvoicesPage() {
               </Button>
             </div>
           )}
+          {invoices.length > 0 ? (
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              loadedCount={loadedCount}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              onLoadMore={loadMore}
+              isLoadingMore={isLoadingMore}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

@@ -12,6 +12,8 @@ export async function listServiceEstimates(options?: {
   status?: string;
   customer?: string;
   search?: string;
+  posting_from?: string;
+  posting_to?: string;
   limit?: number;
   offset?: number;
 }): Promise<PaginatedResponse<DMSServiceEstimate>> {
@@ -23,6 +25,8 @@ export async function listServiceEstimates(options?: {
         status: options?.status || null,
         customer: options?.customer || null,
         search: options?.search || null,
+        posting_from: options?.posting_from || null,
+        posting_to: options?.posting_to || null,
         limit: options?.limit || 50,
         offset: options?.offset || 0,
       }),

@@ -4,6 +4,10 @@ import { useState, useMemo, useEffect } from "react";
 import { useCustomersPaginated } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
 import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import * as commonSvc from "@/services/common";
+import type { Customer } from "@/types/dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { EditCustomerDialog } from "@/components/customers/edit-customer-dialog";
 import { useNavigation } from "@/contexts/navigation-context";
@@ -32,7 +36,7 @@ import {
 export default function CustomersPage() {
   const { navigate, viewParams } = useNavigation();
   const { canWrite } = usePermissions();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = usePersistedFilter("customers", "search", "");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -48,8 +52,21 @@ export default function CustomersPage() {
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
-  const customers = result?.data;
   const totalItems = result?.total || 0;
+  const {
+    items: customers,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<Customer>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: [searchQuery, page, pageSize].join("|"),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await commonSvc.fetchCustomers(searchQuery || undefined, limit, offset)).data,
+  });
 
   useEffect(() => {
     setPage(1);
@@ -233,8 +250,11 @@ export default function CustomersPage() {
             page={page}
             pageSize={pageSize}
             totalItems={totalItems}
+            loadedCount={loadedCount}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
+            onLoadMore={loadMore}
+            isLoadingMore={isLoadingMore}
           />
         </CardContent>
       </Card>

@@ -22,6 +22,7 @@ export async function listJobCards(options?: {
   filter?: 'active' | 'qc' | 'qc_failed' | 'overdue';
   customer?: string;
   search?: string;
+  job_card_type?: string;
   opened_from?: string;
   opened_to?: string;
   completed_from?: string;
@@ -36,6 +37,7 @@ export async function listJobCards(options?: {
       filter: options?.filter || null,
       customer: options?.customer || null,
       search: options?.search || null,
+      job_card_type: options?.job_card_type || null,
       opened_from: options?.opened_from || null,
       opened_to: options?.opened_to || null,
       completed_from: options?.completed_from || null,

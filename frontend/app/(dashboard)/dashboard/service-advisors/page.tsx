@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { useServiceAdvisorsList, useServiceAdvisorDetail } from "@/hooks/use-dms";
 import { CreateServiceAdvisorDialog } from "@/components/service-advisors/create-service-advisor-dialog";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
@@ -48,8 +49,8 @@ function statusBadgeClass(status?: string) {
 }
 
 export default function ServiceAdvisorsPage() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Active");
+  const [search, setSearch] = usePersistedFilter("service-advisors", "search", "");
+  const [statusFilter, setStatusFilter] = usePersistedFilter("service-advisors", "status", "Active");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 

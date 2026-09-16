@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -72,6 +73,8 @@ export default function StockEntryPage() {
   const [itemsLoading, setItemsLoading] = useState(false);
   const [recent, setRecent] = useState<stockSvc.StockEntryListRow[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [recentFrom, setRecentFrom] = usePersistedFilter('stock-entry', 'recent_from', '');
+  const [recentTo, setRecentTo] = usePersistedFilter('stock-entry', 'recent_to', '');
   const [submitting, setSubmitting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<stockSvc.StockEntryDetail | null>(null);
@@ -97,13 +100,19 @@ export default function StockEntryPage() {
   const loadRecent = useCallback(async () => {
     setRecentLoading(true);
     try {
-      setRecent(await stockSvc.listStockEntries({ limit: 20 }));
+      setRecent(
+        await stockSvc.listStockEntries({
+          limit: 20,
+          posting_from: recentFrom || undefined,
+          posting_to: recentTo || undefined,
+        })
+      );
     } catch {
       setRecent([]);
     } finally {
       setRecentLoading(false);
     }
-  }, []);
+  }, [recentFrom, recentTo]);
 
   useEffect(() => {
     void loadDefaults(company);
@@ -419,8 +428,34 @@ export default function StockEntryPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <CardTitle>Recent stock entries</CardTitle>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="stock-entry-recent-from" className="text-xs text-muted-foreground">
+                Date from
+              </Label>
+              <Input
+                id="stock-entry-recent-from"
+                type="date"
+                value={recentFrom}
+                max={recentTo || undefined}
+                onChange={(e) => setRecentFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="stock-entry-recent-to" className="text-xs text-muted-foreground">
+                Date to
+              </Label>
+              <Input
+                id="stock-entry-recent-to"
+                type="date"
+                value={recentTo}
+                min={recentFrom || undefined}
+                onChange={(e) => setRecentTo(e.target.value)}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {recentLoading ? (

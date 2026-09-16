@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import * as estimatesSvc from '@/services/serviceEstimates';
@@ -51,13 +52,29 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { PaginationControls } from '@/components/pagination-controls';
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from '@/hooks/use-load-more';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
+import * as inspectionsSvc from '@/services/inspections';
+import type { VehicleInspection } from '@/types/dms';
 import { ListRowActions } from '@/components/list-row-actions';
 import { cn, vehicleListingLines } from '@/lib/utils';
 
 export default function InspectionsPage() {
   const { navigate } = useNavigation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = usePersistedFilter('inspections', 'search', '');
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string>('inspections', 'status', 'all');
+  const [inspectionFrom, setInspectionFrom] = usePersistedFilter(
+    'inspections',
+    'inspection_from',
+    ''
+  );
+  const [inspectionTo, setInspectionTo] = usePersistedFilter('inspections', 'inspection_to', '');
+  const [completedFrom, setCompletedFrom] = usePersistedFilter(
+    'inspections',
+    'completed_from',
+    ''
+  );
+  const [completedTo, setCompletedTo] = usePersistedFilter('inspections', 'completed_to', '');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -83,16 +100,46 @@ export default function InspectionsPage() {
 
   const { data: selectedInspection, isLoading: detailLoading } = useInspection(selectedId);
 
+  const listFilters = {
+    inspection_from: inspectionFrom || undefined,
+    inspection_to: inspectionTo || undefined,
+    completed_from: completedFrom || undefined,
+    completed_to: completedTo || undefined,
+  };
+
   const { data: result, isLoading, error } = useInspections({
+    ...listFilters,
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });
-  const inspections = result?.data ?? [];
   const totalItems = result?.total || 0;
+  const {
+    items: inspections,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<VehicleInspection>({
+    items: result?.data,
+    total: totalItems,
+    offset: (page - 1) * pageSize,
+    resetKey: [
+      searchQuery,
+      statusFilter,
+      inspectionFrom,
+      inspectionTo,
+      completedFrom,
+      completedTo,
+      page,
+      pageSize,
+    ].join('|'),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (await inspectionsSvc.listInspections({ ...listFilters, limit, offset })).data,
+  });
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, inspectionFrom, inspectionTo, completedFrom, completedTo]);
 
   const filteredInspections = inspections.filter((insp) => {
     const matchesSearch =
@@ -167,6 +214,58 @@ export default function InspectionsPage() {
                 <SelectItem value="submitted">Submitted</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Date filters */}
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="inspection-date-from" className="text-xs text-muted-foreground">
+                Inspection date from
+              </Label>
+              <Input
+                id="inspection-date-from"
+                type="date"
+                value={inspectionFrom}
+                max={inspectionTo || undefined}
+                onChange={(e) => setInspectionFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inspection-date-to" className="text-xs text-muted-foreground">
+                Inspection date to
+              </Label>
+              <Input
+                id="inspection-date-to"
+                type="date"
+                value={inspectionTo}
+                min={inspectionFrom || undefined}
+                onChange={(e) => setInspectionTo(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inspection-completed-from" className="text-xs text-muted-foreground">
+                Completed date from
+              </Label>
+              <Input
+                id="inspection-completed-from"
+                type="date"
+                value={completedFrom}
+                max={completedTo || undefined}
+                onChange={(e) => setCompletedFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inspection-completed-to" className="text-xs text-muted-foreground">
+                Completed date to
+              </Label>
+              <Input
+                id="inspection-completed-to"
+                type="date"
+                value={completedTo}
+                min={completedFrom || undefined}
+                onChange={(e) => setCompletedTo(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Mobile list */}
@@ -322,8 +421,11 @@ export default function InspectionsPage() {
                 page={page}
                 pageSize={pageSize}
                 totalItems={totalItems}
+                loadedCount={loadedCount}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
+                onLoadMore={loadMore}
+                isLoadingMore={isLoadingMore}
               />
             </div>
           ) : null}
@@ -494,8 +596,11 @@ export default function InspectionsPage() {
               page={page}
               pageSize={pageSize}
               totalItems={totalItems}
+              loadedCount={loadedCount}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
+              onLoadMore={loadMore}
+              isLoadingMore={isLoadingMore}
             />
           </div>
         </CardContent>

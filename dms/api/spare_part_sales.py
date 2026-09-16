@@ -11,7 +11,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
 )
-from dms.api.utils import get_dms_default_customer, resolve_dms_customer
+from dms.api.utils import apply_date_range, get_dms_default_customer, resolve_dms_customer
 from dms.dealer_management_system.utils.stock_operations import (
 	get_default_dms_company,
 	get_dms_allowed_warehouses,
@@ -306,7 +306,14 @@ def _build_spare_part_remarks(ctx: dict, data, *, default_remarks: str) -> str:
 
 
 @frappe.whitelist()
-def list_spare_part_proformas(search=None, status=None, limit=50, offset=0):
+def list_spare_part_proformas(
+	search=None,
+	status=None,
+	limit=50,
+	offset=0,
+	from_date=None,
+	to_date=None,
+):
 	"""List spare part proforma documents (Sales Orders)."""
 	frappe.has_permission("Sales Order", "read", throw=True)
 
@@ -314,6 +321,7 @@ def list_spare_part_proformas(search=None, status=None, limit=50, offset=0):
 	# Include cancelled so Amend is available from the list.
 	if status:
 		filters["status"] = status
+	apply_date_range(filters, "transaction_date", from_date, to_date)
 
 	or_filters = None
 	if search and str(search).strip():

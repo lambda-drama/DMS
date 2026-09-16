@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,7 @@ import {
 import { toast } from 'sonner';
 
 export default function PendingMaterialRequestsPage() {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = usePersistedFilter('pending-material-requests', 'search', '');
   const [rows, setRows] = useState<stockSvc.PendingMaterialRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);

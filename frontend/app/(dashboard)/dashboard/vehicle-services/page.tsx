@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { PaginationControls } from "@/components/pagination-controls";
+import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { EditServiceItemDialog } from "@/components/services/edit-service-item-dialog";
 import { AddServiceItemModelDialog } from "@/components/services/add-service-item-model-dialog";
@@ -75,9 +77,13 @@ export default function VehicleServicesPage() {
   const { canCreate, canWrite } = usePermissions();
   const canAddModel = canCreate("vehicle-services");
   const canToggleActive = canWrite("vehicle-services");
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("active");
+  const [search, setSearch] = usePersistedFilter("vehicle-services", "search", "");
+  const [debounced, setDebounced] = useState(search);
+  const [activeFilter, setActiveFilter] = usePersistedFilter<ActiveFilter>(
+    "vehicle-services",
+    "active_filter",
+    "active"
+  );
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -113,8 +119,28 @@ export default function VehicleServicesPage() {
     () => mastersSvc.getVehicleServiceItem(selectedId!)
   );
 
-  const rows = data?.data || [];
   const total = data?.total || 0;
+  const {
+    items: rows,
+    loadedCount,
+    isLoadingMore,
+    loadMore,
+  } = useLoadMore<VehicleServiceItemMaster>({
+    items: data?.data,
+    total,
+    offset: (page - 1) * pageSize,
+    resetKey: [debounced, activeFilter, page, pageSize].join("|"),
+    enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
+    fetchMore: async (offset, limit) =>
+      (
+        await mastersSvc.listVehicleServiceItems({
+          search: debounced || undefined,
+          active_filter: activeFilter,
+          limit,
+          offset,
+        })
+      ).data,
+  });
 
   function openEdit(row: VehicleServiceItemMaster) {
     const id = serviceItemId(row);
@@ -353,8 +379,11 @@ export default function VehicleServicesPage() {
             page={page}
             pageSize={pageSize}
             totalItems={total}
+            loadedCount={loadedCount}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
+            onLoadMore={loadMore}
+            isLoadingMore={isLoadingMore}
           />
         </CardContent>
       </Card>

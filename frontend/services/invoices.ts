@@ -5,6 +5,7 @@ import { apiRequest } from './apiClient';
 import type {
   InvoicePreview,
   ModeOfPayment,
+  PaginatedResponse,
   SalesInvoiceDetail,
   SalesInvoiceListItem,
 } from '@/types/dms';
@@ -23,6 +24,29 @@ export async function listInvoices(options?: {
       status: options?.status || null,
       search: options?.search || null,
       limit: options?.limit || 50,
+    }),
+  });
+}
+
+/** Paginated invoice list with total count — powers the Load more control. */
+export async function listInvoicesPaginated(options?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  posting_from?: string;
+  posting_to?: string;
+}): Promise<PaginatedResponse<SalesInvoiceListItem>> {
+  return apiRequest<PaginatedResponse<SalesInvoiceListItem>>(`/api/method/${API}.get_invoices`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: options?.status || null,
+      search: options?.search || null,
+      limit: options?.limit || 50,
+      offset: options?.offset || 0,
+      include_total: 1,
+      posting_from: options?.posting_from || null,
+      posting_to: options?.posting_to || null,
     }),
   });
 }

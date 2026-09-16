@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useDeliveries } from "@/hooks/use-dms";
@@ -48,7 +49,7 @@ const docstatusMap: Record<number, { label: string; variant: "default" | "second
 
 export default function DeliveriesPage() {
   const { navigate, viewParams } = useNavigation();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = usePersistedFilter("deliveries", "search", "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {

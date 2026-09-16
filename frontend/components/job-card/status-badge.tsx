@@ -15,6 +15,7 @@ import {
   Truck,
   Package,
   RotateCcw,
+  ShieldCheck,
 } from "lucide-react";
 import type { JobCardStatus } from "@/types/dms";
 
@@ -74,4 +75,70 @@ export function RepeatJobBadge({
   );
 }
 
-export { statusConfig };
+/**
+ * Job Card payment status (synced from the linked Sales Invoice).
+ * Mirrors the invoice status chips: Paid / Partially Paid / Unpaid.
+ */
+const paymentStatusConfig: Record<
+  string,
+  { label: string; color: string; bgColor: string; icon: React.ElementType }
+> = {
+  Paid: { label: "Paid", color: "text-[#2E7D32]", bgColor: "bg-[#2E7D32]/10", icon: CheckCircle2 },
+  "Partially Paid": {
+    label: "Partially Paid",
+    color: "text-[#F9A825]",
+    bgColor: "bg-[#F9A825]/10",
+    icon: AlertCircle,
+  },
+  Unpaid: { label: "Unpaid", color: "text-[#1E88E5]", bgColor: "bg-[#1E88E5]/10", icon: Clock },
+  Credit: { label: "Credit", color: "text-violet-800", bgColor: "bg-violet-100", icon: FileText },
+  Warranty: {
+    label: "Warranty",
+    color: "text-teal-800",
+    bgColor: "bg-teal-100",
+    icon: ShieldCheck,
+  },
+  Internal: {
+    label: "Internal",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    icon: Settings2,
+  },
+};
+
+/**
+ * Shows the billing payment status for a job card that has an invoice,
+ * and a dash when no invoice has been created yet.
+ */
+export function PaymentStatusBadge({
+  paymentStatus,
+  hasInvoice,
+}: {
+  paymentStatus?: string | null;
+  hasInvoice: boolean;
+}) {
+  if (!hasInvoice) {
+    return <span className="text-sm text-muted-foreground">–</span>;
+  }
+
+  const key = (paymentStatus || "").trim() || "Unpaid";
+  const config =
+    paymentStatusConfig[key] ||
+    // ERPNext calls it "Partly Paid"; DMS stores "Partially Paid".
+    paymentStatusConfig[key.replace("Partly", "Partially")] || {
+      label: key,
+      color: "text-muted-foreground",
+      bgColor: "bg-muted",
+      icon: Clock,
+    };
+  const Icon = config.icon;
+
+  return (
+    <Badge variant="outline" className={`${config.bgColor} ${config.color} border-0 gap-1.5`}>
+      <Icon className="h-3.5 w-3.5" />
+      {config.label}
+    </Badge>
+  );
+}
+
+export { statusConfig, paymentStatusConfig };

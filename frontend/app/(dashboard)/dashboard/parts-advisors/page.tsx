@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { usePartsAdvisorsList, usePartsAdvisorDetail } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
 import { CreatePartsAdvisorDialog } from "@/components/parts-advisors/create-parts-advisor-dialog";
@@ -51,8 +52,8 @@ function statusBadgeClass(status?: string) {
 
 export default function PartsAdvisorsPage() {
   const { canWrite } = usePermissions();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Active");
+  const [search, setSearch] = usePersistedFilter("parts-advisors", "search", "");
+  const [statusFilter, setStatusFilter] = usePersistedFilter("parts-advisors", "status", "Active");
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
