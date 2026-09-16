@@ -55,6 +55,7 @@ import { PaginationControls } from '@/components/pagination-controls';
 import { LOAD_MORE_PAGE_SIZE, useLoadMore } from '@/hooks/use-load-more';
 import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { ListRowActions } from '@/components/list-row-actions';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { cn, vehicleListingLines } from '@/lib/utils';
 import {
   CancelAppointmentDialog,
@@ -363,16 +364,13 @@ export default function AppointmentsPage() {
               <Badge variant="outline">
                 Date: {format(new Date(`${dateFilter}T12:00:00`), 'MMM d, yyyy')}
               </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
+              <ClearDateFiltersButton
+                label="Clear date"
+                onClear={() => {
                   setDateFilter('');
                   navigate('appointments');
                 }}
-              >
-                Clear date
-              </Button>
+              />
             </div>
           )}
 

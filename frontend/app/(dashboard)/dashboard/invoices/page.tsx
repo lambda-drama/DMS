@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { mutate } from "swr";
 import { useNavigation } from "@/contexts/navigation-context";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -66,6 +66,7 @@ import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dial
 import { AmendInvoiceDialog } from "@/components/invoices/amend-invoice-dialog";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { ListRowActions } from "@/components/list-row-actions";
+import { ClearDateFiltersButton } from "@/components/clear-date-filters-button";
 import { PaginationControls } from "@/components/pagination-controls";
 import { LOAD_MORE_PAGE_SIZE, useLoadMore } from "@/hooks/use-load-more";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
@@ -113,6 +114,13 @@ export default function InvoicesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const { canCancel, canCreate, canWrite, canDelete } = usePermissions();
+
+  const hasDateFilters = Boolean(postingFrom || postingTo);
+
+  const clearDateFilters = useCallback(() => {
+    setPostingFrom("");
+    setPostingTo("");
+  }, [setPostingFrom, setPostingTo]);
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -441,31 +449,38 @@ export default function InvoicesPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl">
-            <div className="space-y-1.5">
-              <Label htmlFor="invoice-posting-from" className="text-xs text-muted-foreground">
-                Invoice date from
-              </Label>
-              <Input
-                id="invoice-posting-from"
-                type="date"
-                value={postingFrom}
-                max={postingTo || undefined}
-                onChange={(e) => setPostingFrom(e.target.value)}
-              />
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl lg:flex-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="invoice-posting-from" className="text-xs text-muted-foreground">
+                  Invoice date from
+                </Label>
+                <Input
+                  id="invoice-posting-from"
+                  type="date"
+                  value={postingFrom}
+                  max={postingTo || undefined}
+                  onChange={(e) => setPostingFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="invoice-posting-to" className="text-xs text-muted-foreground">
+                  Invoice date to
+                </Label>
+                <Input
+                  id="invoice-posting-to"
+                  type="date"
+                  value={postingTo}
+                  min={postingFrom || undefined}
+                  onChange={(e) => setPostingTo(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="invoice-posting-to" className="text-xs text-muted-foreground">
-                Invoice date to
-              </Label>
-              <Input
-                id="invoice-posting-to"
-                type="date"
-                value={postingTo}
-                min={postingFrom || undefined}
-                onChange={(e) => setPostingTo(e.target.value)}
-              />
-            </div>
+            <ClearDateFiltersButton
+              onClear={clearDateFilters}
+              disabled={!hasDateFilters}
+              className="self-end sm:self-auto"
+            />
           </div>
         </CardContent>
       </Card>

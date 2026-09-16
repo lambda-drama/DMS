@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect } from '@/components/searchable-select';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Table,
@@ -50,6 +51,10 @@ function defaultFromDate() {
   return d.toISOString().split('T')[0];
 }
 
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
 function formatQty(value: number, uom?: string) {
   const n = Number(value || 0);
   const formatted = n.toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -71,6 +76,22 @@ export default function InventoryDashboardPage() {
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const prevCompanyRef = useRef('');
+
+  /**
+   * Clearing restores the page defaults: today for "as on"/"to" and the last
+   * 30 days for "from". This keeps the API calls valid while removing any
+   * custom range the user picked.
+   */
+  const clearDateFilters = useCallback(() => {
+    setAsOnDate(todayISO());
+    setFromDate(defaultFromDate());
+    setToDate(todayISO());
+  }, []);
+
+  const hasDateFilters =
+    activeView === 'balance'
+      ? asOnDate !== todayISO()
+      : fromDate !== defaultFromDate() || toDate !== todayISO();
 
   const [balanceData, setBalanceData] = useState<StockBalanceReport | null>(null);
   const [ledgerData, setLedgerData] = useState<StockLedgerReport | null>(null);
@@ -384,10 +405,14 @@ export default function InventoryDashboardPage() {
                 </>
               )}
 
-              <div className="flex items-end sm:col-span-2 lg:col-span-1">
-                <Button className="w-full" onClick={refresh} disabled={loading}>
+              <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
+                <Button className="flex-1" onClick={refresh} disabled={loading}>
                   Apply filters
                 </Button>
+                <ClearDateFiltersButton
+                  onClear={clearDateFilters}
+                  disabled={!hasDateFilters}
+                />
               </div>
             </CardContent>
           </Card>

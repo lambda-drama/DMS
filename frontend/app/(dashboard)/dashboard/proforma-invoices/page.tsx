@@ -39,6 +39,7 @@ import { PaginationControls } from '@/components/pagination-controls';
 import { LOAD_MORE_PAGE_SIZE } from '@/hooks/use-load-more';
 import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { ListRowActions } from '@/components/list-row-actions';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import * as sparePartSalesSvc from '@/services/sparePartSales';
 import type { SparePartProformaDetail, SparePartProformaListItem } from '@/services/sparePartSales';
 import {
@@ -86,6 +87,13 @@ export default function ProformaInvoicesPage() {
   const [amending, setAmending] = useState(false);
 
   const canContinueDraft = canCreate('proforma-invoices') || canWrite('proforma-invoices');
+
+  const hasDateFilters = Boolean(fromDate || toDate);
+
+  const clearDateFilters = useCallback(() => {
+    setFromDate('');
+    setToDate('');
+  }, [setFromDate, setToDate]);
 
   const isDraft = (row: Pick<SparePartProformaListItem, 'docstatus' | 'status'>) =>
     row.docstatus === 0 || row.status === 'Draft';
@@ -292,6 +300,11 @@ export default function ProformaInvoicesPage() {
                   onChange={(e) => setToDate(e.target.value)}
                 />
               </div>
+              <ClearDateFiltersButton
+                onClear={clearDateFilters}
+                disabled={!hasDateFilters}
+                className="self-end sm:self-auto"
+              />
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input

@@ -14,6 +14,7 @@ import {
   type UserActivitySummaryRow,
 } from '@/services/crm/staffActivityAudit'
 import { cn } from '@/lib/utils'
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button'
 
 type ViewMode = 'timeline' | 'summary'
 type SortKey = NonNullable<ActivityAuditFilters['sort_by']>
@@ -414,6 +415,14 @@ export function StaffActivityAuditReport() {
     [fromDate, toDate, periodDays]
   )
 
+  const hasDateFilters = Boolean(fromDate || toDate)
+
+  const clearDateFilters = () => {
+    setFromDate('')
+    setToDate('')
+    setPage(0)
+  }
+
   const periodMetaLabel = useMemo(() => {
     const parts: string[] = []
     if (fromDate || toDate) {
@@ -695,6 +704,13 @@ export function StaffActivityAuditReport() {
                 setPage(0)
               }}
               className={filterSelectClass}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <ClearDateFiltersButton
+              onClear={clearDateFilters}
+              disabled={!hasDateFilters}
             />
           </div>
 

@@ -29,6 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { ListRowActions } from '@/components/list-row-actions';
+import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { useCompanies, useAutofillSingleCompany } from '@/hooks/use-dms';
 import * as stockSvc from '@/services/stockOperations';
 import { formatDmsWarehouseLabel } from '@/services/stockOperations';
@@ -79,6 +80,13 @@ export default function StockEntryPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<stockSvc.StockEntryDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  const hasDateFilters = Boolean(recentFrom || recentTo);
+
+  const clearDateFilters = useCallback(() => {
+    setRecentFrom('');
+    setRecentTo('');
+  }, [setRecentFrom, setRecentTo]);
 
   useAutofillSingleCompany(companies, companiesLoading, company, (c) => setCompany(c.name));
 
@@ -430,31 +438,38 @@ export default function StockEntryPage() {
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <CardTitle>Recent stock entries</CardTitle>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="stock-entry-recent-from" className="text-xs text-muted-foreground">
-                Date from
-              </Label>
-              <Input
-                id="stock-entry-recent-from"
-                type="date"
-                value={recentFrom}
-                max={recentTo || undefined}
-                onChange={(e) => setRecentFrom(e.target.value)}
-              />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="stock-entry-recent-from" className="text-xs text-muted-foreground">
+                  Date from
+                </Label>
+                <Input
+                  id="stock-entry-recent-from"
+                  type="date"
+                  value={recentFrom}
+                  max={recentTo || undefined}
+                  onChange={(e) => setRecentFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="stock-entry-recent-to" className="text-xs text-muted-foreground">
+                  Date to
+                </Label>
+                <Input
+                  id="stock-entry-recent-to"
+                  type="date"
+                  value={recentTo}
+                  min={recentFrom || undefined}
+                  onChange={(e) => setRecentTo(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="stock-entry-recent-to" className="text-xs text-muted-foreground">
-                Date to
-              </Label>
-              <Input
-                id="stock-entry-recent-to"
-                type="date"
-                value={recentTo}
-                min={recentFrom || undefined}
-                onChange={(e) => setRecentTo(e.target.value)}
-              />
-            </div>
+            <ClearDateFiltersButton
+              onClear={clearDateFilters}
+              disabled={!hasDateFilters}
+              className="self-end sm:self-auto"
+            />
           </div>
         </CardHeader>
         <CardContent>
