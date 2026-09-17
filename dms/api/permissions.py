@@ -25,6 +25,8 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"customers": "Customer",
 	"vehicles": "VIN No",
 	"invoices": "Sales Invoice",
+	"payment-entries": "Payment Entry",
+	"reconciliation-hub": "Payment Entry",
 	"follow-ups": "Customer Follow Up",
 	"stock-entry": "Stock Entry",
 	"stock-reconciliation": "Stock Reconciliation",

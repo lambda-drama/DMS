@@ -34,6 +34,7 @@ import {
   type BilingualCustomerTerms,
 } from "@/components/customer-terms-acceptance";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
+import { CreateAdvancePaymentDialog } from "@/components/payment-entries/create-advance-payment-dialog";
 import {
   ArrowLeft,
   ArrowRight,
@@ -44,6 +45,7 @@ import {
   Pencil,
   Stethoscope,
   Trash2,
+  Wallet,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -179,6 +181,7 @@ export default function ServiceEstimateDetailPage() {
   const [busy, setBusy] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showAdvanceDialog, setShowAdvanceDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("diagnosis");
   const [diagnosisFindings, setDiagnosisFindings] = useState("");
   const [recommendedRepairs, setRecommendedRepairs] = useState("");
@@ -896,6 +899,15 @@ export default function ServiceEstimateDetailPage() {
             ]}
           />
           <PrintFormatDropdown variant="icon" doctype="DMS Service Estimate" docName={id} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAdvanceDialog(true)}
+            disabled={!estimate.customer}
+          >
+            <Wallet className="mr-2 h-4 w-4" />
+            Downpayment
+          </Button>
           {estimate.job_card && (
             <Button variant="outline" size="sm" onClick={() => navigate("job-card-detail", { id: estimate.job_card! })}>
               View Job Card
@@ -1878,6 +1890,14 @@ export default function ServiceEstimateDetailPage() {
           setServiceItemSearch(serviceItemName);
           toast.success(`Service item created and selected.`);
         }}
+      />
+      <CreateAdvancePaymentDialog
+        open={showAdvanceDialog}
+        onOpenChange={setShowAdvanceDialog}
+        customer={estimate.customer}
+        customerName={estimate.customer_name}
+        company={estimate.company}
+        serviceEstimate={estimate.name}
       />
     </div>
   );

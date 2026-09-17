@@ -30,6 +30,8 @@ const DeliveriesPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/
 const DeliveryNewPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/new/page'));
 const InvoicesPage = dynamic(() => import('./(dashboard)/dashboard/invoices/page'));
 const InvoiceNewPage = dynamic(() => import('./(dashboard)/dashboard/invoices/new/page'));
+const PaymentEntriesPage = dynamic(() => import('./(dashboard)/dashboard/payment-entries/page'));
+const ReconciliationHubPage = dynamic(() => import('./(dashboard)/dashboard/reconciliation-hub/page'));
 const FollowUpsPage = dynamic(() => import('./(dashboard)/dashboard/follow-ups/page'));
 const FollowUpNewPage = dynamic(() => import('./(dashboard)/dashboard/follow-ups/new/page'));
 const TechniciansPage = dynamic(() => import('./(dashboard)/dashboard/technicians/page'));
@@ -212,6 +214,8 @@ function AppContent() {
       case 'delivery-new':       return <DeliveryNewPage />;
       case 'invoices':           return <InvoicesPage />;
       case 'invoice-new':        return <InvoiceNewPage />;
+      case 'payment-entries':    return <PaymentEntriesPage />;
+      case 'reconciliation-hub': return <ReconciliationHubPage />;
       case 'follow-ups':         return <FollowUpsPage />;
       case 'follow-up-new':      return <FollowUpNewPage />;
       case 'technicians':        return <TechniciansPage />;

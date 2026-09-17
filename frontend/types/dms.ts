@@ -1434,3 +1434,131 @@ export interface FrappeError {
   message: string;
   _server_messages?: string;
 }
+
+// ============ PAYMENT ENTRY (DMS advances / receipts) ============
+
+export interface PaymentEntryReferenceRow {
+  reference_doctype: string;
+  reference_name: string;
+  total_amount?: number;
+  outstanding_amount?: number;
+  allocated_amount?: number;
+}
+
+export interface PaymentEntryListItem {
+  name: string;
+  payment_type?: string;
+  party?: string;
+  customer?: string;
+  party_name?: string;
+  customer_name?: string;
+  posting_date?: string;
+  company?: string;
+  currency?: string;
+  mode_of_payment?: string;
+  reference_no?: string;
+  reference_date?: string;
+  paid_amount: number;
+  unallocated_amount: number;
+  docstatus?: 0 | 1 | 2;
+  status?: string;
+  /** Unallocated receipt with no invoice reference → customer advance / downpayment. */
+  is_advance?: boolean;
+  is_dms?: boolean;
+  job_card?: string | null;
+  service_estimate?: string | null;
+  remarks?: string;
+  invoice_reference?: string | null;
+  reference_count?: number;
+  references?: PaymentEntryReferenceRow[];
+  /** Cancelled entry this one was amended from. */
+  amended_from?: string | null;
+  /** The amendment that replaced this cancelled entry, if any. */
+  amended_as?: string | null;
+  already_amended?: boolean;
+  creation?: string;
+  modified?: string;
+}
+
+export interface PaymentEntryDetail extends PaymentEntryListItem {
+  party_type?: string;
+  paid_from?: string;
+  paid_to?: string;
+  received_amount?: number;
+  total_allocated_amount?: number;
+}
+
+export interface CustomerAdvancesSummary {
+  customer: string | null;
+  customer_name?: string | null;
+  /** Sum of unallocated (still available) advances for the customer. */
+  total_available: number;
+  advances: PaymentEntryListItem[];
+}
+
+// ============ RECONCILIATION HUB ============
+
+export interface ReconciliationInvoiceRow {
+  key: string;
+  name: string;
+  type: string;
+  date?: string;
+  amount: number;
+  outstanding: number;
+  currency?: string;
+}
+
+export interface ReconciliationPaymentRow {
+  key: string;
+  name: string;
+  type: string;
+  date?: string;
+  amount: number;
+  is_advance?: boolean;
+  currency?: string;
+  remarks?: string;
+  is_dms?: boolean;
+  job_card?: string | null;
+  service_estimate?: string | null;
+}
+
+export interface ReconciliationOverview {
+  customer: string;
+  customer_name?: string;
+  company: string;
+  account: string;
+  invoices: ReconciliationInvoiceRow[];
+  payments: ReconciliationPaymentRow[];
+  totals: { invoice_outstanding: number; payment_available: number };
+  /** Mandatory Balance-Sheet dimensions not configured on DMS Settings. */
+  missing_dimensions?: string[];
+}
+
+export interface ReconciliationAllocationRow {
+  payment: string;
+  payment_type: string;
+  invoice: string;
+  invoice_type: string;
+  allocated: number;
+  currency?: string;
+  difference_amount?: number;
+}
+
+export interface ReconciliationPlan {
+  customer: string;
+  company: string;
+  allocations: ReconciliationAllocationRow[];
+  allocated_total: number;
+  invoice_count: number;
+  invoice_outstanding_total: number;
+  payment_available_total: number;
+}
+
+export interface ReconciliationResult {
+  customer: string;
+  company: string;
+  reconciled: ReconciliationAllocationRow[];
+  allocated_total: number;
+  invoice_count: number;
+}
+
