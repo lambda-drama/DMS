@@ -23,6 +23,7 @@ import {
   Truck,
   UserCheck,
   Users,
+  Wallet,
   Wrench,
   ArrowDownUp,
   ClipboardList,
@@ -31,6 +32,7 @@ import {
   Boxes,
   Clock,
   PackagePlus,
+  Scale,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
@@ -80,6 +82,8 @@ const navigation: NavSection[] = [
       { name: 'Customers', view: 'customers', icon: Users },
       { name: 'Vehicles', view: 'vehicles', icon: Car },
       { name: 'Invoices', view: 'invoices', icon: FileText },
+      { name: 'Payment Entries', view: 'payment-entries', icon: Wallet },
+      { name: 'Reconciliation Hub', view: 'reconciliation-hub', icon: Scale },
       { name: 'Follow-ups', view: 'follow-ups', icon: Phone },
     ],
   },

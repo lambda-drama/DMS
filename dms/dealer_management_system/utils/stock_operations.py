@@ -121,6 +121,25 @@ def _ensure_erpnext():
 		frappe.throw(_("ERPNext must be installed for stock operations."))
 
 
+def _warehouse_option_row(
+	warehouse: str | None,
+	company: str | None = None,
+	**extra,
+) -> dict | None:
+	"""Build a DMS warehouse option row, or None when the warehouse is unusable."""
+	warehouse = (warehouse or "").strip()
+	if not warehouse or not frappe.db.exists("Warehouse", warehouse):
+		return None
+
+	row = {
+		"name": warehouse,
+		"warehouse_name": frappe.db.get_value("Warehouse", warehouse, "warehouse_name") or warehouse,
+		"company": company or frappe.db.get_value("Warehouse", warehouse, "company"),
+	}
+	row.update(extra)
+	return row
+
+
 def get_workshop_warehouses(company: str | None = None) -> list[dict]:
 	"""Warehouses configured on WorkShop records (inventory / stock UI scope)."""
 	workshop_filters: dict = {"warehouse": ["is", "set"]}
@@ -140,20 +159,16 @@ def get_workshop_warehouses(company: str | None = None) -> list[dict]:
 		wh = (ws.warehouse or "").strip()
 		if not wh or wh in seen:
 			continue
-		if not frappe.db.exists("Warehouse", wh):
-			continue
 		seen.add(wh)
-		wh_name = frappe.db.get_value("Warehouse", wh, "warehouse_name") or wh
-		workshop_label = (ws.branch_name or ws.name or "").strip()
-		out.append(
-			{
-				"name": wh,
-				"warehouse_name": wh_name,
-				"company": ws.company or frappe.db.get_value("Warehouse", wh, "company"),
-				"workshop": ws.name,
-				"workshop_name": workshop_label,
-			}
+		row = _warehouse_option_row(
+			wh,
+			ws.company,
+			source="workshop",
+			workshop=ws.name,
+			workshop_name=(ws.branch_name or ws.name or "").strip(),
 		)
+		if row:
+			out.append(row)
 	return out
 
 
@@ -161,13 +176,65 @@ def get_workshop_warehouse_names(company: str | None = None) -> list[str]:
 	return [row["name"] for row in get_workshop_warehouses(company)]
 
 
-def get_dms_allowed_warehouse_names(company: str | None = None) -> list[str]:
-	"""Warehouses linked to workshops for DMS stock operations."""
-	return get_workshop_warehouse_names(company)
+def get_dms_settings_warehouses(company: str | None = None) -> list[dict]:
+	"""Parts Warehouse and Work In Progress from DMS Settings → Company Defaults.
+
+	These warehouses are not necessarily linked to a WorkShop record, but DMS stock
+	screens must still offer them (for example a Material Transfer from the parts
+	store to Work In Progress).
+	"""
+	company = (company or "").strip() or get_default_dms_company()
+	row = get_dms_company_defaults_row(company)
+	if not row:
+		return []
+
+	out: list[dict] = []
+	seen: set[str] = set()
+	for fieldname, label, flag in (
+		("parts_warehouse", _("Parts Warehouse"), "is_parts_warehouse"),
+		("work_in_progress", _("Work In Progress"), "is_wip_warehouse"),
+	):
+		warehouse = (getattr(row, fieldname, None) or "").strip()
+		if not warehouse or warehouse in seen:
+			continue
+		seen.add(warehouse)
+		option = _warehouse_option_row(
+			warehouse,
+			company,
+			source="dms_settings",
+			dms_label=label,
+			**{flag: True},
+		)
+		if option:
+			out.append(option)
+	return out
+
+
+def _merge_warehouse_options(*collections: list[dict]) -> list[dict]:
+	"""Concatenate warehouse option rows, keeping the first occurrence of each name."""
+	seen: set[str] = set()
+	out: list[dict] = []
+	for collection in collections:
+		for row in collection or []:
+			name = (row.get("name") or "").strip()
+			if not name or name in seen:
+				continue
+			seen.add(name)
+			out.append(row)
+	return out
 
 
 def get_dms_allowed_warehouses(company: str | None = None) -> list[dict]:
-	return get_workshop_warehouses(company)
+	"""Workshop warehouses plus DMS Settings warehouses (parts store, WIP)."""
+	return _merge_warehouse_options(
+		get_dms_settings_warehouses(company),
+		get_workshop_warehouses(company),
+	)
+
+
+def get_dms_allowed_warehouse_names(company: str | None = None) -> list[str]:
+	"""Warehouse names allowed for DMS stock operations (workshops + parts store + WIP)."""
+	return [row["name"] for row in get_dms_allowed_warehouses(company)]
 
 
 def assert_dms_warehouse_allowed(warehouse: str | None, company: str | None = None):
@@ -555,9 +622,10 @@ def create_dms_stock_item(data: dict) -> dict:
 
 
 def _default_workshop_warehouse(allowed: list[dict]) -> str | None:
-	"""Auto-select warehouse only when exactly one workshop warehouse exists."""
-	if len(allowed) == 1:
-		return allowed[0]["name"]
+	"""Auto-select the workshop warehouse only when exactly one exists."""
+	workshop_warehouses = [row["name"] for row in allowed if row.get("workshop")]
+	if len(workshop_warehouses) == 1:
+		return workshop_warehouses[0]
 	return None
 
 

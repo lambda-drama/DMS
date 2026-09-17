@@ -265,10 +265,9 @@ export default function ProformaInvoicesPage() {
         </div>
         <PermittedCreateButton
           module="proforma-invoices"
+          label="New proforma"
           onClick={() => navigate('proforma-invoice-new')}
-        >
-          New proforma
-        </PermittedCreateButton>
+        />
       </div>
 
       <Card>

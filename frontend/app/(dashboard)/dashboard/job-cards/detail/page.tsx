@@ -70,6 +70,7 @@ import {
   Trash2,
   Headphones,
   HardHat,
+  Wallet,
   MoreHorizontal,
   Copy,
   FilePenLine,
@@ -128,6 +129,9 @@ import { EditLabourLineDialog } from "@/components/job-card/edit-labour-line-dia
 import * as partsRequestsSvc from "@/services/partsRequests";
 import type { AdditionalWorkRequestSummary } from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
+import { CreateAdvancePaymentDialog } from "@/components/payment-entries/create-advance-payment-dialog";
+import * as paymentSvc from "@/services/paymentEntries";
+import type { CustomerAdvancesSummary } from "@/types/dms";
 import * as invoicesSvc from "@/services/invoices";
 import { getFinancialPaymentLabel } from "@/lib/financial-payment-label";
 import type { SalesInvoiceDetail } from "@/types/dms";
@@ -263,6 +267,9 @@ export default function JobCardDetailPage() {
   const [showRepeatJobDialog, setShowRepeatJobDialog] = useState(false);
   const [partsFlowRefreshKey, setPartsFlowRefreshKey] = useState(0);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showAdvanceDialog, setShowAdvanceDialog] = useState(false);
+  const [advanceSummary, setAdvanceSummary] = useState<CustomerAdvancesSummary | null>(null);
+  const [advanceLoading, setAdvanceLoading] = useState(false);
   const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState<SalesInvoiceDetail | null>(null);
   const [signatureUploading, setSignatureUploading] = useState(false);
@@ -306,10 +313,31 @@ export default function JobCardDetailPage() {
 
   useEffect(() => {
     const tab = viewParams.get("tab");
-    if (tab && ["overview", "services", "parts", "timeline", "service-advisor", "workshop"].includes(tab)) {
+    if (tab && ["overview", "services", "parts", "timeline", "service-advisor", "workshop", "payment"].includes(tab)) {
       setActiveTab(tab);
     }
   }, [id, viewParams]);
+
+  const loadCustomerAdvances = useCallback(async () => {
+    const customer = jobCard?.customer;
+    if (!customer) {
+      setAdvanceSummary(null);
+      return;
+    }
+    setAdvanceLoading(true);
+    try {
+      setAdvanceSummary(await paymentSvc.getCustomerAdvances(customer, jobCard?.company));
+    } catch {
+      setAdvanceSummary(null);
+    } finally {
+      setAdvanceLoading(false);
+    }
+  }, [jobCard?.customer, jobCard?.company]);
+
+  useEffect(() => {
+    if (activeTab !== "payment") return;
+    void loadCustomerAdvances();
+  }, [activeTab, loadCustomerAdvances]);
 
   useEffect(() => {
     if (!id) return;
@@ -1987,6 +2015,7 @@ export default function JobCardDetailPage() {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="service-advisor">Service Advisor</TabsTrigger>
           <TabsTrigger value="workshop">Workshop</TabsTrigger>
+          <TabsTrigger value="payment">Payment</TabsTrigger>
         </TabsList>
         </div>
 
@@ -3178,6 +3207,119 @@ export default function JobCardDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="payment" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Payment
+              </CardTitle>
+              <CardDescription>
+                Customer advances (downpayments) and invoice settlement for this job card.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  onClick={() => setShowAdvanceDialog(true)}
+                  disabled={!jobCard.customer}
+                >
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Record downpayment
+                </Button>
+                {jobCard.invoice ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowPaymentDialog(true)}>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Collect invoice payment
+                  </Button>
+                ) : null}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Available advance</p>
+                  <p className="font-medium">
+                    {advanceLoading
+                      ? "…"
+                      : formatInvoiceMoney(
+                          advanceSummary?.total_available || 0,
+                          jobCard.currency
+                        )}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Invoice</p>
+                  <p className="font-medium">{jobCard.invoice || "Not raised"}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Invoice outstanding</p>
+                  <p className="font-medium">
+                    {jobCard.invoice && invoiceDetail
+                      ? formatInvoiceMoney(
+                          invoiceDetail.outstanding_amount || 0,
+                          invoiceDetail.currency
+                        )
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-3 text-sm font-medium">Advances</p>
+                {advanceLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading advances…</p>
+                ) : (advanceSummary?.advances?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No open advances for this customer.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Entry</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Mode</TableHead>
+                          <TableHead className="text-right">Available</TableHead>
+                          <TableHead>Source</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {advanceSummary!.advances.map((row) => (
+                          <TableRow key={row.name}>
+                            <TableCell className="font-medium">{row.name}</TableCell>
+                            <TableCell>{row.posting_date || "—"}</TableCell>
+                            <TableCell>{row.mode_of_payment || "—"}</TableCell>
+                            <TableCell className="text-right">
+                              {formatInvoiceMoney(
+                                row.unallocated_amount,
+                                row.currency || jobCard.currency
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {row.job_card === jobCard.name ? (
+                                <Badge variant="secondary">This job card</Badge>
+                              ) : row.service_estimate ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {row.service_estimate}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
 
       {/* ─── Dialogs ──────────────────────────────────────────── */}
@@ -3697,6 +3839,18 @@ export default function JobCardDetailPage() {
           }}
         />
       )}
+
+      <CreateAdvancePaymentDialog
+        open={showAdvanceDialog}
+        onOpenChange={setShowAdvanceDialog}
+        customer={jobCard.customer}
+        customerName={jobCard.customer_name}
+        company={jobCard.company}
+        jobCard={jobCard.name}
+        onCreated={() => {
+          void loadCustomerAdvances();
+        }}
+      />
     </div>
   );
 }

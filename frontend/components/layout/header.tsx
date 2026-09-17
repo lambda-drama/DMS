@@ -44,6 +44,8 @@ const viewTitles: Record<string, string> = {
   'delivery-new': 'New Delivery',
   invoices: 'Invoices',
   'invoice-new': 'New Invoice',
+  'payment-entries': 'Payment Entries',
+  'reconciliation-hub': 'Reconciliation Hub',
   'follow-ups': 'Follow-ups',
   'follow-up-new': 'Schedule Follow-up',
   technicians: 'Technicians',

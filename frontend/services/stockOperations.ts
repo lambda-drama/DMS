@@ -11,12 +11,21 @@ export interface DmsWarehouseOption {
   company?: string;
   workshop?: string;
   workshop_name?: string;
+  /** "workshop" | "dms_settings" — where the option came from (DMS Settings = parts store / WIP). */
+  source?: string;
+  /** Friendly label for DMS Settings warehouses, e.g. "Work In Progress". */
+  dms_label?: string;
+  is_parts_warehouse?: boolean;
+  is_wip_warehouse?: boolean;
 }
 
 export function formatDmsWarehouseLabel(w: DmsWarehouseOption): string {
   const wh = w.warehouse_name || w.name;
   if (w.workshop_name && w.workshop_name !== wh) {
     return `${w.workshop_name} — ${wh}`;
+  }
+  if (w.dms_label && w.dms_label !== wh) {
+    return `${w.dms_label} — ${wh}`;
   }
   return wh;
 }
