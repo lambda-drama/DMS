@@ -176,6 +176,7 @@ export function useJobCards(options?: {
   customer?: string;
   search?: string;
   job_card_type?: string;
+  payment_status?: string;
   opened_from?: string;
   opened_to?: string;
   completed_from?: string;

@@ -46,11 +46,14 @@ class VINNo(Document):
         if not self.vin_number:
             frappe.throw(_("VIN / Chassis Number is required"))
         
-        if len(self.vin_number) != 17:
-            frappe.msgprint(
-                _("Warning: VIN should be 17 characters. Current length: {0}").format(len(self.vin_number)),
-                alert=True,
-                indicator="orange"
+        vin = (self.vin_number or "").strip()
+        # A VIN is exactly 17 characters. Enforce it on create and whenever the VIN
+        # changes; legacy rows that predate this rule stay editable untouched.
+        if len(vin) != 17 and (self.is_new() or self.has_value_changed("vin_number")):
+            frappe.throw(
+                _("VIN / Chassis Number must be exactly 17 characters. Current length: {0}").format(
+                    len(vin)
+                )
             )
     
     def validate_duplicate_vin(self):

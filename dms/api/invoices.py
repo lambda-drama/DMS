@@ -59,6 +59,47 @@ def _dms_sales_invoice_condition():
 	return cond
 
 
+def _returned_qty_map(sales_invoice: str) -> dict:
+	"""Already-returned qty per original Sales Invoice Item row (submitted credit notes)."""
+	if not sales_invoice:
+		return {}
+
+	rows = frappe.db.sql(
+		"""
+		select sii.sales_invoice_item as source_row, sum(abs(sii.qty)) as returned_qty
+		from `tabSales Invoice Item` sii
+		inner join `tabSales Invoice` si on si.name = sii.parent
+		where si.is_return = 1
+		  and si.docstatus = 1
+		  and si.return_against = %s
+		  and ifnull(sii.sales_invoice_item, '') != ''
+		group by sii.sales_invoice_item
+		""",
+		sales_invoice,
+		as_dict=True,
+	)
+	return {row.source_row: flt(row.returned_qty) for row in rows}
+
+
+def _credit_notes_for_invoice(sales_invoice: str) -> list:
+	"""Credit notes (Sales Invoice returns) raised against an invoice, newest first."""
+	return frappe.get_all(
+		"Sales Invoice",
+		filters={"return_against": sales_invoice, "is_return": 1, "docstatus": ["<", 2]},
+		fields=[
+			"name",
+			"posting_date",
+			"grand_total",
+			"outstanding_amount",
+			"status",
+			"docstatus",
+			"currency",
+			"creation",
+		],
+		order_by="creation desc",
+	)
+
+
 @frappe.whitelist()
 def get_invoices(
 	limit=50,
@@ -89,10 +130,14 @@ def get_invoices(
 		SI.posting_date,
 		SI.due_date,
 		SI.grand_total,
+		SI.net_total,
+		SI.total_taxes_and_charges,
 		SI.outstanding_amount,
 		SI.status,
 		SI.currency,
 		SI.docstatus,
+		SI.is_return,
+		SI.return_against,
 		SI.creation,
 		SI.modified,
 	]
@@ -246,8 +291,11 @@ def get_sales_invoice_detail(sales_invoice):
 	frappe.has_permission("Sales Invoice", "read", name, throw=True)
 
 	si = frappe.get_doc("Sales Invoice", name)
+	is_return = cint(si.get("is_return"))
+	returned_by_row = _returned_qty_map(name) if not is_return else {}
 	items = []
 	for row in si.get("items") or []:
+		returned_qty = flt(returned_by_row.get(row.name))
 		item = {
 			"name": row.name,
 			"idx": row.idx,
@@ -257,6 +305,8 @@ def get_sales_invoice_detail(sales_invoice):
 			"qty": flt(row.qty),
 			"rate": flt(row.rate),
 			"amount": flt(row.amount),
+			"returned_qty": returned_qty,
+			"returnable_qty": max(flt(row.qty) - returned_qty, 0.0),
 		}
 		if frappe.get_meta("Sales Invoice Item").has_field("custom_dms_discount"):
 			item["dms_discount"] = flt(row.get("custom_dms_discount"))
@@ -283,18 +333,220 @@ def get_sales_invoice_detail(sales_invoice):
 		"discount_amount": flt(si.get("discount_amount")),
 		"apply_discount_on": si.get("apply_discount_on") or "Net Total",
 		"apply_taxes": 1 if (si.get("taxes") or flt(si.total_taxes_and_charges)) else 0,
+		"is_return": is_return,
+		"return_against": si.get("return_against"),
 	}
 	amended_as = frappe.db.exists("Sales Invoice", {"amended_from": si.name})
 	result["already_amended"] = 1 if amended_as else 0
 	result["amended_as"] = amended_as or None
 	if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
 		result["dms_job_card"] = si.get("custom_dms_job_card")
+		job_card = (si.get("custom_dms_job_card") or "").strip()
+		if (
+			job_card
+			and frappe.db.exists("DMS Job Card", job_card)
+			and frappe.get_meta("DMS Job Card").has_field("remark")
+		):
+			result["job_card_remark"] = frappe.db.get_value("DMS Job Card", job_card, "remark") or ""
 	if frappe.get_meta("Sales Invoice").has_field("custom_spare_parts"):
 		result["custom_spare_parts"] = cint(si.get("custom_spare_parts"))
 	if frappe.get_meta("Sales Invoice").has_field("custom_is_dms_transaction"):
 		result["is_dms_transaction"] = cint(si.get("custom_is_dms_transaction"))
 	if frappe.get_meta("Sales Invoice").has_field("custom_missing_dms"):
 		result["missing_dms"] = cint(si.get("custom_missing_dms"))
+	if not is_return:
+		result["credit_notes"] = _credit_notes_for_invoice(name)
+	return result
+
+
+@frappe.whitelist()
+def get_credit_note_preview(sales_invoice):
+	"""Lines (with already-returned qty) needed to build a credit note for an invoice."""
+	_ensure_erpnext()
+
+	name = (sales_invoice or "").strip()
+	if not name:
+		frappe.throw(_("Sales Invoice name is required."))
+
+	frappe.has_permission("Sales Invoice", "read", name, throw=True)
+
+	si = frappe.get_doc("Sales Invoice", name)
+	if cint(si.get("is_return")):
+		frappe.throw(_("A credit note cannot be raised against another credit note."))
+	if si.docstatus != 1:
+		frappe.throw(_("Only submitted invoices can be credited."))
+
+	returned_by_row = _returned_qty_map(name)
+	lines = []
+	has_returnable = False
+	for row in si.get("items") or []:
+		returned_qty = flt(returned_by_row.get(row.name))
+		returnable_qty = max(flt(row.qty) - returned_qty, 0.0)
+		if returnable_qty > 0:
+			has_returnable = True
+		lines.append(
+			{
+				"name": row.name,
+				"idx": row.idx,
+				"item_code": row.item_code,
+				"item_name": row.item_name,
+				"description": row.description or row.item_name,
+				"qty": flt(row.qty),
+				"rate": flt(row.rate),
+				"amount": flt(row.amount),
+				"returned_qty": returned_qty,
+				"returnable_qty": returnable_qty,
+			}
+		)
+
+	return {
+		"name": si.name,
+		"customer": si.customer,
+		"customer_name": si.customer_name,
+		"company": si.company,
+		"currency": si.currency,
+		"posting_date": si.posting_date,
+		"net_total": flt(si.net_total),
+		"grand_total": flt(si.grand_total),
+		"total_taxes_and_charges": flt(si.total_taxes_and_charges),
+		"update_stock": cint(si.update_stock),
+		"has_returnable_lines": has_returnable,
+		"credit_notes": _credit_notes_for_invoice(name),
+		"lines": lines,
+	}
+
+
+@frappe.whitelist()
+def create_credit_note(data):
+	"""Create a Credit Note (Sales Invoice return) against a submitted DMS invoice.
+
+	Lines can be partially credited (qty), re-rated (rate), or dropped entirely
+	(include = 0) before the return is created. The return reverses taxes and
+	inventory the same way ERPNext's own Credit Note does.
+	"""
+	_ensure_erpnext()
+
+	if isinstance(data, str):
+		import json
+
+		data = json.loads(data)
+
+	name = (data.get("sales_invoice") or data.get("name") or "").strip()
+	if not name:
+		frappe.throw(_("Sales Invoice name is required."))
+
+	frappe.has_permission("Sales Invoice", "create", throw=True)
+
+	si = frappe.get_doc("Sales Invoice", name)
+	si.check_permission("read")
+
+	if not _is_dms_sales_invoice(si):
+		frappe.throw(_("This invoice was not created from DMS."))
+	if cint(si.get("is_return")):
+		frappe.throw(_("A credit note cannot be raised against another credit note."))
+	if si.docstatus != 1:
+		frappe.throw(_("Only submitted invoices can be credited."))
+
+	posting_date = getdate(data.get("posting_date") or today())
+	if posting_date < getdate(si.posting_date):
+		frappe.throw(
+			_("Credit note date cannot be before the invoice date {0}.").format(
+				frappe.bold(si.posting_date)
+			)
+		)
+
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
+
+	credit_note = make_sales_return(name)
+
+	# Overrides are keyed by the original Sales Invoice Item row name, which
+	# make_sales_return copies onto each return row as `sales_invoice_item`.
+	overrides = {}
+	for line in data.get("lines") or []:
+		key = (line.get("name") or line.get("sales_invoice_item") or "").strip()
+		if key:
+			overrides[key] = line
+
+	for row in list(credit_note.get("items") or []):
+		override = overrides.get(row.get("sales_invoice_item"))
+		if override is None:
+			continue
+
+		include = override.get("include")
+		if include is not None and not cint(include):
+			credit_note.remove(row)
+			continue
+
+		if override.get("qty") is not None:
+			qty = abs(flt(override.get("qty")))
+			if qty <= 0:
+				credit_note.remove(row)
+				continue
+			# make_sales_return already caps the row to the returnable qty.
+			qty = min(qty, abs(flt(row.qty)))
+			row.qty = -1 * qty
+			if row.meta.has_field("stock_qty") and flt(row.get("conversion_factor")):
+				row.stock_qty = flt(row.qty) * flt(row.get("conversion_factor"))
+
+		if override.get("rate") is not None:
+			row.rate = max(abs(flt(override.get("rate"))), 0.0)
+			row.price_list_rate = row.rate
+			row.discount_percentage = 0
+			row.discount_amount = 0
+
+	if not (credit_note.get("items") or []):
+		frappe.throw(_("Select at least one line to credit."))
+
+	credit_note.posting_date = posting_date
+	if credit_note.meta.has_field("set_posting_time"):
+		credit_note.set_posting_time = 1
+	if data.get("remarks") or data.get("reason"):
+		credit_note.remarks = (data.get("remarks") or data.get("reason") or "").strip()
+
+	if "apply_taxes" in data:
+		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+			_apply_sales_invoice_tax_choice,
+		)
+
+		_apply_sales_invoice_tax_choice(credit_note, bool(cint(data.get("apply_taxes"))))
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		disable_sales_invoice_round_off,
+	)
+
+	disable_sales_invoice_round_off(credit_note)
+	if credit_note.meta.has_field("custom_is_dms_transaction"):
+		credit_note.custom_is_dms_transaction = 1
+
+	# make_sales_return copies custom fields from the source invoice. DMS sites keep
+	# a unique custom_invoice_no, which would then collide with the original invoice,
+	# so allocate a fresh number for the credit note.
+	if credit_note.meta.has_field("custom_invoice_no"):
+		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+			_generate_invoice_no,
+		)
+
+		credit_note.custom_invoice_no = _generate_invoice_no(credit_note.company)
+
+	_reset_sales_invoice_workflow_to_draft(credit_note)
+
+	credit_note.run_method("calculate_taxes_and_totals")
+	credit_note.insert()
+
+	if cint(data.get("submit", 1)):
+		_submit_draft_sales_invoice(credit_note)
+		credit_note.reload()
+
+	frappe.db.commit()
+
+	result = get_sales_invoice_detail(credit_note.name)
+	result["credit_note"] = {
+		"name": credit_note.name,
+		"return_against": credit_note.return_against,
+		"grand_total": flt(credit_note.grand_total),
+		"docstatus": credit_note.docstatus,
+	}
+	result["credit_note_of"] = name
 	return result
 
 

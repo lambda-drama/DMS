@@ -118,6 +118,16 @@ const jobCardTypeFilterOptions: { value: string; label: string }[] = [
   { value: "Fleet Contract", label: "Fleet Contract" },
 ];
 
+const paymentStatusFilterOptions: { value: string; label: string }[] = [
+  { value: "all", label: "All payment statuses" },
+  { value: "Unpaid", label: "Unpaid" },
+  { value: "Partially Paid", label: "Partially Paid" },
+  { value: "Paid", label: "Paid" },
+  { value: "Credit", label: "Credit" },
+  { value: "Warranty", label: "Warranty" },
+  { value: "Internal", label: "Internal" },
+];
+
 const ACTIVE_STATUSES = [
   "Estimation Pending",
   "Estimation Approved",
@@ -128,6 +138,22 @@ const ACTIVE_STATUSES = [
   "QC In Progress",
   "Rework",
 ];
+
+/**
+ * Open the full job card detail view in a new browser tab.
+ *
+ * The DMS app uses hash-based routing, so we reuse the current SPA URL
+ * (origin + path, hash stripped) and swap in the job-card-detail route.
+ */
+function openJobCardInNewTab(name: string) {
+  if (typeof window === "undefined" || !name) return;
+  const baseUrl = window.location.href.split("#")[0];
+  window.open(
+    `${baseUrl}#job-card-detail?id=${encodeURIComponent(name)}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
+}
 
 function WorkflowProgress({
   status,
@@ -243,6 +269,11 @@ export default function JobCardsPage() {
     "job_card_type",
     "all"
   );
+  const [paymentStatusFilter, setPaymentStatusFilter] = usePersistedFilter<string>(
+    "job-cards",
+    "payment_status",
+    "all"
+  );
   const [presetFilter, setPresetFilter] = usePersistedFilter<
     "active" | "qc" | "qc_failed" | "overdue" | null
   >("job-cards", "preset", null);
@@ -280,6 +311,7 @@ export default function JobCardsPage() {
     status: statusFilter !== "all" ? statusFilter : undefined,
     filter: presetFilter || undefined,
     job_card_type: jobCardTypeFilter !== "all" ? jobCardTypeFilter : undefined,
+    payment_status: paymentStatusFilter !== "all" ? paymentStatusFilter : undefined,
     opened_from: openedFrom || undefined,
     opened_to: openedTo || undefined,
     completed_from: completedFrom || undefined,
@@ -295,6 +327,7 @@ export default function JobCardsPage() {
   const loadMoreResetKey = [
     statusFilter,
     jobCardTypeFilter,
+    paymentStatusFilter,
     presetFilter ?? "",
     openedFrom,
     openedTo,
@@ -374,6 +407,7 @@ export default function JobCardsPage() {
   }, [
     statusFilter,
     jobCardTypeFilter,
+    paymentStatusFilter,
     presetFilter,
     openedFrom,
     openedTo,
@@ -383,7 +417,11 @@ export default function JobCardsPage() {
 
   const hasDateFilters = Boolean(openedFrom || openedTo || completedFrom || completedTo);
   const hasListFilters = Boolean(
-    presetFilter || statusFilter !== "all" || jobCardTypeFilter !== "all" || hasDateFilters
+    presetFilter ||
+      statusFilter !== "all" ||
+      jobCardTypeFilter !== "all" ||
+      paymentStatusFilter !== "all" ||
+      hasDateFilters
   );
   const openedRangeLabel = formatDateRangeLabel(openedFrom, openedTo);
   const completedRangeLabel = formatDateRangeLabel(completedFrom, completedTo);
@@ -391,6 +429,7 @@ export default function JobCardsPage() {
   const clearListFilters = () => {
     setStatusFilter("all");
     setJobCardTypeFilter("all");
+    setPaymentStatusFilter("all");
     setPresetFilter(null);
     setOpenedFrom("");
     setOpenedTo("");
@@ -460,6 +499,9 @@ export default function JobCardsPage() {
               {jobCardTypeFilter !== "all" ? (
                 <Badge variant="outline">Type: {jobCardTypeFilter}</Badge>
               ) : null}
+              {paymentStatusFilter !== "all" ? (
+                <Badge variant="outline">Payment: {paymentStatusFilter}</Badge>
+              ) : null}
               <ClearDateFiltersButton onClear={clearListFilters} />
             </div>
           )}
@@ -500,6 +542,19 @@ export default function JobCardsPage() {
               </SelectTrigger>
               <SelectContent>
                 {jobCardTypeFilterOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filter by payment status" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentStatusFilterOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
@@ -632,10 +687,6 @@ export default function JobCardsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => navigate("job-card-detail", { id: jc.name })}
                                 >
@@ -696,6 +747,10 @@ export default function JobCardsPage() {
                                     Cancel Job Card
                                   </DropdownMenuItem>
                                 ) : null}
+                                <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </ListRowActions>
@@ -747,9 +802,10 @@ export default function JobCardsPage() {
                       <TableCell>
                         <button
                           type="button"
+                          title="Open job card in a new tab"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedId(jc.name);
+                            openJobCardInNewTab(jc.name);
                           }}
                           className="font-medium text-primary hover:underline"
                         >
@@ -818,10 +874,6 @@ export default function JobCardsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => navigate("job-card-detail", { id: jc.name })}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Edit
@@ -878,6 +930,10 @@ export default function JobCardsPage() {
                                   Cancel Job Card
                                 </DropdownMenuItem>
                               ) : null}
+                              <DropdownMenuItem onClick={() => setSelectedId(jc.name)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </ListRowActions>

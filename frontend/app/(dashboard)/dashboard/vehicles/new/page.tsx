@@ -178,6 +178,13 @@ export default function NewVehiclePage() {
       toast({ title: "VIN number is required", variant: "destructive" });
       return;
     }
+    if (form.vin_number.trim().length !== 17) {
+      toast({
+        title: "VIN / Chassis Number must be exactly 17 characters",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!form.linked_item) {
       toast({ title: "Vehicle Item is required", variant: "destructive" });
       return;

@@ -25,6 +25,7 @@ import {
 } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
+import { VehicleCreateDialog } from "@/components/vehicles/vehicle-create-dialog";
 import { SearchableSelect } from "@/components/searchable-select";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import {
@@ -70,7 +71,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Trash2, Car, User, Wrench, Package, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Trash2, Car, User, Wrench, Package, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import {
@@ -196,6 +197,7 @@ export default function NewJobCardPage() {
   const [customer, setCustomer] = useState("");
   const [vehicleVin, setVehicleVin] = useState("");
   const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
+  const [showVehicleDialog, setShowVehicleDialog] = useState(false);
   const selectedVehicleModel =
     selectedVin?.model || selectedVin?.resolved_vehicle_model || undefined;
 
@@ -418,6 +420,11 @@ export default function NewJobCardPage() {
     setCustomer(next.customer);
     setSelectedCustomer(next.meta);
     // Never clear VIN — user may override owner for this visit
+  };
+
+  /** A vehicle registered from the inline "+" modal — select it on this job card. */
+  const handleVehicleCreated = (name: string) => {
+    void handleVinSelect(name);
   };
 
   const handleCustomerCreated = (name: string, label?: string) => {
@@ -1433,28 +1440,21 @@ export default function NewJobCardPage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label>Vehicle (VIN) *</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate("vehicle-new")}
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    Register new vehicle
-                  </Button>
-                </div>
+                <Label>Vehicle (VIN) *</Label>
                 <SearchableSelect
                   options={vinSelectOptions}
                   value={vehicleVin}
+                  valueLabel={selectedVin?.vin_number}
                   onValueChange={handleVinSelect}
                   onSearchChange={setVinSearch}
+                  onCreateNew={() => setShowVehicleDialog(true)}
+                  createNewLabel="New vehicle"
                   placeholder="Type at least 3 characters of VIN, chassis, or plate..."
                   isLoading={vinsLoading}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Search and select the vehicle first. The registered owner fills in as customer when
+                  Search and select the vehicle first. Use the “+” inside the field to register a
+                  vehicle without leaving this page. The registered owner fills in as customer when
                   available; you can change or create a customer without clearing the VIN.
                 </p>
               </div>
@@ -2256,6 +2256,15 @@ export default function NewJobCardPage() {
           setServiceItemSearch(serviceItemName);
           toast.success(`Service item created and selected.`);
         }}
+      />
+      <VehicleCreateDialog
+        open={showVehicleDialog}
+        onOpenChange={setShowVehicleDialog}
+        defaultCompany={company}
+        defaultCustomer={customer}
+        defaultCustomerLabel={selectedCustomer?.customer_name}
+        defaultVin={vinSearch}
+        onCreated={handleVehicleCreated}
       />
         </>
       )}

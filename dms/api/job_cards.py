@@ -163,6 +163,7 @@ def get_job_cards(
 	customer=None,
 	search=None,
 	job_card_type=None,
+	payment_status=None,
 	opened_from=None,
 	opened_to=None,
 	completed_from=None,
@@ -185,6 +186,8 @@ def get_job_cards(
 		filters["customer"] = customer
 	if job_card_type:
 		filters["job_card_type"] = job_card_type
+	if payment_status:
+		filters["payment_status"] = payment_status
 
 	_apply_datetime_day_range(filters, "opened_date_time", opened_from, opened_to)
 	_apply_datetime_day_range(filters, "completed_date_time", completed_from, completed_to)

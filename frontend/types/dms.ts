@@ -1328,6 +1328,8 @@ export interface SalesInvoiceListItem {
   posting_date: string;
   due_date?: string;
   grand_total: number;
+  net_total?: number;
+  total_taxes_and_charges?: number;
   outstanding_amount: number;
   status: string;
   currency?: string;
@@ -1337,6 +1339,10 @@ export interface SalesInvoiceListItem {
   /** Set when another Sales Invoice was amended from this one. */
   already_amended?: number | boolean;
   amended_as?: string | null;
+  /** Credit note (Sales Invoice return) flag. */
+  is_return?: number | boolean;
+  /** Original invoice this credit note reverses. */
+  return_against?: string | null;
 }
 
 export interface InvoicePreviewLine {
@@ -1378,6 +1384,8 @@ export interface InvoicePreview {
   currency?: string;
   existing_invoice?: string;
   add_full_warranty_item_on_invoice?: boolean;
+  /** Job Card remark — prefilled into the create-invoice dialog. */
+  remark?: string | null;
 }
 
 export interface SalesInvoiceDetail extends SalesInvoiceListItem {
@@ -1393,6 +1401,10 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
   missing_dms?: number;
   is_dms_transaction?: number;
   dms_job_card?: string;
+  /** Remark saved on the linked Job Card's `remark` field. */
+  job_card_remark?: string | null;
+  /** Credit notes raised against this invoice (absent on returns themselves). */
+  credit_notes?: CreditNoteSummary[];
   items: {
     name?: string;
     idx?: number;
@@ -1403,7 +1415,63 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
     rate: number;
     amount: number;
     dms_discount?: number;
+    /** Qty already credited across submitted credit notes. */
+    returned_qty?: number;
+    /** Qty still available to credit (original qty − returned qty). */
+    returnable_qty?: number;
   }[];
+}
+
+export interface CreditNoteSummary {
+  name: string;
+  posting_date?: string;
+  grand_total: number;
+  outstanding_amount?: number;
+  status?: string;
+  docstatus?: 0 | 1 | 2;
+  currency?: string;
+  creation?: string;
+}
+
+export interface CreditNoteLine {
+  /** Original Sales Invoice Item row name — the override key. */
+  name: string;
+  idx?: number;
+  item_code: string;
+  item_name?: string;
+  description?: string;
+  qty: number;
+  rate: number;
+  amount: number;
+  returned_qty: number;
+  returnable_qty: number;
+}
+
+export interface CreditNotePreview {
+  name: string;
+  customer: string;
+  customer_name?: string;
+  company?: string;
+  currency?: string;
+  posting_date: string;
+  net_total: number;
+  grand_total: number;
+  total_taxes_and_charges: number;
+  update_stock: number;
+  has_returnable_lines: boolean;
+  credit_notes: CreditNoteSummary[];
+  lines: CreditNoteLine[];
+}
+
+export interface CreditNoteResult extends SalesInvoiceDetail {
+  credit_note?: {
+    name: string;
+    return_against?: string | null;
+    grand_total: number;
+    docstatus: number;
+  };
+  /** Original invoice the credit note was raised against. */
+  credit_note_of?: string;
 }
 
 export interface ModeOfPayment {

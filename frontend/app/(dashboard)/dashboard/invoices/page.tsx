@@ -40,6 +40,7 @@ import {
   MoreHorizontal,
   Eye,
   Receipt,
+  Banknote,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -51,6 +52,7 @@ import {
   FilePenLine,
   Trash2,
   RefreshCw,
+  Undo2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -64,6 +66,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
 import { AmendInvoiceDialog } from "@/components/invoices/amend-invoice-dialog";
+import { CreditNoteDialog } from "@/components/invoices/credit-note-dialog";
 import { PrintFormatDropdown } from "@/components/print-format-dropdown";
 import { ListRowActions } from "@/components/list-row-actions";
 import { ClearDateFiltersButton } from "@/components/clear-date-filters-button";
@@ -92,6 +95,53 @@ function formatCurrency(amount: number, currency?: string) {
   }).format(amount);
 }
 
+/** Compact KPI card used by the invoice summary row. */
+function SummaryCard({
+  label,
+  value,
+  icon: Icon,
+  iconBg,
+  iconClass,
+  valueClass,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+  iconBg: string;
+  iconClass: string;
+  valueClass?: string;
+  compact?: boolean;
+}) {
+  return (
+    <Card className="gap-0 py-0">
+      <CardContent className={compact ? "px-3 py-2.5" : "px-3.5 py-3"}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p
+              className={`${
+                compact ? "text-[10px]" : "text-[11px]"
+              } font-medium uppercase tracking-[0.08em] text-muted-foreground`}
+            >
+              {label}
+            </p>
+            <p
+              className={`dms-stat-value mt-1 ${
+                compact ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+              } ${valueClass || ""}`}
+            >
+              {value}
+            </p>
+          </div>
+          <div className={`shrink-0 rounded-full p-1.5 ${iconBg}`}>
+            <Icon className={`${compact ? "h-3 w-3" : "h-3.5 w-3.5"} ${iconClass}`} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function InvoicesPage() {
   const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = usePersistedFilter("invoices", "search", "");
@@ -106,6 +156,8 @@ export default function InvoicesPage() {
   const [cancelling, setCancelling] = useState(false);
   const [showAmendDialog, setShowAmendDialog] = useState(false);
   const [amendInvoiceId, setAmendInvoiceId] = useState<string | null>(null);
+  const [showCreditNoteDialog, setShowCreditNoteDialog] = useState(false);
+  const [creditNoteInvoiceId, setCreditNoteInvoiceId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -207,6 +259,16 @@ export default function InvoicesPage() {
     return true;
   };
 
+  const canCreditNoteFor = (
+    inv: Pick<SalesInvoiceListItem, "docstatus" | "status" | "is_return">
+  ) => {
+    if (!(canCreate("invoices") || canWrite("invoices"))) return false;
+    // Credit notes are raised against submitted invoices, never against returns.
+    if (inv.docstatus !== 1) return false;
+    if (inv.is_return) return false;
+    return inv.status !== "Cancelled";
+  };
+
   const canCollectPayment = invoiceDetail ? canCollectFor(invoiceDetail) : false;
   const canCancelInvoice = invoiceDetail ? canCancelFor(invoiceDetail) : false;
   const canEditDraftInvoice = invoiceDetail ? canEditDraftFor(invoiceDetail) : false;
@@ -214,6 +276,7 @@ export default function InvoicesPage() {
   const canAmendCancelledInvoice = invoiceDetail
     ? canAmendCancelledFor(invoiceDetail)
     : false;
+  const canCreditNoteInvoice = invoiceDetail ? canCreditNoteFor(invoiceDetail) : false;
   const linkedJobCard = (invoiceDetail?.dms_job_card || "").trim();
   const canUpdateJobCardPrices =
     Boolean(linkedJobCard) && (canCreate("invoices") || canWrite("invoices"));
@@ -239,6 +302,18 @@ export default function InvoicesPage() {
   const openDeleteInvoice = (invoiceName: string) => {
     setDeleteInvoiceId(invoiceName);
     setShowDeleteDialog(true);
+  };
+
+  const openCreditNote = (invoiceName: string) => {
+    // Keep the detail sheet closed while the credit note modal is open.
+    setSelectedId(null);
+    setInvoiceDetail(null);
+    setCreditNoteInvoiceId(invoiceName);
+    setShowCreditNoteDialog(true);
+  };
+
+  const handleCreditNoteCreated = () => {
+    void mutate((key) => Array.isArray(key) && key[0] === "invoices");
   };
 
   const handleUpdateJobCardPrices = async () => {
@@ -330,11 +405,23 @@ export default function InvoicesPage() {
       const collected = (inv.grand_total || 0) - (inv.outstanding_amount || 0);
       return sum + Math.max(0, collected);
     }, 0);
+    // Same collected amount net of VAT: allocate each invoice's collected amount
+    // to its pre-tax (net) share using the invoice's net_total / grand_total ratio.
+    const paidNet = active.reduce((sum, inv) => {
+      const grand = inv.grand_total || 0;
+      const collected = Math.max(0, grand - (inv.outstanding_amount || 0));
+      if (grand <= 0 || collected <= 0) return sum;
+      const net = inv.net_total != null ? inv.net_total : grand - (inv.total_taxes_and_charges || 0);
+      const netShare = Math.min(Math.max(net, 0), grand);
+      return sum + collected * (netShare / grand);
+    }, 0);
+    // VAT part of what was collected = collected total − collected without VAT.
+    const paidVat = Math.max(0, paid - paidNet);
     const overdue = active
       .filter((inv) => inv.status === "Overdue")
       .reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0);
 
-    return { total, paid, outstanding, overdue };
+    return { total, paid, paidNet, paidVat, outstanding, overdue };
   }, [invoices]);
 
   const defaultCurrency = invoices?.[0]?.currency;
@@ -350,75 +437,57 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
-        <Card className="gap-0 py-0">
-          <CardContent className="px-3.5 py-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  Total Invoiced
-                </p>
-                <p className="dms-stat-value mt-1 text-xl sm:text-2xl">
-                  {formatCurrency(stats.total, defaultCurrency)}
-                </p>
-              </div>
-              <div className="shrink-0 rounded-full bg-primary/10 p-1.5">
-                <DollarSign className="h-3.5 w-3.5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-0 py-0">
-          <CardContent className="px-3.5 py-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  Collected
-                </p>
-                <p className="dms-stat-value mt-1 text-xl sm:text-2xl text-[#2E7D32]">
-                  {formatCurrency(stats.paid, defaultCurrency)}
-                </p>
-              </div>
-              <div className="shrink-0 rounded-full bg-[#2E7D32]/10 p-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#2E7D32]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-0 py-0">
-          <CardContent className="px-3.5 py-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  Outstanding
-                </p>
-                <p className="dms-stat-value mt-1 text-xl sm:text-2xl text-[#F9A825]">
-                  {formatCurrency(stats.outstanding, defaultCurrency)}
-                </p>
-              </div>
-              <div className="shrink-0 rounded-full bg-[#F9A825]/10 p-1.5">
-                <Clock className="h-3.5 w-3.5 text-[#F9A825]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-0 py-0">
-          <CardContent className="px-3.5 py-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  Overdue
-                </p>
-                <p className="dms-stat-value mt-1 text-xl sm:text-2xl text-destructive">
-                  {formatCurrency(stats.overdue, defaultCurrency)}
-                </p>
-              </div>
-              <div className="shrink-0 rounded-full bg-destructive/10 p-1.5">
-                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+        <SummaryCard
+          compact
+          label="Total Invoiced"
+          value={formatCurrency(stats.total, defaultCurrency)}
+          icon={DollarSign}
+          iconBg="bg-primary/10"
+          iconClass="text-primary"
+        />
+        <SummaryCard
+          label="Collected without VAT"
+          value={formatCurrency(stats.paidNet, defaultCurrency)}
+          icon={Banknote}
+          iconBg="bg-[#1E88E5]/10"
+          iconClass="text-[#1E88E5]"
+          valueClass="text-[#1E88E5]"
+        />
+        <SummaryCard
+          label="VAT"
+          value={formatCurrency(stats.paidVat, defaultCurrency)}
+          icon={Receipt}
+          iconBg="bg-[#00897B]/10"
+          iconClass="text-[#00897B]"
+          valueClass="text-[#00897B]"
+        />
+        <SummaryCard
+          label="Collected"
+          value={formatCurrency(stats.paid, defaultCurrency)}
+          icon={CheckCircle2}
+          iconBg="bg-[#2E7D32]/10"
+          iconClass="text-[#2E7D32]"
+          valueClass="text-[#2E7D32]"
+        />
+        <SummaryCard
+          compact
+          label="Outstanding"
+          value={formatCurrency(stats.outstanding, defaultCurrency)}
+          icon={Clock}
+          iconBg="bg-[#F9A825]/10"
+          iconClass="text-[#F9A825]"
+          valueClass="text-[#F9A825]"
+        />
+        <SummaryCard
+          compact
+          label="Overdue"
+          value={formatCurrency(stats.overdue, defaultCurrency)}
+          icon={AlertCircle}
+          iconBg="bg-destructive/10"
+          iconClass="text-destructive"
+          valueClass="text-destructive"
+        />
       </div>
 
       {/* Filters */}
@@ -572,6 +641,12 @@ export default function InvoicesPage() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   View
                                 </DropdownMenuItem>
+                                {canCreditNoteFor(invoice) ? (
+                                  <DropdownMenuItem onClick={() => openCreditNote(invoice.name)}>
+                                    <Undo2 className="h-4 w-4 mr-2" />
+                                    Credit note
+                                  </DropdownMenuItem>
+                                ) : null}
                                 {canCollectFor(invoice) ? (
                                   <DropdownMenuItem onClick={() => openCollectPayment(invoice.name)}>
                                     <CreditCard className="h-4 w-4 mr-2" />
@@ -658,6 +733,16 @@ export default function InvoicesPage() {
                 <Button className="w-full" onClick={() => openCollectPayment(selectedId)}>
                   <CreditCard className="h-4 w-4 mr-2" />
                   Collect Payment
+                </Button>
+              ) : null}
+              {canCreditNoteInvoice && selectedId ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => openCreditNote(selectedId)}
+                >
+                  <Undo2 className="h-4 w-4 mr-2" />
+                  Credit Note
                 </Button>
               ) : null}
               {canCancelInvoice && selectedId ? (
@@ -764,7 +849,49 @@ export default function InvoicesPage() {
               {linkedJobCard ? (
                 <DetailRow label="Job Card" value={linkedJobCard} />
               ) : null}
+              {invoiceDetail?.return_against ? (
+                <DetailRow label="Credits Invoice" value={invoiceDetail.return_against} />
+              ) : null}
             </DetailSection>
+            {invoiceDetail?.job_card_remark ? (
+              <DetailSection title="Remarks">
+                <p className="whitespace-pre-wrap break-words text-sm">
+                  {invoiceDetail.job_card_remark}
+                </p>
+              </DetailSection>
+            ) : null}
+            {invoiceDetail?.credit_notes && invoiceDetail.credit_notes.length > 0 && (
+              <DetailSection title="Credit Notes">
+                <div className="space-y-2">
+                  {invoiceDetail.credit_notes.map((creditNote) => (
+                    <div
+                      key={creditNote.name}
+                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          className="truncate font-medium text-primary hover:underline"
+                          onClick={() => setSelectedId(creditNote.name)}
+                        >
+                          {creditNote.name}
+                        </button>
+                        <p className="text-xs text-muted-foreground">
+                          {creditNote.posting_date || "—"}
+                          {creditNote.status ? ` · ${creditNote.status}` : ""}
+                        </p>
+                      </div>
+                      <span className="whitespace-nowrap font-medium">
+                        {formatCurrency(
+                          creditNote.grand_total || 0,
+                          creditNote.currency || selectedInvoice.currency
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </DetailSection>
+            )}
             {invoiceDetail?.items && invoiceDetail.items.length > 0 && (
               <DetailSection title="Line Items">
                 <div className="dms-table-panel rounded-md border">
@@ -777,28 +904,32 @@ export default function InvoicesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoiceDetail.items.map((line, idx) => (
-                        <TableRow key={`${line.item_code}-${idx}`}>
-                          <TableCell className="max-w-[200px]">
-                            <div className="font-medium truncate" title={line.item_code}>
-                              {line.item_code}
-                            </div>
-                            {(line.item_name || line.description) &&
-                            (line.item_name || line.description) !== line.item_code ? (
-                              <div
-                                className="text-xs font-light text-muted-foreground truncate"
-                                title={line.item_name || line.description}
-                              >
-                                {line.item_name || line.description}
+                      {invoiceDetail.items.map((line, idx) => {
+                        // Prefer the line description (this is where a labour "display name"
+                        // is stored) over the ERP item name.
+                        const lineLabel = line.description || line.item_name;
+                        return (
+                          <TableRow key={`${line.item_code}-${idx}`}>
+                            <TableCell className="max-w-[200px]">
+                              <div className="font-medium truncate" title={line.item_code}>
+                                {line.item_code}
                               </div>
-                            ) : null}
-                          </TableCell>
-                          <TableCell className="text-right">{line.qty}</TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(line.amount || 0, selectedInvoice.currency)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              {lineLabel && lineLabel !== line.item_code ? (
+                                <div
+                                  className="text-xs font-light text-muted-foreground truncate"
+                                  title={lineLabel}
+                                >
+                                  {lineLabel}
+                                </div>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="text-right">{line.qty}</TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(line.amount || 0, selectedInvoice.currency)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -967,6 +1098,18 @@ export default function InvoicesPage() {
             setInvoiceDetail(null);
             void mutate((key) => Array.isArray(key) && key[0] === "invoices");
           }}
+        />
+      ) : null}
+
+      {creditNoteInvoiceId ? (
+        <CreditNoteDialog
+          open={showCreditNoteDialog}
+          onOpenChange={(open) => {
+            setShowCreditNoteDialog(open);
+            if (!open) setCreditNoteInvoiceId(null);
+          }}
+          salesInvoice={creditNoteInvoiceId}
+          onCreated={handleCreditNoteCreated}
         />
       ) : null}
     </div>

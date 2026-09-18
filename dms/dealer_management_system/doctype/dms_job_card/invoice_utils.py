@@ -689,7 +689,7 @@ def get_active_job_card_invoice(job_card_name: str) -> str | None:
 	if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card"):
 		linked = frappe.db.get_value(
 			"Sales Invoice",
-			{"custom_dms_job_card": job_card_name, "docstatus": ["!=", 2]},
+			{"custom_dms_job_card": job_card_name, "docstatus": ["!=", 2], "is_return": 0},
 			"name",
 		)
 		if linked:
@@ -741,6 +741,10 @@ def on_sales_invoice_cancel(doc, method=None):
 		doc.name,
 		doc.get("custom_dms_job_card") if hasattr(doc, "get") else None,
 	)
+	# Credit notes must not drive the job card's payment status — the original
+	# invoice still owns it.
+	if cint(getattr(doc, "is_return", 0)):
+		return
 	jc = resolve_job_card_for_sales_invoice(doc)
 	if jc:
 		_set_job_card_payment_status(jc, "Unpaid")
@@ -806,6 +810,9 @@ def sync_job_card_payment_status_from_invoice(
 		return "Unpaid"
 
 	si = frappe.get_doc("Sales Invoice", si_name)
+	# A credit note is not the job card's invoice — leave its status untouched.
+	if cint(si.get("is_return")):
+		return None
 	status = payment_status_from_sales_invoice(si)
 	_set_job_card_payment_status(jc_name, status)
 	return status
@@ -813,6 +820,10 @@ def sync_job_card_payment_status_from_invoice(
 
 def sync_linked_job_card_payment_from_sales_invoice(doc, method=None):
 	"""Doc event: keep linked Job Card payment_status aligned with this Sales Invoice."""
+	# Credit notes (returns) carry the job card link but must not overwrite the
+	# payment status derived from the original invoice.
+	if cint(getattr(doc, "is_return", 0)):
+		return
 	jc = resolve_job_card_for_sales_invoice(doc)
 	if not jc:
 		return
@@ -971,6 +982,12 @@ def build_invoice_preview_from_job_card(
 		"currency": _currency_from_job_card(jc),
 		"existing_invoice": get_active_job_card_invoice(jc.name),
 		"add_full_warranty_item_on_invoice": add_full_warranty_item_on_invoice(),
+		# Job Card remark (shown / prefilled in the create-invoice dialog).
+		"remark": (
+			(jc.get("remark") or "")
+			if frappe.get_meta("DMS Job Card").has_field("remark")
+			else ""
+		),
 	}
 
 
@@ -986,6 +1003,7 @@ def create_sales_invoice_from_dms_job_card(
 	apply_taxes: bool = False,
 	posting_date: str | None = None,
 	exclude_rows=None,
+	remarks: str | None = None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -1099,6 +1117,18 @@ def create_sales_invoice_from_dms_job_card(
 		si.submit()
 
 	frappe.db.set_value("DMS Job Card", jc.name, "invoice", si.name, update_modified=True)
+
+	# Persist the invoice remark onto the Job Card so the invoice detail sheet
+	# (and any other job-card view) can show what was entered at billing time.
+	if remarks is not None and frappe.get_meta("DMS Job Card").has_field("remark"):
+		frappe.db.set_value(
+			"DMS Job Card",
+			jc.name,
+			"remark",
+			(remarks or "").strip(),
+			update_modified=False,
+		)
+
 	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import stamp_job_card_timestamp
 
 	stamp_job_card_timestamp(jc.name, "invoiced_at")
