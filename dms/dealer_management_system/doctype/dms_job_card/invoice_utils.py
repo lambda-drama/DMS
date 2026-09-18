@@ -590,12 +590,212 @@ def _prevent_erpnext_tax_reapply(si) -> None:
 	si.append_taxes_from_item_tax_template = lambda *args, **kwargs: None
 
 
-def _apply_sales_invoice_tax_choice(si, apply_taxes: bool) -> None:
-	"""Apply DMS Settings tax template when requested; otherwise leave taxes blank."""
+def get_dms_default_tax_withholding_category(company: str | None = None) -> str:
+	"""Tax Withholding Category from DMS Settings (the TCS/withholding default)."""
+	name = (frappe.db.get_single_value("DMS Settings", "default_tax_withholding_category") or "").strip()
+	if not name:
+		frappe.throw(
+			_("Set Default Tax Withholding Category on DMS Settings before including tax withholding."),
+			title=_("Tax Withholding"),
+		)
+	if not frappe.db.exists("Tax Withholding Category", name):
+		frappe.throw(
+			_("Tax Withholding Category {0} was not found.").format(frappe.bold(name)),
+			title=_("Tax Withholding"),
+		)
+
+	if company:
+		# Raises a clear message when the company has no account mapped for this category.
+		frappe.get_cached_doc("Tax Withholding Category", name).get_company_account(company)
+
+	return name
+
+
+def get_dms_default_tax_withholding_group() -> str | None:
+	"""Optional Tax Withholding Group from DMS Settings (picks the category's rate row)."""
+	if not frappe.get_meta("DMS Settings").has_field("tax_withholding_group"):
+		return None
+
+	name = (frappe.db.get_single_value("DMS Settings", "tax_withholding_group") or "").strip()
+	if not name:
+		return None
+	if not frappe.db.exists("Tax Withholding Group", name):
+		frappe.throw(
+			_("Tax Withholding Group {0} was not found.").format(frappe.bold(name)),
+			title=_("Tax Withholding"),
+		)
+	return name
+
+
+def use_dms_withholding_group() -> bool:
+	"""DMS Settings → Use Withholding Group.
+
+	Ticked: the withholding group is stamped on the invoice (customer untouched).
+	Unticked: the category (and group) are saved on the customer and the invoice
+	follows the customer, which is how the first version behaved.
+	"""
+	if not frappe.get_meta("DMS Settings").has_field("use_withholding_group"):
+		return False
+	return bool(cint(frappe.db.get_single_value("DMS Settings", "use_withholding_group")))
+
+
+def _sync_customer_tax_withholding_category(
+	customer: str, category: str | None, group: str | None = None
+) -> None:
+	"""Store / clear the withholding category (and group) on the Customer.
+
+	Only used when Use Withholding Group is off. `category` empty clears the
+	category and any now-orphan group so later invoices do not withhold.
+	"""
+	customer = (customer or "").strip()
+	if not customer or not frappe.db.exists("Customer", customer):
+		return
+
+	meta = frappe.get_meta("Customer")
+	category = (category or "").strip()
+	group = (group or "").strip()
+
+	updates = {}
+	if meta.has_field("tax_withholding_category"):
+		updates["tax_withholding_category"] = category
+	if meta.has_field("tax_withholding_group"):
+		current_group = (frappe.db.get_value("Customer", customer, "tax_withholding_group") or "").strip()
+		if group:
+			updates["tax_withholding_group"] = group
+		elif not category and current_group:
+			updates["tax_withholding_group"] = ""
+
+	changed = {
+		field: value
+		for field, value in updates.items()
+		if (frappe.db.get_value("Customer", customer, field) or "").strip() != value
+	}
+	if changed:
+		frappe.db.set_value("Customer", customer, changed)
+
+
+def _tax_withholding_group_for_category(category: str, posting_date=None) -> str | None:
+	"""Tax Withholding Group the category's rate rows use for `posting_date`.
+
+	Fallback for when DMS Settings has no group: the group is read from the
+	category's own rate row. A category whose rates define no group (or several
+	groups for the same period) returns None.
+	"""
+	if not category:
+		return None
+
+	category_doc = frappe.get_cached_doc("Tax Withholding Category", category)
+	posting = getdate(posting_date) if posting_date else getdate(today())
+	groups = {
+		(row.tax_withholding_group or "").strip()
+		for row in category_doc.rates or []
+		if (row.tax_withholding_group or "").strip()
+		and row.from_date
+		and row.to_date
+		and getdate(row.from_date) <= posting <= getdate(row.to_date)
+	}
+	return next(iter(groups)) if len(groups) == 1 else None
+
+
+def resolve_dms_tax_withholding(si) -> tuple[str, str | None]:
+	"""Category + group to withhold with, validated against the invoice posting date.
+
+	Use Withholding Group ticked → the group goes on the invoice and the customer is
+	left alone. Unticked → the category (and group) are saved on the customer first
+	and the invoice follows the customer.
+	"""
+	category = get_dms_default_tax_withholding_category(getattr(si, "company", None))
+	posting_date = getattr(si, "posting_date", None) or today()
+	dms_group = get_dms_default_tax_withholding_group()
+
+	group = None
+	if use_dms_withholding_group():
+		group = dms_group
+	else:
+		customer = (getattr(si, "customer", None) or "").strip()
+		_sync_customer_tax_withholding_category(customer, category, dms_group)
+		if customer and frappe.db.exists("Customer", customer):
+			group = (frappe.db.get_value("Customer", customer, "tax_withholding_group") or "").strip()
+
+	group = group or _tax_withholding_group_for_category(category, posting_date)
+
+	try:
+		frappe.get_cached_doc("Tax Withholding Category", category).get_applicable_tax_row(
+			posting_date, group
+		)
+	except Exception:
+		frappe.throw(
+			_(
+				"Tax Withholding Category {0} has no rate for group {2} on {1}. Set that Tax Withholding "
+				"Group on DMS Settings (or on the customer) / add a matching rate row, then try again."
+			).format(frappe.bold(category), frappe.bold(posting_date), frappe.bold(group or _("(none)"))),
+			title=_("Tax Withholding"),
+		)
+
+	return category, group
+
+
+def _apply_tax_withholding_to_sales_invoice(si, category: str | None, group: str | None = None) -> None:
+	"""Enable / disable tax withholding (TCS) directly on the invoice.
+
+	ERPNext needs `apply_tds` plus a `tax_withholding_category` on every item (a
+	Sales Invoice has no header-level category) and `tax_withholding_group` to pick
+	the category's rate row. On save ERPNext fills the Tax Withholding Entries
+	section and posts the withholding account on its own.
+	"""
+	category = (category or "").strip()
+	group = (group or "").strip() or None
+
+	sii_meta = frappe.get_meta("Sales Invoice Item")
+	if si.meta.has_field("apply_tds"):
+		si.apply_tds = 1 if category else 0
+	if si.meta.has_field("tax_withholding_entries"):
+		si.set("tax_withholding_entries", [])
+	if si.meta.has_field("tax_withholding_group"):
+		si.tax_withholding_group = group if category else None
+	if not category and si.meta.has_field("override_tax_withholding_entries"):
+		si.override_tax_withholding_entries = 0
+
+	for item in si.get("items") or []:
+		if sii_meta.has_field("apply_tds"):
+			item.apply_tds = 1 if category else 0
+		if sii_meta.has_field("tax_withholding_category"):
+			item.tax_withholding_category = category or None
+
+
+def _apply_tax_withholding_choice(si, apply_tax_withholding) -> None:
+	"""Turn tax withholding on/off. `None` leaves the invoice untouched.
+
+	Enabled → resolves the DMS Settings category + group (see
+	`resolve_dms_tax_withholding`) and stamps them on the invoice. Disabled → clears
+	the invoice fields, and the customer too when the customer-driven mode is on.
+	"""
+	if apply_tax_withholding is None:
+		return
+
+	category = group = None
+	if cint(apply_tax_withholding):
+		category, group = resolve_dms_tax_withholding(si)
+	elif not use_dms_withholding_group():
+		# Customer-driven mode: turning withholding off clears it on the customer too.
+		_sync_customer_tax_withholding_category((getattr(si, "customer", None) or "").strip(), None)
+
+	_apply_tax_withholding_to_sales_invoice(si, category, group)
+
+
+def _apply_sales_invoice_tax_choice(si, apply_taxes: bool, apply_tax_withholding=None) -> None:
+	"""Apply DMS Settings tax template / tax withholding as chosen on the invoice.
+
+	`apply_tax_withholding` is tri-state: 1 includes TCS, 0 removes it (and from the
+	customer), `None` leaves whatever the document already had.
+	"""
 	if apply_taxes:
 		_apply_dms_default_taxes_and_charges(si)
-		return
-	_clear_sales_invoice_taxes(si)
+	else:
+		_clear_sales_invoice_taxes(si)
+
+	# Run after taxes: `_clear_sales_invoice_taxes` also blanks the withholding setup.
+	_apply_tax_withholding_choice(si, apply_tax_withholding)
 
 
 def _resolve_part_warehouse(part, jc) -> str | None:
@@ -1004,6 +1204,7 @@ def create_sales_invoice_from_dms_job_card(
 	posting_date: str | None = None,
 	exclude_rows=None,
 	remarks: str | None = None,
+	apply_tax_withholding=None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -1092,7 +1293,7 @@ def create_sales_invoice_from_dms_job_card(
 	# set_missing_values can reset currency from company / price list — re-apply from job card
 	_apply_sales_invoice_currency_from_job_card(si, jc)
 	_apply_dms_selling_price_list_to_sales_invoice(si)
-	_apply_sales_invoice_tax_choice(si, apply_taxes)
+	_apply_sales_invoice_tax_choice(si, apply_taxes, apply_tax_withholding)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
 	apply_company_letter_head(si, jc.company)
 	disable_sales_invoice_round_off(si)
@@ -2056,6 +2257,7 @@ def create_standalone_dms_sales_invoice(
 	vehicle_model: str | None = None,
 	current_odometer=None,
 	apply_taxes: bool = False,
+	apply_tax_withholding=None,
 ) -> str:
 	"""Create a Sales Invoice from DMS UI labour + parts (no job card)."""
 	_ensure_erpnext()
@@ -2315,7 +2517,7 @@ def create_standalone_dms_sales_invoice(
 	si.set_missing_values()
 	si.currency = invoice_currency
 	_apply_dms_selling_price_list_to_sales_invoice(si)
-	_apply_sales_invoice_tax_choice(si, apply_taxes)
+	_apply_sales_invoice_tax_choice(si, apply_taxes, apply_tax_withholding)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, company)
 	apply_company_letter_head(si, company)
 	disable_sales_invoice_round_off(si)

@@ -170,6 +170,7 @@ export default function NewInvoicePage() {
   const [dueDate, setDueDate] = useState(defaultDueDate());
   const [remarks, setRemarks] = useState("");
   const [applyTaxes, setApplyTaxes] = useState(false);
+  const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
 
   const isStandalone = !jobCardId;
   const showVinOnCustomer = isStandalone && isDmsInvoice;
@@ -615,6 +616,7 @@ export default function NewInvoicePage() {
           postingDate,
           submit: shouldSubmit,
           applyTaxes,
+          applyTaxWithholding,
           rateOverrides: buildRateOverridesFromRows(filledLabourRows, filledPartRows),
           excludeRows: removedUnrequested.length ? removedUnrequested : undefined,
         });
@@ -714,6 +716,7 @@ export default function NewInvoicePage() {
             ? currentOdometer
             : undefined,
         apply_taxes: applyTaxes,
+        apply_tax_withholding: applyTaxWithholding,
       });
       toast.success(asDraft ? "Invoice saved as draft" : "Invoice created successfully");
       navigate("invoices");
@@ -973,12 +976,29 @@ export default function NewInvoicePage() {
                     onCheckedChange={(c) => setApplyTaxes(Boolean(c))}
                   />
                   <Label htmlFor="apply_taxes" className="cursor-pointer font-normal">
-                    Include taxes / tax withholding
+                    Include VAT
                   </Label>
                 </div>
                 <p className="text-xs text-muted-foreground pl-6">
                   Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked
-                  to create the invoice without taxes.
+                  to create the invoice without VAT.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="apply_tax_withholding"
+                    checked={applyTaxWithholding}
+                    onCheckedChange={(c) => setApplyTaxWithholding(Boolean(c))}
+                  />
+                  <Label htmlFor="apply_tax_withholding" className="cursor-pointer font-normal">
+                    Include tax withholding (TCS)
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-6">
+                  Applies the Default Tax Withholding Category from DMS Settings — with Use
+                  Withholding Group ticked the group goes on the invoice, otherwise the category is
+                  saved on the customer. ERPNext fills the Tax Withholding Entries on save.
                 </p>
               </div>
             </CardContent>

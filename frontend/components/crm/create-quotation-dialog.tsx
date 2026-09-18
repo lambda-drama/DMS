@@ -158,7 +158,7 @@ export function CreateQuotationDialog({
                 </div>
                 {applyTaxes ? (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Taxes / VAT</span>
+                    <span>VAT</span>
                     <span>{money(Number(preview.total_taxes_and_charges || 0))}</span>
                   </div>
                 ) : null}
@@ -176,14 +176,14 @@ export function CreateQuotationDialog({
                   checked={applyTaxes}
                   onChange={(event) => setApplyTaxes(event.target.checked)}
                 />
-                Include taxes / tax withholding
+                Include VAT
               </label>
               <p className="pl-6 text-xs text-muted-foreground">
                 Applies the Default Taxes and Charges Template from DMS Settings
                 {preview.dms_taxes_and_charges_template
                   ? ` (${preview.dms_taxes_and_charges_template})`
                   : ''}
-                . Uncheck only if you want a draft quotation without taxes.
+                . Uncheck only if you want a draft quotation without VAT.
               </p>
               {!applyTaxes && preview.dms_taxes_and_charges_template ? (
                 <p className="pl-6 text-xs text-muted-foreground">

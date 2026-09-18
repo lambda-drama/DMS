@@ -86,6 +86,7 @@ export function AmendInvoiceDialog({
   const [discountMode, setDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [discountInput, setDiscountInput] = useState('');
   const [applyTaxes, setApplyTaxes] = useState(false);
+  const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
   const [submitAfterSave, setSubmitAfterSave] = useState(false);
 
   const canDeleteDraft =
@@ -103,6 +104,7 @@ export function AmendInvoiceDialog({
     setDiscountMode('none');
     setDiscountInput('');
     setApplyTaxes(false);
+    setApplyTaxWithholding(false);
     setSubmitAfterSave(false);
 
     (async () => {
@@ -141,6 +143,7 @@ export function AmendInvoiceDialog({
           Boolean(detail.apply_taxes) ||
             (Number(detail.total_taxes_and_charges) || 0) > 0
         );
+        setApplyTaxWithholding(Boolean(detail.apply_tax_withholding));
 
         const pct = Number(detail.additional_discount_percentage) || 0;
         const amt = Number(detail.discount_amount) || 0;
@@ -218,6 +221,7 @@ export function AmendInvoiceDialog({
               },
         apply_discount_on: 'Net Total',
         apply_taxes: applyTaxes,
+        apply_tax_withholding: applyTaxWithholding,
         submit: submitAfterSave,
       });
       toast.success(
@@ -378,12 +382,30 @@ export function AmendInvoiceDialog({
                   onCheckedChange={(c) => setApplyTaxes(Boolean(c))}
                 />
                 <Label htmlFor="amend_apply_taxes" className="cursor-pointer font-normal">
-                  Include taxes / tax withholding
+                  Include VAT
                 </Label>
               </div>
               <p className="pl-6 text-xs text-muted-foreground">
                 Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked
-                to save the invoice without taxes.
+                to save the invoice without VAT.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="amend_apply_tax_withholding"
+                  checked={applyTaxWithholding}
+                  onCheckedChange={(c) => setApplyTaxWithholding(Boolean(c))}
+                />
+                <Label htmlFor="amend_apply_tax_withholding" className="cursor-pointer font-normal">
+                  Include tax withholding (TCS)
+                </Label>
+              </div>
+              <p className="pl-6 text-xs text-muted-foreground">
+                Applies the Default Tax Withholding Category from DMS Settings — with Use
+                Withholding Group ticked the group goes on the invoice, otherwise the category is
+                saved on the customer. ERPNext fills the Tax Withholding Entries on save.
               </p>
             </div>
 

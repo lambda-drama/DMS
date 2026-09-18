@@ -33,6 +33,14 @@ def _is_dms_sales_invoice(si) -> bool:
 	return False
 
 
+def _has_manual_tax_rows(si) -> bool:
+	"""True when the invoice has tax rows other than the TCS/withholding line."""
+	for row in si.get("taxes") or []:
+		if not cint(row.get("is_tax_withholding_account")):
+			return True
+	return False
+
+
 def _dms_sales_invoice_condition():
 	"""Invoices linked to a DMS job card and/or standalone DMS spare-parts invoices."""
 	si_meta = frappe.get_meta("Sales Invoice")
@@ -268,6 +276,9 @@ def create_standalone_invoice(data):
 		vehicle_model=data.get("vehicle_model"),
 		current_odometer=data.get("current_odometer"),
 		apply_taxes=bool(cint(data.get("apply_taxes", 0))),
+		apply_tax_withholding=(
+			cint(data.get("apply_tax_withholding")) if "apply_tax_withholding" in data else None
+		),
 	)
 
 	si = frappe.get_doc("Sales Invoice", name)
@@ -332,7 +343,8 @@ def get_sales_invoice_detail(sales_invoice):
 		"additional_discount_percentage": flt(si.get("additional_discount_percentage")),
 		"discount_amount": flt(si.get("discount_amount")),
 		"apply_discount_on": si.get("apply_discount_on") or "Net Total",
-		"apply_taxes": 1 if (si.get("taxes") or flt(si.total_taxes_and_charges)) else 0,
+		"apply_taxes": 1 if _has_manual_tax_rows(si) else 0,
+		"apply_tax_withholding": 1 if cint(si.get("apply_tds")) else 0,
 		"is_return": is_return,
 		"return_against": si.get("return_against"),
 	}
@@ -878,6 +890,14 @@ def update_draft_sales_invoice(data):
 		)
 
 		_apply_sales_invoice_tax_choice(si, bool(cint(data.get("apply_taxes"))))
+
+	# Applied after taxes so turning taxes off does not wipe the withholding setup.
+	if "apply_tax_withholding" in data:
+		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+			_apply_tax_withholding_choice,
+		)
+
+		_apply_tax_withholding_choice(si, cint(data.get("apply_tax_withholding")))
 
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		_apply_dms_selling_price_list_to_sales_invoice,
