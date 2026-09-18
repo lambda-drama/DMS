@@ -115,6 +115,8 @@
   "delay_department",
   "delay_corrective_action",
   "customer_notified",
+  "remarks_section",
+  "remark",
   "road_test_tab",
   "road_test_template",
   "road_test_results",
@@ -1023,13 +1025,23 @@
    "fieldname": "terms_and_conditions",
    "fieldtype": "Text Editor",
    "label": "Terms and Conditions"
+  },
+  {
+   "fieldname": "remarks_section",
+   "fieldtype": "Section Break",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Small Text",
+   "label": "Remark"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-16 00:04:01.646997",
+ "modified": "2026-09-18 14:12:17.523645",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

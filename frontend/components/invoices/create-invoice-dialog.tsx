@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DecimalInput } from '@/components/ui/decimal-input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -102,6 +103,7 @@ export function CreateInvoiceDialog({
   const [postingDate, setPostingDate] = useState(todayLocalDate);
   const [submitInvoice, setSubmitInvoice] = useState(true);
   const [applyTaxes, setApplyTaxes] = useState(false);
+  const [remark, setRemark] = useState('');
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
   const [excludedRows, setExcludedRows] = useState<string[]>([]);
   const skipWarrantyRefetch = useRef(true);
@@ -184,6 +186,7 @@ export function CreateInvoiceDialog({
     setPostingDate(todayLocalDate());
     setSubmitInvoice(true);
     setApplyTaxes(false);
+    setRemark('');
 
     invoicesSvc
       .getInvoicePreviewFromJobCard(jobCardId)
@@ -192,6 +195,8 @@ export function CreateInvoiceDialog({
         setPreview(data);
         setWarrantyType(warrantyFromPreview(data));
         applyDiscountsFromPreview(data);
+        // Prefill with the remark already on the Job Card (if any).
+        setRemark(data.remark || '');
       })
       .catch((err: Error) => {
         if (!cancelled) {
@@ -319,6 +324,8 @@ export function CreateInvoiceDialog({
         rateOverrides:
           Object.keys(editedRates).length > 0 ? editedRates : undefined,
         excludeRows: excludedRows.length ? excludedRows : undefined,
+        // Always send (even when empty) so clearing the field clears it on the job card.
+        remarks: remark,
       });
       toast.success(
         submitInvoice
@@ -668,6 +675,20 @@ export function CreateInvoiceDialog({
                   />
                 </div>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="invoice-remark">Remarks</Label>
+              <Textarea
+                id="invoice-remark"
+                rows={2}
+                value={remark}
+                onChange={(e) => setRemark(e.target.value)}
+                placeholder="e.g. notes about this billing / agreed price"
+              />
+              <p className="text-xs text-muted-foreground">
+                Saved on the Job Card and shown in the invoice detail.
+              </p>
             </div>
 
             <div className="flex items-center gap-2">

@@ -75,6 +75,8 @@ interface LabourRow {
   source_row?: string;
   vehicle_service_item: string;
   vehicle_service_item_name: string;
+  /** Name shown on the invoice line (goes to the Sales Invoice Item description). */
+  display_name: string;
   estimated_hours: number;
   rate_per_hour: number;
 }
@@ -93,6 +95,7 @@ function emptyLabourRow(): LabourRow {
   return {
     vehicle_service_item: "",
     vehicle_service_item_name: "",
+    display_name: "",
     estimated_hours: 0,
     rate_per_hour: 0,
   };
@@ -261,6 +264,7 @@ export default function NewInvoicePage() {
       source_row: sl.name,
       vehicle_service_item: sl.vehicle_service_item || "",
       vehicle_service_item_name: sl.custom_display_name || sl.display_name || sl.service_name || sl.vehicle_service_item || "",
+      display_name: sl.custom_display_name || sl.display_name || sl.service_name || "",
       estimated_hours: sl.actual_hours || sl.estimated_hours || 1,
       rate_per_hour: sl.rate_per_hour || 0,
     }));
@@ -452,6 +456,7 @@ export default function NewInvoicePage() {
                 ...row,
                 vehicle_service_item: "",
                 vehicle_service_item_name: "",
+                display_name: "",
                 estimated_hours: 0,
                 rate_per_hour: 0,
               }
@@ -491,6 +496,7 @@ export default function NewInvoicePage() {
               ...row,
               vehicle_service_item: itemName,
               vehicle_service_item_name: serviceLabel,
+              display_name: serviceLabel,
               estimated_hours: estHours,
               rate_per_hour: rate || row.rate_per_hour,
             }
@@ -691,6 +697,8 @@ export default function NewInvoicePage() {
           vehicle_service_item: r.vehicle_service_item,
           hours: r.estimated_hours,
           rate_per_hour: r.rate_per_hour,
+          // Display name → Sales Invoice Item description.
+          description: r.display_name.trim() || undefined,
         })),
         parts: filledPartRows.map((r) => ({
           spare_part: r.item_code,
@@ -1054,6 +1062,15 @@ export default function NewInvoicePage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                </div>
+                <div className="space-y-1 sm:col-span-12">
+                  <Label className="text-xs">Display name</Label>
+                  <Input
+                    value={row.display_name}
+                    placeholder="Name shown on this invoice line"
+                    disabled={!row.vehicle_service_item}
+                    onChange={(e) => updateLabourRow(idx, { display_name: e.target.value })}
+                  />
                 </div>
               </div>
             ))}

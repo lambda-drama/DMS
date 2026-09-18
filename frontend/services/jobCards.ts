@@ -23,6 +23,7 @@ export async function listJobCards(options?: {
   customer?: string;
   search?: string;
   job_card_type?: string;
+  payment_status?: string;
   opened_from?: string;
   opened_to?: string;
   completed_from?: string;
@@ -38,6 +39,7 @@ export async function listJobCards(options?: {
       customer: options?.customer || null,
       search: options?.search || null,
       job_card_type: options?.job_card_type || null,
+      payment_status: options?.payment_status || null,
       opened_from: options?.opened_from || null,
       opened_to: options?.opened_to || null,
       completed_from: options?.completed_from || null,

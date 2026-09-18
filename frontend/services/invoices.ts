@@ -3,6 +3,8 @@
  */
 import { apiRequest } from './apiClient';
 import type {
+  CreditNotePreview,
+  CreditNoteResult,
   InvoicePreview,
   ModeOfPayment,
   PaginatedResponse,
@@ -147,6 +149,8 @@ export async function createInvoiceFromJobCard(
     /** When true, apply DMS Settings Default Taxes and Charges Template. Default: false (blank). */
     applyTaxes?: boolean;
     excludeRows?: string[];
+    /** Saved on the linked Job Card's `remark` field and shown on the invoice detail. */
+    remarks?: string;
   }
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${JC_API}.make_sales_invoice_from_job_card`, {
@@ -163,6 +167,7 @@ export async function createInvoiceFromJobCard(
       rate_overrides: options?.rateOverrides ?? null,
       apply_taxes: options?.applyTaxes ? 1 : 0,
       exclude_rows: options?.excludeRows?.length ? options.excludeRows : null,
+      remarks: options?.remarks ?? null,
     }),
   });
 }
@@ -250,6 +255,49 @@ export async function updateJobCardPricesFromInvoice(
   return apiRequest(`/api/method/${API}.update_job_card_prices_from_invoice`, {
     method: 'POST',
     body: JSON.stringify({ sales_invoice: salesInvoice }),
+  });
+}
+
+/** Lines + already-returned qty used to build a credit note against an invoice. */
+export async function getCreditNotePreview(salesInvoice: string): Promise<CreditNotePreview> {
+  return apiRequest<CreditNotePreview>(`/api/method/${API}.get_credit_note_preview`, {
+    method: 'POST',
+    body: JSON.stringify({ sales_invoice: salesInvoice }),
+  });
+}
+
+/**
+ * Create a Credit Note (Sales Invoice return) against an invoice.
+ * Lines are keyed by the original Sales Invoice Item row name.
+ */
+export async function createCreditNote(data: {
+  salesInvoice: string;
+  postingDate?: string;
+  remarks?: string;
+  /** Omit to inherit the original invoice's taxes. */
+  applyTaxes?: boolean;
+  /** Defaults to true. */
+  submit?: boolean;
+  lines: Array<{
+    name: string;
+    qty?: number;
+    rate?: number;
+    /** false removes the line from the credit note. */
+    include?: boolean;
+  }>;
+}): Promise<CreditNoteResult> {
+  return apiRequest<CreditNoteResult>(`/api/method/${API}.create_credit_note`, {
+    method: 'POST',
+    body: JSON.stringify({
+      data: {
+        sales_invoice: data.salesInvoice,
+        posting_date: data.postingDate || null,
+        remarks: data.remarks || null,
+        apply_taxes: data.applyTaxes,
+        submit: data.submit === false ? 0 : 1,
+        lines: data.lines,
+      },
+    }),
   });
 }
 
