@@ -103,6 +103,7 @@ export function CreateInvoiceDialog({
   const [postingDate, setPostingDate] = useState(todayLocalDate);
   const [submitInvoice, setSubmitInvoice] = useState(true);
   const [applyTaxes, setApplyTaxes] = useState(false);
+  const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
   const [remark, setRemark] = useState('');
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
   const [excludedRows, setExcludedRows] = useState<string[]>([]);
@@ -318,6 +319,7 @@ export function CreateInvoiceDialog({
         postingDate,
         submit: submitInvoice,
         applyTaxes,
+        applyTaxWithholding,
         warrantyApplicationType: warrantyApplicationType || undefined,
         labourDiscount: warrantyType === 'Discount' ? labourDiscount : undefined,
         partsDiscount: warrantyType === 'Discount' ? partsDiscount : undefined,
@@ -710,12 +712,30 @@ export function CreateInvoiceDialog({
                   onCheckedChange={(c) => setApplyTaxes(c === true)}
                 />
                 <Label htmlFor="apply-taxes" className="font-normal cursor-pointer">
-                  Include taxes / tax withholding
+                  Include VAT
                 </Label>
               </div>
               <p className="text-xs text-muted-foreground pl-6">
                 Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked
-                to create the invoice without taxes.
+                to create the invoice without VAT.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="apply-tax-withholding"
+                  checked={applyTaxWithholding}
+                  onCheckedChange={(c) => setApplyTaxWithholding(c === true)}
+                />
+                <Label htmlFor="apply-tax-withholding" className="font-normal cursor-pointer">
+                  Include tax withholding (TCS)
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground pl-6">
+                Applies the Default Tax Withholding Category from DMS Settings — with Use
+                Withholding Group ticked the group goes on the invoice, otherwise the category is
+                saved on the customer. ERPNext fills the Tax Withholding Entries on save.
               </p>
             </div>
           </>

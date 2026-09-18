@@ -16,6 +16,9 @@
   "default_vat_rate",
   "default_service_fee",
   "default_taxes_and_charges_template",
+  "default_tax_withholding_category",
+  "tax_withholding_group",
+  "use_withholding_group",
   "serial_vin_no_section",
   "auto_create_vin_from_serial",
   "company",
@@ -262,18 +265,38 @@
    "label": "After Repair Probation Period (Days)"
   },
   {
-   "description": "Used on DMS Sales Invoices when Include taxes / tax withholding is checked. Customer, company, and item tax templates are not used.",
+   "description": "Used on DMS Sales Invoices when Include VAT is checked. Customer, company, and item tax templates are not used.",
    "fieldname": "default_taxes_and_charges_template",
    "fieldtype": "Link",
    "label": "Default Taxes and Charges Template",
    "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "default_tax_withholding_category",
+   "fieldtype": "Link",
+   "label": "Default Tax Withholding Category",
+   "options": "Tax Withholding Category"
+  },
+  {
+   "description": "Used when Use Withholding Group is ticked (and written to the customer when it is not). Must match the Tax Withholding Group on the category's rate row for the invoice posting date.",
+   "fieldname": "tax_withholding_group",
+   "fieldtype": "Link",
+   "label": "Tax Withholding Group",
+   "options": "Tax Withholding Group"
+  },
+  {
+   "default": "0",
+   "description": "Ticked: apply the Tax Withholding Group on the invoice (customer is left alone). Unticked: save the category / group on the customer and let the invoice follow the customer.",
+   "fieldname": "use_withholding_group",
+   "fieldtype": "Check",
+   "label": "Use Withholding Group"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-13 01:50:00.000000",
+ "modified": "2026-09-19 01:15:57.253096",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Settings",

@@ -122,6 +122,11 @@ export async function createStandaloneInvoice(data: {
   vehicle_model?: string;
   current_odometer?: number;
   apply_taxes?: boolean;
+  /**
+   * Tax withholding (TCS). true → apply the DMS Settings Default Tax Withholding
+   * Category on the invoice; false → leave the invoice without withholding.
+   */
+  apply_tax_withholding?: boolean;
 }): Promise<{
   name: string;
   docstatus: number;
@@ -148,6 +153,11 @@ export async function createInvoiceFromJobCard(
     rateOverrides?: RateOverrides;
     /** When true, apply DMS Settings Default Taxes and Charges Template. Default: false (blank). */
     applyTaxes?: boolean;
+    /**
+     * When true, apply the DMS Settings Default Tax Withholding Category (TCS) on the
+     * invoice; ERPNext fills the Tax Withholding Entries on save. Default: false.
+     */
+    applyTaxWithholding?: boolean;
     excludeRows?: string[];
     /** Saved on the linked Job Card's `remark` field and shown on the invoice detail. */
     remarks?: string;
@@ -166,6 +176,7 @@ export async function createInvoiceFromJobCard(
       parts_discount: options?.partsDiscount ?? null,
       rate_overrides: options?.rateOverrides ?? null,
       apply_taxes: options?.applyTaxes ? 1 : 0,
+      apply_tax_withholding: options?.applyTaxWithholding ? 1 : 0,
       exclude_rows: options?.excludeRows?.length ? options.excludeRows : null,
       remarks: options?.remarks ?? null,
     }),
@@ -236,6 +247,8 @@ export async function updateDraftSalesInvoice(data: {
   discount_amount?: number;
   apply_discount_on?: string;
   apply_taxes?: boolean;
+  /** Tax withholding (TCS): true applies the category on the invoice, false leaves it off. */
+  apply_tax_withholding?: boolean;
   submit?: boolean;
 }): Promise<SalesInvoiceDetail> {
   return apiRequest<SalesInvoiceDetail>(`/api/method/${API}.update_draft_sales_invoice`, {

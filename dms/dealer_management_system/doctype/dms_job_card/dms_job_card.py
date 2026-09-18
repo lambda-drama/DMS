@@ -477,6 +477,7 @@ def make_sales_invoice_from_job_card(
 	posting_date=None,
 	exclude_rows=None,
 	remarks=None,
+	apply_tax_withholding=None,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
@@ -502,6 +503,9 @@ def make_sales_invoice_from_job_card(
 		posting_date=posting_date or None,
 		exclude_rows=exclude_rows,
 		remarks=remarks,
+		apply_tax_withholding=(
+			None if apply_tax_withholding is None else bool(int(apply_tax_withholding or 0))
+		),
 	)
 
 

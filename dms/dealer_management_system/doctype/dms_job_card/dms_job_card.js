@@ -568,7 +568,7 @@ function add_create_sales_invoice_button(frm) {
         () => {
             frappe.confirm(
                 __(
-                    "Create a draft Sales Invoice from this job card without taxes / tax withholding? You can add taxes later on the invoice if needed."
+                    "Create a draft Sales Invoice from this job card without VAT and tax withholding? You can add them later on the invoice if needed."
                 ),
                 () => {
                     frappe.call({

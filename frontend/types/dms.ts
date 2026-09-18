@@ -1398,6 +1398,8 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
   discount_amount?: number;
   apply_discount_on?: string;
   apply_taxes?: number | boolean;
+  /** Tax withholding (TCS) enabled on this invoice (`apply_tds`). */
+  apply_tax_withholding?: number | boolean;
   missing_dms?: number;
   is_dms_transaction?: number;
   dms_job_card?: string;
