@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate, formatDateTime } from '@/lib/date-format';
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -1955,7 +1957,7 @@ export default function JobCardDetailPage() {
               {invoiceDetail.due_date && (
                 <span>
                   <span className="text-muted-foreground">Due: </span>
-                  {new Date(invoiceDetail.due_date).toLocaleDateString()}
+                  {formatDate(invoiceDetail.due_date)}
                 </span>
               )}
               <span>
@@ -2055,7 +2057,7 @@ export default function JobCardDetailPage() {
                     <p className="text-sm text-muted-foreground">Warranty Expiry</p>
                     <p className="font-medium">
                       {jobCard.warranty_expiry_date
-                        ? new Date(jobCard.warranty_expiry_date).toLocaleDateString()
+                        ? formatDate(jobCard.warranty_expiry_date)
                         : "N/A"}
                     </p>
                   </div>
@@ -2274,7 +2276,7 @@ export default function JobCardDetailPage() {
                     <p className="text-sm text-muted-foreground">Posting Date</p>
                     <p className="font-medium">
                       {jobCard.posting_date
-                        ? new Date(jobCard.posting_date).toLocaleDateString()
+                        ? formatDate(jobCard.posting_date)
                         : "N/A"}
                     </p>
                   </div>
@@ -2290,7 +2292,7 @@ export default function JobCardDetailPage() {
                     <p className="text-sm text-muted-foreground">Opened</p>
                     <p className="font-medium">
                       {jobCard.opened_date_time
-                        ? new Date(jobCard.opened_date_time).toLocaleString()
+                        ? formatDateTime(jobCard.opened_date_time)
                         : "N/A"}
                     </p>
                   </div>
@@ -2308,7 +2310,7 @@ export default function JobCardDetailPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Schedule start</p>
                       <p className="font-medium">
-                        {new Date(jobCard.schedule_start_time).toLocaleString()}
+                        {formatDateTime(jobCard.schedule_start_time)}
                       </p>
                     </div>
                   ) : null}
@@ -2326,7 +2328,7 @@ export default function JobCardDetailPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Schedule end</p>
                       <p className="font-medium">
-                        {new Date(jobCard.schedule_end_time).toLocaleString()}
+                        {formatDateTime(jobCard.schedule_end_time)}
                       </p>
                     </div>
                   ) : null}
@@ -2345,7 +2347,7 @@ export default function JobCardDetailPage() {
                       <p className="text-sm text-muted-foreground">Promised Delivery</p>
                       <p className="font-medium">
                         {jobCard.promised_delivery_date_time
-                          ? new Date(jobCard.promised_delivery_date_time).toLocaleString()
+                          ? formatDateTime(jobCard.promised_delivery_date_time)
                           : "N/A"}
                       </p>
                     </div>
@@ -2354,7 +2356,7 @@ export default function JobCardDetailPage() {
                     <p className="text-sm text-muted-foreground">Completed</p>
                     <p className="font-medium">
                       {jobCard.completed_date_time
-                        ? new Date(jobCard.completed_date_time).toLocaleString()
+                        ? formatDateTime(jobCard.completed_date_time)
                         : "–"}
                     </p>
                   </div>
@@ -2818,9 +2820,9 @@ export default function JobCardDetailPage() {
                               technicians
                             )}
                           </TableCell>
-                          <TableCell>{new Date(log.start_time).toLocaleString()}</TableCell>
+                          <TableCell>{formatDateTime(log.start_time)}</TableCell>
                           <TableCell>
-                            {log.end_time ? new Date(log.end_time).toLocaleString() : (
+                            {log.end_time ? formatDateTime(log.end_time) : (
                               <Badge variant="outline" className="bg-primary/10 text-primary border-0 animate-pulse">
                                 In progress
                               </Badge>
@@ -2953,7 +2955,7 @@ export default function JobCardDetailPage() {
                   <p className="font-medium flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                     {jobCard.promised_delivery_date_time
-                      ? new Date(jobCard.promised_delivery_date_time).toLocaleString()
+                      ? formatDateTime(jobCard.promised_delivery_date_time)
                       : "Not set"}
                   </p>
                 </div>
@@ -3640,7 +3642,7 @@ export default function JobCardDetailPage() {
                   label="Posting Date"
                   value={
                     invoiceDetail.posting_date
-                      ? new Date(invoiceDetail.posting_date).toLocaleDateString()
+                      ? formatDate(invoiceDetail.posting_date)
                       : undefined
                   }
                 />
@@ -3648,7 +3650,7 @@ export default function JobCardDetailPage() {
                   label="Due Date"
                   value={
                     invoiceDetail.due_date
-                      ? new Date(invoiceDetail.due_date).toLocaleDateString()
+                      ? formatDate(invoiceDetail.due_date)
                       : undefined
                   }
                 />

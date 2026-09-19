@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useState } from 'react';
 import useSWR from 'swr';
 import { listCallLogs, type CallLogRow } from '@/services/crm';
@@ -167,7 +169,7 @@ export default function CrmCallLogsPage() {
                           </td>
                           <td className="py-3 text-muted-foreground">
                             {row.start_time || row.creation
-                              ? new Date(String(row.start_time || row.creation)).toLocaleString()
+                              ? formatDateTime(String(row.start_time || row.creation))
                               : '—'}
                           </td>
                         </tr>

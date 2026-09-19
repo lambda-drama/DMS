@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { formatDate } from '@/lib/date-format';
 import useSWR, { mutate as globalMutate } from 'swr';
 import {
   fetchCustomer360,
@@ -70,9 +71,7 @@ function fmtMoneyFull(n?: number | null) {
 
 function fmtDate(value?: string | null) {
   if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return formatDate(value) || String(value);
 }
 
 function statusBadge(status?: string) {

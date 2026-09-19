@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useState, useMemo, useEffect } from "react";
 import { useCustomersPaginated } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -304,7 +306,7 @@ export default function CustomersPage() {
             <DetailSection title="Info">
               <DetailRow
                 label="Created"
-                value={selectedCustomer.creation ? new Date(selectedCustomer.creation).toLocaleDateString() : undefined}
+                value={selectedCustomer.creation ? formatDate(selectedCustomer.creation) : undefined}
               />
             </DetailSection>
           </>

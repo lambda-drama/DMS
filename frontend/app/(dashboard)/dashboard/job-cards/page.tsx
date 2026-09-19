@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
@@ -862,7 +864,7 @@ export default function JobCardsPage() {
                       </TableCell>
                       <TableCell>
                         {jc.promised_delivery_date_time
-                          ? new Date(jc.promised_delivery_date_time).toLocaleDateString()
+                          ? formatDate(jc.promised_delivery_date_time)
                           : "–"}
                       </TableCell>
                       <TableCell className="text-right">

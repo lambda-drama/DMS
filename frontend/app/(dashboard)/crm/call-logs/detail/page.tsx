@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useMemo, useState, type ReactNode } from 'react';
 import useSWR from 'swr';
 import {
@@ -293,10 +295,10 @@ export default function CrmCallLogDetailPage() {
               <DetailRow label="Duration">{call._duration || '—'}</DetailRow>
               <DetailRow label="Medium">{call.telephony_medium || call.medium || 'Manual'}</DetailRow>
               <DetailRow label="Start">
-                {call.start_time ? new Date(call.start_time).toLocaleString() : '—'}
+                {call.start_time ? formatDateTime(call.start_time) : '—'}
               </DetailRow>
               <DetailRow label="End">
-                {call.end_time ? new Date(call.end_time).toLocaleString() : '—'}
+                {call.end_time ? formatDateTime(call.end_time) : '—'}
               </DetailRow>
               {(call.recording_url_path || call.recording_url) && (
                 <DetailRow label="Recording">
@@ -478,7 +480,7 @@ export default function CrmCallLogDetailPage() {
                   <div className="font-medium">{String(t.subject || t.name)}</div>
                   <div className="text-xs text-muted-foreground">
                     {String(t.status || '')}
-                    {t.due_datetime ? ` · ${new Date(String(t.due_datetime)).toLocaleString()}` : ''}
+                    {t.due_datetime ? ` · ${formatDateTime(String(t.due_datetime))}` : ''}
                   </div>
                 </div>
                 <Button

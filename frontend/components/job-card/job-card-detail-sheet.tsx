@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useServiceEstimate } from "@/hooks/use-dms";
@@ -121,7 +123,7 @@ export function JobCardDetailSheetContent({
               label="Opened"
               value={
                 jobCard.opened_date_time
-                  ? new Date(jobCard.opened_date_time).toLocaleString()
+                  ? formatDateTime(jobCard.opened_date_time)
                   : undefined
               }
             />
@@ -129,7 +131,7 @@ export function JobCardDetailSheetContent({
               label="Promised Delivery"
               value={
                 jobCard.promised_delivery_date_time
-                  ? new Date(jobCard.promised_delivery_date_time).toLocaleString()
+                  ? formatDateTime(jobCard.promised_delivery_date_time)
                   : undefined
               }
             />
@@ -137,7 +139,7 @@ export function JobCardDetailSheetContent({
               label="Completed"
               value={
                 jobCard.completed_date_time
-                  ? new Date(jobCard.completed_date_time).toLocaleString()
+                  ? formatDateTime(jobCard.completed_date_time)
                   : undefined
               }
             />
@@ -351,7 +353,7 @@ export function JobCardDetailSheetContent({
               label="Date & time"
               value={
                 jobCard.promised_delivery_date_time
-                  ? new Date(jobCard.promised_delivery_date_time).toLocaleString()
+                  ? formatDateTime(jobCard.promised_delivery_date_time)
                   : undefined
               }
             />

@@ -18,6 +18,7 @@ from dms.crm_api.common import (
 	parse_json,
 	user_display_name,
 )
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 CAMPAIGN = "DMS CRM Campaign"
 MEMBER = "DMS CRM Campaign Member"
@@ -122,7 +123,7 @@ def resolve_segment_customers(segment_name: str | None = None, *, segment_doc=No
 			vin_filters["warranty_status"] = seg.warranty_status
 		vins = frappe.get_all(
 			"VIN No",
-			filters=vin_filters or None,
+			filters=apply_vin_company_scope(vin_filters),
 			fields=["customer", "model_year", "current_odometer", "fuel_type", "delivery_date"],
 			limit_page_length=limit * 2,
 		)

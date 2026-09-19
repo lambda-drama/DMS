@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
+import { formatDateTime } from '@/lib/date-format';
 import { useNavigation } from '@/contexts/navigation-context';
 import { DetailSheet, DetailSection, DetailRow } from '@/components/detail-sheet';
 import { JobCardDetailSheetContent } from '@/components/job-card/job-card-detail-sheet';
@@ -180,15 +181,7 @@ function money(value: unknown) {
 
 function dateText(value: unknown) {
   if (!value) return '—';
-  const d = new Date(String(value));
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTime(String(value)) || String(value);
 }
 
 async function fetchRecord(kind: Customer360RecordKind, name: string) {

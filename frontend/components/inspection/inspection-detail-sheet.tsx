@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { DetailSection, DetailRow } from "@/components/detail-sheet";
@@ -171,7 +173,7 @@ export function InspectionDetailSheetContent({
                 label="Date"
                 value={
                   inspection.inspection_date
-                    ? new Date(inspection.inspection_date).toLocaleString()
+                    ? formatDateTime(inspection.inspection_date)
                     : undefined
                 }
               />

@@ -16,6 +16,7 @@ from dms.crm_api.common import (
 from dms.customer_relationship_management.doctype.dms_crm_test_drive.dms_crm_test_drive import (
 	sync_license_to_driver,
 )
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 DOCTYPE = "DMS CRM Test Drive"
 
@@ -45,7 +46,7 @@ def get_test_vehicle_options(search=None, company=None, limit=40):
 		}
 	return frappe.get_all(
 		"VIN No",
-		filters=filters,
+		filters=apply_vin_company_scope(filters),
 		or_filters=or_filters,
 		fields=["name", "vin_number", "plate_number", "linked_item", "model_name"],
 		order_by="modified desc",

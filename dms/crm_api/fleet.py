@@ -7,6 +7,7 @@ from frappe import _
 from frappe.utils import add_days, flt, getdate, today
 
 from dms.crm_api.common import ensure_crm_read, paginate
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 
 @frappe.whitelist()
@@ -59,7 +60,7 @@ def get_fleet_aftersales(customer=None, account=None, search=None, limit=100, of
 
 	rows = frappe.get_all(
 		"VIN No",
-		filters=filters,
+		filters=apply_vin_company_scope(filters),
 		or_filters=or_filters,
 		fields=fields,
 		order_by=order_by,
@@ -105,7 +106,7 @@ def get_fleet_aftersales(customer=None, account=None, search=None, limit=100, of
 		"customer": customer,
 		"customer_name": frappe.db.get_value("Customer", customer, "customer_name"),
 		"data": rows,
-		"total": frappe.db.count("VIN No", filters=filters),
+		"total": frappe.db.count("VIN No", filters=apply_vin_company_scope(filters)),
 		"summary": {
 			"total_vehicles": len(rows),
 			"active": active,

@@ -8,6 +8,7 @@ from frappe import _
 from frappe.utils import cint, flt, getdate, today
 
 from dms.crm_api.common import ensure_crm_read, paginate
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 DOCTYPE = "VIN No"
 
@@ -312,7 +313,7 @@ def get_vehicles(search=None, customer=None, vehicle_status=None, warranty_statu
 
 	rows = frappe.get_all(
 		DOCTYPE,
-		filters=filters,
+		filters=apply_vin_company_scope(filters),
 		or_filters=or_filters,
 		fields=[
 			"name",

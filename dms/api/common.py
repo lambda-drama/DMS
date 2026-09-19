@@ -4,6 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, strip_html
 from dms.api.utils import get_dms_companies, get_dms_default_customer, get_dms_default_customer_group, get_vehicle_customer_groups
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 _COLOR_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
 
@@ -148,6 +149,9 @@ def get_vins(customer=None, search=None, limit=20):
 	filters = {}
 	if customer:
 		filters["current_customer"] = customer
+
+	# Company scope: the VIN dropdown must not offer another company's vehicles.
+	filters = apply_vin_company_scope(filters)
 
 	or_filters = {}
 	if search:

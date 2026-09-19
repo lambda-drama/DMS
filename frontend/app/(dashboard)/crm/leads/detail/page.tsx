@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import {
@@ -365,7 +367,7 @@ export default function CrmLeadDetailPage() {
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {String(item.comment_by || item.owner || 'User')} ·{' '}
-                    {item.creation ? new Date(String(item.creation)).toLocaleString() : ''}
+                    {item.creation ? formatDateTime(String(item.creation)) : ''}
                   </p>
                 </div>
               ))}

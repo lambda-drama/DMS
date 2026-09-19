@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useState } from 'react';
 import useSWR from 'swr';
 import { listSalesAppointments } from '@/services/crm';
@@ -99,7 +101,7 @@ export default function CrmSalesAppointmentsPage() {
                       >
                         <td className="py-3 font-medium">
                           {row.appointment_datetime
-                            ? new Date(String(row.appointment_datetime)).toLocaleString()
+                            ? formatDateTime(String(row.appointment_datetime))
                             : '—'}
                         </td>
                         <td className="py-3">

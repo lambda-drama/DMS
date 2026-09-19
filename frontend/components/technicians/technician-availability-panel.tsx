@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatMonthYear, formatWeekdayShort } from "@/lib/date-format";
 import {
   addDaysISO,
   firstOfMonthISO,
@@ -70,7 +71,7 @@ export function TechnicianAvailabilityPanel({
       return `${formatDisplayDate(data.start_date)} – ${formatDisplayDate(data.end_date)}`;
     }
     const d = new Date(anchorDate + "T12:00:00");
-    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    return formatMonthYear(d);
   }, [data, view, anchorDate]);
 
   return (
@@ -151,7 +152,7 @@ export function TechnicianAvailabilityPanel({
             const isSelected = key === selectedDate;
             const isToday = key === getTodayISO();
             const dayNum = new Date(key + "T12:00:00").getDate();
-            const weekday = new Date(key + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" });
+            const weekday = formatWeekdayShort(key);
             return (
               <button
                 key={key}

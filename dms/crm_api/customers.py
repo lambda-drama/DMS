@@ -9,6 +9,7 @@ from frappe.utils import cint, flt, getdate, today
 
 from dms.crm_api.common import ensure_crm_create, ensure_crm_read, ensure_crm_write, parse_json
 from dms.crm_api.contacts import _dms_customer_groups
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 GATE = "DMS CRM Lead"
 
@@ -132,7 +133,7 @@ def _customer_vehicles(customer: str) -> list[dict]:
 	)
 	return frappe.get_all(
 		"VIN No",
-		filters={"current_customer": customer},
+		filters=apply_vin_company_scope({"current_customer": customer}),
 		fields=fields,
 		order_by="modified desc",
 		limit_page_length=50,

@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate, formatDateTime } from '@/lib/date-format';
+
 import { useState, useEffect } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { useNavigation } from "@/contexts/navigation-context";
@@ -204,7 +206,7 @@ export default function DeliveriesPage() {
                         </TableCell>
                         <TableCell>
                           {delivery.delivery_date_time
-                            ? new Date(delivery.delivery_date_time).toLocaleDateString()
+                            ? formatDate(delivery.delivery_date_time)
                             : "—"}
                         </TableCell>
                         <TableCell className="text-right">
@@ -276,7 +278,7 @@ export default function DeliveriesPage() {
                 label="Delivery Date"
                 value={
                   selectedDelivery.delivery_date_time
-                    ? new Date(selectedDelivery.delivery_date_time).toLocaleString()
+                    ? formatDateTime(selectedDelivery.delivery_date_time)
                     : undefined
                 }
               />
@@ -330,7 +332,7 @@ export default function DeliveriesPage() {
                 label="Due Date"
                 value={
                   selectedDelivery.next_service_due_date
-                    ? new Date(selectedDelivery.next_service_due_date).toLocaleDateString()
+                    ? formatDate(selectedDelivery.next_service_due_date)
                     : undefined
                 }
               />

@@ -4,6 +4,7 @@ from frappe.utils import cint
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_vehicle_customer_groups, add_company_filter, add_branch_filter
 from dms.dealer_management_system.utils.branch_permissions import BRANCH_SCOPED_DOCTYPES
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 MIN_QUERY_LEN = 2
 DEFAULT_LIMIT = 6
@@ -32,6 +33,9 @@ def _search_doctype(doctype, fields, display_fn, view, query, limit, extra_filte
 	or_filters = _like_filters(fields, query)
 	if doctype in BRANCH_SCOPED_DOCTYPES:
 		add_branch_filter(filters, doctype=doctype)
+	if doctype == "VIN No":
+		# Company scope: never surface another company's vehicles in search.
+		filters = apply_vin_company_scope(filters)
 
 	rows = frappe.get_all(
 		doctype,

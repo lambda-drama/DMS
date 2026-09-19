@@ -25,6 +25,7 @@ import {
 } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
+import { CustomerContactCard } from "@/components/customer-contact-card";
 import { VehicleCreateDialog } from "@/components/vehicles/vehicle-create-dialog";
 import { SearchableSelect } from "@/components/searchable-select";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
@@ -1473,6 +1474,15 @@ export default function NewJobCardPage() {
                   />
                 </LinkWithCreate>
               </div>
+
+              {customer ? (
+                <CustomerContactCard
+                  className="md:col-span-2"
+                  customer={customer}
+                  customerName={selectedCustomer?.customer_name}
+                  fallback={{ mobile_no: selectedCustomer?.mobile_no }}
+                />
+              ) : null}
 
               <div className="space-y-2">
                 <Label htmlFor="license_plate">License plate</Label>

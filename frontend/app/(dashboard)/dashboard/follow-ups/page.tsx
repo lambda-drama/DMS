@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate, formatDateTime } from '@/lib/date-format';
+
 import { useEffect, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
@@ -375,7 +377,7 @@ export default function FollowUpsPage() {
                         <div className="flex flex-col gap-1">
                           <span>
                             {fu.follow_up_due_date
-                              ? new Date(fu.follow_up_due_date).toLocaleDateString()
+                              ? formatDate(fu.follow_up_due_date)
                               : "—"}
                           </span>
                           {fu.is_overdue ? (
@@ -474,7 +476,7 @@ export default function FollowUpsPage() {
                 label="Due date"
                 value={
                   selected.follow_up_due_date
-                    ? new Date(selected.follow_up_due_date).toLocaleDateString()
+                    ? formatDate(selected.follow_up_due_date)
                     : undefined
                 }
               />
@@ -482,7 +484,7 @@ export default function FollowUpsPage() {
                 label="Next attempt"
                 value={
                   selected.next_attempt_date
-                    ? new Date(selected.next_attempt_date).toLocaleString()
+                    ? formatDateTime(selected.next_attempt_date)
                     : undefined
                 }
               />

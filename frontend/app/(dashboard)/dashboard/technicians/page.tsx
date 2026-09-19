@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useState, useMemo } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { useNavigation } from "@/contexts/navigation-context";
@@ -362,7 +364,7 @@ export default function TechniciansPage() {
                 label="Date of Joining"
                 value={
                   selectedTechnician.date_of_joining
-                    ? new Date(selectedTechnician.date_of_joining).toLocaleDateString()
+                    ? formatDate(selectedTechnician.date_of_joining)
                     : undefined
                 }
               />

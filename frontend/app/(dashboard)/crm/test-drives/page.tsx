@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useState } from 'react';
 import useSWR from 'swr';
 import { listTestDrives } from '@/services/crm';
@@ -77,7 +79,7 @@ export default function CrmTestDrivesPage() {
                       <td className="py-3 text-muted-foreground">{String(row.customer || '—')}</td>
                       <td className="py-3 text-muted-foreground">
                         {row.scheduled_datetime
-                          ? new Date(String(row.scheduled_datetime)).toLocaleString()
+                          ? formatDateTime(String(row.scheduled_datetime))
                           : '—'}
                       </td>
                       <td className="py-3 text-muted-foreground">{String(row.vehicle_vin || '—')}</td>

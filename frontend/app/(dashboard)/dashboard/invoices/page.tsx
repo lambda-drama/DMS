@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { mutate } from "swr";
 import { useNavigation } from "@/contexts/navigation-context";
@@ -600,13 +602,13 @@ export default function InvoicesPage() {
                         <TableCell>{invoice.customer_name || invoice.customer}</TableCell>
                         <TableCell>
                           {invoice.posting_date
-                            ? new Date(invoice.posting_date).toLocaleDateString()
+                            ? formatDate(invoice.posting_date)
                             : "—"
                           }
                         </TableCell>
                         <TableCell>
                           {invoice.due_date
-                            ? new Date(invoice.due_date).toLocaleDateString()
+                            ? formatDate(invoice.due_date)
                             : "—"
                           }
                         </TableCell>
@@ -811,8 +813,8 @@ export default function InvoicesPage() {
               <DetailRow label="Customer Name" value={selectedInvoice.customer_name} />
             </DetailSection>
             <DetailSection title="Dates">
-              <DetailRow label="Posting Date" value={selectedInvoice.posting_date ? new Date(selectedInvoice.posting_date).toLocaleDateString() : undefined} />
-              <DetailRow label="Due Date" value={selectedInvoice.due_date ? new Date(selectedInvoice.due_date).toLocaleDateString() : undefined} />
+              <DetailRow label="Posting Date" value={selectedInvoice.posting_date ? formatDate(selectedInvoice.posting_date) : undefined} />
+              <DetailRow label="Due Date" value={selectedInvoice.due_date ? formatDate(selectedInvoice.due_date) : undefined} />
             </DetailSection>
             <DetailSection title="Amounts">
               <DetailRow

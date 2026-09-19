@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useMemo, useState } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { usePartsAdvisorsList, usePartsAdvisorDetail } from "@/hooks/use-dms";
@@ -220,7 +222,7 @@ export default function PartsAdvisorsPage() {
                 label="Date of joining"
                 value={
                   selected.date_of_joining
-                    ? new Date(selected.date_of_joining).toLocaleDateString()
+                    ? formatDate(selected.date_of_joining)
                     : undefined
                 }
               />

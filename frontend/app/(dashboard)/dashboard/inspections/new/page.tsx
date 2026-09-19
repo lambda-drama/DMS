@@ -5,6 +5,7 @@ import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
+import { CustomerContactCard } from '@/components/customer-contact-card';
 import { ImageCaptureField } from '@/components/image-capture-field';
 import { MultiImageCaptureField } from '@/components/multi-image-capture-field';
 import { SignaturePad } from '@/components/signature-pad';
@@ -1076,6 +1077,14 @@ export default function NewInspectionPage() {
                     />
                   </LinkWithCreate>
                 </div>
+
+                {selectedCustomer ? (
+                  <CustomerContactCard
+                    customer={selectedCustomer}
+                    customerName={selectedCustomerMeta?.customer_name}
+                    fallback={{ mobile_no: selectedCustomerMeta?.mobile_no }}
+                  />
+                ) : null}
 
                 <div className="space-y-2">
                   <RequiredLabel>Service Advisor</RequiredLabel>
