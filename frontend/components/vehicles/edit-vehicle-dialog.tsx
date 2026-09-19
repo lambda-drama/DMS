@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +37,15 @@ const VEHICLE_STATUSES = [
   'In Transit',
   'Total Loss',
   'Scrapped',
+] as const;
+
+const WARRANTY_STATUSES = [
+  'Inactive',
+  'Active',
+  'Expired by Time',
+  'Expired by Mileage',
+  'Void',
+  'Pending Verification',
 ] as const;
 
 export interface EditVehicleDialogProps {
@@ -63,6 +73,10 @@ export function EditVehicleDialog({
     exterior_color: '',
     interior_color: '',
     vehicle_status: 'In Stock',
+    warranty_status: 'Inactive',
+    warranty_start_date: '',
+    warranty_end_date: '',
+    warranty_km_limit: '',
     special_notes: '',
   });
 
@@ -77,6 +91,11 @@ export function EditVehicleDialog({
       exterior_color: vehicle.exterior_color || '',
       interior_color: vehicle.interior_color || '',
       vehicle_status: vehicle.vehicle_status || 'In Stock',
+      warranty_status: vehicle.warranty_status || 'Inactive',
+      warranty_start_date: vehicle.warranty_start_date || '',
+      warranty_end_date: vehicle.warranty_end_date || '',
+      warranty_km_limit:
+        vehicle.warranty_km_limit != null ? String(vehicle.warranty_km_limit) : '',
       special_notes: vehicle.special_notes || '',
     });
     setCustomerSearch('');
@@ -106,6 +125,11 @@ export function EditVehicleDialog({
         exterior_color: form.exterior_color.trim() || null,
         interior_color: form.interior_color.trim() || null,
         vehicle_status: form.vehicle_status || null,
+        warranty_status: form.warranty_status || null,
+        warranty_start_date: form.warranty_start_date || null,
+        warranty_end_date: form.warranty_end_date || null,
+        warranty_km_limit:
+          form.warranty_km_limit.trim() !== '' ? Number(form.warranty_km_limit) : null,
         special_notes: form.special_notes.trim() || null,
       });
       await mutate(
@@ -202,6 +226,81 @@ export function EditVehicleDialog({
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="edit-warranty-active"
+                  checked={form.warranty_status === 'Active'}
+                  onCheckedChange={(v) =>
+                    setForm((p) => ({
+                      ...p,
+                      warranty_status: v === true ? 'Active' : 'Inactive',
+                    }))
+                  }
+                />
+                <Label htmlFor="edit-warranty-active" className="cursor-pointer">
+                  Warranty active
+                </Label>
+              </div>
+              <div className="space-y-1">
+                <Label>Warranty status</Label>
+                <Select
+                  value={form.warranty_status}
+                  onValueChange={(v) => setForm((p) => ({ ...p, warranty_status: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WARRANTY_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Tick the box for a quick Active / Inactive switch, or choose the exact
+                  status.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>Warranty start date</Label>
+                  <Input
+                    type="date"
+                    value={form.warranty_start_date}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, warranty_start_date: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Warranty end date</Label>
+                  <Input
+                    type="date"
+                    value={form.warranty_end_date}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, warranty_end_date: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Warranty KM limit</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={form.warranty_km_limit}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, warranty_km_limit: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>Exterior color</Label>
