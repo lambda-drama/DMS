@@ -7,6 +7,7 @@ from frappe import _
 from frappe.utils import cint, now_datetime
 
 from dms.crm_api.common import ensure_crm_read, ensure_crm_write, parse_json
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 BOOKING = "DMS CRM Booking"
 ACTIVE_ALLOCATION_STATUSES = ("Confirmed", "Allocation Pending", "Allocated")
@@ -48,7 +49,7 @@ def search_allocatable_vins(search=None, company=None, model=None, preferred_col
 
 	rows = frappe.get_all(
 		"VIN No",
-		filters=filters,
+		filters=apply_vin_company_scope(filters),
 		or_filters=or_filters,
 		fields=fields,
 		order_by="modified desc",

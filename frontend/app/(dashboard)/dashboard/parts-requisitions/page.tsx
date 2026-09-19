@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useEffect, useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -391,7 +393,7 @@ export default function PartsRequisitionsPage() {
                           </button>
                           <p className="text-xs text-muted-foreground">
                             {pr.posting_date
-                              ? new Date(pr.posting_date).toLocaleDateString()
+                              ? formatDate(pr.posting_date)
                               : "—"}
                           </p>
                         </TableCell>

@@ -1,4 +1,5 @@
 import type { TechnicianAvailability, TechnicianAvailabilityStatus } from "@/types/dms";
+import { formatWeekdayDate } from "@/lib/date-format";
 import { UserCheck, UserX, Wrench, type LucideIcon } from "lucide-react";
 
 export function getTodayISO() {
@@ -19,12 +20,7 @@ export function firstOfMonthISO(dateStr: string) {
 }
 
 export function formatDisplayDate(dateStr: string) {
-  return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatWeekdayDate(dateStr);
 }
 
 export function getAvailabilityInfo(tech: {

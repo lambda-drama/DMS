@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies, resolve_dms_customer
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 
 @frappe.whitelist()
@@ -16,6 +17,9 @@ def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=
 			filters["warranty_status"] = ["in", ["Inactive", "Expired by Time"]]
 		else:
 			filters["warranty_status"] = warranty_status
+
+	# Company scope: vehicles belonging to another company are never listed.
+	filters = apply_vin_company_scope(filters)
 
 	or_filters = {}
 	if search:

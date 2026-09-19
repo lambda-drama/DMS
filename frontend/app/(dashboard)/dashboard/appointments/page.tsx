@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { PermittedCreateButton } from '@/components/permitted-create-button';
@@ -943,8 +945,8 @@ export default function AppointmentsPage() {
               <DetailRow label="Status" value={selectedAppointment.status} />
               <DetailRow label="Booking Source" value={selectedAppointment.booking_source} />
               <DetailRow label="Priority" value={selectedAppointment.priority} />
-              <DetailRow label="Date & Time" value={selectedAppointment.appointment_date_time ? new Date(selectedAppointment.appointment_date_time).toLocaleString() : undefined} />
-              <DetailRow label="Promised Delivery" value={selectedAppointment.promised_delivery_date_time ? new Date(selectedAppointment.promised_delivery_date_time).toLocaleString() : undefined} />
+              <DetailRow label="Date & Time" value={selectedAppointment.appointment_date_time ? formatDateTime(selectedAppointment.appointment_date_time) : undefined} />
+              <DetailRow label="Promised Delivery" value={selectedAppointment.promised_delivery_date_time ? formatDateTime(selectedAppointment.promised_delivery_date_time) : undefined} />
               <DetailRow label="Est. Duration" value={selectedAppointment.estimated_duration_hours ? `${selectedAppointment.estimated_duration_hours} hrs` : undefined} />
             </DetailSection>
             <DetailSection title="Customer">

@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-dms";
 import { CreateTechnicianDialog } from "@/components/technicians/create-technician-dialog";
 import { Button } from "@/components/ui/button";
+import { formatWeekdayDate, formatWeekdayShort } from "@/lib/date-format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -75,11 +76,6 @@ function formatTime(time?: string) {
   } catch {
     return time;
   }
-}
-
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
 function addDays(dateStr: string, days: number) {
@@ -371,7 +367,7 @@ export default function TechnicianDetailPage() {
                       }`}
                     >
                       <p className="text-xs font-medium text-muted-foreground">
-                        {formatDate(day).split(",")[0]}
+                        {formatWeekdayShort(day)}
                       </p>
                       <p className={`text-lg font-bold ${isToday ? "text-primary" : ""}`}>
                         {new Date(day).getDate()}
@@ -399,7 +395,7 @@ export default function TechnicianDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
-                {formatDate(selectedDate)} — Jobs
+                {formatWeekdayDate(selectedDate)} — Jobs
               </CardTitle>
             </CardHeader>
             <CardContent>

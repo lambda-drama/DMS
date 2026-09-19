@@ -26,6 +26,7 @@ from dms.crm_api.common import (
 	paginate,
 	parse_json,
 )
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 SERVICE_DUE = "DMS CRM Service Due"
 REMINDER_LOG = "DMS CRM Reminder Log"
@@ -321,6 +322,7 @@ def sync_service_due(limit=200):
 		"vehicle_status": ["in", ["Delivered to Customer", "In Service"]],
 		"current_customer": ["is", "set"],
 	}
+	filters = apply_vin_company_scope(filters)
 	vins = frappe.get_all(
 		"VIN No",
 		filters=filters,

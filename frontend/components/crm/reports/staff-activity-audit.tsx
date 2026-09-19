@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { formatDateTime } from '@/lib/date-format'
 import {
   fetchUserActivityFilterOptions,
   fetchUserActivityReport,
@@ -85,7 +86,7 @@ function openExportDocument(html: string, mode: ExportMode, filename: string) {
 function buildTimelineExportHtml(rows: ActivityAuditRow[], meta: string): string {
   const body = rows
     .map((row) => {
-      const ts = row.timestamp ? new Date(row.timestamp).toLocaleString('en-GB') : ''
+      const ts = row.timestamp ? formatDateTime(row.timestamp, '', true) : ''
       return `<tr>
         <td>${escapeHtml(ts)}</td>
         <td>${escapeHtml(row.full_name || row.user)}<br/><span style="color:#64748b">${escapeHtml(row.user)}</span></td>
@@ -120,7 +121,7 @@ function buildWorkloadExportHtml(rows: UserActivitySummaryRow[], meta: string): 
   const body = rows
     .map((row) => {
       const topDocs = row.top_doctypes.map((d) => `${d.doctype} (${d.count})`).join(', ')
-      const last = row.last_activity ? new Date(row.last_activity).toLocaleString('en-GB') : '—'
+      const last = row.last_activity ? formatDateTime(row.last_activity, '', true) : '—'
       return `<tr>
         <td>${escapeHtml(row.full_name || row.user)}<br/><span style="color:#64748b">${escapeHtml(row.user)}</span></td>
         <td>${escapeHtml(row.department || '—')}</td>
@@ -370,7 +371,7 @@ function SummaryCard({
 
       {row.last_activity && (
         <p className="text-[10px] text-muted-foreground mt-3">
-          Last active: {new Date(row.last_activity).toLocaleString('en-GB')}
+          Last active: {formatDateTime(row.last_activity, '', true)}
         </p>
       )}
 
@@ -436,7 +437,7 @@ export function StaffActivityAuditReport() {
       if (doctype) parts.push(`DocType: ${doctype}`)
       if (activityType && activityType !== 'all') parts.push(`Activity: ${activityType}`)
     }
-    parts.push(`Printed ${new Date().toLocaleString('en-GB')}`)
+    parts.push(`Printed ${formatDateTime(new Date(), '', true)}`)
     return parts.join(' · ')
   }, [activityType, department, doctype, fromDate, periodDays, toDate, user, userLabel, viewMode])
 
@@ -949,7 +950,7 @@ export function StaffActivityAuditReport() {
                     {rows.map((row, idx) => (
                       <tr key={`${row.timestamp}-${row.user}-${idx}`} className="hover:bg-muted/40">
                         <td className="px-3 py-2 text-foreground whitespace-nowrap">
-                          {row.timestamp ? new Date(row.timestamp).toLocaleString('en-GB') : '—'}
+                          {row.timestamp ? formatDateTime(row.timestamp, '', true) : '—'}
                         </td>
                         <td className="px-3 py-2">
                           <div className="font-medium text-foreground">{row.full_name || row.user}</div>

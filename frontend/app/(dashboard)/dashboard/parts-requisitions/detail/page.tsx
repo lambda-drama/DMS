@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useNavigation } from "@/contexts/navigation-context";
 import { usePartsRequisition } from "@/hooks/use-dms";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -148,7 +150,7 @@ export default function PartsRequisitionDetailPage() {
             <p className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               {request.posting_date
-                ? new Date(request.posting_date).toLocaleDateString()
+                ? formatDate(request.posting_date)
                 : "—"}
             </p>
             {request.pick_slip && (

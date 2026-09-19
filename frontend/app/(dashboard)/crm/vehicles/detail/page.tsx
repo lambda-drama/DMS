@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import useSWR from 'swr';
+import { formatDate, formatDateTime } from '@/lib/date-format';
 import { fetchVehicle360, type Vehicle360Data } from '@/services/crm';
 import { useNavigation } from '@/contexts/navigation-context';
 import {
@@ -34,22 +35,12 @@ function fmtMoney(n?: number | null) {
 
 function fmtDate(value?: string | null) {
   if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return formatDate(value) || String(value);
 }
 
 function fmtDateTime(value?: string | null) {
   if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTime(value) || String(value);
 }
 
 function statusBadge(status?: string) {

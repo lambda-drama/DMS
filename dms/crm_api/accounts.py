@@ -15,6 +15,7 @@ from dms.crm_api.common import (
 	parse_json,
 	user_display_name,
 )
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 DOCTYPE = "DMS CRM Account"
 
@@ -172,7 +173,7 @@ def _fleet_snapshot_for_customer(customer: str) -> dict:
 
 	vehicles = frappe.get_all(
 		"VIN No",
-		filters=filters,
+		filters=apply_vin_company_scope(filters),
 		fields=fields,
 		order_by="modified desc",
 		limit=200,

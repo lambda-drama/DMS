@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from '@/lib/date-format';
+
 import { useState } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useInspection, useSubmitInspection } from "@/hooks/use-dms";
@@ -258,7 +260,7 @@ export default function InspectionDetailPage() {
                 <p className="text-sm text-muted-foreground">Inspection Date</p>
                 <p className="text-lg font-semibold">
                   {inspection.inspection_date 
-                    ? new Date(inspection.inspection_date).toLocaleDateString() 
+                    ? formatDate(inspection.inspection_date) 
                     : "N/A"}
                 </p>
               </div>

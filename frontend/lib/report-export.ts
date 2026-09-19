@@ -1,4 +1,5 @@
 import type { ReportResult } from '@/services/reports';
+import { formatDateTime } from '@/lib/date-format';
 
 function escapeCsvCell(value: unknown): string {
   const s = value == null ? '' : String(value);
@@ -62,7 +63,7 @@ export function exportReportExcel(result: ReportResult) {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8" />
 <title>${escapeHtml(result.title)}</title></head><body>
 <h2>${escapeHtml(result.title)}</h2>
-<p>Generated: ${new Date().toLocaleString()}</p>
+<p>Generated: ${formatDateTime(new Date())}</p>
 <table border="1"><thead><tr><th>KPI</th><th>Value</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <br/>
 <table border="1"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>
@@ -111,7 +112,7 @@ export function buildReportPdfHtml(result: ReportResult): string {
 </style></head><body>
 <div class="accent"></div>
 <h1>${escapeHtml(result.title)}</h1>
-<div class="meta">Generated ${new Date().toLocaleString()} · ${result.rows.length} rows</div>
+<div class="meta">Generated ${formatDateTime(new Date())} · ${result.rows.length} rows</div>
 ${summary ? `<div class="kpis">${summary}</div>` : ''}
 <table><thead><tr>${th}</tr></thead><tbody>${tr || `<tr><td colspan="${Math.max(keys.length, 1)}">No rows</td></tr>`}</tbody></table>
 </body></html>`;

@@ -11,6 +11,7 @@ from frappe import _
 from frappe.utils import add_days, cint, date_diff, flt, get_datetime, get_first_day, getdate, nowdate
 
 from dms.api.dashboard import ACTIVE_JOB_CARD_STATUSES
+from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
 OPEN_JOB_CARD_STATUSES = list(ACTIVE_JOB_CARD_STATUSES)
 
@@ -131,6 +132,7 @@ def _lookup_vins(search_term):
 		return None, {}
 	rows = frappe.get_all(
 		"VIN No",
+		filters=apply_vin_company_scope(),
 		or_filters={
 			"vin_number": ["like", f"%{term}%"],
 			"name": ["like", f"%{term}%"],

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/date-format';
+
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
@@ -764,11 +766,12 @@ export default function CrmOpportunityDetailPage() {
                 (doc.sales_appointment_details as Record<string, unknown> | undefined)
                   ?.appointment_datetime as string | undefined
               )
-                ? new Date(
+                ? formatDateTime(
                     String(
-                      (doc.sales_appointment_details as Record<string, unknown>).appointment_datetime
+                      (doc.sales_appointment_details as Record<string, unknown>)
+                        .appointment_datetime
                     )
-                  ).toLocaleString()
+                  )
                 : '—'}
               {' · '}
               {String(

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDate } from '@/lib/date-format';
+
 import { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
@@ -232,7 +234,7 @@ export function CollectPaymentDialog({
                 {invoice.due_date && (
                   <p>
                     <span className="text-muted-foreground">Due date: </span>
-                    {new Date(invoice.due_date).toLocaleDateString()}
+                    {formatDate(invoice.due_date)}
                   </p>
                 )}
               </div>

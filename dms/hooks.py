@@ -227,10 +227,14 @@ doctype_js = {
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
+# VIN No is company-scoped: only vehicles of the companies selected in DMS
+# Settings (plus vehicles with no company) are visible anywhere in the UI.
+# Never drop this hook, or another company's vehicles will leak into listings,
+# dropdowns and link fields.
+permission_query_conditions = {
+	"VIN No": "dms.dealer_management_system.utils.company_permissions.vin_no_query_conditions",
+}
+
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
