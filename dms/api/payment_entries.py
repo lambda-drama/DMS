@@ -29,6 +29,8 @@ from dms.dealer_management_system.utils.branch_permissions import apply_branch_f
 DMS_FLAG_FIELD = "custom_is_dms"
 JOB_CARD_FIELD = "custom_dms_job_card"
 ESTIMATE_FIELD = "custom_dms_service_estimate"
+# Operator remarks typed on the DMS payment screens (advance / collect payment).
+DMS_REMARKS_FIELD = "custom_dms_remarks"
 
 ADVANCE_PAYMENT_TYPE = "Receive"
 ADVANCE_PARTY_TYPE = "Customer"
@@ -318,6 +320,9 @@ def _shape_row(row: dict, references: list[dict], links: dict, amend: dict | Non
 		"job_card": links.get("job_card"),
 		"service_estimate": links.get("service_estimate"),
 		"remarks": row.get("remarks"),
+		# Remarks typed on the DMS payment UI (advance / collect payment). Kept
+		# separate from ERPNext's auto-generated `remarks` text.
+		"dms_remarks": row.get(DMS_REMARKS_FIELD) or None,
 		"creation": row.get("creation"),
 		"modified": row.get("modified"),
 		"references": references,
@@ -358,6 +363,8 @@ def get_payment_entries(
 	select_fields = [PE[fieldname] for fieldname in _LIST_FIELDS]
 	if _has_field(DMS_FLAG_FIELD):
 		select_fields.append(PE[DMS_FLAG_FIELD])
+	if _has_field(DMS_REMARKS_FIELD):
+		select_fields.append(PE[DMS_REMARKS_FIELD])
 
 	status = (status or "").strip() or None
 	advance_only = cint(advance_only)
@@ -488,6 +495,8 @@ def get_payment_entry_detail(name=None):
 		"creation",
 		"modified",
 	]
+	if _has_field(DMS_REMARKS_FIELD):
+		fields.append(DMS_REMARKS_FIELD)
 	row = {fieldname: pe.get(fieldname) for fieldname in fields}
 	if _has_field(DMS_FLAG_FIELD):
 		row[DMS_FLAG_FIELD] = pe.get(DMS_FLAG_FIELD)
@@ -621,6 +630,7 @@ def _advance_payment_rows(data) -> list[dict]:
 					"mode_of_payment": (item.get("mode_of_payment") or "").strip(),
 					"amount": amount,
 					"reference_no": (item.get("reference_no") or "").strip() or None,
+					"remarks": (item.get("remarks") or "").strip() or None,
 				}
 			)
 		if len(rows) > 1 and any(not row["mode_of_payment"] for row in rows):
@@ -634,6 +644,7 @@ def _advance_payment_rows(data) -> list[dict]:
 				"mode_of_payment": (data.get("mode_of_payment") or "").strip(),
 				"amount": amount,
 				"reference_no": (data.get("reference_no") or "").strip() or None,
+				"remarks": (data.get("remarks") or "").strip() or None,
 			}
 		)
 
@@ -666,7 +677,8 @@ def _make_advance_doc(request: dict, row: dict):
 		pe.reference_no = row["reference_no"]
 	pe.reference_date = data.get("reference_date") or pe.posting_date
 
-	remarks = (data.get("remarks") or "").strip()
+	operator_remarks = (row.get("remarks") or data.get("remarks") or "").strip()
+	remarks = operator_remarks
 	if not remarks:
 		parts = [_("Customer advance from DMS")]
 		if request["job_card"]:
@@ -679,6 +691,11 @@ def _make_advance_doc(request: dict, row: dict):
 	if _has_field("custom_remarks"):
 		pe.custom_remarks = remarks
 	pe.remarks = remarks
+	# Mirror the operator's note onto the dedicated DMS remarks field so every
+	# payment screen (payment detail sheet, invoice detail sheet) shows it
+	# verbatim, separate from ERPNext's generated `remarks` text.
+	if operator_remarks and _has_field(DMS_REMARKS_FIELD):
+		pe.set(DMS_REMARKS_FIELD, operator_remarks)
 
 	# The party side (paid_from on a Receive) is resolved by ERPNext from the
 	# customer's receivable / advance account; only the bank/cash side is needed.
@@ -792,10 +809,16 @@ def get_customer_advances(customer=None, company=None, limit=100):
 	if company:
 		filters["company"] = company
 
+	# `frappe.get_all` rejects unknown columns, so only ask for the custom fields
+	# this site actually has.
+	list_fields = list(_LIST_FIELDS)
+	if _has_field(DMS_REMARKS_FIELD):
+		list_fields.append(DMS_REMARKS_FIELD)
+
 	rows = frappe.get_all(
 		"Payment Entry",
 		filters=filters,
-		fields=list(_LIST_FIELDS),
+		fields=list_fields,
 		order_by="posting_date desc, creation desc",
 		limit=max(1, min(cint(limit) or 100, 500)),
 	)

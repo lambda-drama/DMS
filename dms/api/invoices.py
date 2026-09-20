@@ -291,6 +291,85 @@ def create_standalone_invoice(data):
 	}
 
 
+def _linked_payments_for_invoice(invoice_name: str) -> list[dict]:
+	"""Payment Entries that settle this invoice, with their DMS remarks.
+
+	Powers the "Payments" block on the invoice detail sheet (job-card and invoice
+	screens): each receipt shows its mode, amount and the note typed on the DMS
+	payment dialog (``Payment Entry.custom_dms_remarks``).
+	"""
+	if not frappe.db.exists("DocType", "Payment Entry Reference"):
+		return []
+
+	refs = frappe.get_all(
+		"Payment Entry Reference",
+		filters={"reference_doctype": "Sales Invoice", "reference_name": invoice_name},
+		fields=["parent", "allocated_amount"],
+	)
+	allocated_by_parent: dict[str, float] = {}
+	for ref in refs:
+		if not ref.parent:
+			continue
+		allocated_by_parent[ref.parent] = flt(allocated_by_parent.get(ref.parent)) + flt(
+			ref.allocated_amount
+		)
+
+	names = list(allocated_by_parent)
+	if not names:
+		return []
+
+	meta = frappe.get_meta("Payment Entry")
+	fields = [
+		"name",
+		"posting_date",
+		"mode_of_payment",
+		"reference_no",
+		"paid_amount",
+		"unallocated_amount",
+		"docstatus",
+		"remarks",
+		"creation",
+	]
+	if meta.has_field("custom_dms_remarks"):
+		fields.append("custom_dms_remarks")
+	if meta.has_field("custom_dms_job_card"):
+		fields.append("custom_dms_job_card")
+
+	rows = frappe.get_all(
+		"Payment Entry",
+		filters={"name": ["in", names], "docstatus": ["!=", 2]},
+		fields=fields,
+		order_by="posting_date desc, creation desc",
+	)
+
+	out: list[dict] = []
+	for row in rows:
+		dms_remarks = (
+			(row.get("custom_dms_remarks") or "").strip()
+			if meta.has_field("custom_dms_remarks")
+			else ""
+		)
+		out.append(
+			{
+				"name": row.name,
+				"posting_date": row.posting_date,
+				"mode_of_payment": row.mode_of_payment,
+				"reference_no": row.reference_no,
+				"paid_amount": flt(row.paid_amount),
+				"allocated_amount": flt(allocated_by_parent.get(row.name)),
+				"unallocated_amount": flt(row.unallocated_amount),
+				"docstatus": cint(row.docstatus),
+				"status": "Submitted" if cint(row.docstatus) == 1 else "Draft",
+				"dms_remarks": dms_remarks or None,
+				"remarks": row.remarks,
+				"job_card": row.get("custom_dms_job_card")
+				if meta.has_field("custom_dms_job_card")
+				else None,
+			}
+		)
+	return out
+
+
 @frappe.whitelist()
 def get_sales_invoice_detail(sales_invoice):
 	_ensure_erpnext()
@@ -368,6 +447,10 @@ def get_sales_invoice_detail(sales_invoice):
 		result["missing_dms"] = cint(si.get("custom_missing_dms"))
 	if not is_return:
 		result["credit_notes"] = _credit_notes_for_invoice(name)
+	# Receipts recorded against this invoice (DMS collect-payment / reconciliation),
+	# each carrying the operator note from the payment dialog.
+	result["payments"] = _linked_payments_for_invoice(name)
+	result["payment_total"] = sum(flt(row["allocated_amount"]) for row in result["payments"])
 	return result
 
 
@@ -1095,14 +1178,17 @@ def collect_payment(
 	paid_amount=None,
 	reference_no=None,
 	payments=None,
+	remarks=None,
 ):
 	"""Record one or more Payment Entries against a Sales Invoice.
 
 	``payments`` may be a list of:
-	  ``{mode_of_payment, amount, reference_no?}``
+	  ``{mode_of_payment, amount, reference_no?, remarks?}``
 
 	Legacy single-mode args (``mode_of_payment`` / ``paid_amount`` / ``reference_no``)
-	remain supported.
+	remain supported. ``remarks`` (header level) is the operator's receipt note; it is
+	stored on ``Payment Entry.custom_dms_remarks`` and shown on the invoice/payment
+	screens. A row-level ``remarks`` overrides the header value for that entry.
 	"""
 	_ensure_erpnext()
 	import json
@@ -1132,6 +1218,7 @@ def collect_payment(
 					"mode_of_payment": mode,
 					"amount": amount,
 					"reference_no": (raw.get("reference_no") or "").strip() or None,
+					"remarks": (raw.get("remarks") or "").strip() or None,
 				}
 			)
 	elif mode_of_payment:
@@ -1140,6 +1227,7 @@ def collect_payment(
 				"mode_of_payment": (mode_of_payment or "").strip(),
 				"amount": flt(paid_amount) if paid_amount not in (None, "") else None,
 				"reference_no": (reference_no or "").strip() or None,
+				"remarks": (remarks or "").strip() or None,
 			}
 		)
 
@@ -1179,6 +1267,7 @@ def collect_payment(
 				{
 					"mode_of_payment": row["mode_of_payment"],
 					"reference_no": row.get("reference_no"),
+					"remarks": row.get("remarks"),
 					"paid_amount": requested,
 					"allocated_amount": allocate,
 				}
@@ -1231,6 +1320,12 @@ def collect_payment(
 		for ref in pe.get("references") or []:
 			ref.allocated_amount = allocated
 			break
+
+		# Operator note from the DMS "Collect Payment" dialog. Kept on the dedicated
+		# DMS remarks field so it never clashes with ERPNext's generated `remarks`.
+		pe_remarks = (spec.get("remarks") or "").strip()
+		if pe_remarks and frappe.get_meta("Payment Entry").has_field("custom_dms_remarks"):
+			pe.set("custom_dms_remarks", pe_remarks)
 
 		pe.insert()
 		pe.submit()

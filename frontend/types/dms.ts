@@ -1405,6 +1405,10 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
   dms_job_card?: string;
   /** Remark saved on the linked Job Card's `remark` field. */
   job_card_remark?: string | null;
+  /** Receipts (Payment Entries) recorded against this invoice, newest first. */
+  payments?: SalesInvoicePayment[];
+  /** Sum of the amounts allocated to this invoice across `payments`. */
+  payment_total?: number;
   /** Credit notes raised against this invoice (absent on returns themselves). */
   credit_notes?: CreditNoteSummary[];
   items: {
@@ -1422,6 +1426,26 @@ export interface SalesInvoiceDetail extends SalesInvoiceListItem {
     /** Qty still available to credit (original qty − returned qty). */
     returnable_qty?: number;
   }[];
+}
+
+export interface SalesInvoicePayment {
+  /** Payment Entry name. */
+  name: string;
+  posting_date?: string;
+  mode_of_payment?: string;
+  reference_no?: string | null;
+  /** Amount received on the entry. */
+  paid_amount: number;
+  /** Amount of this receipt allocated to the invoice. */
+  allocated_amount?: number;
+  unallocated_amount?: number;
+  docstatus?: 0 | 1 | 2;
+  status?: string;
+  /** Operator note typed on the DMS payment dialog (`custom_dms_remarks`). */
+  dms_remarks?: string | null;
+  /** ERPNext-generated receipt text. */
+  remarks?: string | null;
+  job_card?: string | null;
 }
 
 export interface CreditNoteSummary {
@@ -1546,6 +1570,8 @@ export interface PaymentEntryListItem {
   /** The amendment that replaced this cancelled entry, if any. */
   amended_as?: string | null;
   already_amended?: boolean;
+  /** Remarks typed on the DMS payment dialog (`Payment Entry.custom_dms_remarks`). */
+  dms_remarks?: string | null;
   creation?: string;
   modified?: string;
 }

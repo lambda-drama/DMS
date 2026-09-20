@@ -667,7 +667,12 @@ export default function PaymentEntriesPage() {
                 label="Available (unallocated)"
                 value={formatMoney(detail.unallocated_amount, detail.currency)}
               />
-              {detail.remarks ? <DetailRow label="Remarks" value={detail.remarks} /> : null}
+              {detail.dms_remarks ? (
+                <DetailRow label="DMS Remarks" value={detail.dms_remarks} />
+              ) : null}
+              {detail.remarks && detail.remarks !== detail.dms_remarks ? (
+                <DetailRow label="Remarks" value={detail.remarks} />
+              ) : null}
               {detail.amended_from ? (
                 <DetailRow label="Amended from" value={detail.amended_from} />
               ) : null}
