@@ -71,6 +71,7 @@ fixtures = [
                     "Payment Entry-custom_is_dms",
                     "Payment Entry-custom_dms_job_card",
                     "Payment Entry-custom_dms_service_estimate",
+                    "Payment Entry-custom_dms_remarks"
                     
                 ]
             ]

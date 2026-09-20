@@ -319,10 +319,14 @@ export async function collectPayment(params: {
   modeOfPayment?: string;
   paidAmount?: number;
   referenceNo?: string;
+  /** Operator receipt note — saved on Payment Entry.custom_dms_remarks. */
+  remarks?: string;
   payments?: Array<{
     mode_of_payment: string;
     amount: number;
     reference_no?: string;
+    /** Per-mode note; falls back to the header `remarks`. */
+    remarks?: string;
   }>;
 }): Promise<{
   payment_entry: string;
@@ -339,6 +343,7 @@ export async function collectPayment(params: {
       paid_amount: params.paidAmount ?? null,
       reference_no: params.referenceNo || null,
       payments: params.payments || null,
+      remarks: params.remarks || null,
     }),
   });
 }

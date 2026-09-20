@@ -16,6 +16,7 @@ import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
 import { DecimalInput } from '@/components/ui/decimal-input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -72,6 +73,7 @@ export function CollectPaymentDialog({
     { name: string; type?: string; account?: string | null; account_name?: string | null }[]
   >([]);
   const [rows, setRows] = useState<PaymentRow[]>([newPaymentRow()]);
+  const [remarks, setRemarks] = useState('');
 
   useEffect(() => {
     if (!open || !salesInvoice) return;
@@ -80,6 +82,7 @@ export function CollectPaymentDialog({
     setLoading(true);
     setInvoice(null);
     setRows([newPaymentRow()]);
+    setRemarks('');
 
     invoicesSvc
       .getSalesInvoiceDetail(salesInvoice)
@@ -151,6 +154,7 @@ export function CollectPaymentDialog({
         mode_of_payment: row.mode_of_payment,
         amount: Number(row.amount),
         reference_no: row.reference_no.trim() || undefined,
+        remarks: remarks.trim() || undefined,
       }));
 
     if (!payments.length) {
@@ -173,6 +177,7 @@ export function CollectPaymentDialog({
       const result = await invoicesSvc.collectPayment({
         salesInvoice: invoice.name,
         payments,
+        remarks: remarks.trim() || undefined,
       });
       const peLabel =
         result.payment_entries && result.payment_entries.length > 1
@@ -341,6 +346,17 @@ export function CollectPaymentDialog({
                         )}
                       </span>
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="collect-payment-remarks">Remarks</Label>
+                    <Textarea
+                      id="collect-payment-remarks"
+                      rows={2}
+                      value={remarks}
+                      onChange={(e) => setRemarks(e.target.value)}
+                      placeholder="Optional note — saved on the payment as DMS remarks"
+                    />
                   </div>
                 </div>
               )}

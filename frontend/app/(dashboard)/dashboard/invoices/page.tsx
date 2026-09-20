@@ -280,6 +280,16 @@ export default function InvoicesPage() {
     : false;
   const canCreditNoteInvoice = invoiceDetail ? canCreditNoteFor(invoiceDetail) : false;
   const linkedJobCard = (invoiceDetail?.dms_job_card || "").trim();
+  /**
+   * Remarks shown on the invoice sheet: the remark saved on the linked Job Card at
+   * billing time, else the invoice's own user remark. ERPNext's auto-generated
+   * "DMS Job Card: …" line is never shown on its own.
+   */
+  const invoiceRemarks =
+    (invoiceDetail?.job_card_remark || "").trim() ||
+    ((invoiceDetail?.remarks || "").trim().startsWith("DMS Job Card:")
+      ? ""
+      : (invoiceDetail?.remarks || "").trim());
   const canUpdateJobCardPrices =
     Boolean(linkedJobCard) && (canCreate("invoices") || canWrite("invoices"));
 
@@ -855,11 +865,59 @@ export default function InvoicesPage() {
                 <DetailRow label="Credits Invoice" value={invoiceDetail.return_against} />
               ) : null}
             </DetailSection>
-            {invoiceDetail?.job_card_remark ? (
+            {invoiceRemarks ? (
               <DetailSection title="Remarks">
-                <p className="whitespace-pre-wrap break-words text-sm">
-                  {invoiceDetail.job_card_remark}
-                </p>
+                <p className="whitespace-pre-wrap break-words text-sm">{invoiceRemarks}</p>
+              </DetailSection>
+            ) : null}
+            {invoiceDetail?.payments && invoiceDetail.payments.length > 0 ? (
+              <DetailSection title={`Payments (${invoiceDetail.payments.length})`}>
+                <div className="space-y-2">
+                  {invoiceDetail.payments.map((payment) => (
+                    <div
+                      key={payment.name}
+                      className="space-y-1 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{payment.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {payment.posting_date ? formatDate(payment.posting_date) : '—'}
+                            {payment.mode_of_payment ? ` · ${payment.mode_of_payment}` : ''}
+                            {payment.reference_no ? ` · ${payment.reference_no}` : ''}
+                          </div>
+                        </div>
+                        <span className="whitespace-nowrap font-medium">
+                          {formatCurrency(
+                            payment.paid_amount || 0,
+                            selectedInvoice.currency
+                          )}
+                        </span>
+                      </div>
+                      {payment.dms_remarks ? (
+                        <p className="whitespace-pre-wrap break-words text-xs">
+                          <span className="text-muted-foreground">DMS remarks: </span>
+                          {payment.dms_remarks}
+                        </p>
+                      ) : payment.remarks ? (
+                        <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">
+                          {payment.remarks}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                  {(invoiceDetail.payment_total || 0) > 0 ? (
+                    <div className="flex justify-between gap-4 px-1">
+                      <span className="text-muted-foreground">Applied to this invoice</span>
+                      <span className="font-medium">
+                        {formatCurrency(
+                          invoiceDetail.payment_total || 0,
+                          selectedInvoice.currency
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
               </DetailSection>
             ) : null}
             {invoiceDetail?.credit_notes && invoiceDetail.credit_notes.length > 0 && (
