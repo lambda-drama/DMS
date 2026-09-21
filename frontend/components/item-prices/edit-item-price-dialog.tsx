@@ -19,6 +19,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { useSpareParts } from '@/hooks/use-dms';
 import * as mastersSvc from '@/services/masters';
 import type { ItemPriceMaster } from '@/services/masters';
+import { fetchItemUoms } from '@/services/stockOperations';
 import { usePermissions } from '@/contexts/permissions-context';
 
 export interface EditItemPriceDialogProps {
@@ -48,10 +49,12 @@ export function EditItemPriceDialog({
     item_code: '',
     price_list: '',
     price_list_rate: '',
-    uom: 'Nos',
+    uom: '',
     valid_from: '',
     valid_upto: '',
   });
+  const [uomOptions, setUomOptions] = useState<{ value: string; label: string }[]>([]);
+  const [uomLoading, setUomLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -60,7 +63,7 @@ export function EditItemPriceDialog({
         item_code: '',
         price_list: options?.default_price_list || '',
         price_list_rate: '',
-        uom: 'Nos',
+        uom: '',
         valid_from: '',
         valid_upto: '',
       });
@@ -73,11 +76,46 @@ export function EditItemPriceDialog({
       price_list: itemPrice.price_list || '',
       price_list_rate:
         itemPrice.price_list_rate != null ? String(itemPrice.price_list_rate) : '',
-      uom: itemPrice.uom || 'Nos',
+      uom: itemPrice.uom || '',
       valid_from: itemPrice.valid_from || '',
       valid_upto: itemPrice.valid_upto || '',
     });
   }, [open, itemPrice, createMode, options?.default_price_list]);
+
+  // Item Price UOM must be one the Item actually has (stock UOM or a configured
+  // alternate UOM), otherwise ERPNext rejects the save with
+  // "UOM {uom} not found in Item {item_code}".
+  useEffect(() => {
+    const itemCode = form.item_code;
+    if (!open || !itemCode) {
+      setUomOptions([]);
+      return;
+    }
+    let cancelled = false;
+    setUomLoading(true);
+    fetchItemUoms(itemCode)
+      .then((res) => {
+        if (cancelled) return;
+        const opts = (res?.uoms || []).map((u) => ({ value: u.value, label: u.label }));
+        setUomOptions(opts);
+        const stockUom = res?.stock_uom || '';
+        setForm((prev) => {
+          const currentValid = Boolean(prev.uom) && opts.some((o) => o.value === prev.uom);
+          const next = currentValid ? prev.uom : stockUom || prev.uom;
+          return next === prev.uom ? prev : { ...prev, uom: next };
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setUomOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setUomLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, form.item_code]);
 
   const itemOptions = useMemo(() => {
     const opts = (spareParts || []).map((p) => ({
@@ -96,6 +134,13 @@ export function EditItemPriceDialog({
     }
     return opts;
   }, [spareParts, form.item_code, itemPrice?.item_name]);
+
+  const uomSelectOptions = useMemo(() => {
+    if (form.uom && !uomOptions.some((o) => o.value === form.uom)) {
+      return [{ value: form.uom, label: form.uom }, ...uomOptions];
+    }
+    return uomOptions;
+  }, [uomOptions, form.uom]);
 
   const priceListOptions = useMemo(
     () =>
@@ -129,7 +174,7 @@ export function EditItemPriceDialog({
           item_code: form.item_code,
           price_list: form.price_list || null,
           price_list_rate: Number(form.price_list_rate),
-          uom: form.uom || 'Nos',
+          uom: form.uom || null,
           valid_from: form.valid_from || null,
           valid_upto: form.valid_upto || null,
         });
@@ -221,9 +266,13 @@ export function EditItemPriceDialog({
               </div>
               <div className="space-y-1">
                 <Label>UOM</Label>
-                <Input
+                <SearchableSelect
+                  options={uomSelectOptions}
                   value={form.uom}
-                  onChange={(e) => setForm((p) => ({ ...p, uom: e.target.value }))}
+                  onValueChange={(v) => setForm((p) => ({ ...p, uom: v }))}
+                  placeholder={uomLoading ? 'Loading UOMs…' : 'Select UOM'}
+                  emptyMessage="No UOM configured for this item"
+                  isLoading={uomLoading}
                 />
               </div>
             </div>

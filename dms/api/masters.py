@@ -568,6 +568,35 @@ def update_vehicle_service_item(name, data):
 # ── Item Prices ──────────────────────────────────────────────────────────────
 
 
+def _assert_item_uom_valid(item_code: str, uom: str | None) -> None:
+	"""Reject a UOM the Item does not have (ERPNext would throw a cryptic error).
+
+	Item Price rows must use the Item's stock UOM or a UOM configured in the
+	Item's UOM Conversion Detail table; anything else is refused by ERPNext with
+	"UOM {0} not found in Item {1}".
+	"""
+	requested = (uom or "").strip()
+	if not requested:
+		return
+
+	from dms.dealer_management_system.utils.stock_operations import (
+		get_item_uoms_for_ui,
+		resolve_item_uom,
+	)
+
+	if resolve_item_uom(item_code, requested) == requested:
+		return
+
+	valid_uoms = [row.get("value") for row in (get_item_uoms_for_ui(item_code).get("uoms") or [])]
+	frappe.throw(
+		_("UOM {0} is not configured for Item {1}. Use one of: {2}.").format(
+			frappe.bold(requested),
+			frappe.bold(item_code),
+			frappe.bold(", ".join(valid_uoms) or "-"),
+		)
+	)
+
+
 @frappe.whitelist()
 def list_item_prices(search=None, price_list=None, selling=1, limit=50, offset=0):
 	frappe.has_permission("Item Price", "read", throw=True)
@@ -629,6 +658,8 @@ def update_item_price(name, data):
 	allowed_fields = ["item_code", "price_list", "price_list_rate", "uom", "valid_from", "valid_upto"]
 	meta = frappe.get_meta("Item Price")
 	fields = [f for f in allowed_fields if meta.has_field(f) and f in data]
+	if "uom" in fields:
+		_assert_item_uom_valid(data.get("item_code") or doc.item_code, data.get("uom"))
 	_set_if_present(doc, data, fields)
 	doc.save(ignore_permissions=False)
 	from dms.dealer_management_system.utils.stock_operations import (
@@ -677,8 +708,9 @@ def create_item_price(data):
 	if rate <= 0:
 		frappe.throw(_("Price list rate must be greater than zero."))
 
-	uom = (data.get("uom") or "").strip() or frappe.db.get_value("Item", item_code, "stock_uom") or "Nos"
-	name = upsert_dms_selling_item_price(item_code, rate, price_list=price_list, uom=uom)
+	uom = (data.get("uom") or "").strip()
+	_assert_item_uom_valid(item_code, uom)
+	name = upsert_dms_selling_item_price(item_code, rate, price_list=price_list, uom=uom or None)
 	if not name:
 		frappe.throw(_("Could not create Item Price."))
 
