@@ -10,7 +10,10 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt, get_files_path
 
-from dms.dealer_management_system.utils.stock_operations import create_dms_stock_reconciliation
+from dms.dealer_management_system.utils.stock_operations import (
+	create_dms_stock_reconciliation,
+	resolve_item_uom,
+)
 
 INVENTORY_WAREHOUSE = "Service Center Addis Ababa - SM"
 DEFAULT_STOCK_UOM = "Nos"
@@ -454,7 +457,9 @@ def _upsert_item_price(item_code: str, price_list: str, currency: str, rate: flo
 		"price_list": price_list,
 		"price_list_rate": flt(rate),
 		"currency": currency,
-		"uom": DEFAULT_STOCK_UOM,
+		# Use a UOM that exists on the Item; imported Items may already have been
+		# created with a different stock UOM (e.g. "Pcs").
+		"uom": resolve_item_uom(item_code, DEFAULT_STOCK_UOM),
 		"selling": 1,
 	}
 

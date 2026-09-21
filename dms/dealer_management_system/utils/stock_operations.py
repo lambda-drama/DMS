@@ -309,6 +309,30 @@ def resolve_stock_uom(stock_uom: str | None = None) -> str:
 	return requested
 
 
+def resolve_item_uom(item_code: str, uom: str | None = None) -> str:
+	"""Return a UOM that is actually configured on the Item.
+
+	ERPNext rejects an Item Price whose UOM is missing from the Item's UOM
+	Conversion Detail table ("UOM {0} not found in Item {1}"). Callers used to
+	pass a blanket default of "Nos" even when the Item's stock UOM was "Pcs",
+	so fall back to the Item stock UOM whenever the requested UOM is blank or
+	not configured on the Item.
+	"""
+	item_code = (item_code or "").strip()
+	stock_uom = (frappe.db.get_value("Item", item_code, "stock_uom") or "").strip()
+	requested = (uom or "").strip()
+
+	if not requested or requested == stock_uom:
+		return stock_uom or requested
+
+	if frappe.db.exists(
+		"UOM Conversion Detail", {"parenttype": "Item", "parent": item_code, "uom": requested}
+	):
+		return requested
+
+	return stock_uom or requested
+
+
 def get_stock_item_create_defaults() -> dict:
 	item_group = get_dms_default_item_group()
 	return {
@@ -469,7 +493,7 @@ def upsert_dms_selling_item_price(
 	rate: float,
 	*,
 	price_list: str | None = None,
-	uom: str = "Nos",
+	uom: str | None = None,
 ) -> str | None:
 	"""Create or update Item Price on the DMS default selling price list."""
 	rate = flt(rate)
@@ -485,12 +509,18 @@ def upsert_dms_selling_item_price(
 	currency = get_company_default_currency() or "ETB"
 	filters = {"item_code": item_code, "price_list": price_list, "selling": 1}
 	existing = frappe.db.get_value("Item Price", filters, "name")
+	current_uom = frappe.db.get_value("Item Price", existing, "uom") if existing else None
 	price_data = {
 		"item_code": item_code,
 		"price_list": price_list,
 		"price_list_rate": rate,
 		"currency": currency,
-		"uom": uom or "Nos",
+		# Never default to a blanket UOM: ERPNext validates the UOM against the
+		# Item's UOM Conversion Detail table, so an unknown UOM (e.g. "Nos" on a
+		# "Pcs" item) would abort the whole save. When the caller does not pick a
+		# UOM, keep a still-valid UOM already on the row and otherwise fall back
+		# to the Item's stock UOM.
+		"uom": resolve_item_uom(item_code, uom or current_uom),
 		"selling": 1,
 	}
 
