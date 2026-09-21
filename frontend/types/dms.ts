@@ -1616,6 +1616,8 @@ export interface ReconciliationPaymentRow {
   is_dms?: boolean;
   job_card?: string | null;
   service_estimate?: string | null;
+  /** Note typed on a DMS payment screen (`Payment Entry.custom_dms_remarks`). */
+  dms_remarks?: string | null;
 }
 
 export interface ReconciliationOverview {

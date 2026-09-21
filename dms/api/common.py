@@ -781,7 +781,7 @@ def get_spare_part_price(spare_part=None):
 
 @frappe.whitelist()
 def get_labour_rate(vehicle_service_item=None):
-	"""Return labour rate: VSI custom_rate → ERP Item standard_rate → DMS default service fee."""
+	"""Return labour rate: Vehicle Service Item custom_rate → DMS default service fee."""
 	vsi = (vehicle_service_item or "").strip()
 	if not vsi:
 		return 0

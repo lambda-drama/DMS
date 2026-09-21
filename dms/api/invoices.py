@@ -1284,6 +1284,12 @@ def collect_payment(
 
 	created: list[str] = []
 	paid_total = 0.0
+	pe_meta = frappe.get_meta("Payment Entry")
+	si_job_card = (
+		(si.get("custom_dms_job_card") or "").strip()
+		if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card")
+		else ""
+	)
 
 	for spec in payment_specs:
 		si.reload()
@@ -1324,8 +1330,16 @@ def collect_payment(
 		# Operator note from the DMS "Collect Payment" dialog. Kept on the dedicated
 		# DMS remarks field so it never clashes with ERPNext's generated `remarks`.
 		pe_remarks = (spec.get("remarks") or "").strip()
-		if pe_remarks and frappe.get_meta("Payment Entry").has_field("custom_dms_remarks"):
+		if pe_remarks and pe_meta.has_field("custom_dms_remarks"):
 			pe.set("custom_dms_remarks", pe_remarks)
+
+		# Flag the receipt as DMS activity, exactly like the standalone advance flow
+		# (``dms.api.payment_entries``). Without it the entry loses its DMS identity
+		# the moment its reference rows no longer resolve to a DMS Sales Invoice.
+		if pe_meta.has_field("custom_is_dms"):
+			pe.set("custom_is_dms", 1)
+		if si_job_card and pe_meta.has_field("custom_dms_job_card"):
+			pe.set("custom_dms_job_card", si_job_card)
 
 		pe.insert()
 		pe.submit()

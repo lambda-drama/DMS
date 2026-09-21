@@ -474,6 +474,14 @@ export default function PaymentEntriesPage() {
                         {row.reference_no ? (
                           <div className="text-xs text-muted-foreground">{row.reference_no}</div>
                         ) : null}
+                        {row.dms_remarks ? (
+                          <div
+                            className="max-w-[220px] truncate text-xs text-muted-foreground"
+                            title={row.dms_remarks}
+                          >
+                            DMS: {row.dms_remarks}
+                          </div>
+                        ) : null}
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate">
                         {row.customer_name || row.customer || '—'}
@@ -487,11 +495,14 @@ export default function PaymentEntriesPage() {
                         {formatMoney(row.unallocated_amount, row.currency)}
                       </TableCell>
                       <TableCell>
-                        {row.is_advance ? (
-                          <Badge className="bg-[#F9A825]/10 text-[#F9A825]">Advance</Badge>
-                        ) : (
-                          <Badge variant="outline">Payment</Badge>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1">
+                          {row.is_advance ? (
+                            <Badge className="bg-[#F9A825]/10 text-[#F9A825]">Advance</Badge>
+                          ) : (
+                            <Badge variant="outline">Payment</Badge>
+                          )}
+                          {row.is_dms ? <Badge variant="secondary">DMS</Badge> : null}
+                        </div>
                       </TableCell>
                       <TableCell>{statusBadge(row)}</TableCell>
                       <TableCell className="text-right">

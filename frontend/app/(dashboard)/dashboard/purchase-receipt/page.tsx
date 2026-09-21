@@ -423,6 +423,7 @@ export default function PurchaseReceiptPage() {
                   <StockItemLinkWithCreate
                     options={itemOptions}
                     value={line.item_code}
+                    valueLabel={line.item_name || line.item_code || undefined}
                     onValueChange={(value) => {
                       const opt = itemOptions.find((o) => o.value === value);
                       const stdRate = opt?.description?.match(/Std rate: ([\d.]+)/)?.[1];

@@ -152,22 +152,22 @@ def vehicle_service_item_estimated_hours(vsi_name: str | None) -> float:
 
 
 def vehicle_service_item_labour_rate(vsi_name: str | None) -> float:
-	"""Resolve labour rate: VSI custom_rate → Item Price → ERP Item standard_rate → DMS default."""
+	"""Resolve the labour rate: Vehicle Service Item custom_rate → DMS default service fee.
+
+	Item Price / Item.standard_rate are deliberately **not** consulted. ERPNext copies the
+	rate used on a transaction line back onto the item's Item Price (Stock Settings →
+	"Update Existing Price List Rate", see ``erpnext.stock.get_item_details.insert_item_price``),
+	so a one-off labour rate typed on a Job Card or Sales Invoice used to stick to every
+	later job card that picked the same service item. Labour pricing is owned by the
+	Vehicle Service Item (vehicle-services screen) and, company-wide, by DMS Settings →
+	Default Service Fee.
+	"""
 	if not vsi_name or not frappe.db.exists("DocType", "Vehicle Service Item"):
 		return 0.0
 
 	vsi_rate = flt(frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_rate") or 0)
 	if vsi_rate > 0:
 		return vsi_rate
-
-	item_code = resolve_vehicle_service_item_to_item_code(vsi_name)
-	if item_code:
-		ip_rate = item_live_selling_rate(item_code)
-		if ip_rate > 0:
-			return ip_rate
-		sr = flt(frappe.db.get_value("Item", item_code, "standard_rate") or 0)
-		if sr > 0:
-			return sr
 
 	return dms_default_service_fee()
 

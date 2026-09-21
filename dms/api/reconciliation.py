@@ -186,7 +186,12 @@ def _annotate_payment_flags(payments: list[dict]) -> None:
 	pe_meta = frappe.get_meta("Payment Entry")
 	fields = [
 		fieldname
-		for fieldname in ("custom_is_dms", "custom_dms_job_card", "custom_dms_service_estimate")
+		for fieldname in (
+			"custom_is_dms",
+			"custom_dms_job_card",
+			"custom_dms_service_estimate",
+			"custom_dms_remarks",
+		)
 		if pe_meta.has_field(fieldname)
 	]
 	names = [row["name"] for row in payments if row.get("type") == "Payment Entry" and row.get("name")]
@@ -203,7 +208,12 @@ def _annotate_payment_flags(payments: list[dict]) -> None:
 		data = info.get(row.get("name"))
 		if not data:
 			continue
-		row["is_dms"] = bool(cint(data.get("custom_is_dms")))
+		# Receipts recorded on a DMS screen before the flag was ticked still carry the
+		# operator note — treat that as DMS too so the hub badge lights up.
+		row["is_dms"] = bool(cint(data.get("custom_is_dms"))) or bool(
+			(data.get("custom_dms_remarks") or "").strip()
+		)
+		row["dms_remarks"] = (data.get("custom_dms_remarks") or "").strip() or None
 		row["job_card"] = data.get("custom_dms_job_card")
 		row["service_estimate"] = data.get("custom_dms_service_estimate")
 
