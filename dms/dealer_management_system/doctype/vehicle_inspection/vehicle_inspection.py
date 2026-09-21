@@ -20,6 +20,37 @@ _APPOINTMENT_PRIORITY_TO_JOB_CARD = {
 
 
 class VehicleInspection(Document):
+	def validate(self):
+		self.sync_license_plate_with_vin()
+
+	def sync_license_plate_with_vin(self):
+		"""Keep `license_plate` in sync with the VIN master (`VIN No.plate_number`).
+
+		- A plate entered on the inspection is written back to the VIN record, so
+		  appointments, job cards and vehicles registered later show it.
+		- When the inspection has no plate, it is filled from the VIN record.
+
+		Runs on every save (draft, update and submit) because `validate` is called
+		for each of those actions.
+		"""
+		vin_name = (self.vin_chassis or "").strip()
+		if not vin_name or not frappe.db.exists("VIN No", vin_name):
+			return
+
+		plate = (self.license_plate or "").strip()
+		vin_plate = (frappe.db.get_value("VIN No", vin_name, "plate_number") or "").strip()
+
+		if not plate:
+			if vin_plate:
+				self.license_plate = vin_plate
+			return
+
+		if plate != vin_plate:
+			# db.set_value (not doc.save) keeps the VIN write-back from re-running
+			# the heavy VIN validations/serial sync; it still clears the document
+			# cache so later reads in this transaction see the new plate.
+			frappe.db.set_value("VIN No", vin_name, "plate_number", plate)
+
 	def before_submit(self):
 		# Permanent stage timestamp for TAT (§2.3) — do not rely on modified/editable text
 		if not self.inspection_completed_date:
