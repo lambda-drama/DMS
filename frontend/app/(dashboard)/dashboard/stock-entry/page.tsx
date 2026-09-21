@@ -326,6 +326,7 @@ export default function StockEntryPage() {
                   <StockItemLinkWithCreate
                     options={itemOptions}
                     value={line.item_code}
+                    valueLabel={line.item_name || line.item_code || undefined}
                     onValueChange={(value) => {
                       const opt = itemOptions.find((o) => o.value === value);
                       setLines((prev) =>

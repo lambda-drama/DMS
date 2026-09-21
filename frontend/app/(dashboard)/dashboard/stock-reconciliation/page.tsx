@@ -254,6 +254,7 @@ export default function StockReconciliationPage() {
                   <StockItemLinkWithCreate
                     options={itemOptions}
                     value={line.item_code}
+                    valueLabel={line.item_name || line.item_code || undefined}
                     onValueChange={(value) => pickItem(idx, value)}
                     onItemCreated={(item) => {
                       setLines((prev) =>

@@ -412,6 +412,7 @@ export default function ReconciliationHubPage() {
                         {row.date || '—'} · {row.type}
                         {row.job_card ? ` · ${row.job_card}` : ''}
                         {row.service_estimate ? ` · ${row.service_estimate}` : ''}
+                        {row.dms_remarks ? ` · ${row.dms_remarks}` : ''}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">

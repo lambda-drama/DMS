@@ -73,12 +73,19 @@ def _has_field(fieldname: str) -> bool:
 
 
 def _dms_payment_entry_condition():
-	"""``custom_is_dms = 1`` OR linked to a DMS Sales Invoice."""
+	"""``custom_is_dms = 1``, a DMS operator note, or a DMS Sales Invoice link."""
 	PE = DocType("Payment Entry")
 	cond = None
 
 	if _has_field(DMS_FLAG_FIELD):
 		cond = PE[DMS_FLAG_FIELD] == 1
+
+	# Receipts captured on a DMS screen keep the operator note even when the DMS flag
+	# was never ticked (e.g. "Collect Payment" entries created before the flag was
+	# set there), so treat a non-empty note as DMS activity too.
+	if _has_field(DMS_REMARKS_FIELD):
+		remarks_cond = PE[DMS_REMARKS_FIELD].isnotnull() & (PE[DMS_REMARKS_FIELD] != "")
+		cond = remarks_cond if cond is None else (cond | remarks_cond)
 
 	si_cond = _dms_sales_invoice_condition()
 	if si_cond is not None:
@@ -272,6 +279,11 @@ def _is_dms_payment_entry(pe) -> bool:
 	if _has_field(DMS_FLAG_FIELD) and cint(pe.get(DMS_FLAG_FIELD)):
 		return True
 
+	# An operator note can only come from a DMS payment screen, so it marks the entry
+	# as DMS activity even when the flag was missed (see _dms_payment_entry_condition).
+	if _has_field(DMS_REMARKS_FIELD) and (pe.get(DMS_REMARKS_FIELD) or "").strip():
+		return True
+
 	si_meta = frappe.get_meta("Sales Invoice")
 	check_fields = [fieldname for fieldname in _SI_DMS_FLAG_FIELDS if si_meta.has_field(fieldname)]
 	if not check_fields:
@@ -298,6 +310,12 @@ def _shape_row(row: dict, references: list[dict], links: dict, amend: dict | Non
 	invoice_refs = [r for r in references if r.get("reference_doctype") == "Sales Invoice"]
 	docstatus = cint(row.get("docstatus"))
 	is_advance = not references and row.get("payment_type") == ADVANCE_PAYMENT_TYPE
+	dms_remarks = (row.get(DMS_REMARKS_FIELD) or "").strip() if DMS_REMARKS_FIELD in row else ""
+	# The DMS flag is missing on receipts recorded before "Collect Payment" ticked it;
+	# the operator note typed on that dialog still identifies them as DMS activity.
+	is_dms = bool(cint(row.get(DMS_FLAG_FIELD))) if DMS_FLAG_FIELD in row else False
+	if dms_remarks:
+		is_dms = True
 
 	return {
 		"name": row.get("name"),
@@ -316,13 +334,13 @@ def _shape_row(row: dict, references: list[dict], links: dict, amend: dict | Non
 		"docstatus": docstatus,
 		"status": _payment_entry_status(docstatus),
 		"is_advance": bool(is_advance),
-		"is_dms": bool(cint(row.get(DMS_FLAG_FIELD))) if DMS_FLAG_FIELD in row else False,
+		"is_dms": is_dms,
 		"job_card": links.get("job_card"),
 		"service_estimate": links.get("service_estimate"),
 		"remarks": row.get("remarks"),
 		# Remarks typed on the DMS payment UI (advance / collect payment). Kept
 		# separate from ERPNext's auto-generated `remarks` text.
-		"dms_remarks": row.get(DMS_REMARKS_FIELD) or None,
+		"dms_remarks": dms_remarks or None,
 		"creation": row.get("creation"),
 		"modified": row.get("modified"),
 		"references": references,
