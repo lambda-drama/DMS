@@ -17,6 +17,10 @@ frappe.ui.form.on("DMS Settings", {
 			backfill_vin_model_links(frm);
 		}, __("Actions"));
 
+		frm.add_custom_button(__("Restore Cancelled Parts Requests"), () => {
+			restore_cancelled_parts_requests(frm);
+		}, __("Actions"));
+
 		frm.add_custom_button(__("Import FRT Labour Sheet"), () => {
 			open_frt_import_modal(frm);
 		}, __("Imports"));
@@ -744,4 +748,74 @@ function create_vin_from_serial(frm, filters) {
             }
         }
     });
+}
+
+function restore_cancelled_parts_requests(frm) {
+	const method =
+		"dms.dealer_management_system.doctype.dms_parts_request.parts_workflow.restore_cancelled_parts_requests";
+
+	frappe.call({
+		method: method,
+		args: { dry_run: 1 },
+		freeze: true,
+		freeze_message: __("Checking cancelled Parts Requests…"),
+		callback(r) {
+			const summary = r.message;
+			if (!summary) {
+				return;
+			}
+
+			if (!summary.updated) {
+				frappe.msgprint({
+					title: __("Nothing to Restore"),
+					message: __(
+						"No cancelled Parts Request is missing its issued status. Checked: {0}.",
+						[summary.checked || 0]
+					),
+					indicator: "blue",
+				});
+				return;
+			}
+
+			let msg = __(
+				"Restore {0} Parts Request(s) that were cancelled although their parts were issued?",
+				[summary.updated]
+			);
+			msg += "<br><br>";
+			msg += __(
+				"{0} cancellation(s) stay as they are (nothing was issued, or the stock transfer was reversed).",
+				[summary.skipped || 0]
+			);
+			if (summary.preview && summary.preview.length) {
+				msg += "<br><br>" + __("First entries:") + "<br>";
+				summary.preview.slice(0, 15).forEach((row) => {
+					msg += `- ${row.name} (${row.job_card || __("no job card")}) → ${row.status}<br>`;
+				});
+			}
+
+			frappe.confirm(msg, () => {
+				frappe.call({
+					method: method,
+					args: { dry_run: 0 },
+					freeze: true,
+					freeze_message: __("Restoring Parts Request statuses…"),
+					callback(res) {
+						const applied = res.message;
+						if (!applied) {
+							return;
+						}
+						frappe.msgprint({
+							title: __("Parts Requests Restored"),
+							message: __("Restored: {0}\nKept cancelled: {1}", [
+								applied.updated || 0,
+								applied.skipped || 0,
+							]),
+							indicator: "green",
+						});
+						frm.reload_doc();
+					},
+				});
+			});
+		},
+	});
 }

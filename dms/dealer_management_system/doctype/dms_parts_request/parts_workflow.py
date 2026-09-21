@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
-from frappe.utils import flt, now_datetime, today
+from frappe.utils import cint, flt, now_datetime, today
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
 
@@ -661,6 +661,17 @@ _CANCELLABLE_PARTS_REQUEST_STATUSES = frozenset(
 	{"Draft", "Pending Approval", "Approved", "Ready for Issue", "Partially Issued"}
 )
 
+# Auto-cancel on job-card completion: only requests where nothing was issued yet
+# are no longer needed. Requests that already moved stock (Issued / Received /
+# Partially Issued) are deliberately left alone — those parts were consumed by
+# the repair and must keep their workflow status.
+_AUTO_CANCELLABLE_PARTS_REQUEST_STATUSES = frozenset(
+	{"Draft", "Pending Approval", "Approved", "Ready for Issue"}
+)
+
+_ISSUED_LINE_STATUSES = frozenset({"Issued", "Received"})
+_RECEIVED_LINE_STATUSES = frozenset({"Received"})
+
 
 @frappe.whitelist()
 def reverse_issued_parts_request(name: str):
@@ -731,6 +742,98 @@ def cancel_parts_request(name: str):
 	pr.save(ignore_permissions=True)
 	frappe.db.commit()
 	return {"name": pr.name, "status": pr.status}
+
+
+def _ensure_parts_request_repair_permission() -> None:
+	"""System Manager, or anyone who can write DMS Settings, may run repairs."""
+	if "System Manager" in frappe.get_roles() or frappe.has_permission("DMS Settings", "write"):
+		return
+	frappe.throw(_("Not permitted to restore Parts Requests."), frappe.PermissionError)
+
+
+def _restored_status_for_cancelled_request(name: str, stock_entry: str | None) -> str | None:
+	"""Status a wrongly cancelled parts request should have (None = keep Cancelled).
+
+	Evidence based: the request is restorable only when its material transfer is
+	still active (Stock Entry submitted) and at least one line was issued. A
+	request whose transfer was reversed, or that was never issued, keeps the
+	Cancelled status.
+	"""
+	stock_entry = (stock_entry or "").strip()
+	if not stock_entry or not frappe.db.exists("Stock Entry", stock_entry):
+		return None
+	if cint(frappe.db.get_value("Stock Entry", stock_entry, "docstatus")) != 1:
+		# Material transfer was cancelled — the parts went back to the workshop.
+		return None
+
+	line_statuses = [
+		(status or "").strip()
+		for status in frappe.get_all(
+			"DMS Parts Request Item", filters={"parent": name}, pluck="line_status"
+		)
+	]
+	issued = [status for status in line_statuses if status in _ISSUED_LINE_STATUSES]
+	if not issued:
+		return None
+	if len(issued) < len(line_statuses):
+		return "Partially Issued"
+	if all(status in _RECEIVED_LINE_STATUSES for status in issued):
+		return "Received"
+	return "Issued"
+
+
+@frappe.whitelist()
+def restore_cancelled_parts_requests(dry_run=1):
+	"""Restore parts requests cancelled even though their parts were issued.
+
+	Completing a job card used to mark Issued / Received / Partially Issued
+	requests as Cancelled although the parts had already been transferred to the
+	job card. This puts those requests back to Received / Issued / Partially
+	Issued. Requests with nothing issued, or whose material transfer was
+	reversed, keep the Cancelled status.
+
+	Pass dry_run=0 (or the DMS Settings → Actions → Restore Cancelled Parts
+	Requests button) to apply the changes.
+	"""
+	_ensure_parts_request_repair_permission()
+
+	dry_run = cint(dry_run)
+	candidates = frappe.get_all(
+		"DMS Parts Request",
+		filters={"status": "Cancelled", "stock_entry": ["is", "set"]},
+		fields=["name", "job_card", "stock_entry", "modified"],
+		order_by="modified desc",
+	)
+
+	restored: list[dict] = []
+	skipped = 0
+	for row in candidates:
+		target = _restored_status_for_cancelled_request(row.name, row.stock_entry)
+		if not target:
+			skipped += 1
+			continue
+
+		restored.append(
+			{
+				"name": row.name,
+				"job_card": row.job_card,
+				"stock_entry": row.stock_entry,
+				"status": target,
+			}
+		)
+		if not dry_run:
+			frappe.db.set_value("DMS Parts Request", row.name, "status", target)
+
+	if not dry_run:
+		frappe.db.commit()
+
+	return {
+		"dry_run": dry_run,
+		"checked": len(candidates),
+		"updated": len(restored),
+		"skipped": skipped,
+		"preview": restored[:50],
+	}
 
 
 PARTS_REQUEST_FILTER_PRESETS: dict[str, list[str]] = {
