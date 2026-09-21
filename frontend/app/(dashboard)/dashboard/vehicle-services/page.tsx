@@ -10,7 +10,7 @@ import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet
 import { EditServiceItemDialog } from "@/components/services/edit-service-item-dialog";
 import { AddServiceItemModelDialog } from "@/components/services/add-service-item-model-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
-import { ImportServiceItemsButton } from "@/components/services/import-service-items-button";
+import { BulkUpdateServiceItemsDialog } from "@/components/services/bulk-update-service-items-dialog";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { ListRowActions } from "@/components/list-row-actions";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import {
   Ban,
   CheckCircle2,
   Plus,
+  Layers,
 } from "lucide-react";
 import * as mastersSvc from "@/services/masters";
 import type { VehicleServiceItemMaster } from "@/services/masters";
@@ -77,6 +78,7 @@ export default function VehicleServicesPage() {
   const { canCreate, canWrite } = usePermissions();
   const canAddModel = canCreate("vehicle-services");
   const canToggleActive = canWrite("vehicle-services");
+  const canBulkUpdate = canWrite("vehicle-services");
   const [search, setSearch] = usePersistedFilter("vehicle-services", "search", "");
   const [debounced, setDebounced] = useState(search);
   const [activeFilter, setActiveFilter] = usePersistedFilter<ActiveFilter>(
@@ -92,6 +94,7 @@ export default function VehicleServicesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [addModelOpen, setAddModelOpen] = useState(false);
   const [addModelTarget, setAddModelTarget] = useState<VehicleServiceItemMaster | null>(null);
+  const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -184,7 +187,18 @@ export default function VehicleServicesPage() {
           <p className="text-muted-foreground">Vehicle service / labour item masters</p>
         </div>
         <div className="flex items-center gap-2">
-          <ImportServiceItemsButton onImported={() => void mutate()} />
+          {canBulkUpdate ? (
+            <Button
+              type="button"
+              variant="outline"
+              aria-label="Bulk update"
+              title="Bulk update hours / rate for every code of a service name"
+              onClick={() => setBulkUpdateOpen(true)}
+            >
+              <Layers className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:ml-2 sm:inline">Bulk Update</span>
+            </Button>
+          ) : null}
           <PermittedCreateButton
             module="vehicle-services"
             label="New Service Item"
@@ -519,6 +533,15 @@ export default function VehicleServicesPage() {
         onOpenChange={setCreateOpen}
         onCreated={() => {
           void mutate();
+        }}
+      />
+
+      <BulkUpdateServiceItemsDialog
+        open={bulkUpdateOpen}
+        onOpenChange={setBulkUpdateOpen}
+        onUpdated={() => {
+          void mutate();
+          void mutateDetail();
         }}
       />
     </div>
