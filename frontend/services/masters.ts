@@ -187,6 +187,46 @@ export async function addVehicleServiceItemModels(
   });
 }
 
+export type VehicleServiceItemNameOption = {
+  service_item: string;
+  /** How many per-model codes share this service name. */
+  code_count: number;
+};
+
+export type BulkUpdateServiceItemsResult = {
+  service_item: string;
+  updated: number;
+  codes: string[];
+  hours?: number | null;
+  rate?: number | null;
+};
+
+/** Distinct service names (a name owns one code per vehicle model). */
+export async function listVehicleServiceItemNames(options?: {
+  search?: string;
+  limit?: number;
+}): Promise<{ data: VehicleServiceItemNameOption[]; total: number }> {
+  return apiRequest(`/api/method/${API}.list_vehicle_service_item_names`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      limit: options?.limit ?? 100,
+    }),
+  });
+}
+
+/** Apply hours / rate to every code of one service name. */
+export async function bulkUpdateVehicleServiceItems(data: {
+  service_item: string;
+  hours?: number | string | null;
+  rate?: number | string | null;
+}): Promise<BulkUpdateServiceItemsResult> {
+  return apiRequest(`/api/method/${API}.bulk_update_vehicle_service_items`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function listItemPrices(options?: {
   search?: string;
   price_list?: string;
@@ -328,11 +368,129 @@ export async function deleteSalesInvoiceTc(name: string): Promise<{ name: string
   });
 }
 
-export async function getMastersOptions(): Promise<{
+export type VehicleModelMaster = {
+  name: string;
+  /** Link to the Item backing this model (also the docname). */
+  model?: string;
+  model_code?: string;
+  model_name?: string;
+  brand?: string;
+  brand_label?: string;
+  model_year?: number | string;
+  variant?: string;
+  fuel_type?: string;
+  transmission?: string;
+  drive_type?: string;
+  engine_code?: string;
+  is_active?: number;
+  notes?: string;
+  /** Item Group of the linked Item (from get_vehicle_model). */
+  item_group?: string;
+};
+
+export type VehicleModelInput = {
+  model_name: string;
+  model_code?: string | null;
+  /** Item Group for the model's Item — required on create. */
+  item_group?: string | null;
+  model?: string | null;
+  brand?: string | null;
+  model_year?: number | string | null;
+  variant?: string | null;
+  fuel_type?: string | null;
+  transmission?: string | null;
+  drive_type?: string | null;
+  engine_code?: string | null;
+  is_active?: number | boolean;
+  notes?: string | null;
+};
+
+export type VehicleModelSaveResult = {
+  name: string;
+  label?: string;
+  item_code?: string;
+  item_group?: string;
+};
+
+export type MastersOptions = {
   price_lists: { name: string; currency?: string }[];
   default_price_list?: string | null;
   item_groups: string[];
-}> {
+  /** Item Groups flagged `Is Vehicle` — the only groups valid for Vehicle Models. */
+  vehicle_item_groups: string[];
+  brands: { name: string; brand: string }[];
+  vehicle_model_fuel_types: string[];
+  vehicle_model_transmissions: string[];
+  vehicle_model_drive_types: string[];
+};
+
+export async function listVehicleModels(options?: {
+  search?: string;
+  active_filter?: 'active' | 'inactive' | 'all';
+  brand?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paginated<VehicleModelMaster>> {
+  return apiRequest(`/api/method/${API}.list_vehicle_models`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      active_filter: options?.active_filter || 'active',
+      brand: options?.brand || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getVehicleModel(name: string): Promise<VehicleModelMaster> {
+  return apiRequest(`/api/method/${API}.get_vehicle_model`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createVehicleModel(
+  data: VehicleModelInput
+): Promise<VehicleModelSaveResult> {
+  return apiRequest(`/api/method/${API}.create_vehicle_model`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateVehicleModel(
+  name: string,
+  data: Partial<VehicleModelInput>
+): Promise<VehicleModelSaveResult> {
+  return apiRequest(`/api/method/${API}.update_vehicle_model`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export type VehicleItemGroupResult = {
+  name: string;
+  /** 1 when the group was created, 0 when an existing group was flagged as vehicle. */
+  created?: number;
+  is_vehicle?: number;
+};
+
+/** Create a vehicle Item Group (Is Vehicle ticked), or flag an existing leaf group. */
+export async function createVehicleItemGroup(
+  itemGroup: string,
+  parentItemGroup?: string
+): Promise<VehicleItemGroupResult> {
+  return apiRequest(`/api/method/${API}.create_vehicle_item_group`, {
+    method: 'POST',
+    body: JSON.stringify({
+      item_group: itemGroup,
+      parent_item_group: parentItemGroup || null,
+    }),
+  });
+}
+
+export async function getMastersOptions(): Promise<MastersOptions> {
   return apiRequest(`/api/method/${API}.get_masters_options`, {
     method: 'POST',
     body: JSON.stringify({}),

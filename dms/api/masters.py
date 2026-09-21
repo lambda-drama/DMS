@@ -196,6 +196,376 @@ def update_spare_part(name, data):
 	return {"name": doc.name, "item_code": doc.spare_part_item, "item_name": doc.item_name}
 
 
+# ── Vehicle Models ───────────────────────────────────────────────────────────
+
+VEHICLE_MODEL_FUEL_TYPES = ("Petrol", "Diesel", "Hybrid", "PHEV", "EV", "CNG", "LPG")
+VEHICLE_MODEL_TRANSMISSIONS = (
+	"Manual (MT)",
+	"Automatic (AT)",
+	"CVT",
+	"DCT",
+	"AMT",
+	"EV Single Speed",
+)
+VEHICLE_MODEL_DRIVE_TYPES = ("FWD", "RWD", "AWD", "4WD")
+
+_VEHICLE_MODEL_LIST_FIELDS = [
+	"model",
+	"model_code",
+	"model_name",
+	"brand",
+	"model_year",
+	"variant",
+	"fuel_type",
+	"transmission",
+	"drive_type",
+	"engine_code",
+	"is_active",
+]
+
+_VEHICLE_MODEL_EDITABLE_FIELDS = [
+	"brand",
+	"model_year",
+	"variant",
+	"fuel_type",
+	"transmission",
+	"drive_type",
+	"engine_code",
+	"is_active",
+	"notes",
+]
+
+
+def _vehicle_model_list_fields() -> list[str]:
+	return _meta_fields("Vehicle Model", _VEHICLE_MODEL_LIST_FIELDS)
+
+
+def _attach_brand_labels(rows: list[dict]) -> None:
+	"""Add `brand_label` to rows carrying a Brand link (one lookup for the page)."""
+	brand_names = sorted({r["brand"] for r in rows if r.get("brand")})
+	if not brand_names:
+		return
+	brand_map = {
+		b["name"]: (b.get("brand") or b["name"])
+		for b in frappe.get_all(
+			"Brand",
+			filters={"name": ["in", brand_names]},
+			fields=["name", "brand"],
+			limit=len(brand_names),
+		)
+	}
+	for row in rows:
+		if row.get("brand"):
+			row["brand_label"] = brand_map.get(row["brand"], row["brand"])
+
+
+def _vehicle_item_groups() -> list[str]:
+	"""Leaf Item Groups flagged as vehicles (`Is Vehicle`) — valid Vehicle Model groups."""
+	meta = frappe.get_meta("Item Group")
+	if not meta.has_field("custom_is_vehicle"):
+		# Older sites without the flag: every leaf group is selectable.
+		return frappe.get_all(
+			"Item Group", filters={"is_group": 0}, pluck="name", order_by="name asc"
+		)
+	return frappe.get_all(
+		"Item Group",
+		filters={"custom_is_vehicle": 1, "is_group": 0},
+		pluck="name",
+		order_by="name asc",
+	)
+
+
+def _validate_item_group(item_group: str | None) -> str:
+	""":param item_group: Item Group the vehicle model's Item will be created under.
+
+	Only Item Groups flagged `Is Vehicle` are accepted (masters screen contract).
+	"""
+	item_group = (item_group or "").strip()
+	if not item_group:
+		frappe.throw(_("Item Group is required for the vehicle model's Item."))
+	if not frappe.db.exists("Item Group", item_group):
+		frappe.throw(_("Item Group {0} was not found.").format(frappe.bold(item_group)))
+
+	if frappe.get_meta("Item Group").has_field("custom_is_vehicle") and not cint(
+		frappe.db.get_value("Item Group", item_group, "custom_is_vehicle")
+	):
+		frappe.throw(
+			_("Item Group {0} is not a vehicle group. Tick 'Is Vehicle' on the Item Group first.").format(
+				frappe.bold(item_group)
+			)
+		)
+	return item_group
+
+
+def _save_item_group(group, is_new: bool = False) -> None:
+	"""Persist an Item Group, falling back to the vehicle-master right when denied."""
+	action = group.insert if is_new else group.save
+	try:
+		action()
+	except frappe.PermissionError:
+		action(ignore_permissions=True)
+
+
+def _resolve_item_group_parent(parent_item_group: str | None) -> str:
+	parent = (parent_item_group or "").strip()
+	if parent:
+		if not frappe.db.exists("Item Group", parent):
+			frappe.throw(_("Parent Item Group {0} was not found.").format(frappe.bold(parent)))
+		if not cint(frappe.db.get_value("Item Group", parent, "is_group")):
+			frappe.throw(_("Parent Item Group {0} is not a group.").format(frappe.bold(parent)))
+		return parent
+
+	# Root of the Item Group tree (ERPNext default), else the first group node.
+	if cint(frappe.db.get_value("Item Group", "All Item Groups", "is_group")):
+		return "All Item Groups"
+	roots = frappe.get_all(
+		"Item Group", filters={"is_group": 1}, pluck="name", order_by="lft asc", limit=1
+	)
+	if not roots:
+		frappe.throw(_("Create a parent Item Group before adding vehicle item groups."))
+	return roots[0]
+
+
+@frappe.whitelist()
+def create_vehicle_item_group(item_group=None, parent_item_group=None):
+	"""Create an Item Group for vehicle models — or flag an existing leaf group.
+
+	The group always ends up with `Is Vehicle` (`custom_is_vehicle`) ticked, so it is
+	offered in the Vehicle Model Item Group dropdown right away.
+	"""
+	frappe.has_permission("Vehicle Model", "create", throw=True)
+
+	name = (item_group or "").strip()
+	if not name:
+		frappe.throw(_("Item Group name is required."))
+
+	has_vehicle_flag = frappe.get_meta("Item Group").has_field("custom_is_vehicle")
+
+	if frappe.db.exists("Item Group", name):
+		if cint(frappe.db.get_value("Item Group", name, "is_group")):
+			frappe.throw(
+				_("{0} is a parent Item Group. Enter a name for a new group instead.").format(
+					frappe.bold(name)
+				)
+			)
+		group = frappe.get_doc("Item Group", name)
+		flagged = cint(group.get("custom_is_vehicle")) if has_vehicle_flag else 0
+		if has_vehicle_flag and not flagged:
+			group.set("custom_is_vehicle", 1)
+			_save_item_group(group)
+			frappe.db.commit()
+			flagged = 1
+		return {"name": group.name, "created": 0, "is_vehicle": flagged}
+
+	values = {
+		"doctype": "Item Group",
+		"item_group_name": name,
+		"parent_item_group": _resolve_item_group_parent(parent_item_group),
+		"is_group": 0,
+	}
+	if has_vehicle_flag:
+		values["custom_is_vehicle"] = 1
+
+	group = frappe.get_doc(values)
+	_save_item_group(group, is_new=True)
+	frappe.db.commit()
+	return {"name": group.name, "created": 1, "is_vehicle": 1 if has_vehicle_flag else 0}
+
+
+@frappe.whitelist()
+def list_vehicle_models(search=None, active_filter=None, brand=None, limit=50, offset=0):
+	"""Vehicle Model masters for the Master → Vehicle Models screen."""
+	frappe.has_permission("Vehicle Model", "read", throw=True)
+
+	limit = cint(limit) or 50
+	offset = cint(offset) or 0
+
+	meta = frappe.get_meta("Vehicle Model")
+	filters: dict = {}
+
+	status = (active_filter or "active").strip().lower()
+	if status not in ("active", "all", "inactive"):
+		status = "active"
+	if status != "all" and meta.has_field("is_active"):
+		filters["is_active"] = 1 if status == "active" else 0
+
+	brand = (brand or "").strip()
+	if brand and meta.has_field("brand"):
+		filters["brand"] = brand
+
+	or_filters = None
+	if search and str(search).strip():
+		q = f"%{search.strip()}%"
+		search_fields = _meta_fields(
+			"Vehicle Model", ["model_name", "model_code", "variant", "model", "engine_code"]
+		)
+		or_filters = [[f, "like", q] for f in search_fields] or None
+
+	fields = ["name", *_vehicle_model_list_fields()]
+
+	rows = frappe.get_all(
+		"Vehicle Model",
+		fields=fields,
+		filters=filters or None,
+		or_filters=or_filters,
+		limit=limit,
+		limit_start=offset,
+		order_by="model_name asc",
+	)
+	total = _count("Vehicle Model", filters=filters or None, or_filters=or_filters)
+	_attach_brand_labels(rows)
+
+	return {"data": rows, "total": total}
+
+
+@frappe.whitelist()
+def get_vehicle_model(name):
+	frappe.has_permission("Vehicle Model", "read", throw=True)
+
+	name = (name or "").strip()
+	if not name or not frappe.db.exists("Vehicle Model", name):
+		frappe.throw(_("Vehicle Model {0} was not found.").format(frappe.bold(name or "?")))
+
+	data = frappe.get_doc("Vehicle Model", name).as_dict()
+	_attach_brand_labels([data])
+	if data.get("model"):
+		data["item_group"] = frappe.db.get_value("Item", data["model"], "item_group")
+	return data
+
+
+@frappe.whitelist()
+def create_vehicle_model(data=None):
+	"""Create a Vehicle Model master together with its vehicle Item.
+
+	The Vehicle Model docname is its `model` link to an Item, so every model always
+	creates a new Item (code = the entered model code, falling back to the model
+	name) in the chosen vehicle Item Group.
+	"""
+	data = _parse_data(data)
+	frappe.has_permission("Vehicle Model", "create", throw=True)
+
+	model_name = (data.get("model_name") or "").strip()
+	if not model_name:
+		frappe.throw(_("Model name is required."))
+
+	meta = frappe.get_meta("Vehicle Model")
+	model_code = (data.get("model_code") or "").strip() or model_name
+	item_code = (data.get("model") or "").strip() or model_code
+	brand = (data.get("brand") or "").strip() or None
+	item_group = _validate_item_group(data.get("item_group"))
+
+	if meta.has_field("model_code"):
+		clash = frappe.db.get_value("Vehicle Model", {"model_code": model_code}, "name")
+		if clash:
+			frappe.throw(
+				_("Vehicle Model {0} already uses model code {1}.").format(
+					frappe.bold(clash), frappe.bold(model_code)
+				)
+			)
+
+	# A Vehicle Model always brings its own Item into existence: the model's
+	# docname *is* that Item, so an existing code cannot be reused here.
+	if frappe.db.exists("Item", item_code):
+		frappe.throw(
+			_("Item {0} already exists. Use a different Model code — the model code becomes the Item code.").format(
+				frappe.bold(item_code)
+			)
+		)
+
+	item_doc = frappe.get_doc(
+		{
+			"doctype": "Item",
+			"item_code": item_code,
+			"item_name": model_name,
+			"item_group": item_group,
+			"stock_uom": "Nos",
+			"is_stock_item": 1,
+			"is_sales_item": 1,
+			"brand": brand,
+		}
+	)
+	try:
+		item_doc.insert()
+	except frappe.PermissionError:
+		# Creating the model was already authorised above; the Item is its backing
+		# record, so roles without Item create are not blocked a second time.
+		item_doc.insert(ignore_permissions=True)
+
+	values: dict = {
+		"doctype": "Vehicle Model",
+		"model": item_code,
+		"model_name": model_name,
+		"fuel_type": (data.get("fuel_type") or "").strip() or VEHICLE_MODEL_FUEL_TYPES[0],
+		"transmission": (data.get("transmission") or "").strip() or VEHICLE_MODEL_TRANSMISSIONS[1],
+		"is_active": cint(data.get("is_active", 1)),
+	}
+	if meta.has_field("model_code"):
+		values["model_code"] = model_code
+	if brand and meta.has_field("brand"):
+		values["brand"] = brand
+	for fieldname in ("variant", "drive_type", "engine_code", "model_year", "notes"):
+		if not meta.has_field(fieldname):
+			continue
+		value = data.get(fieldname)
+		if value in (None, ""):
+			continue
+		values[fieldname] = cint(value) if fieldname == "model_year" else value
+
+	doc = frappe.get_doc(values)
+	doc.insert(ignore_permissions=False)
+	frappe.db.commit()
+	return {
+		"name": doc.name,
+		"label": doc.model_name or doc.name,
+		"item_code": item_code,
+		"item_group": item_group,
+	}
+
+
+@frappe.whitelist()
+def update_vehicle_model(name, data):
+	"""Update a Vehicle Model master (the linked Item / docname stays unchanged)."""
+	data = _parse_data(data)
+	frappe.has_permission("Vehicle Model", "write", throw=True)
+
+	doc = frappe.get_doc("Vehicle Model", name)
+	meta = frappe.get_meta("Vehicle Model")
+
+	if "model_name" in data:
+		model_name = (data.get("model_name") or "").strip()
+		if not model_name:
+			frappe.throw(_("Model name is required."))
+		doc.model_name = model_name
+
+	if "model_code" in data and meta.has_field("model_code"):
+		model_code = (data.get("model_code") or "").strip()
+		if model_code and model_code != doc.get("model_code"):
+			clash = frappe.db.get_value(
+				"Vehicle Model", {"model_code": model_code, "name": ["!=", doc.name]}, "name"
+			)
+			if clash:
+				frappe.throw(
+					_("Vehicle Model {0} already uses model code {1}.").format(
+						frappe.bold(clash), frappe.bold(model_code)
+					)
+				)
+			doc.model_code = model_code
+
+	for fieldname in _VEHICLE_MODEL_EDITABLE_FIELDS:
+		if fieldname not in data or not meta.has_field(fieldname):
+			continue
+		value = data.get(fieldname)
+		if fieldname in ("model_year", "is_active"):
+			value = cint(value)
+		elif fieldname == "brand":
+			value = (value or "").strip() or None
+		doc.set(fieldname, value)
+
+	doc.save(ignore_permissions=False)
+	frappe.db.commit()
+	return {"name": doc.name, "label": doc.model_name or doc.name}
+
+
 # ── Vehicle Service Items ────────────────────────────────────────────────────
 
 
@@ -565,6 +935,120 @@ def update_vehicle_service_item(name, data):
 	return {"name": doc.name, "service_item": doc.service_item, "custom_rate": doc.custom_rate}
 
 
+# ── Vehicle Service Items: bulk update by service name ───────────────────────
+
+
+def _vehicle_service_item_name_field() -> str:
+	"""Field that holds the service name (codes differ per model)."""
+	meta = frappe.get_meta("Vehicle Service Item")
+	return "service_item" if meta.has_field("service_item") else "custom_item_name"
+
+
+def _vehicle_service_item_name_match(name: str, meta) -> dict:
+	"""Rows sharing a service name — matched on both name-bearing fields."""
+	fields = [_vehicle_service_item_name_field()]
+	if "custom_item_name" not in fields and meta.has_field("custom_item_name"):
+		fields.append("custom_item_name")
+	return {field: name for field in fields}
+
+
+@frappe.whitelist()
+def list_vehicle_service_item_names(search=None, limit=100):
+	"""Distinct Vehicle Service Item names + how many codes each name covers."""
+	frappe.has_permission("Vehicle Service Item", "read", throw=True)
+
+	limit = cint(limit) or 100
+	name_field = _vehicle_service_item_name_field()
+
+	where = [f"ifnull(`{name_field}`, '') != ''"]
+	params: dict = {"limit": limit}
+	if search and str(search).strip():
+		where.append(f"`{name_field}` like %(query)s")
+		params["query"] = f"%{search.strip()}%"
+	condition = " and ".join(where)
+
+	rows = frappe.db.sql(
+		f"""
+		select `{name_field}` as service_item, count(*) as code_count
+		from `tabVehicle Service Item`
+		where {condition}
+		group by `{name_field}`
+		order by `{name_field}` asc
+		limit %(limit)s
+		""",
+		params,
+		as_dict=True,
+	)
+	total = frappe.db.sql(
+		f"""
+		select count(distinct `{name_field}`)
+		from `tabVehicle Service Item`
+		where {condition}
+		""",
+		params,
+	)[0][0]
+
+	return {"data": rows, "total": cint(total)}
+
+
+@frappe.whitelist()
+def bulk_update_vehicle_service_items(service_item=None, hours=None, rate=None):
+	"""Set hours and/or rate on every Vehicle Service Item sharing a service name.
+
+	One service name owns a code per vehicle model, so the screen batches the whole
+	name by its codes instead of editing row by row.
+	"""
+	frappe.has_permission("Vehicle Service Item", "write", throw=True)
+
+	name = (service_item or "").strip()
+	if not name:
+		frappe.throw(_("Vehicle Service Item name is required."))
+
+	hours_value = flt(hours) if hours not in (None, "") else None
+	rate_value = flt(rate) if rate not in (None, "") else None
+	if hours_value is None and rate_value is None:
+		frappe.throw(_("Enter hours, rate, or both."))
+
+	meta = frappe.get_meta("Vehicle Service Item")
+	names = frappe.get_all(
+		"Vehicle Service Item",
+		or_filters=_vehicle_service_item_name_match(name, meta),
+		pluck="name",
+		limit=0,
+	)
+	if not names:
+		frappe.throw(_("No Vehicle Service Item found for {0}.").format(frappe.bold(name)))
+
+	from dms.dealer_management_system.utils.price_permissions import assert_price_allowed_if_changed
+
+	updated: list[dict] = []
+	try:
+		for doc_name in names:
+			doc = frappe.get_doc("Vehicle Service Item", doc_name)
+			if rate_value is not None:
+				assert_price_allowed_if_changed(getattr(doc, "custom_rate", None), rate_value)
+			if hours_value is not None and meta.has_field("custom_estimated_timehours"):
+				doc.set("custom_estimated_timehours", hours_value)
+			if rate_value is not None and meta.has_field("custom_rate"):
+				doc.set("custom_rate", rate_value)
+			doc.save(ignore_permissions=False)
+			updated.append(
+				{"name": doc.name, "custom_service_code": doc.get("custom_service_code")}
+			)
+	except Exception:
+		frappe.db.rollback()
+		raise
+
+	frappe.db.commit()
+	return {
+		"service_item": name,
+		"updated": len(updated),
+		"codes": [row["custom_service_code"] for row in updated if row.get("custom_service_code")],
+		"hours": hours_value,
+		"rate": rate_value,
+	}
+
+
 # ── Item Prices ──────────────────────────────────────────────────────────────
 
 
@@ -909,8 +1393,19 @@ def get_masters_options():
 		order_by="name asc",
 		limit=100,
 	)
+	brands = frappe.get_all(
+		"Brand",
+		fields=["name", "brand"],
+		order_by="name asc",
+		limit=200,
+	)
 	return {
 		"price_lists": price_lists,
 		"default_price_list": get_dms_default_selling_price_list(),
 		"item_groups": item_groups,
+		"vehicle_item_groups": _vehicle_item_groups(),
+		"brands": [{"name": b["name"], "brand": b["brand"] or b["name"]} for b in brands],
+		"vehicle_model_fuel_types": list(VEHICLE_MODEL_FUEL_TYPES),
+		"vehicle_model_transmissions": list(VEHICLE_MODEL_TRANSMISSIONS),
+		"vehicle_model_drive_types": list(VEHICLE_MODEL_DRIVE_TYPES),
 	}

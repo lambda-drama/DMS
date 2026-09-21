@@ -30,6 +30,8 @@ const DeliveriesPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/
 const DeliveryNewPage = dynamic(() => import('./(dashboard)/dashboard/deliveries/new/page'));
 const InvoicesPage = dynamic(() => import('./(dashboard)/dashboard/invoices/page'));
 const InvoiceNewPage = dynamic(() => import('./(dashboard)/dashboard/invoices/new/page'));
+const OrdersPage = dynamic(() => import('./(dashboard)/dashboard/orders/page'));
+const OrderNewPage = dynamic(() => import('./(dashboard)/dashboard/orders/new/page'));
 const PaymentEntriesPage = dynamic(() => import('./(dashboard)/dashboard/payment-entries/page'));
 const ReconciliationHubPage = dynamic(() => import('./(dashboard)/dashboard/reconciliation-hub/page'));
 const FollowUpsPage = dynamic(() => import('./(dashboard)/dashboard/follow-ups/page'));
@@ -40,6 +42,7 @@ const ServiceAdvisorsPage = dynamic(() => import('./(dashboard)/dashboard/servic
 const PartsAdvisorsPage = dynamic(() => import('./(dashboard)/dashboard/parts-advisors/page'));
 const SparePartsPage = dynamic(() => import('./(dashboard)/dashboard/spare-parts/page'));
 const VehicleServicesPage = dynamic(() => import('./(dashboard)/dashboard/vehicle-services/page'));
+const VehicleModelsPage = dynamic(() => import('./(dashboard)/dashboard/vehicle-models/page'));
 const ItemPricesPage = dynamic(() => import('./(dashboard)/dashboard/item-prices/page'));
 const JobCardTermsPage = dynamic(() => import('./(dashboard)/dashboard/job-card-terms/page'));
 const SalesInvoiceTcPage = dynamic(() => import('./(dashboard)/dashboard/sales-invoice-tc/page'));
@@ -150,11 +153,13 @@ const FALLBACK_VIEWS = [
   'customers',
   'vehicles',
   'invoices',
+  'orders',
   'follow-ups',
   'service-advisors',
   'parts-advisors',
   'spare-parts',
   'vehicle-services',
+  'vehicle-models',
   'item-prices',
   'job-card-terms',
   'sales-invoice-tc',
@@ -214,6 +219,8 @@ function AppContent() {
       case 'delivery-new':       return <DeliveryNewPage />;
       case 'invoices':           return <InvoicesPage />;
       case 'invoice-new':        return <InvoiceNewPage />;
+      case 'orders':             return <OrdersPage />;
+      case 'order-new':          return <OrderNewPage />;
       case 'payment-entries':    return <PaymentEntriesPage />;
       case 'reconciliation-hub': return <ReconciliationHubPage />;
       case 'follow-ups':         return <FollowUpsPage />;
@@ -224,6 +231,7 @@ function AppContent() {
       case 'parts-advisors':     return <PartsAdvisorsPage />;
       case 'spare-parts':        return <SparePartsPage />;
       case 'vehicle-services':   return <VehicleServicesPage />;
+      case 'vehicle-models':     return <VehicleModelsPage />;
       case 'item-prices':        return <ItemPricesPage />;
       case 'job-card-terms':     return <JobCardTermsPage />;
       case 'sales-invoice-tc':   return <SalesInvoiceTcPage />;
