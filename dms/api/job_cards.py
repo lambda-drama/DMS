@@ -1684,23 +1684,24 @@ def save_road_test_results(name, road_test_template=None, results=None):
 
 
 def _cancel_incomplete_parts_requests_for_job_card(job_card: str):
-	"""Mark all outstanding parts requests for a job card as Cancelled.
+	"""Cancel parts requests that never issued anything when a job card is completed.
 
-	Used when a job card is completed — any in-progress parts requests are no longer needed.
-	Issued / Received requests are also marked Cancelled since the parts were already moved
-	to the job card and are considered consumed.
+	Only requests still before issue (Draft / Pending Approval / Approved / Ready
+	for Issue) are cancelled — they are no longer needed. Requests with parts
+	already issued, received or partially issued are left untouched: those parts
+	were consumed by the repair and must keep their workflow status (previously
+	they were wrongly flipped to Cancelled here).
 	"""
 	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
-		_CANCELLABLE_PARTS_REQUEST_STATUSES,
+		_AUTO_CANCELLABLE_PARTS_REQUEST_STATUSES,
 		cancel_parts_request,
 	)
 
-	# Cancellable (before issue) — release job card part lines
 	open_prs = frappe.get_all(
 		"DMS Parts Request",
 		filters={
 			"job_card": job_card,
-			"status": ["in", list(_CANCELLABLE_PARTS_REQUEST_STATUSES)],
+			"status": ["in", list(_AUTO_CANCELLABLE_PARTS_REQUEST_STATUSES)],
 		},
 		pluck="name",
 	)
@@ -1709,24 +1710,6 @@ def _cancel_incomplete_parts_requests_for_job_card(job_card: str):
 			cancel_parts_request(pr_name)
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), "complete_job_card cancel parts request")
-
-	# Issued / Received requests — stock already transferred to the job, just mark cancelled
-	issued_prs = frappe.get_all(
-		"DMS Parts Request",
-		filters={
-			"job_card": job_card,
-			"status": ["in", ["Issued", "Received", "Partially Issued"]],
-		},
-		pluck="name",
-	)
-	for pr_name in issued_prs:
-		frappe.db.set_value(
-			"DMS Parts Request",
-			pr_name,
-			"status",
-			"Cancelled",
-			update_modified=True,
-		)
 
 
 @frappe.whitelist()

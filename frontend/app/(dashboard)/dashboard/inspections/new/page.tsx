@@ -1111,6 +1111,10 @@ export default function NewInspectionPage() {
                     onChange={(e) => setLicensePlate(e.target.value)}
                     placeholder="Enter plate number"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Saved back to the selected VIN record (plate number) when you save the
+                    inspection. Filled from the VIN when left blank.
+                  </p>
                 </div>
               </div>
 
