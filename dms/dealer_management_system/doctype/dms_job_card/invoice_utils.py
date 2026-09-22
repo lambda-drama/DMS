@@ -1109,6 +1109,74 @@ def _apply_sales_invoice_tax_choice(si, apply_taxes: bool, apply_tax_withholding
 	_apply_tax_withholding_choice(si, apply_tax_withholding)
 
 
+def _clear_sales_order_taxes(so, prevent_reapply: bool = True) -> None:
+	"""Remove auto-applied taxes so the order carries none."""
+	so.taxes_and_charges = None
+	so.set("taxes", [])
+
+	soi_meta = frappe.get_meta("Sales Order Item")
+	for item in so.get("items") or []:
+		if soi_meta.has_field("item_tax_template"):
+			item.item_tax_template = None
+		if soi_meta.has_field("item_tax_rate"):
+			item.item_tax_rate = None
+
+	if prevent_reapply:
+		_prevent_erpnext_tax_reapply(so)
+
+
+def _apply_dms_default_taxes_and_charges_to_sales_order(so) -> str:
+	"""Use only the DMS Settings tax template — not customer, company, or item defaults."""
+	template = get_dms_default_taxes_and_charges_template(getattr(so, "company", None))
+	_clear_sales_order_taxes(so, prevent_reapply=False)
+
+	so.taxes_and_charges = template
+	from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+	for tax in get_taxes_and_charges("Sales Taxes and Charges Template", template) or []:
+		so.append("taxes", tax)
+
+	_prevent_erpnext_tax_reapply(so)
+	return template
+
+
+def _guard_sales_order_tax_choice(so, apply_taxes: bool, template: str | None = None) -> None:
+	"""Keep the order's VAT choice after ERPNext refreshes the customer details.
+
+	``AccountsController.validate`` calls ``set_missing_values(for_validate=True)``,
+	which copies the customer's ``taxes_and_charges`` onto the order. Without this
+	guard an "Include VAT" order keeps the customer's template name, and a "no VAT"
+	order is later re-taxed in Desk when that template is re-applied on save.
+	"""
+	original_set_missing_values = so.set_missing_values
+
+	def guarded_set_missing_values(for_validate=False):
+		original_set_missing_values(for_validate)
+		if apply_taxes:
+			so.taxes_and_charges = template
+			if not so.get("taxes") and template:
+				from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+				for tax in get_taxes_and_charges("Sales Taxes and Charges Template", template) or []:
+					so.append("taxes", tax)
+		else:
+			so.taxes_and_charges = None
+			if so.get("taxes"):
+				so.set("taxes", [])
+
+	so.set_missing_values = guarded_set_missing_values
+
+
+def _apply_sales_order_tax_choice(so, apply_taxes: bool) -> None:
+	"""Apply / clear the DMS Settings tax template as chosen on the order."""
+	if apply_taxes:
+		template = _apply_dms_default_taxes_and_charges_to_sales_order(so)
+		_guard_sales_order_tax_choice(so, True, template)
+	else:
+		_clear_sales_order_taxes(so)
+		_guard_sales_order_tax_choice(so, False)
+
+
 def _resolve_part_warehouse(part, jc) -> str | None:
 	"""
 	Warehouse for Sales Invoice stock consumption.
@@ -3027,8 +3095,15 @@ def create_standalone_dms_sales_order(
 	parts_discount=None,
 	existing_name: str | None = None,
 	vehicle_vin: str | None = None,
+	apply_taxes: bool | None = None,
 ) -> str:
-	"""Create or update a Sales Order for DMS proforma (labour and/or spare parts)."""
+	"""Create or update a Sales Order for DMS proforma (labour and/or spare parts).
+
+	``apply_taxes`` is tri-state: ``True`` applies the Default Taxes and Charges
+	Template from DMS Settings, ``False`` keeps the order without taxes, and
+	``None`` (callers that predate the order VAT toggle, e.g. proformas) leaves
+	ERPNext's own default tax handling untouched.
+	"""
 	_ensure_erpnext()
 
 	customer = (customer or "").strip()
@@ -3218,6 +3293,7 @@ def create_standalone_dms_sales_order(
 			"qty": qty,
 			"rate": final_rate,
 			"delivery_date": so.delivery_date,
+			"description": (row.get("description") or "")[:4096] or None,
 		}
 		child = so.append("items", item_row)
 		_apply_standalone_stock_warehouse_so(child, erp_item, warehouse, company)
@@ -3230,6 +3306,10 @@ def create_standalone_dms_sales_order(
 
 	so.set_missing_values()
 	so.currency = order_currency
+	# Order VAT choice: DMS Settings template, or no taxes at all. Callers that do
+	# not send a choice keep ERPNext's default behaviour (company tax template).
+	if apply_taxes is not None:
+		_apply_sales_order_tax_choice(so, bool(apply_taxes))
 	_apply_dms_settings_dimensions_to_sales_order(so, company)
 	apply_company_letter_head(so, company)
 
@@ -3268,6 +3348,7 @@ def update_standalone_dms_sales_order(
 	labour_discount=None,
 	parts_discount=None,
 	vehicle_vin: str | None = None,
+	apply_taxes: bool | None = None,
 ) -> str:
 	"""Update a draft DMS proforma Sales Order (same payload as create)."""
 	return create_standalone_dms_sales_order(
@@ -3285,4 +3366,5 @@ def update_standalone_dms_sales_order(
 		parts_discount=parts_discount,
 		existing_name=name,
 		vehicle_vin=vehicle_vin,
+		apply_taxes=apply_taxes,
 	)

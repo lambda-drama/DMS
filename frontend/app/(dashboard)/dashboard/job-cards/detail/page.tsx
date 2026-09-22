@@ -186,6 +186,10 @@ const jobCardTypes: JobCardType[] = [
   "Fleet Contract",
 ];
 
+/** Mirrors the backend guard in ``dms_job_card.stop_repair``. */
+const MATERIAL_REQUEST_REQUIRED_MESSAGE =
+  "Request the parts or transfer the materials for this job card before completing the repair.";
+
 function richTextBlock(value?: string | null) {
   const text = htmlToPlainText(value || "").trim();
   if (!text) {
@@ -584,6 +588,18 @@ export default function JobCardDetailPage() {
   const canRequestParts =
     hasRequestableParts(jobCard.parts) &&
     !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
+  /**
+   * Complete Repair needs evidence that the parts were requested or material was
+   * transferred: a parts requisition, an issued/transferred Stock Entry, or a part
+   * line that is no longer flagged ``never_requested`` by the backend.
+   */
+  const partLines = jobCard.parts || [];
+  const materialRequestRecorded =
+    Boolean((jobCard.wip_material_transfer || "").trim()) ||
+    Boolean((jobCard.material_issue || "").trim()) ||
+    (jobCard.parts_requests || []).some((request) => request.status !== "Cancelled") ||
+    partLines.some((part) => part.never_requested !== true);
+  const materialRequestBlocked = partLines.length > 0 && !materialRequestRecorded;
   const canMutateJobCard = canWrite("job-cards") || canCreate("job-cards");
   const canAddExtraPart =
     canMutateJobCard &&
@@ -1054,6 +1070,11 @@ export default function JobCardDetailPage() {
   };
 
   const handleCompleteRepair = () => {
+    if (materialRequestBlocked) {
+      toast.error(MATERIAL_REQUEST_REQUIRED_MESSAGE);
+      return;
+    }
+
     clearRepairTimerState(id);
     setRepairTimerAnchorMs(null);
     setRepairTimerOffsetSeconds(0);
@@ -1720,21 +1741,33 @@ export default function JobCardDetailPage() {
 
             {/* Repair In Progress → Pause / Complete */}
             {status === "Repair In Progress" && (
-              <div className="flex flex-row flex-wrap items-center gap-2">
-                {canRequestParts && (
-                  <Button variant="outline" onClick={handleRequestParts} disabled={busy}>
-                    <Package className="h-4 w-4 mr-2" />
-                    Request parts
+              <div className="flex w-full flex-col gap-2">
+                <div className="flex flex-row flex-wrap items-center gap-2">
+                  {canRequestParts && (
+                    <Button variant="outline" onClick={handleRequestParts} disabled={busy}>
+                      <Package className="h-4 w-4 mr-2" />
+                      Request parts
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={() => setShowPauseDialog(true)} disabled={busy}>
+                    <Pause className="h-4 w-4 mr-2" />
+                    Pause Repair
                   </Button>
+                  <Button
+                    onClick={handleCompleteRepair}
+                    disabled={busy || materialRequestBlocked}
+                    title={materialRequestBlocked ? MATERIAL_REQUEST_REQUIRED_MESSAGE : undefined}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Complete Repair
+                  </Button>
+                </div>
+                {materialRequestBlocked && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    {MATERIAL_REQUEST_REQUIRED_MESSAGE}
+                  </p>
                 )}
-                <Button variant="outline" onClick={() => setShowPauseDialog(true)} disabled={busy}>
-                  <Pause className="h-4 w-4 mr-2" />
-                  Pause Repair
-                </Button>
-                <Button onClick={handleCompleteRepair} disabled={busy}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Complete Repair
-                </Button>
               </div>
             )}
 

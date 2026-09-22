@@ -15,6 +15,8 @@ export type DmsOrderListItem = {
   company?: string;
   transaction_date?: string;
   delivery_date?: string;
+  net_total?: number;
+  total_taxes_and_charges?: number;
   grand_total?: number;
   advance_paid?: number;
   balance?: number;
@@ -29,6 +31,8 @@ export type DmsOrderItem = {
   spare_part?: string;
   item_code?: string;
   item_name?: string;
+  /** Sales Order Item description (Display Name typed on the order line). */
+  description?: string;
   qty?: number;
   billed_qty?: number;
   rate?: number;
@@ -39,6 +43,8 @@ export type DmsOrderItem = {
 export type DmsOrderLabour = {
   vehicle_service_item?: string;
   vehicle_service_item_name?: string;
+  /** Sales Order Item description (Display Name typed on the order line). */
+  description?: string;
   hours?: number;
   rate_per_hour?: number;
   amount?: number;
@@ -57,6 +63,8 @@ export type DmsOrderPayment = {
 export type DmsOrderDetail = DmsOrderListItem & {
   warehouse?: string | null;
   remarks?: string | null;
+  /** 1 when the Sales Order carries tax rows (Include VAT ticked). */
+  apply_taxes?: number | boolean;
   items: DmsOrderItem[];
   /** Spare part lines (server-classified). */
   parts: DmsOrderItem[];
@@ -70,12 +78,16 @@ export type DmsOrderPartLine = {
   spare_part: string;
   qty: number | string;
   unit_price?: number | string;
+  /** Display Name typed on the order line → Sales Order Item description. */
+  description?: string;
 };
 
 export type DmsOrderLabourLine = {
   vehicle_service_item: string;
   hours: number | string;
   rate_per_hour?: number | string;
+  /** Display Name typed on the order line → Sales Order Item description. */
+  description?: string;
 };
 
 export type DmsOrderInput = {
@@ -87,6 +99,8 @@ export type DmsOrderInput = {
   transaction_date?: string;
   delivery_date?: string;
   remarks?: string;
+  /** Include VAT — DMS Settings Default Taxes and Charges Template. */
+  apply_taxes?: boolean;
   labour_discount?: StandaloneInvoiceGroupDiscount;
   parts_discount?: StandaloneInvoiceGroupDiscount;
   submit?: number;
@@ -100,6 +114,8 @@ export type DmsOrderSaveResult = {
   docstatus?: number;
   customer?: string;
   customer_name?: string;
+  net_total?: number;
+  total_taxes_and_charges?: number;
   grand_total?: number;
   advance_paid?: number;
   balance?: number;

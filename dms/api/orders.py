@@ -130,6 +130,11 @@ def _order_builder_kwargs(ctx: dict, data: dict) -> dict:
 		"labour_discount": data.get("labour_discount"),
 		"parts_discount": data.get("parts_discount"),
 		"vehicle_vin": ctx.get("vin"),
+		# Include VAT toggle — tri-state so a payload without the key (older clients)
+		# keeps ERPNext's default tax handling.
+		"apply_taxes": (
+			bool(cint(data.get("apply_taxes"))) if "apply_taxes" in data else None
+		),
 	}
 
 
@@ -258,11 +263,15 @@ def get_dms_order(name):
 				"Vehicle Service Item", {vsi_item_field: row.item_code}, "name"
 			)
 
+		# Display Name typed on the order line → Sales Order Item description.
+		description = (row.get("description") or "").strip()
+
 		items.append(
 			{
 				"spare_part": spare_part or row.item_code,
 				"item_code": row.item_code,
 				"item_name": row.item_name,
+				"description": description,
 				"qty": flt(row.qty),
 				"billed_qty": flt(row.get("billed_qty")),
 				"rate": flt(row.rate),
@@ -277,6 +286,7 @@ def get_dms_order(name):
 					"spare_part": spare_part,
 					"item_code": row.item_code,
 					"item_name": row.item_name,
+					"description": description,
 					"qty": flt(row.qty),
 					"rate": flt(row.rate),
 					"amount": flt(row.amount),
@@ -294,6 +304,7 @@ def get_dms_order(name):
 				{
 					"vehicle_service_item": vsi_name,
 					"vehicle_service_item_name": label,
+					"description": description,
 					"hours": flt(row.qty),
 					"rate_per_hour": flt(row.rate),
 					"amount": flt(row.amount),
@@ -304,6 +315,7 @@ def get_dms_order(name):
 				{
 					"vehicle_service_item": row.item_code,
 					"vehicle_service_item_name": row.item_name or row.item_code,
+					"description": description,
 					"hours": flt(row.qty),
 					"rate_per_hour": flt(row.rate),
 					"amount": flt(row.amount),
@@ -315,6 +327,7 @@ def get_dms_order(name):
 					"spare_part": spare_part or row.item_code,
 					"item_code": row.item_code,
 					"item_name": row.item_name,
+					"description": description,
 					"qty": flt(row.qty),
 					"rate": flt(row.rate),
 					"amount": flt(row.amount),
@@ -394,8 +407,12 @@ def get_dms_order(name):
 		"warehouse": warehouse or None,
 		"transaction_date": so.transaction_date,
 		"delivery_date": so.delivery_date,
+		"net_total": flt(so.net_total),
+		"total_taxes_and_charges": flt(so.total_taxes_and_charges),
 		"grand_total": grand_total,
 		"currency": so.currency,
+		# Order VAT choice as saved on the Sales Order (has tax rows).
+		"apply_taxes": 1 if (so.get("taxes") or []) else 0,
 		"status": so.status,
 		"docstatus": so.docstatus,
 		"per_billed": flt(so.per_billed),
@@ -419,6 +436,8 @@ def _order_summary(so) -> dict:
 		"docstatus": so.docstatus,
 		"customer": so.customer,
 		"customer_name": so.customer_name,
+		"net_total": flt(so.net_total),
+		"total_taxes_and_charges": flt(so.total_taxes_and_charges),
 		"grand_total": flt(so.grand_total),
 		"advance_paid": flt(so.get("advance_paid")),
 		"balance": max(flt(so.grand_total) - flt(so.get("advance_paid")), 0),
