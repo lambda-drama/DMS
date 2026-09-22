@@ -4,6 +4,8 @@
 import frappe
 from frappe.model.document import Document
 
+from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
+
 LABOUR_DISPLAY_NAME_FIELD = "custom_display_name"
 
 
@@ -12,16 +14,16 @@ class VehicleLabourItem(Document):
 
 
 def ensure_labour_display_name_field() -> str:
-	"""Create the line-only Display Name custom field. Does not edit the DocType JSON."""
-	if frappe.db.exists(
-		"Custom Field",
-		{"dt": "Vehicle Labour Item", "fieldname": LABOUR_DISPLAY_NAME_FIELD},
-	):
+	"""Create the line-only Display Name custom field. Does not edit the DocType JSON.
+
+	Created on ``bench migrate``; the lazy fallback only writes when the user may
+	manage Custom Fields, so technicians editing a job card are never blocked by a
+	Custom Field permission error.
+	"""
+	if custom_field_exists("Vehicle Labour Item", LABOUR_DISPLAY_NAME_FIELD):
 		return LABOUR_DISPLAY_NAME_FIELD
 
-	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-
-	create_custom_fields(
+	ensure_custom_fields(
 		{
 			"Vehicle Labour Item": [
 				{

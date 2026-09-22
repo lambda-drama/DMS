@@ -22,6 +22,7 @@ from dms.api.spare_part_sales import (
 	_validate_spare_part_lines,
 )
 from dms.api.utils import apply_date_range
+from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
 ORDER_REMARKS_PREFIX = "DMS Order"
 ORDER_FLAG_FIELD = "custom_dms_order"
@@ -35,13 +36,15 @@ def _parse_data(value) -> dict:
 
 
 def ensure_sales_order_dms_order_field() -> None:
-	"""Ensure Sales Order carries the DMS Order flag (runtime field, like the VIN link)."""
-	if frappe.db.exists("Custom Field", {"dt": "Sales Order", "fieldname": ORDER_FLAG_FIELD}):
+	"""Ensure Sales Order carries the DMS Order flag (runtime field, like the VIN link).
+
+	Created on ``bench migrate``; this lazy fallback only writes when the user may
+	manage Custom Fields, so opening the Orders screen never fails on permissions.
+	"""
+	if custom_field_exists("Sales Order", ORDER_FLAG_FIELD):
 		return
 
-	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-
-	create_custom_fields(
+	ensure_custom_fields(
 		{
 			"Sales Order": [
 				{
@@ -77,7 +80,12 @@ def mark_sales_order_as_dms_order(so) -> None:
 
 
 def _order_so_filters() -> dict:
-	ensure_sales_order_dms_order_field()
+	"""Sales Order filters for the DMS order family.
+
+	Read-only: the flag field is detected through meta, so listing / opening orders
+	never creates Custom Fields as the logged-in user (that needs admin privileges).
+	Sites without the flag field yet fall back to the remarks marker.
+	"""
 	meta = frappe.get_meta("Sales Order")
 	if meta.has_field(ORDER_FLAG_FIELD):
 		return {ORDER_FLAG_FIELD: 1}
