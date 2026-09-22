@@ -194,7 +194,10 @@ doctype_js = {
 # ------------
 
 # before_install = "dms.install.before_install"
-# after_install = "dms.install.after_install"
+after_install = "dms.install.after_install"
+# Runtime custom fields (Sales Order DMS flags / VIN link, ...) are created as
+# Administrator on every migrate so normal users never need Custom Field rights.
+after_migrate = "dms.install.after_migrate"
 
 # Uninstallation
 # ------------

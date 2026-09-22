@@ -31,6 +31,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
 )
+from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
 WARRANTY_APPLICATION_TYPES = frozenset(
 	{"All Invoice", "Labour", "Spare Part", "Discount"}
@@ -3020,12 +3021,16 @@ def mark_sales_order_as_spare_part_proforma(so) -> None:
 
 
 def ensure_sales_order_vehicle_vin_field() -> None:
-	"""Ensure Sales Order has a durable VIN link for DMS proformas."""
-	if frappe.db.exists("Custom Field", {"dt": "Sales Order", "fieldname": "custom_dms_vehicle_vin"}):
-		return
-	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+	"""Ensure Sales Order has a durable VIN link for DMS proformas.
 
-	create_custom_fields(
+	Created on ``bench migrate``; this lazy fallback only writes when the user may
+	manage Custom Fields, so detail screens never fail with a Custom Field
+	permission error.
+	"""
+	if custom_field_exists("Sales Order", "custom_dms_vehicle_vin"):
+		return
+
+	ensure_custom_fields(
 		{
 			"Sales Order": [
 				{
@@ -3049,7 +3054,7 @@ def set_sales_order_vehicle_vin(so, vehicle_vin: str | None) -> None:
 
 
 def get_sales_order_vehicle_vin(so) -> str | None:
-	ensure_sales_order_vehicle_vin_field()
+	"""Read the stored VIN — never creates Custom Fields on a read path."""
 	if frappe.get_meta("Sales Order").has_field("custom_dms_vehicle_vin"):
 		vin = (so.get("custom_dms_vehicle_vin") or "").strip()
 		if vin:

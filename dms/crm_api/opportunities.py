@@ -16,6 +16,7 @@ from dms.crm_api.common import (
 	parse_json,
 	user_display_name,
 )
+from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
 DOCTYPE = "DMS CRM Opportunity"
 
@@ -62,12 +63,14 @@ def _enrich(row: dict) -> dict:
 
 
 def _ensure_quotation_link_field():
-	"""Link standard Quotation back to DMS CRM Opportunity."""
-	if frappe.db.exists("Custom Field", {"dt": "Quotation", "fieldname": "custom_dms_crm_opportunity"}):
-		return
-	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+	"""Link standard Quotation back to DMS CRM Opportunity.
 
-	create_custom_fields(
+	Created on ``bench migrate``; the lazy fallback writes only when the user may
+	manage Custom Fields (creating the quotation never fails on that permission).
+	"""
+	if custom_field_exists("Quotation", "custom_dms_crm_opportunity"):
+		return
+	ensure_custom_fields(
 		{
 			"Quotation": [
 				{
