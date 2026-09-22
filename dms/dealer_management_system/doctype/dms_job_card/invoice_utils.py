@@ -179,21 +179,95 @@ def never_requested_part_row_names(parts, job_card: str | None = None) -> set[st
 	return set(names) - requested
 
 
-def _assert_exclude_rows_never_requested(parts, excluded: set[str], job_card: str | None = None) -> set[str]:
-	"""Only spare parts that were never requisitioned may be dropped from the invoice."""
-	if not excluded:
-		return set()
-	never = never_requested_part_row_names(parts, job_card=job_card)
-	invalid = excluded - never
-	if invalid:
-		frappe.throw(
-			_(
-				"Only spare parts that were never requested on a Parts Requisition "
-				"can be removed from the invoice."
-			),
-			title=_("Cannot remove requested part"),
+def normalize_qty_overrides(qty_overrides) -> dict[str, float]:
+	"""Job Card Part Item name -> billable quantity override (JSON, mapping or list)."""
+	if not qty_overrides:
+		return {}
+	if isinstance(qty_overrides, str):
+		import json
+
+		raw = qty_overrides.strip()
+		if not raw:
+			return {}
+		try:
+			qty_overrides = json.loads(raw)
+		except (json.JSONDecodeError, TypeError, ValueError):
+			return {}
+	if isinstance(qty_overrides, dict):
+		items = qty_overrides.items()
+	elif (
+		isinstance(qty_overrides, (list, tuple))
+		and qty_overrides
+		and isinstance(qty_overrides[0], dict)
+	):
+		items = (
+			(
+				row.get("source_row") or row.get("name") or row.get("row_name"),
+				row.get("qty", row.get("quantity")),
+			)
+			for row in qty_overrides
 		)
-	return excluded
+	else:
+		return {}
+
+	out: dict[str, float] = {}
+	for key, qty in items:
+		row_name = str(key or "").strip()
+		if not row_name:
+			continue
+		out[row_name] = flt(qty)
+	return out
+
+
+def validate_part_row_adjustments(
+	parts,
+	exclude_rows=None,
+	qty_overrides=None,
+) -> tuple[set[str], dict[str, float]]:
+	"""Validate UI edits to job card parts before billing.
+
+	Both requested and never-requested parts may be reduced or dropped from the
+	invoice. The job card itself (and its stock movements) is never changed —
+	the Sales Invoice is only the billing document, so billing less than what
+	was issued/requested is allowed.
+
+	Returns the validated ``(excluded_row_names, qty_overrides)`` pair. A qty
+	override of zero bills nothing, so it is folded into ``excluded_row_names``.
+	"""
+	excluded = normalize_exclude_rows(exclude_rows)
+	overrides = normalize_qty_overrides(qty_overrides)
+	if not excluded and not overrides:
+		return set(), {}
+
+	known = {
+		name
+		for part in (parts or [])
+		if (name := (_part_attr(part, "name") or "").strip())
+	}
+	unknown = (excluded | set(overrides)) - known
+	if unknown:
+		frappe.throw(
+			_("Job Card part line {0} was not found on the job card.").format(
+				frappe.bold(", ".join(sorted(unknown)))
+			),
+			title=_("Cannot update part line"),
+		)
+
+	negative = sorted(row for row, qty in overrides.items() if flt(qty) < 0)
+	if negative:
+		frappe.throw(
+			_("Billed quantity cannot be negative for job card part line {0}.").format(
+				frappe.bold(", ".join(negative))
+			),
+			title=_("Invalid quantity"),
+		)
+
+	excluded |= {row for row, qty in overrides.items() if flt(qty) <= 0}
+	for row in list(overrides):
+		if row in excluded:
+			overrides.pop(row)
+
+	return excluded, overrides
 
 
 def normalize_rate_overrides(rate_overrides) -> dict[str, float]:
@@ -231,6 +305,243 @@ def _line_base_rate(default_rate: float, source_row: str | None, overrides: dict
 	if source_row and source_row in overrides:
 		return flt(overrides[source_row])
 	return flt(default_rate)
+
+
+def part_billable_qty(row, qty_overrides: dict[str, float] | None = None) -> float:
+	"""Job card billable qty, honouring a reduced qty override from the UI.
+
+	Only a *reduction* is allowed: billing more than what the job card issued /
+	requested is rejected, so the invoice can never exceed the job card.
+	"""
+	base = part_issue_qty(row)
+	row_name = (_part_attr(row, "name") or "").strip()
+	if not row_name or not qty_overrides or row_name not in qty_overrides:
+		return base
+
+	override = flt(qty_overrides[row_name])
+	if override > base + 0.0001:
+		part_label = (
+			(_part_attr(row, "part_name") or "").strip()
+			or (_part_attr(row, "item_code") or "").strip()
+			or row_name
+		)
+		frappe.throw(
+			_("Billed quantity for {0} cannot exceed the {1} on the job card.").format(
+				frappe.bold(part_label), frappe.bold(round(base, 2))
+			),
+			title=_("Quantity too high"),
+		)
+	return max(override, 0.0)
+
+
+def plan_part_row_adjustment(row, *, excluded: bool = False, qty=None) -> dict | None:
+	"""Decide how one job card part row should follow the invoice (pure, no DB).
+
+	Returns ``None`` when nothing changes, else one of:
+
+	- ``{"action": "reduce", ...}`` — keep the line, bill less than the job card.
+	- ``{"action": "remove", ...}`` — drop the line (nothing was ever issued).
+	- ``{"action": "mark_returned", ...}`` — issued stock line billed as 0.
+	"""
+	base = part_issue_qty(row)
+	if excluded:
+		target = 0.0
+	elif qty is None:
+		return None
+	else:
+		target = max(flt(qty), 0.0)
+
+	if target >= base - 0.0001:
+		return None
+
+	row_name = (_part_attr(row, "name") or "").strip()
+	issued = flt(_part_attr(row, "quantity_issued") or 0)
+	returned = flt(_part_attr(row, "quantity_returned") or 0)
+	plan = {
+		"action": "reduce",
+		"row": row_name,
+		"item_code": (_part_attr(row, "item_code") or "").strip(),
+		"from": base,
+		"to": target,
+	}
+
+	if target > 0:
+		if issued > 0:
+			plan["quantity_issued"] = target
+		else:
+			# part_issue_qty = requested − returned when nothing was issued
+			plan["quantity_requested"] = target + returned
+		return plan
+
+	if issued > 0:
+		# Stock was moved workshop → WIP by the parts issue: mirror the parts
+		# return end state (billed 0, qty marked returned) without a Stock Entry.
+		plan["action"] = "mark_returned"
+		plan["issued"] = issued
+		plan["quantity_returned"] = returned + issued
+		plan["quantity_issued"] = 0.0
+		plan["quantity_requested"] = 0.0
+		return plan
+
+	plan["action"] = "remove"
+	return plan
+
+
+def _active_parts_request_name(part) -> str | None:
+	"""Name of the non-cancelled DMS Parts Request this part row belongs to, if any."""
+	row_pr = (_part_attr(part, "parts_request") or "").strip()
+	if row_pr:
+		status = frappe.db.get_value("DMS Parts Request", row_pr, "status")
+		if status and status != "Cancelled":
+			return row_pr
+
+	row_name = (_part_attr(part, "name") or "").strip()
+	if not row_name or not frappe.db.exists("DocType", "DMS Parts Request Item"):
+		return None
+
+	parents = frappe.get_all(
+		"DMS Parts Request Item",
+		filters={"job_card_part_row": row_name},
+		pluck="parent",
+	)
+	if not parents:
+		return None
+
+	active = frappe.get_all(
+		"DMS Parts Request",
+		filters={"name": ["in", sorted(set(parents))], "status": ["!=", "Cancelled"]},
+		pluck="name",
+		limit_page_length=1,
+	)
+	return active[0] if active else None
+
+
+def _append_job_card_note(current: str | None, note: str) -> str:
+	text = (current or "").strip()
+	return f"{text}\n{note}".strip() if text else note
+
+
+def apply_job_card_part_adjustments(jc, exclude_rows=None, qty_overrides=None) -> dict:
+	"""Mirror invoice-time part reductions / removals onto the job card.
+
+	The Sales Invoice is the billing document; this keeps the Job Card costing in
+	step with it, even when the card is already Completed:
+
+	- **Reduced qty** — ``quantity_issued`` (or ``quantity_requested`` when the
+	  part was never issued) drops to the billed qty, so the card's parts cost
+	  and totals match the invoice.
+	- **Dropped line, never issued** — the row is removed from the card.
+	- **Dropped line, already issued** — stock was moved workshop → WIP by the
+	  parts issue, so the row is kept and marked returned (qty issued and
+	  requested 0, qty returned + issued). No Stock Entry is posted here; the
+	  physical part must go back through DMS Parts Return or a manual entry.
+
+	Row notes and the card's internal notes record every change. Returns a
+	summary of what was changed.
+	"""
+	excluded = normalize_exclude_rows(exclude_rows)
+	overrides = normalize_qty_overrides(qty_overrides)
+	summary = {"reduced": [], "removed": [], "marked_returned": []}
+	if not excluded and not overrides:
+		return summary
+
+	plans: list[dict] = []
+	rows_by_name: dict[str, object] = {}
+	for row in jc.get("parts") or []:
+		row_name = (_part_attr(row, "name") or "").strip()
+		if not row_name:
+			continue
+		rows_by_name[row_name] = row
+		plan = plan_part_row_adjustment(
+			row, excluded=row_name in excluded, qty=overrides.get(row_name)
+		)
+		if not plan:
+			continue
+		plan["label"] = (
+			(_part_attr(row, "part_name") or "").strip()
+			or (_part_attr(row, "item_code") or "").strip()
+			or row_name
+		)
+		plans.append(plan)
+
+	if not plans:
+		return summary
+
+	jc.check_permission("write")
+
+	# Removing a line that is still on an open parts request would orphan that
+	# request line — the parts advisor must cancel it first.
+	for plan in plans:
+		if plan["action"] != "remove":
+			continue
+		active_pr = _active_parts_request_name(rows_by_name.get(plan["row"]))
+		if active_pr:
+			frappe.throw(
+				_(
+					"Part {0} is on active parts request {1}. Cancel that request "
+					"before removing the part from the invoice."
+				).format(frappe.bold(plan["label"]), frappe.bold(active_pr)),
+				title=_("Cannot remove part"),
+			)
+
+	notes: list[str] = []
+	for plan in plans:
+		row = rows_by_name.get(plan["row"])
+		if row is None:
+			continue
+
+		if plan["action"] == "remove":
+			jc.remove(row)
+			summary["removed"].append({"row": plan["row"], "item_code": plan["item_code"]})
+			notes.append(
+				_("Part {0}: removed from this job card while raising the invoice.").format(
+					plan["label"]
+				)
+			)
+			continue
+
+		if plan["action"] == "mark_returned":
+			row.quantity_returned = plan["quantity_returned"]
+			row.quantity_issued = plan["quantity_issued"]
+			row.quantity_requested = plan["quantity_requested"]
+			row.line_status = "Returned"
+			summary["marked_returned"].append(
+				{"row": plan["row"], "item_code": plan["item_code"], "qty": plan["issued"]}
+			)
+			note = _(
+				"Part {0}: not billed — {1} issued marked returned while raising the invoice. "
+				"Return the physical part with DMS Parts Return (or a manual Stock Entry); "
+				"no stock movement was posted automatically."
+			).format(plan["label"], plan["issued"])
+		else:
+			if "quantity_issued" in plan:
+				row.quantity_issued = plan["quantity_issued"]
+			if "quantity_requested" in plan:
+				row.quantity_requested = plan["quantity_requested"]
+			summary["reduced"].append(
+				{
+					"row": plan["row"],
+					"item_code": plan["item_code"],
+					"from": plan["from"],
+					"to": plan["to"],
+				}
+			)
+			note = _(
+				"Part {0}: billable qty reduced from {1} to {2} while raising the invoice."
+			).format(plan["label"], plan["from"], plan["to"])
+
+		row.notes = _append_job_card_note(_part_attr(row, "notes"), note)
+		notes.append(note)
+
+	if notes and jc.meta.has_field("internal_notes"):
+		jc.internal_notes = _append_job_card_note(jc.get("internal_notes"), "\n".join(notes))
+
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+
+	return summary
 
 
 def normalize_warranty_application_type(value) -> str:
@@ -1090,6 +1401,7 @@ def build_invoice_preview_from_job_card(
 	parts_discount=None,
 	rate_overrides=None,
 	exclude_rows=None,
+	qty_overrides=None,
 ) -> dict:
 	"""Return billable lines and totals for UI preview before creating a Sales Invoice."""
 	_ensure_erpnext()
@@ -1116,10 +1428,12 @@ def build_invoice_preview_from_job_card(
 	)
 
 	overrides = normalize_rate_overrides(rate_overrides)
-	excluded = _assert_exclude_rows_never_requested(
-		jc.get("parts") or [], normalize_exclude_rows(exclude_rows), job_card=jc.name
+	excluded, qty_edits = validate_part_row_adjustments(
+		jc.get("parts") or [], exclude_rows=exclude_rows, qty_overrides=qty_overrides
 	)
-	lines = _build_preview_lines(jc, warranty_type, overrides, exclude_rows=excluded)
+	lines = _build_preview_lines(
+		jc, warranty_type, overrides, exclude_rows=excluded, qty_overrides=qty_edits
+	)
 
 	if not lines:
 		frappe.throw(
@@ -1203,6 +1517,7 @@ def create_sales_invoice_from_dms_job_card(
 	apply_taxes: bool = False,
 	posting_date: str | None = None,
 	exclude_rows=None,
+	qty_overrides=None,
 	remarks: str | None = None,
 	apply_tax_withholding=None,
 ) -> str:
@@ -1239,10 +1554,12 @@ def create_sales_invoice_from_dms_job_card(
 		)
 
 	warranty_type = normalize_warranty_application_type(jc.warranty_application_type)
-	excluded = _assert_exclude_rows_never_requested(
-		jc.get("parts") or [], normalize_exclude_rows(exclude_rows), job_card=jc.name
+	excluded, qty_edits = validate_part_row_adjustments(
+		jc.get("parts") or [], exclude_rows=exclude_rows, qty_overrides=qty_overrides
 	)
-	preview = build_invoice_preview_from_job_card(job_card_name, exclude_rows=list(excluded))
+	preview = build_invoice_preview_from_job_card(
+		job_card_name, exclude_rows=list(excluded), qty_overrides=qty_edits
+	)
 	has_labour = preview.get("has_labour")
 
 	if has_labour and not due_date:
@@ -1277,7 +1594,15 @@ def create_sales_invoice_from_dms_job_card(
 		_apply_rate_overrides_to_job_card(jc, overrides)
 		jc = frappe.get_doc("DMS Job Card", job_card_name)
 
-	line_fields = append_si_items(si, jc, warranty_type, overrides, exclude_rows=excluded)
+	# Mirror the reduced / dropped part lines onto the Job Card so its costing
+	# tallies with this invoice (works on already submitted / completed cards).
+	if excluded or qty_edits:
+		apply_job_card_part_adjustments(jc, excluded, qty_edits)
+		jc = frappe.get_doc("DMS Job Card", job_card_name)
+
+	line_fields = append_si_items(
+		si, jc, warranty_type, overrides, exclude_rows=excluded, qty_overrides=qty_edits
+	)
 	if not si.get("items"):
 		frappe.throw(
 			_(
@@ -1416,6 +1741,7 @@ def _append_preview_line(
 	source_row: str | None = None,
 	issue: str | None = None,
 	never_requested: bool = False,
+	max_qty: float | None = None,
 ) -> None:
 	pricing = resolve_invoice_line_pricing(
 		line_type, base_rate, qty, warranty_application_type
@@ -1437,6 +1763,8 @@ def _append_preview_line(
 			"is_warranty_covered": pricing["is_warranty_covered"],
 			"source_row": source_row,
 			"never_requested": never_requested,
+			# Highest quantity the UI may bill on this line (job card qty).
+			"max_qty": round(flt(max_qty), 2) if max_qty is not None else None,
 		}
 	)
 
@@ -1444,10 +1772,12 @@ def _append_preview_line(
 def _build_preview_lines(
 	jc, warranty_application_type: str, rate_overrides: dict[str, float] | None = None,
 	exclude_rows: set[str] | None = None,
+	qty_overrides: dict[str, float] | None = None,
 ) -> list[dict]:
 	"""Build preview line dicts; include all labour/parts with qty, apply warranty rates."""
 	lines: list[dict] = []
 	overrides = rate_overrides or {}
+	qty_edits = qty_overrides or {}
 	has_labour = bool(jc.get("labour"))
 
 	if has_labour:
@@ -1518,7 +1848,7 @@ def _build_preview_lines(
 		if exclude_rows and part.name in exclude_rows:
 			continue
 
-		qty = part_issue_qty(part)
+		qty = part_billable_qty(part, qty_edits)
 		if qty <= 0:
 			continue
 
@@ -1542,6 +1872,7 @@ def _build_preview_lines(
 			warranty_application_type=warranty_application_type,
 			source_row=part.name,
 			never_requested=part.name in never_requested_rows,
+			max_qty=part_issue_qty(part),
 		)
 
 	return lines
@@ -1961,7 +2292,10 @@ def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -
 			row.custom_dms_discount = dms_discounts[idx]
 
 
-def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=None, exclude_rows=None):
+def append_si_items(
+	si, jc, warranty_application_type: str = "", rate_overrides=None, exclude_rows=None,
+	qty_overrides=None,
+):
 	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items; warranty-aware rates."""
 
 	warranty_application_type = normalize_warranty_application_type(
@@ -1969,6 +2303,7 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 	)
 	overrides = normalize_rate_overrides(rate_overrides)
 	excluded = normalize_exclude_rows(exclude_rows)
+	qty_edits = normalize_qty_overrides(qty_overrides)
 	line_fields: list[dict] = []
 
 	def _append_priced_item(item_code: str, qty: float, pricing: dict):
@@ -2054,7 +2389,7 @@ def append_si_items(si, jc, warranty_application_type: str = "", rate_overrides=
 		if excluded and part.name in excluded:
 			continue
 
-		qty = part_issue_qty(part)
+		qty = part_billable_qty(part, qty_edits)
 		if qty <= 0:
 			continue
 

@@ -89,6 +89,11 @@ interface PartRow {
   quantity: number;
   unit_price: number;
   never_requested?: boolean;
+  /**
+   * Job card billable quantity — the highest quantity that may be invoiced for
+   * this row. Set for rows that came from a job card.
+   */
+  max_quantity?: number;
 }
 
 function emptyLabourRow(): LabourRow {
@@ -120,6 +125,20 @@ function buildRateOverridesFromRows(
   }
   for (const row of parts) {
     if (row.source_row) out[row.source_row] = row.unit_price;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Parts on a job card may be billed for less than the job card quantity (or
+ * dropped by removing the row). Only rows whose quantity was changed are sent.
+ */
+function buildQtyOverridesFromRows(parts: PartRow[]): invoicesSvc.QtyOverrides | undefined {
+  const out: invoicesSvc.QtyOverrides = {};
+  for (const row of parts) {
+    if (!row.source_row || row.max_quantity === undefined) continue;
+    if (Math.abs(row.quantity - row.max_quantity) < 0.0001) continue;
+    out[row.source_row] = row.quantity;
   }
   return Object.keys(out).length ? out : undefined;
 }
@@ -269,15 +288,24 @@ export default function NewInvoicePage() {
       estimated_hours: sl.actual_hours || sl.estimated_hours || 1,
       rate_per_hour: sl.rate_per_hour || 0,
     }));
-    const parts: PartRow[] = (jobCard.parts || []).map((pl) => ({
-      source_row: pl.name,
-      item_code: pl.item_code || "",
-      item_name: pl.part_name || pl.item_code || "",
-      bin_location: pl.bin_location || "",
-      quantity: pl.quantity_issued || pl.quantity_requested || pl.quantity || 1,
-      unit_price: pl.unit_price || 0,
-      never_requested: Boolean(pl.never_requested),
-    }));
+    const parts: PartRow[] = (jobCard.parts || []).map((pl) => {
+      // Mirror the backend billable qty: issued, else requested − returned.
+      const issued = pl.quantity_issued || 0;
+      const requested = pl.quantity_requested || 0;
+      const returned = pl.quantity_returned || 0;
+      const billable =
+        issued > 0 ? issued : returned > 0 ? Math.max(requested - returned, 0) : requested;
+      return {
+        source_row: pl.name,
+        item_code: pl.item_code || "",
+        item_name: pl.part_name || pl.item_code || "",
+        bin_location: pl.bin_location || "",
+        quantity: billable,
+        max_quantity: billable,
+        unit_price: pl.unit_price || 0,
+        never_requested: Boolean(pl.never_requested),
+      };
+    });
     setLabourRows(labour.length ? labour : [emptyLabourRow()]);
     setPartRows(parts.length ? parts : [emptyPartRow()]);
   }, [jobCard]);
@@ -567,17 +595,29 @@ export default function NewInvoicePage() {
     });
   };
 
-  const removeUnrequestedPartRow = (idx: number) => {
-    const row = partRows[idx];
-    if (!row?.never_requested) {
-      toast.error("Only parts that were never requested can be removed this way");
-      return;
-    }
-    if (filledLabourRows.length === 0 && filledPartRows.length <= 1) {
+  /**
+   * Drop a job card part from the invoice. Both requested and never-requested
+   * parts may be dropped — the job card and its stock movements are untouched.
+   */
+  const removeJobCardPartRow = (idx: number) => {
+    const remainingBillableParts = partRows.filter(
+      (row, i) => i !== idx && row.item_code && row.quantity > 0
+    );
+    if (filledLabourRows.length === 0 && remainingBillableParts.length === 0) {
       toast.error("Keep at least one billable line on the invoice");
       return;
     }
     removePartRow(idx);
+  };
+
+  const updatePartQuantity = (idx: number, quantity: number) => {
+    const max = partRows[idx]?.max_quantity;
+    let next = Math.max(quantity, 0);
+    if (max !== undefined && next > max) {
+      next = max;
+      toast.error(`Billed quantity cannot exceed the ${max} on the job card`);
+    }
+    updatePartRow(idx, { quantity: next });
   };
 
   const updateLabourRow = (idx: number, patch: Partial<LabourRow>) => {
@@ -602,13 +642,10 @@ export default function NewInvoicePage() {
         const remainingSourceRows = new Set(
           filledPartRows.map((r) => r.source_row).filter(Boolean) as string[]
         );
-        const removedUnrequested = (jobCard?.parts || [])
-          .filter(
-            (pl) =>
-              Boolean(pl.name) &&
-              Boolean(pl.never_requested) &&
-              !remainingSourceRows.has(pl.name)
-          )
+        // Any part dropped from the form — requested or not — is excluded from
+        // the invoice. The job card itself is never changed.
+        const removedPartRows = (jobCard?.parts || [])
+          .filter((pl) => Boolean(pl.name) && !remainingSourceRows.has(pl.name))
           .map((pl) => pl.name as string);
 
         await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
@@ -618,7 +655,8 @@ export default function NewInvoicePage() {
           applyTaxes,
           applyTaxWithholding,
           rateOverrides: buildRateOverridesFromRows(filledLabourRows, filledPartRows),
-          excludeRows: removedUnrequested.length ? removedUnrequested : undefined,
+          excludeRows: removedPartRows.length ? removedPartRows : undefined,
+          qtyOverrides: buildQtyOverridesFromRows(filledPartRows),
         });
         toast.success(asDraft ? "Invoice saved as draft" : "Invoice created successfully");
         navigate("invoices");
@@ -1126,10 +1164,19 @@ export default function NewInvoicePage() {
                 <p className="text-xs">
                   {neverRequestedPartCount} spare part
                   {neverRequestedPartCount === 1 ? " was" : "s were"} never requested on a
-                  parts requisition. Use Remove to drop {neverRequestedPartCount === 1 ? "it" : "them"}{" "}
-                  from this invoice before creating it. The job card is not changed.
+                  parts requisition. Reduce the Qty or use Remove to drop{" "}
+                  {neverRequestedPartCount === 1 ? "it" : "them"} from this invoice — the job
+                  card is updated too.
                 </p>
               </div>
+            )}
+            {jobCardId && (
+              <p className="text-xs text-muted-foreground">
+                Reducing a Qty or removing a part line also updates the job card (its billable
+                qty and totals) when the invoice is created — even after the job card is
+                Completed. A removed part that was already issued is marked Returned on the
+                card; return the physical part with Parts Return or a manual Stock Entry.
+              </p>
             )}
             {partRows.map((row, idx) => (
               <div
@@ -1174,14 +1221,30 @@ export default function NewInvoicePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:contents">
                   <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs">Qty</Label>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Qty</Label>
+                      {jobCardId && row.item_code && row.quantity <= 0 && (
+                        <Badge
+                          variant="outline"
+                          className="border-destructive/40 text-destructive"
+                        >
+                          Not billed
+                        </Badge>
+                      )}
+                    </div>
                     <DecimalInput
                       min={0}
+                      max={row.max_quantity ?? undefined}
                       value={row.quantity}
                       onValueChange={(quantity) =>
-                        updatePartRow(idx, { quantity })
+                        jobCardId ? updatePartQuantity(idx, quantity) : updatePartRow(idx, { quantity })
                       }
-                      disabled={Boolean(jobCardId)}
+                      disabled={Boolean(jobCardId) && row.max_quantity === undefined}
+                      title={
+                        row.max_quantity !== undefined
+                          ? `Bill up to ${row.max_quantity} (job card quantity)`
+                          : undefined
+                      }
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-3">
@@ -1195,18 +1258,18 @@ export default function NewInvoicePage() {
                   </div>
                 </div>
                 <div className="flex justify-end sm:col-span-2">
-                  {(isStandalone || row.never_requested) && (
+                  {(isStandalone || Boolean(row.source_row)) && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() =>
-                        jobCardId ? removeUnrequestedPartRow(idx) : removePartRow(idx)
+                        jobCardId ? removeJobCardPartRow(idx) : removePartRow(idx)
                       }
                       className="h-8 w-8 text-destructive"
                       title={
-                        row.never_requested
-                          ? "Remove this unrequested part from the invoice"
+                        jobCardId
+                          ? "Remove this part from the invoice and the job card"
                           : "Remove part"
                       }
                     >

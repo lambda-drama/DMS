@@ -219,6 +219,7 @@ def get_invoice_preview_from_job_card(
 	parts_discount=None,
 	rate_overrides=None,
 	exclude_rows=None,
+	qty_overrides=None,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		build_invoice_preview_from_job_card,
@@ -239,6 +240,7 @@ def get_invoice_preview_from_job_card(
 		parts_discount=parts_discount,
 		rate_overrides=rate_overrides,
 		exclude_rows=exclude_rows,
+		qty_overrides=qty_overrides,
 	)
 
 
