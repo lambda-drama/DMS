@@ -864,9 +864,92 @@ def pause_repair(job_card, new_status, open_logs=None):
 	return "ok"
 
 
+def job_card_material_evidence(job_card: str, doc=None) -> dict:
+	"""Evidence that the workshop requested parts / moved material for a job card.
+
+	A job card whose repair is finished must show that the required materials were
+	asked for (or transferred) — either a parts requisition, an issued/transferred
+	Stock Entry, or per-line requisition evidence.
+
+	Returns ``{"has_parts", "requested", "never_requested"}`` where
+	``never_requested`` counts part lines with no requisition trace at all.
+	"""
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		never_requested_part_row_names,
+	)
+
+	doc = doc or frappe.get_doc("DMS Job Card", job_card)
+	doc_name = (doc.get("name") or getattr(doc, "name", "") or "").strip() or (job_card or "").strip()
+	parts = doc.get("parts") or []
+	row_names = [((row.get("name") if hasattr(row, "get") else None) or "").strip() for row in parts]
+	row_names = [name for name in row_names if name]
+
+	requested = bool(
+		(doc.get("wip_material_transfer") or "").strip()
+		or (doc.get("material_issue") or "").strip()
+	)
+
+	# Parts lines carry their own requisition trace (qty issued, workflow status,
+	# linked requisition) — the same check the invoices use for "never requested".
+	never_requested = never_requested_part_row_names(parts, job_card=doc_name) if row_names else set()
+	if row_names and len(never_requested) < len(row_names):
+		requested = True
+
+	if not requested and frappe.db.exists("DocType", "DMS Parts Request"):
+		requested = bool(
+			frappe.get_all(
+				"DMS Parts Request",
+				filters={"job_card": doc_name, "status": ["!=", "Cancelled"]},
+				pluck="name",
+				limit=1,
+			)
+		)
+
+	return {
+		"has_parts": bool(row_names),
+		"requested": requested,
+		"never_requested": len(never_requested),
+	}
+
+
+def material_request_completion_reason(job_card: str, doc=None) -> str | None:
+	"""Reason Complete Repair is blocked, or ``None`` when it may proceed."""
+	evidence = job_card_material_evidence(job_card, doc=doc)
+	if not evidence["has_parts"] or evidence["requested"]:
+		return None
+	return _(
+		"Request the parts or transfer the materials for this job card before completing the repair."
+	)
+
+
+def assert_material_request_before_completion(job_card: str, doc=None) -> None:
+	"""Block Complete Repair while nothing was requested or transferred."""
+	reason = material_request_completion_reason(job_card, doc=doc)
+	if reason:
+		frappe.throw(reason, title=_("Material request required"))
+
+
+@frappe.whitelist()
+def can_complete_repair(job_card):
+	"""UI guard used by the Desk form before marking the repair completed."""
+	frappe.has_permission("DMS Job Card", "read", job_card, throw=True)
+	doc = frappe.get_doc("DMS Job Card", job_card)
+	evidence = job_card_material_evidence(job_card, doc=doc)
+	reason = material_request_completion_reason(job_card, doc=doc)
+	return {
+		"allowed": not reason,
+		"has_parts": evidence["has_parts"],
+		"never_requested": evidence["never_requested"],
+		"reason": reason or "",
+	}
+
+
 @frappe.whitelist()
 def stop_repair(job_card, open_logs=None, completed_date_time=None):
 	# Always stamp completion with server time so it matches start_time timezone.
+	doc = frappe.get_doc("DMS Job Card", job_card)
+	assert_material_request_before_completion(doc.name, doc=doc)
+
 	prev = frappe.db.get_value("DMS Job Card", job_card, "status")
 	_, completed_at = _close_open_time_logs(job_card, open_logs=open_logs)
 

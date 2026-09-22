@@ -1339,6 +1339,25 @@ function pause_repair(frm) {
 }
 
 function stop_repair(frm) {
+    frappe.call({
+        method: "dms.dealer_management_system.doctype.dms_job_card.dms_job_card.can_complete_repair",
+        args: { job_card: frm.doc.name },
+        callback: (r) => {
+            const check = r.message || {};
+            if (!check.allowed) {
+                frappe.msgprint({
+                    title: __("Cannot Complete Repair"),
+                    message: check.reason || __("Request the parts or transfer the materials before completing the repair."),
+                    indicator: "orange"
+                });
+                return;
+            }
+            confirm_stop_repair(frm);
+        }
+    });
+}
+
+function confirm_stop_repair(frm) {
     frappe.confirm(__("Mark repair as completed? This will record all time logs."), () => {
         const now = frappe.datetime.now_datetime();
 

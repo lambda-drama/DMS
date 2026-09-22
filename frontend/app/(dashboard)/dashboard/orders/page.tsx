@@ -478,6 +478,18 @@ export default function OrdersPage() {
             </DetailSection>
             <DetailSection title="Amounts">
               <DetailRow
+                label="Net total"
+                value={formatMoney(selected.net_total ?? selected.grand_total, selected.currency)}
+              />
+              <DetailRow
+                label="VAT"
+                value={
+                  Number(selected.total_taxes_and_charges) > 0
+                    ? formatMoney(selected.total_taxes_and_charges, selected.currency)
+                    : 'Not included'
+                }
+              />
+              <DetailRow
                 label="Order total"
                 value={formatMoney(selected.grand_total, selected.currency)}
               />

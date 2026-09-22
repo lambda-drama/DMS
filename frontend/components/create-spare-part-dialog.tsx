@@ -29,7 +29,8 @@ import { usePermissions } from '@/contexts/permissions-context';
 interface CreateSparePartDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated?: (itemCode: string, itemName: string) => void;
+  /** `sparePart` is the Spare Part record auto-created for the Item, when enabled. */
+  onCreated?: (itemCode: string, itemName: string, sparePart?: string | null) => void;
 }
 
 interface MastersOptions {
@@ -109,7 +110,7 @@ export function CreateSparePartDialog({
 
     setSaving(true);
     try {
-      await stockSvc.createStockItem({
+      const result = await stockSvc.createStockItem({
         item_code: itemCode.trim(),
         item_name: itemName.trim(),
         item_group: itemGroup,
@@ -119,7 +120,7 @@ export function CreateSparePartDialog({
       });
 
       toast.success(`Spare part "${itemName}" created successfully`);
-      onCreated?.(itemCode.trim(), itemName.trim());
+      onCreated?.(itemCode.trim(), itemName.trim(), result?.spare_part || null);
       handleClose();
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Failed to create spare part';
