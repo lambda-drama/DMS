@@ -107,6 +107,7 @@ export function CreateInvoiceDialog({
   const [remark, setRemark] = useState('');
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
   const [excludedRows, setExcludedRows] = useState<string[]>([]);
+  const [editedQty, setEditedQty] = useState<Record<string, number>>({});
   const skipWarrantyRefetch = useRef(true);
 
   const applyDiscountsFromPreview = useCallback((data: InvoicePreview) => {
@@ -134,7 +135,8 @@ export function CreateInvoiceDialog({
       partsMode: InvoiceDiscountMode,
       partsInput: string,
       rates: Record<string, number>,
-      excluded: string[]
+      excluded: string[],
+      qty: Record<string, number>
     ) => {
       const warrantyApplicationType =
         warranty === 'none' ? '' : (warranty as WarrantyApplicationType);
@@ -154,6 +156,7 @@ export function CreateInvoiceDialog({
         partsDiscount,
         rateOverrides,
         excludeRows: excluded.length ? excluded : undefined,
+        qtyOverrides: Object.keys(qty).length > 0 ? qty : undefined,
       });
     },
     [jobCardId]
@@ -183,6 +186,7 @@ export function CreateInvoiceDialog({
     setPreview(null);
     setEditedRates({});
     setExcludedRows([]);
+    setEditedQty({});
     setDueDate(defaultDueDate());
     setPostingDate(todayLocalDate());
     setSubmitInvoice(true);
@@ -230,7 +234,8 @@ export function CreateInvoiceDialog({
         partsDiscountMode,
         partsDiscountInput,
         editedRates,
-        excludedRows
+        excludedRows,
+        editedQty
       )
         .then((data) => {
           if (!cancelled) setPreview(data);
@@ -257,14 +262,16 @@ export function CreateInvoiceDialog({
     partsDiscountInput,
     editedRates,
     excludedRows,
+    editedQty,
     open,
     jobCardId,
     loadPreview,
   ]);
 
-  const handleRemoveUnrequestedPart = (sourceRow?: string) => {
+  const handleRemovePart = (sourceRow?: string) => {
     if (!sourceRow || !preview) return;
-    if (!preview.lines.some((line) => line.source_row === sourceRow && line.never_requested)) {
+    // Only parts lines can be dropped — the job card itself is left untouched.
+    if (!preview.lines.some((line) => line.source_row === sourceRow && line.line_type === 'Parts')) {
       return;
     }
     if (preview.lines.length <= 1) {
@@ -272,6 +279,16 @@ export function CreateInvoiceDialog({
       return;
     }
     setExcludedRows((prev) => (prev.includes(sourceRow) ? prev : [...prev, sourceRow]));
+  };
+
+  const handleRestoreRemoved = () => {
+    if (!excludedRows.length) return;
+    setExcludedRows([]);
+    setEditedQty((prev) => {
+      const next = { ...prev };
+      for (const row of excludedRows) delete next[row];
+      return next;
+    });
   };
 
   const handleCreate = async () => {
@@ -326,6 +343,7 @@ export function CreateInvoiceDialog({
         rateOverrides:
           Object.keys(editedRates).length > 0 ? editedRates : undefined,
         excludeRows: excludedRows.length ? excludedRows : undefined,
+        qtyOverrides: Object.keys(editedQty).length > 0 ? editedQty : undefined,
         // Always send (even when empty) so clearing the field clears it on the job card.
         remarks: remark,
       });
@@ -398,16 +416,29 @@ export function CreateInvoiceDialog({
                   <p className="text-xs">
                     {neverRequestedCount} spare part
                     {neverRequestedCount === 1 ? ' was' : 's were'} never requested on a parts
-                    requisition. Remove {neverRequestedCount === 1 ? 'it' : 'them'} from this
-                    invoice if {neverRequestedCount === 1 ? 'it should' : 'they should'} not be
-                    billed. The job card is not changed.
+                    requisition. You can still reduce the billed quantity or remove
+                    {neverRequestedCount === 1 ? ' it' : ' them'} from this invoice — the job
+                    card is updated too.
                   </p>
                 </div>
               )}
-              {excludedRows.length > 0 && neverRequestedCount === 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Reducing a spare part quantity or removing a part line also updates the job
+                card (billable qty and totals) when the invoice is created — even after the job
+                card is Completed. A removed part that was already issued is marked Returned on
+                the card; return the physical part with Parts Return or a manual Stock Entry.
+              </p>
+              {excludedRows.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  {excludedRows.length} unrequested part
-                  {excludedRows.length === 1 ? '' : 's'} removed from this invoice.
+                  {excludedRows.length} part line{excludedRows.length === 1 ? '' : 's'} removed
+                  from this invoice.{' '}
+                  <button
+                    type="button"
+                    className="font-medium text-primary underline underline-offset-2"
+                    onClick={handleRestoreRemoved}
+                  >
+                    Restore {excludedRows.length === 1 ? 'it' : 'them'}
+                  </button>
                 </p>
               )}
             </div>
@@ -474,7 +505,9 @@ export function CreateInvoiceDialog({
 
             <p className="text-xs text-muted-foreground">
               Recommended prices are pre-filled from the item master — adjust the Rate column
-              when the customer agrees to a different selling price.
+              when the customer agrees to a different selling price. Spare part quantities can be
+              reduced (parts only), and any part line can be removed — the job card is updated to
+              match when you create the invoice.
             </p>
 
             <div className="dms-table-panel rounded-md border">
@@ -532,7 +565,41 @@ export function CreateInvoiceDialog({
                       >
                         {line.description}
                       </TableCell>
-                      <TableCell className="text-right">{line.qty}</TableCell>
+                      <TableCell className="text-right">
+                        {line.line_type === 'Parts' && line.source_row ? (
+                          <DecimalInput
+                            min={0}
+                            max={line.max_qty ?? undefined}
+                            className="ml-auto h-8 w-20 text-right"
+                            blankWhenZero={false}
+                            value={editedQty[line.source_row] ?? line.qty}
+                            onValueChange={(value) => {
+                              const rowKey = line.source_row!;
+                              const maxQty = line.max_qty ?? line.qty;
+                              const next = Math.min(Math.max(value, 0), maxQty);
+                              setEditedQty((prev) => ({ ...prev, [rowKey]: next }));
+                              // Zero quantity bills nothing — drop the line and let the user
+                              // restore it from the removed-lines notice.
+                              setExcludedRows((prev) => {
+                                if (next > 0) {
+                                  return prev.filter((row) => row !== rowKey);
+                                }
+                                return prev.includes(rowKey) ? prev : [...prev, rowKey];
+                              });
+                            }}
+                            onBlur={() => {
+                              skipWarrantyRefetch.current = false;
+                            }}
+                            title={
+                              line.max_qty != null
+                                ? `Bill up to ${line.max_qty} (job card quantity)`
+                                : undefined
+                            }
+                          />
+                        ) : (
+                          line.qty
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         {line.source_row ? (
                           <DecimalInput
@@ -582,14 +649,18 @@ export function CreateInvoiceDialog({
                         </TableCell>
                       ) : null}
                       <TableCell className="text-right">
-                        {line.never_requested && line.source_row ? (
+                        {line.line_type === 'Parts' && line.source_row ? (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             className="h-8 px-2 text-destructive hover:text-destructive"
-                            onClick={() => handleRemoveUnrequestedPart(line.source_row)}
-                            title="Remove this unrequested part from the invoice"
+                            onClick={() => handleRemovePart(line.source_row)}
+                            title={
+                              line.never_requested
+                                ? 'Remove this unrequested part from the invoice and the job card'
+                                : 'Remove this part from the invoice and the job card'
+                            }
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only sm:not-sr-only sm:ml-1">Remove</span>

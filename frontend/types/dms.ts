@@ -1363,6 +1363,11 @@ export interface InvoicePreviewLine {
   dms_discount?: number;
   /** True when the part was never included on a Parts Request for this job card. */
   never_requested?: boolean;
+  /**
+   * Highest quantity that may be billed on this line (job card qty). Parts only —
+   * the user may bill less, never more.
+   */
+  max_qty?: number | null;
 }
 
 export interface InvoicePreview {

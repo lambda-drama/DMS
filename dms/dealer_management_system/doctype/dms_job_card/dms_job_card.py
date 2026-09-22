@@ -476,6 +476,7 @@ def make_sales_invoice_from_job_card(
 	apply_taxes=0,
 	posting_date=None,
 	exclude_rows=None,
+	qty_overrides=None,
 	remarks=None,
 	apply_tax_withholding=None,
 ):
@@ -502,6 +503,7 @@ def make_sales_invoice_from_job_card(
 		apply_taxes=bool(int(apply_taxes or 0)),
 		posting_date=posting_date or None,
 		exclude_rows=exclude_rows,
+		qty_overrides=qty_overrides,
 		remarks=remarks,
 		apply_tax_withholding=(
 			None if apply_tax_withholding is None else bool(int(apply_tax_withholding or 0))

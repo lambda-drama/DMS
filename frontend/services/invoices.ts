@@ -54,6 +54,8 @@ export async function listInvoicesPaginated(options?: {
 }
 
 export type RateOverrides = Record<string, number>;
+/** Job Card Part Item row name -> billed quantity (reduced from the job card qty). */
+export type QtyOverrides = Record<string, number>;
 
 export async function getInvoicePreviewFromJobCard(
   jobCard: string,
@@ -64,6 +66,7 @@ export async function getInvoicePreviewFromJobCard(
     partsDiscount?: StandaloneInvoiceGroupDiscount;
     rateOverrides?: RateOverrides;
     excludeRows?: string[];
+    qtyOverrides?: QtyOverrides;
   }
 ): Promise<InvoicePreview> {
   return apiRequest<InvoicePreview>(
@@ -78,6 +81,10 @@ export async function getInvoicePreviewFromJobCard(
         parts_discount: options?.partsDiscount ?? null,
         rate_overrides: options?.rateOverrides ?? null,
         exclude_rows: options?.excludeRows?.length ? options.excludeRows : null,
+        qty_overrides:
+          options?.qtyOverrides && Object.keys(options.qtyOverrides).length
+            ? options.qtyOverrides
+            : null,
       }),
     }
   );
@@ -159,6 +166,8 @@ export async function createInvoiceFromJobCard(
      */
     applyTaxWithholding?: boolean;
     excludeRows?: string[];
+    /** Job Card Part Item row name -> billed qty (bill less than the job card qty). */
+    qtyOverrides?: QtyOverrides;
     /** Saved on the linked Job Card's `remark` field and shown on the invoice detail. */
     remarks?: string;
   }
@@ -178,6 +187,10 @@ export async function createInvoiceFromJobCard(
       apply_taxes: options?.applyTaxes ? 1 : 0,
       apply_tax_withholding: options?.applyTaxWithholding ? 1 : 0,
       exclude_rows: options?.excludeRows?.length ? options.excludeRows : null,
+      qty_overrides:
+        options?.qtyOverrides && Object.keys(options.qtyOverrides).length
+          ? options.qtyOverrides
+          : null,
       remarks: options?.remarks ?? null,
     }),
   });
