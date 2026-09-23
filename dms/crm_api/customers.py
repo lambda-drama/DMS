@@ -10,6 +10,7 @@ from frappe.utils import cint, flt, getdate, today
 from dms.crm_api.common import ensure_crm_create, ensure_crm_read, ensure_crm_write, parse_json
 from dms.crm_api.contacts import _dms_customer_groups
 from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
+from dms.utils.customer_contact import UNSET, changed_contact_values, sync_customer_contact
 
 GATE = "DMS CRM Lead"
 
@@ -1020,10 +1021,16 @@ def update_customer(name, data=None):
 				frappe.throw(_("Customer group must be a DMS vehicle customer group."))
 			doc.customer_group = customer_group
 
-	if "mobile_no" in payload:
-		doc.mobile_no = (payload.get("mobile_no") or "").strip() or None
-	if "email_id" in payload:
-		doc.email_id = (payload.get("email_id") or "").strip() or None
+	# Decide against the values the form was seeded with (the Customer row as it
+	# is now) because doc.save() below re-derives these read-only columns from
+	# the primary Contact.
+	contact_updates: dict = {}
+	if "mobile_no" in payload or "email_id" in payload:
+		contact_updates = changed_contact_values(
+			name,
+			mobile_no=payload.get("mobile_no") if "mobile_no" in payload else UNSET,
+			email_id=payload.get("email_id") if "email_id" in payload else UNSET,
+		)
 	if "territory" in payload:
 		doc.territory = (payload.get("territory") or "").strip() or None
 	if "tax_id" in payload and hasattr(doc, "tax_id"):
@@ -1032,6 +1039,15 @@ def update_customer(name, data=None):
 		doc.website = (payload.get("website") or "").strip() or None
 
 	doc.save()
+
+	# Customer.mobile_no / Customer.email_id are read-only fetch_from fields
+	# pointing at customer_primary_contact, so Frappe overwrites them with the
+	# Contact's (stale) values on every save. Write them on the Contact instead
+	# and mirror the result back onto the Customer row.
+	if contact_updates:
+		sync_customer_contact(name, **contact_updates)
+		doc.reload()
+
 	frappe.db.commit()
 	return {
 		"ok": True,
