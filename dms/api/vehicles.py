@@ -262,6 +262,30 @@ def update_vehicle(name, data):
 
 
 @frappe.whitelist()
+def get_vehicle_item_groups():
+	"""Item Groups flagged as vehicles (``custom_is_vehicle``).
+
+	Only these groups may hold a vehicle Item, so the "create vehicle item" form
+	offers nothing else. Groups that auto-generate spare parts are skipped, the
+	same rule ``get_vehicle_items`` uses for the vehicle dropdown.
+	"""
+	meta = frappe.get_meta("Item Group")
+	if not meta.has_field("custom_is_vehicle"):
+		return []
+
+	filters = {"custom_is_vehicle": 1}
+	if meta.has_field("custom_auto_generate_spare_parts"):
+		filters["custom_auto_generate_spare_parts"] = ["!=", 1]
+
+	return frappe.get_all(
+		"Item Group",
+		filters=filters,
+		pluck="name",
+		order_by="name asc",
+	)
+
+
+@frappe.whitelist()
 def get_vehicle_items(search=None, limit=20):
 	"""Get Item records filtered to vehicles (Item Group with custom_is_vehicle checked).
 

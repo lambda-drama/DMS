@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { fetchVehicleCustomerGroupOptions } from '@/services/common';
 import { quickCreateDoc, type QuickCreateDocType } from '@/services/quickCreate';
+import { fetchVehicleItemGroups } from '@/services/vehicles';
 
 function invalidateAfterCreate(
   mutate: ReturnType<typeof useSWRConfig>['mutate'],
@@ -43,6 +44,7 @@ function invalidateAfterCreate(
         const k0 = key[0];
         if (doctype === 'Customer' && (k0 === 'customers' || k0 === 'customers-paginated')) return true;
         if (doctype === 'Color' && k0 === 'colors') return true;
+        if (doctype === 'Item' && (k0 === 'vehicle-items' || k0 === 'vehicle-item-groups')) return true;
         if (doctype === 'Vehicle Service Type' && k0 === 'vehicle-service-types') return true;
         if (doctype === 'Technician' && (k0 === 'technicians' || k0 === 'technicians-list')) return true;
       }
@@ -102,6 +104,12 @@ export function LinkWithCreate({
 
   const [colorName, setColorName] = useState('');
 
+  const [itemCode, setItemCode] = useState('');
+  const [itemName, setItemName] = useState('');
+  const [itemGroup, setItemGroup] = useState('');
+  const [itemGroups, setItemGroups] = useState<string[]>([]);
+  const [itemBrand, setItemBrand] = useState('');
+
   const [advFirst, setAdvFirst] = useState('');
   const [advLast, setAdvLast] = useState('');
   const [advPhone, setAdvPhone] = useState('');
@@ -140,6 +148,29 @@ export function LinkWithCreate({
           if (!cancelled) {
             setCustomerGroups([]);
             setCustomerGroup('');
+          }
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (doctype === 'Item') {
+      setItemCode('');
+      setItemName('');
+      setItemBrand('');
+      let cancelled = false;
+      (async () => {
+        try {
+          const groups = await fetchVehicleItemGroups();
+          if (cancelled) return;
+          setItemGroups(groups);
+          setItemGroup(groups[0] || '');
+        } catch {
+          if (!cancelled) {
+            setItemGroups([]);
+            setItemGroup('');
           }
         }
       })();
@@ -237,6 +268,23 @@ export function LinkWithCreate({
           setSaving(false);
           return;
         }
+      } else if (doctype === 'Item') {
+        values = {
+          item_code: itemCode,
+          item_name: itemName,
+          item_group: itemGroup || itemGroups[0] || '',
+          brand: itemBrand || undefined,
+        };
+        if (!itemCode.trim() || !itemName.trim()) {
+          toast.error('Item code and item name are required');
+          setSaving(false);
+          return;
+        }
+        if (!itemGroups.length) {
+          toast.error("No vehicle Item Groups found — tick 'Is Vehicle' on an Item Group first");
+          setSaving(false);
+          return;
+        }
       }
 
       const res = await quickCreateDoc(doctype, values);
@@ -259,6 +307,7 @@ export function LinkWithCreate({
   const titles: Record<QuickCreateDocType, string> = {
     Customer: 'New customer',
     Color: 'New color',
+    Item: 'New vehicle item',
     'Service Advisor': 'New service advisor',
     'Vehicle Service Type': 'New vehicle service type',
     Technician: 'New technician',
@@ -485,6 +534,59 @@ export function LinkWithCreate({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {doctype === 'Item' && (
+            <div className="grid gap-3 py-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>Item code *</Label>
+                  <Input
+                    value={itemCode}
+                    onChange={(e) => setItemCode(e.target.value)}
+                    placeholder="e.g. JETOUR-X70"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Item name *</Label>
+                  <Input
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    placeholder="e.g. Jetour X70 Plus"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Item group *</Label>
+                <Select
+                  value={itemGroup || itemGroups[0] || ''}
+                  onValueChange={setItemGroup}
+                  disabled={!itemGroups.length}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vehicle item group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {itemGroups.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Only Item Groups with <b>Is Vehicle</b> ticked are listed.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label>Brand</Label>
+                <Input
+                  value={itemBrand}
+                  onChange={(e) => setItemBrand(e.target.value)}
+                  placeholder="Optional"
+                />
               </div>
             </div>
           )}

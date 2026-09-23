@@ -65,3 +65,11 @@ export async function getVehicleItems(search?: string): Promise<VehicleItem[]> {
     body: JSON.stringify({ search: search || null }),
   });
 }
+
+/** Item Groups flagged as vehicles — the only groups a vehicle Item may be created in. */
+export async function fetchVehicleItemGroups(): Promise<string[]> {
+  return apiRequest<string[]>(`/api/method/${API}.get_vehicle_item_groups`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}

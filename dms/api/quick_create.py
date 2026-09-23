@@ -14,6 +14,7 @@ ALLOWED_DOCTYPES = frozenset(
 	{
 		"Customer",
 		"Color",
+		"Item",
 		"Service Advisor",
 		"Parts Advisor",
 		"DMS Internal Employee",
@@ -48,6 +49,8 @@ def quick_create_doc(doctype, values=None):
 		doc_dict = _quick_create_customer(values)
 	elif doctype == "Color":
 		doc_dict = _quick_create_color(values)
+	elif doctype == "Item":
+		doc_dict = _quick_create_item(values)
 	elif doctype == "Service Advisor":
 		doc_dict = _quick_create_service_advisor(values)
 	elif doctype == "Parts Advisor":
@@ -68,8 +71,60 @@ def quick_create_doc(doctype, values=None):
 		label = get_color_display_label(doc.as_dict())
 	elif doctype == "Vehicle Service Type":
 		label = doc.get("service_type_name") or doc.name
+	elif doctype == "Item":
+		label = doc.get("item_name") or doc.name
 	if label:
 		out["label"] = label
+	return out
+
+
+def _assert_vehicle_item_group(item_group):
+	"""The Item Group must be flagged as a vehicle — nothing else is allowed."""
+	item_group = (item_group or "").strip()
+	if not item_group:
+		frappe.throw(_("Item Group is required"))
+
+	meta = frappe.get_meta("Item Group")
+	if not meta.has_field("custom_is_vehicle"):
+		frappe.throw(_("Item Groups are not configured for vehicles on this site."))
+
+	if not frappe.db.exists("Item Group", {"name": item_group, "custom_is_vehicle": 1}):
+		frappe.throw(
+			_("Item Group {0} is not a vehicle group (tick 'Is Vehicle' on the Item Group).").format(
+				frappe.bold(item_group)
+			)
+		)
+
+
+def _quick_create_item(values):
+	"""Create a vehicle Item. The Item Group must have 'Is Vehicle' ticked."""
+	item_code = (values.get("item_code") or "").strip()
+	item_name = (values.get("item_name") or "").strip()
+	item_group = (values.get("item_group") or "").strip()
+
+	if not item_code:
+		frappe.throw(_("Item Code is required"))
+	if not item_name:
+		frappe.throw(_("Item Name is required"))
+	_assert_vehicle_item_group(item_group)
+	if frappe.db.exists("Item", item_code):
+		frappe.throw(_("Item {0} already exists").format(frappe.bold(item_code)))
+
+	out = {
+		"doctype": "Item",
+		"item_code": item_code,
+		"item_name": item_name,
+		"item_group": item_group,
+		"stock_uom": (values.get("stock_uom") or "").strip() or "Nos",
+		"is_stock_item": 1,
+		"has_serial_no": 1,
+	}
+	brand = (values.get("brand") or "").strip()
+	if brand:
+		out["brand"] = brand
+	description = (values.get("description") or "").strip()
+	if description:
+		out["description"] = description
 	return out
 
 
