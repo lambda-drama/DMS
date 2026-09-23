@@ -6,6 +6,7 @@ import { apiRequest } from './apiClient';
 export type QuickCreateDocType =
   | 'Customer'
   | 'Color'
+  | 'Item'
   | 'Service Advisor'
   | 'Vehicle Service Type'
   | 'Technician';

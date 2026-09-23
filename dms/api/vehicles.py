@@ -1,12 +1,24 @@
 import frappe
 from frappe import _
+from frappe.utils import cint
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies, resolve_dms_customer
-from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
+from dms.dealer_management_system.utils.company_permissions import (
+	apply_vin_company_scope,
+	assert_dms_company_access,
+)
 
 
 @frappe.whitelist()
-def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=None, warranty_status=None):
+def get_vehicles(
+	limit=50,
+	offset=0,
+	customer=None,
+	search=None,
+	vehicle_status=None,
+	warranty_status=None,
+	include_other_companies=0,
+):
 	filters = {}
 	if customer:
 		filters["current_customer"] = customer
@@ -18,8 +30,12 @@ def get_vehicles(limit=50, offset=0, customer=None, search=None, vehicle_status=
 		else:
 			filters["warranty_status"] = warranty_status
 
-	# Company scope: vehicles belonging to another company are never listed.
-	filters = apply_vin_company_scope(filters)
+	# Company scope: vehicles belonging to another company are hidden unless the
+	# caller asks for them (the "Show other companies" toggle on the Vehicles
+	# screen). Widening the scope is only honoured for users who may edit VIN No,
+	# so read-only users stay limited to the DMS Settings companies.
+	if not (cint(include_other_companies) and frappe.has_permission("VIN No", "write")):
+		filters = apply_vin_company_scope(filters)
 
 	or_filters = {}
 	if search:
@@ -205,6 +221,15 @@ def update_vehicle(name, data):
 	doc = frappe.get_doc("VIN No", name)
 	doc.check_permission("write")
 
+	# Company: keep the vehicle's current company, or move it to a company selected
+	# in DMS Settings. Those are the only two choices the Edit Vehicle dialog offers,
+	# and the rule is enforced here too. A blank value clears the company.
+	if "company" in data:
+		new_company = (data.get("company") or "").strip()
+		if new_company != (doc.company or "").strip():
+			assert_dms_company_access(new_company)
+			doc.company = new_company or None
+
 	updatable = [
 		"engine_number", "plate_number", "model", "brand", "model_variant",
 		"model_year", "fuel_type", "transmission", "drive_type",
@@ -230,9 +255,34 @@ def update_vehicle(name, data):
 
 	return {
 		"name": doc.name,
+		"company": doc.company,
 		"vehicle_status": doc.vehicle_status,
 		"warranty_status": doc.warranty_status,
 	}
+
+
+@frappe.whitelist()
+def get_vehicle_item_groups():
+	"""Item Groups flagged as vehicles (``custom_is_vehicle``).
+
+	Only these groups may hold a vehicle Item, so the "create vehicle item" form
+	offers nothing else. Groups that auto-generate spare parts are skipped, the
+	same rule ``get_vehicle_items`` uses for the vehicle dropdown.
+	"""
+	meta = frappe.get_meta("Item Group")
+	if not meta.has_field("custom_is_vehicle"):
+		return []
+
+	filters = {"custom_is_vehicle": 1}
+	if meta.has_field("custom_auto_generate_spare_parts"):
+		filters["custom_auto_generate_spare_parts"] = ["!=", 1]
+
+	return frappe.get_all(
+		"Item Group",
+		filters=filters,
+		pluck="name",
+		order_by="name asc",
+	)
 
 
 @frappe.whitelist()

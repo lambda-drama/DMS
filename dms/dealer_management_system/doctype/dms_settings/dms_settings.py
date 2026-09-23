@@ -397,14 +397,20 @@ def get_serial_vin_eligibility(serial_name):
 	"""
 	Check if a Serial No can have a VIN No created from it via the Serial No form button.
 
-	Eligible when:
-	  - The serial has an Item linked
-	  - The Item belongs to an Item Group with custom_is_vehicle ticked
-	  - No VIN No already exists for this serial (by vin_number or linked_serial)
+	Eligible whenever the serial is not already linked to a VIN No, so the button is
+	offered even when the Item Group is not flagged as a vehicle (that only produces
+	a warning). Blocked when:
+
+	  - The serial has no Item linked (a VIN No needs the Item)
+	  - The serial was itself created from a VIN No record
+	  - A VIN No already exists for this serial (by vin_number or linked_serial)
 	"""
 	serial_name = (serial_name or "").strip()
 	if not serial_name:
 		return {"eligible": False, "reason": "Serial No is required."}
+
+	if not frappe.db.exists("Serial No", serial_name):
+		return {"eligible": False, "reason": "Serial No {0} was not found.".format(serial_name)}
 
 	serial = frappe.get_doc("Serial No", serial_name)
 	item_code = serial.get("item_code")
@@ -414,27 +420,41 @@ def get_serial_vin_eligibility(serial_name):
 	if serial.get("reference_doctype") == "VIN No":
 		return {"eligible": False, "reason": "This serial number was created from a VIN No record."}
 
-	item = frappe.get_cached_doc("Item", item_code)
-	if not item.get("item_group"):
-		return {"eligible": False, "reason": "The linked Item has no Item Group."}
-
-	vehicle_groups = frappe.get_all(
-		"Item Group",
-		filters={"custom_is_vehicle": 1},
-		pluck="name",
-	)
-	if item.item_group not in vehicle_groups:
-		return {
-			"eligible": False,
-			"reason": "Item is not a vehicle (Item Group 'custom_is_vehicle' is not checked).",
-		}
-
 	from dms.utils.serial_vin_sync import get_vin_name_for_serial
 
-	if get_vin_name_for_serial(serial):
-		return {"eligible": False, "reason": "A VIN No is already linked to this serial number."}
+	existing_vin = get_vin_name_for_serial(serial)
+	if existing_vin:
+		return {
+			"eligible": False,
+			"vin_no": existing_vin,
+			"reason": "VIN No {0} is already linked to this serial number.".format(existing_vin),
+		}
 
-	return {"eligible": True}
+	# The button is offered even when the Item Group is not flagged "Is Vehicle":
+	# several real vehicle groups (e.g. Suzuki) are not flagged yet, and the serial
+	# still has no VIN. The item group is reported as a warning, not a blocker.
+	item = frappe.get_cached_doc("Item", item_code)
+	item_group = item.get("item_group") or ""
+	has_vehicle_flag = frappe.get_meta("Item Group").has_field("custom_is_vehicle")
+	is_vehicle_item = bool(
+		item_group
+		and has_vehicle_flag
+		and frappe.db.exists("Item Group", {"name": item_group, "custom_is_vehicle": 1})
+	)
+
+	response = {"eligible": True, "is_vehicle_item": is_vehicle_item}
+	if not item_group:
+		response["warning"] = (
+			"The linked Item has no Item Group. Create the VIN No only if this "
+			"serial number really is a vehicle."
+		)
+	elif not is_vehicle_item:
+		response["warning"] = (
+			"Item group {0} is not marked as a vehicle (Is Vehicle is not ticked "
+			"on the Item Group). Create the VIN No only if this serial number "
+			"really is a vehicle.".format(item_group)
+		)
+	return response
 
 
 @frappe.whitelist()

@@ -41,6 +41,7 @@ import {
   Filter,
   Fuel,
   Pencil,
+  Building2,
 } from "lucide-react";
 
 const statusOptions = [
@@ -90,10 +91,14 @@ export default function VehiclesPage() {
   const [search, setSearch] = usePersistedFilter("vehicles", "search", "");
   const [statusFilter, setStatusFilter] = usePersistedFilter("vehicles", "status", "all");
   const [warrantyFilter, setWarrantyFilter] = usePersistedFilter("vehicles", "warranty", "all");
+  const [otherCompanies, setOtherCompanies] = usePersistedFilter("vehicles", "other_companies", "0");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+
+  // "Show other companies" — vehicles belonging to companies outside DMS Settings.
+  const includeOtherCompanies = otherCompanies === "1";
 
   const { data: selectedVehicle, isLoading: detailLoading, mutate: mutateVehicle } = useVehicle(selectedId);
 
@@ -102,6 +107,7 @@ export default function VehiclesPage() {
     search: search || undefined,
     vehicle_status: statusFilter !== "all" ? statusFilter : undefined,
     warranty_status: warrantyFilter !== "all" ? warrantyFilter : undefined,
+    include_other_companies: includeOtherCompanies ? 1 : 0,
   };
 
   const { data: result, isLoading, error } = useVehicles({
@@ -119,7 +125,7 @@ export default function VehiclesPage() {
     items: result?.data,
     total: totalItems,
     offset: (page - 1) * pageSize,
-    resetKey: [search, statusFilter, warrantyFilter, customerFromUrl ?? "", page, pageSize].join("|"),
+    resetKey: [search, statusFilter, warrantyFilter, customerFromUrl ?? "", otherCompanies, page, pageSize].join("|"),
     enabled: pageSize >= LOAD_MORE_PAGE_SIZE,
     fetchMore: async (offset, limit) =>
       (await vehiclesSvc.listVehicles({ ...listFilters, limit, offset })).data,
@@ -132,7 +138,7 @@ export default function VehiclesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, warrantyFilter, customerFromUrl]);
+  }, [search, statusFilter, warrantyFilter, customerFromUrl, otherCompanies]);
 
   const stats = useMemo(() => {
     if (!vehicles) return { total: 0, inStock: 0, delivered: 0, inService: 0 };
@@ -262,6 +268,17 @@ export default function VehiclesPage() {
                 ))}
               </SelectContent>
             </Select>
+            {canWrite("vehicles") ? (
+              <Button
+                variant={includeOtherCompanies ? "default" : "outline"}
+                className="gap-2"
+                onClick={() => setOtherCompanies(includeOtherCompanies ? "0" : "1")}
+                title="Include vehicles whose company is not selected in DMS Settings"
+              >
+                <Building2 className="h-4 w-4 shrink-0" />
+                {includeOtherCompanies ? "Showing other companies" : "Show other companies"}
+              </Button>
+            ) : null}
             {customerFromUrl && (
               <Button
                 variant="outline"
@@ -301,6 +318,7 @@ export default function VehiclesPage() {
                     <TableHead>Odometer</TableHead>
                     <TableHead>Warranty</TableHead>
                     <TableHead>Status</TableHead>
+                    {includeOtherCompanies ? <TableHead>Company</TableHead> : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -394,6 +412,16 @@ export default function VehiclesPage() {
                           "—"
                         )}
                       </TableCell>
+                      {includeOtherCompanies ? (
+                        <TableCell className="text-muted-foreground text-xs">
+                          <span
+                            className="block max-w-[160px] truncate"
+                            title={v.company || undefined}
+                          >
+                            {v.company || "—"}
+                          </span>
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   ))}
                 </TableBody>

@@ -11,14 +11,21 @@ frappe.ui.form.on("Serial No", {
 				serial_name: frm.doc.name,
 			},
 			callback(r) {
-				if (r.message && r.message.eligible) {
-					frm.add_custom_button(__("Create VIN No"), () => {
-						frappe.confirm(
-							__("Create a VIN No record from this serial number?"),
-							() => create_vin_no(frm)
-						);
-					}, __("Actions"));
-				}
+				if (!r.message || !r.message.eligible) return;
+
+				const warning = r.message.warning;
+				frm.add_custom_button(
+					__("Create VIN No"),
+					() => {
+						const message = warning
+							? __(
+									"Create a VIN No record from this serial number?<br><br><b>Note:</b> {0}",
+									[warning]
+								)
+							: __("Create a VIN No record from this serial number?");
+						frappe.confirm(message, () => create_vin_no(frm));
+					}
+				);
 			},
 		});
 	},

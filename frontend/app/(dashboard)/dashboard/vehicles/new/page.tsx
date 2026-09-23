@@ -109,7 +109,8 @@ export default function NewVehiclePage() {
   const [interiorColorSearch, setInteriorColorSearch] = useState("");
   const [companySearch, setCompanySearch] = useState("");
 
-  const { data: vehicleItems } = useVehicleItems(itemSearch);
+  const { data: vehicleItems, isLoading: vehicleItemsLoading, mutate: mutateVehicleItems } =
+    useVehicleItems(itemSearch);
   const { data: vehicleModels, isLoading: vehicleModelsLoading } = useVehicleModels(modelSearch);
   const { data: customers } = useCustomers(customerSearch);
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
@@ -303,35 +304,29 @@ export default function NewVehiclePage() {
               <Label>
                 Vehicle Item <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={form.linked_item}
-                onValueChange={(v) => update("linked_item", v)}
+              <LinkWithCreate
+                doctype="Item"
+                onCreated={(name) => {
+                  update("linked_item", name);
+                  void mutateVehicleItems();
+                }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select vehicle item" />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="p-2">
-                    <Input
-                      placeholder="Search items..."
-                      value={itemSearch}
-                      onChange={(e) => setItemSearch(e.target.value)}
-                      className="mb-2"
-                    />
-                  </div>
-                  {vehicleItems && vehicleItems.length > 0 ? (
-                    vehicleItems.map((item) => (
-                      <SelectItem key={item.name} value={item.name}>
-                        {item.item_name} {item.brand ? `(${item.brand})` : ""}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                      No vehicle items found — adjust search or add Items in ERPNext
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+                <SearchableSelect
+                  value={form.linked_item}
+                  onValueChange={(v) => update("linked_item", v)}
+                  onSearchChange={setItemSearch}
+                  placeholder="Search vehicle items..."
+                  isLoading={vehicleItemsLoading}
+                  emptyMessage="No vehicle items found"
+                  options={(vehicleItems || []).map((item) => ({
+                    value: item.name,
+                    label: item.brand ? `${item.item_name} (${item.brand})` : item.item_name,
+                  }))}
+                />
+              </LinkWithCreate>
+              <p className="text-xs text-muted-foreground">
+                Vehicle items come from Item Groups with <b>Is Vehicle</b> ticked.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Vehicle Model</Label>

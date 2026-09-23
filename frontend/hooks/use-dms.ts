@@ -633,6 +633,7 @@ export function useVehicles(options?: {
   search?: string;
   vehicle_status?: string;
   warranty_status?: string;
+  include_other_companies?: number | boolean;
   limit?: number;
   offset?: number;
 }) {
