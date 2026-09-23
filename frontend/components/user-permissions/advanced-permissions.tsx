@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/searchable-select';
+import { UsersManager } from '@/components/user-permissions/users-manager';
 import * as svc from '@/services/advancedPermissions';
 import type { PermRow } from '@/services/advancedPermissions';
 
@@ -570,6 +571,8 @@ function AdvancedBody({
       />
 
       <RolePermissionGrid doctypes={data.doctypes || []} roles={shownRoles} />
+
+      <UsersManager embedded />
     </div>
   );
 }

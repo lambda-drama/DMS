@@ -150,6 +150,8 @@ def get_customers(search=None, limit=50, offset=0):
 		"mobile_no",
 		"email_id",
 		"territory",
+		"tax_id",
+		"website",
 		"modified",
 	]
 	rows = frappe.get_all(

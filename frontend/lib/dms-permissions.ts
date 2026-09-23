@@ -20,6 +20,7 @@ export type DmsPermissionModule =
   | 'sales-invoice-tc'
   | 'user-permissions'
   | 'advanced-permissions'
+  | 'users'
   | 'deliveries'
   | 'customers'
   | 'vehicles'
@@ -86,6 +87,7 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'sales-invoice-tc': 'sales-invoice-tc',
   'user-permissions': 'user-permissions',
   'advanced-permissions': 'advanced-permissions',
+  users: 'users',
   deliveries: 'deliveries',
   'delivery-new': 'deliveries',
   customers: 'customers',

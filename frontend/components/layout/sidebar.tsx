@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Truck,
   UserCheck,
+  UserCog,
   Users,
   Wallet,
   Wrench,
@@ -99,7 +100,13 @@ const navigation: NavSection[] = [
       { name: 'Item Prices', view: 'item-prices', icon: Banknote },
       { name: 'Job Card Terms', view: 'job-card-terms', icon: ScrollText },
       { name: 'Sales Invoice Terms', view: 'sales-invoice-tc', icon: FileText },
-      { name: 'User Permissions', view: 'user-permissions', icon: Shield },
+    ],
+  },
+  {
+    title: 'User & Permissions',
+    items: [
+      { name: 'User', view: 'users', icon: UserCog },
+      { name: 'Permission', view: 'user-permissions', icon: Shield },
       { name: 'Advanced Permission', view: 'advanced-permissions', icon: ShieldCheck },
     ],
   },
@@ -202,6 +209,7 @@ const DEFAULT_OPEN: Record<string, boolean> = {
   Workshop: true,
   Management: true,
   Master: false,
+  'User & Permissions': true,
   Inventory: false,
   Reports: false,
 };

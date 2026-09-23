@@ -12,11 +12,18 @@ import * as commonSvc from "@/services/common";
 import type { Customer } from "@/types/dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { EditCustomerDialog } from "@/components/customers/edit-customer-dialog";
+import { ListRowActions } from "@/components/list-row-actions";
 import { useNavigation } from "@/contexts/navigation-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -33,6 +40,8 @@ import {
   Loader2,
   Car,
   Pencil,
+  MoreHorizontal,
+  Eye,
 } from "lucide-react";
 
 export default function CustomersPage() {
@@ -43,6 +52,7 @@ export default function CustomersPage() {
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Customer | null>(null);
 
   useEffect(() => {
     const id = viewParams.get("id");
@@ -75,6 +85,12 @@ export default function CustomersPage() {
   }, [searchQuery]);
 
   const selectedCustomer = customers?.find((c) => c.name === selectedId);
+  const editCustomer = editTarget ?? selectedCustomer ?? null;
+
+  function openEdit(row: Customer) {
+    setEditTarget(row);
+    setEditOpen(true);
+  }
 
   const stats = useMemo(() => {
     if (!customers) return { total: 0, individual: 0, company: 0 };
@@ -171,24 +187,34 @@ export default function CustomersPage() {
             </div>
           ) : customers && customers.length > 0 ? (
             <div className="dms-table-panel">
-              <Table>
+              <Table className="table-fixed" style={{ minWidth: '72rem' }}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Vehicles</TableHead>
+                    <TableHead className="w-[118px]">Customer ID</TableHead>
+                    <TableHead className="w-[260px]">Name</TableHead>
+                    <TableHead className="w-[92px]">Type</TableHead>
+                    <TableHead className="w-[150px]">Group</TableHead>
+                    <TableHead className="w-[130px]">Phone</TableHead>
+                    <TableHead className="w-[180px]">Email</TableHead>
+                    <TableHead className="w-[76px]">Vehicles</TableHead>
+                    <TableHead className="w-[92px] text-right">Actions</TableHead>
+                    <TableHead className="w-auto" aria-hidden />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {customers.map((c) => (
                     <TableRow key={c.name} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedId(c.name)}>
-                      <TableCell className="font-medium">{c.name}</TableCell>
-                      <TableCell className="font-medium">{c.customer_name}</TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 py-1.5 font-medium">
+                        <span className="block truncate" title={c.name}>
+                          {c.name}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-2 py-1.5 font-medium">
+                        <span className="block truncate" title={c.customer_name || undefined}>
+                          {c.customer_name}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-2 py-1.5">
                         <Badge
                           variant="outline"
                           className={
@@ -200,30 +226,36 @@ export default function CustomersPage() {
                           {c.customer_type || "—"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {c.customer_group || "—"}
+                      <TableCell className="px-2 py-1.5 text-muted-foreground">
+                        <span className="block truncate" title={c.customer_group || undefined}>
+                          {c.customer_group || "—"}
+                        </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 py-1.5">
                         {c.mobile_no ? (
                           <span className="flex items-center gap-1 text-sm">
-                            <Phone className="h-3 w-3 text-muted-foreground" />
-                            {c.mobile_no}
+                            <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
+                            <span className="truncate" title={c.mobile_no}>
+                              {c.mobile_no}
+                            </span>
                           </span>
                         ) : (
                           "—"
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 py-1.5">
                         {c.email_id ? (
                           <span className="flex items-center gap-1 text-sm">
-                            <Mail className="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate max-w-[180px]">{c.email_id}</span>
+                            <Mail className="h-3 w-3 shrink-0 text-muted-foreground" />
+                            <span className="truncate" title={c.email_id}>
+                              {c.email_id}
+                            </span>
                           </span>
                         ) : (
                           "—"
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 py-1.5">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -234,6 +266,53 @@ export default function CustomersPage() {
                           View
                         </Button>
                       </TableCell>
+                      <TableCell className="px-2 py-1.5 text-right">
+                        <ListRowActions doctype="Customer" docName={c.name}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setSelectedId(c.name)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              {canWrite("customers") ? (
+                                <DropdownMenuItem onClick={() => openEdit(c)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit Customer
+                                </DropdownMenuItem>
+                              ) : null}
+                              <DropdownMenuItem
+                                onClick={() => navigate("vehicles", { customer: c.name })}
+                              >
+                                <Car className="mr-2 h-4 w-4" />
+                                View Vehicles
+                              </DropdownMenuItem>
+                              {c.mobile_no ? (
+                                <DropdownMenuItem
+                                  onClick={() => window.open(`tel:${c.mobile_no}`, "_self")}
+                                >
+                                  <Phone className="mr-2 h-4 w-4" />
+                                  Call
+                                </DropdownMenuItem>
+                              ) : null}
+                              {c.email_id ? (
+                                <DropdownMenuItem
+                                  onClick={() => window.open(`mailto:${c.email_id}`, "_self")}
+                                >
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  Email
+                                </DropdownMenuItem>
+                              ) : null}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </ListRowActions>
+                      </TableCell>
+                      <TableCell aria-hidden />
                     </TableRow>
                   ))}
                 </TableBody>
@@ -263,7 +342,7 @@ export default function CustomersPage() {
 
       {/* Detail slide-over */}
       <DetailSheet
-        open={!!selectedId}
+        open={!!selectedId && !editOpen}
         onOpenChange={(open) => !open && setSelectedId(null)}
         title={selectedCustomer?.customer_name || selectedId || ""}
         subtitle={selectedId || undefined}
@@ -272,7 +351,7 @@ export default function CustomersPage() {
         footer={
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             {canWrite("customers") && selectedCustomer ? (
-              <Button onClick={() => setEditOpen(true)}>
+              <Button onClick={() => openEdit(selectedCustomer)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Customer
               </Button>
@@ -315,8 +394,11 @@ export default function CustomersPage() {
 
       <EditCustomerDialog
         open={editOpen}
-        onOpenChange={setEditOpen}
-        customer={selectedCustomer || null}
+        onOpenChange={(open) => {
+          setEditOpen(open);
+          if (!open) setEditTarget(null);
+        }}
+        customer={editCustomer}
         onUpdated={() => {
           void mutate();
         }}

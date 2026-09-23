@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
@@ -60,8 +60,21 @@ export function EditCustomerDialog({
     website: '',
   });
 
+  // Only seed the form when a customer is opened (or a different one is opened).
+  // The parent screens revalidate their lists in the background — the DMS
+  // customers list polls every 30s and SWR also revalidates on window focus — and
+  // each revalidation hands us a brand-new `customer` object. Re-seeding on every
+  // prop change wiped whatever the user had typed, so Save posted the old phone /
+  // email back and nothing looked changed.
+  const seededFor = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!open || !customer) return;
+    if (!open || !customer) {
+      seededFor.current = null;
+      return;
+    }
+    if (seededFor.current === customer.name) return;
+    seededFor.current = customer.name;
     setForm({
       customer_name: customer.customer_name || '',
       customer_type: customer.customer_type || 'Individual',
