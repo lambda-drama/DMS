@@ -29,12 +29,14 @@ def ensure_runtime_custom_fields() -> None:
 	from dms.dealer_management_system.doctype.vehicle_labour_item.vehicle_labour_item import (
 		ensure_labour_display_name_field,
 	)
+	from dms.utils.user_password import ensure_force_password_field
 
 	for ensure in (
 		ensure_sales_order_dms_order_field,
 		ensure_sales_order_vehicle_vin_field,
 		_ensure_quotation_link_field,
 		ensure_labour_display_name_field,
+		ensure_force_password_field,
 	):
 		try:
 			ensure()

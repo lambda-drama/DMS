@@ -1,0 +1,18 @@
+<svg width="54" height="54" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DMS">
+<defs>
+<linearGradient id="dmsIconBg" x1="4" y1="2" x2="50" y2="52" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#F7CE45"/>
+<stop offset="0.5" stop-color="#F2B705"/>
+<stop offset="1" stop-color="#C98A02"/>
+</linearGradient>
+</defs>
+<path d="M38.5714 0H15.4286C6.90761 0 0 6.90761 0 15.4286V38.5714C0 47.0924 6.90761 54 15.4286 54H38.5714C47.0924 54 54 47.0924 54 38.5714V15.4286C54 6.90761 47.0924 0 38.5714 0Z" fill="url(#dmsIconBg)"/>
+<g transform="translate(12 12) scale(1.25)" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M11 18H15M13.5 8H14.4429C15.7533 8 16.4086 8 16.9641 8.31452C17.5196 8.62904 17.89 9.20972 18.6308 10.3711C19.1502 11.1854 19.6955 11.7765 20.4622 12.3024C21.2341 12.8318 21.6012 13.0906 21.8049 13.506C22 13.9038 22 14.375 22 15.3173C22 16.5596 22 17.1808 21.651 17.5755C21.636 17.5925 21.6207 17.609 21.6049 17.625C21.2375 18 20.6594 18 19.503 18H19"/>
+<path d="M5 18C3.58579 18 2.87868 18 2.43934 17.5607C2 17.1213 2 16.4142 2 15V8C2 6.58579 2 5.87868 2.43934 5.43934C2.87868 5 3.58579 5 5 5H10.5C11.9142 5 12.6213 5 13.0607 5.43934C13.5 5.87868 13.5 6.58579 13.5 8V18H9"/>
+<path d="M22 15H21"/>
+<path d="M8 9V13M10 11L6 11"/>
+<circle cx="17" cy="18" r="2"/>
+<circle cx="7" cy="18" r="2"/>
+</g>
+</svg>

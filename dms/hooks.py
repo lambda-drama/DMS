@@ -1,5 +1,5 @@
 app_name = "dms"
-app_title = "Dealer Management System"
+app_title = "DMS"
 app_publisher = "Mania"
 app_description = "Aftersales Service, Vehicle Inspection, Job Card, Quality Control, Warranty, Parts & Customer Management"
 app_email = "maniajrmania@gmail.com"
@@ -274,6 +274,11 @@ doc_events = {
 		"on_submit": "dms.dealer_management_system.doctype.dms_job_card.invoice_utils.sync_linked_job_card_payment_from_sales_invoice",
 		"on_update_after_submit": "dms.dealer_management_system.doctype.dms_job_card.invoice_utils.sync_linked_job_card_payment_from_sales_invoice",
 		"on_cancel": "dms.dealer_management_system.doctype.dms_job_card.invoice_utils.on_sales_invoice_cancel",
+	},
+	# Any password an admin sets (Desk or DMS Users screen) is temporary: the user is
+	# asked to choose their own password on the next sign-in.
+	"User": {
+		"before_save": "dms.utils.user_password.mark_password_change_required",
 	},
 }
 

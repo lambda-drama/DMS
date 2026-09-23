@@ -110,24 +110,15 @@ export async function changePassword(
   currentPassword: string,
   newPassword: string
 ): Promise<void> {
-  await apiRequest('/api/method/frappe.client.set_value', {
+  // dms.api.users.change_password verifies the old password server-side and keeps
+  // the session alive; the previous frappe.client.set_value call needed System
+  // Manager, so normal users could not change their own password.
+  await apiRequest('/api/method/dms.api.users.change_password', {
     method: 'POST',
     body: JSON.stringify({
-      doctype: 'User',
-      name: (await getLoggedUser())!,
-      fieldname: 'new_password',
-      value: newPassword,
+      old_password: currentPassword,
+      new_password: newPassword,
+      confirm_password: newPassword,
     }),
-  }).catch(async () => {
-    await apiRequest(
-      '/api/method/frappe.core.doctype.user.user.update_password',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          old_password: currentPassword,
-          new_password: newPassword,
-        }),
-      }
-    );
   });
 }

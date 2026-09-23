@@ -63,7 +63,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         module === 'dashboard' ||
         module === 'reports' ||
         module === 'settings' ||
-        module === 'advanced-permissions'
+        module === 'advanced-permissions' ||
+        module === 'users'
       ) {
         return truthy(p.visible);
       }
@@ -87,7 +88,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         module === 'dashboard' ||
         module === 'reports' ||
         module === 'settings' ||
-        module === 'advanced-permissions'
+        module === 'advanced-permissions' ||
+        module === 'users'
       ) {
         return truthy(p?.visible);
       }

@@ -6,8 +6,11 @@ import { NavigationProvider, useNavigation, isCrmView } from '@/contexts/navigat
 import { PermissionsProvider, usePermissions } from '@/contexts/permissions-context';
 import { WorkspaceProvider } from '@/contexts/workspace-context';
 import { PermissionGate } from '@/components/permission-gate';
+import { ForcePasswordChangeDialog } from '@/components/force-password-change';
 import { Loader2 } from 'lucide-react';
+import * as usersSvc from '@/services/users';
 import dynamic from 'next/dynamic';
+import useSWR from 'swr';
 
 const LoginPage = dynamic(() => import('./(auth)/login/page'));
 const DashboardShell = dynamic(() => import('./(dashboard)/dashboard-shell'));
@@ -48,6 +51,7 @@ const JobCardTermsPage = dynamic(() => import('./(dashboard)/dashboard/job-card-
 const SalesInvoiceTcPage = dynamic(() => import('./(dashboard)/dashboard/sales-invoice-tc/page'));
 const UserPermissionsPage = dynamic(() => import('./(dashboard)/dashboard/user-permissions/page'));
 const AdvancedPermissionsPage = dynamic(() => import('./(dashboard)/dashboard/advanced-permissions/page'));
+const UsersPage = dynamic(() => import('./(dashboard)/dashboard/users/page'));
 const CustomersPage = dynamic(() => import('./(dashboard)/dashboard/customers/page'));
 const VehiclesPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/page'));
 const VehicleNewPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/new/page'));
@@ -140,7 +144,7 @@ function LoadingScreen() {
   );
 }
 
-const RESTRICTED_VIEWS = new Set(['dashboard', 'reports', 'settings', 'advanced-permissions']);
+const RESTRICTED_VIEWS = new Set(['dashboard', 'reports', 'settings', 'advanced-permissions', 'users']);
 
 const FALLBACK_VIEWS = [
   'appointments',
@@ -195,6 +199,14 @@ function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const { activeView } = useNavigation();
 
+  // Set when an admin created the account / set a temporary password. The user must
+  // choose their own password before using the app.
+  const { data: passwordStatus, mutate: refreshPasswordStatus } = useSWR(
+    isAuthenticated ? 'dms-password-status' : null,
+    () => usersSvc.getPasswordStatus(),
+    { revalidateOnFocus: false }
+  );
+
   if (isLoading) return <LoadingScreen />;
 
   if (!isAuthenticated) return <LoginPage />;
@@ -237,6 +249,7 @@ function AppContent() {
       case 'sales-invoice-tc':   return <SalesInvoiceTcPage />;
       case 'user-permissions':   return <UserPermissionsPage />;
       case 'advanced-permissions': return <AdvancedPermissionsPage />;
+      case 'users':              return <UsersPage />;
       case 'customers':          return <CustomersPage />;
       case 'vehicles':           return <VehiclesPage />;
       case 'vehicle-new':        return <VehicleNewPage />;
@@ -317,7 +330,14 @@ function AppContent() {
     </>
   );
 
-  return <DashboardShell>{content}</DashboardShell>;
+  return (
+    <DashboardShell>
+      {content}
+      {passwordStatus?.must_change_password ? (
+        <ForcePasswordChangeDialog onChanged={() => void refreshPasswordStatus()} />
+      ) : null}
+    </DashboardShell>
+  );
 }
 
 export default function Home() {

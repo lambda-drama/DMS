@@ -86,6 +86,7 @@ def get_customers(search=None, limit=50, offset=0):
 		fields=[
 			"name", "customer_name", "mobile_no", "email_id",
 			"customer_type", "customer_group", "territory",
+			"tax_id", "website",
 			"creation", "modified",
 		],
 		limit=int(limit),

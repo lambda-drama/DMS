@@ -22,6 +22,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"sales-invoice-tc": "DMS Sales Invoice TC",
 	"user-permissions": "DMS CRM User Settings",
 	"advanced-permissions": None,
+	"users": None,
 	"deliveries": "Vehicle Delivery Note",
 	"customers": "Customer",
 	"vehicles": "VIN No",
@@ -177,6 +178,17 @@ def get_dms_ui_permissions():
 		"read": int(management_access),
 		"write": int(management_access),
 		"create": 0,
+		"delete": 0,
+	}
+
+	# Users master (create users / set passwords) — Dealer Manager, System Manager,
+	# Administrator only, same gate as the Advanced Permission screen.
+	out["users"] = {
+		"doctype": None,
+		"visible": management_access,
+		"read": int(management_access),
+		"write": int(management_access),
+		"create": int(management_access),
 		"delete": 0,
 	}
 
