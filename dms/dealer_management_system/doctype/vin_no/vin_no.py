@@ -57,13 +57,59 @@ class VINNo(Document):
             )
     
     def validate_duplicate_vin(self):
-        """Prevent duplicate VIN creation"""
-        existing = frappe.db.exists("VIN No", {
-            "vin_number": self.vin_number, 
-            "name": ["!=", self.name or ""]
-        })
-        if existing:
-            frappe.throw(_("VIN Number {0} already exists.").format(self.vin_number))
+        """Prevent duplicate VIN creation and say where the existing VIN is.
+
+        The doctype is named after the VIN (autoname = field:vin_number), so a new
+        record whose VIN already exists collides by name. The old lookup excluded
+        `self.name` — which *is* the VIN — so it never matched and the raw
+        "VIN No X already exists" error came from the database instead. Look the
+        docname up explicitly and report the owning company / customer.
+        """
+        vin = (self.vin_number or "").strip()
+        if not vin:
+            return
+
+        fields = ["name", "company", "current_customer", "linked_serial", "model_name"]
+        existing = frappe.db.get_value(
+            "VIN No",
+            {"vin_number": vin, "name": ["!=", self.name or ""]},
+            fields,
+            as_dict=True,
+        )
+        if not existing and self.is_new() and frappe.db.exists("VIN No", vin):
+            # New record: autoname has already set self.name to the VIN, so the
+            # lookup above excluded the very row that collides. Look it up by name.
+            existing = frappe.db.get_value("VIN No", vin, fields, as_dict=True)
+        if not existing:
+            return
+
+        from dms.dealer_management_system.utils.company_permissions import (
+            get_vin_company_scope_values,
+        )
+
+        company = (existing.get("company") or "").strip()
+        hidden = company not in get_vin_company_scope_values()
+
+        message = _("VIN No {0} already exists.").format(frappe.bold(existing["name"]))
+        details = []
+        if existing.get("model_name"):
+            details.append(_("Model") + ": " + str(existing["model_name"]))
+        if company:
+            details.append(_("Company") + ": " + company)
+        if existing.get("current_customer"):
+            details.append(_("Customer") + ": " + str(existing["current_customer"]))
+        if existing.get("linked_serial"):
+            details.append(_("Serial No") + ": " + str(existing["linked_serial"]))
+        if details:
+            message += "<br>" + "<br>".join(details)
+
+        if hidden:
+            message += "<br><br>" + _(
+                "It belongs to a company that is not selected in DMS Settings, so it "
+                "is hidden from the VIN No list. Open it directly: {0}"
+            ).format(f"<a href='/app/vin-no/{existing['name']}'>{existing['name']}</a>")
+
+        frappe.throw(message, title=_("Duplicate VIN No"), exc=frappe.DuplicateEntryError)
         
     def validate_engine_number(self):
         """Warn on duplicate engine numbers"""

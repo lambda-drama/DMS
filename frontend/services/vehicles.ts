@@ -11,6 +11,8 @@ export async function listVehicles(options?: {
   search?: string;
   vehicle_status?: string;
   warranty_status?: string;
+  /** Include vehicles of companies outside DMS Settings ("Show other companies"). */
+  include_other_companies?: number | boolean;
   limit?: number;
   offset?: number;
 }): Promise<PaginatedResponse<VINNoListItem>> {
@@ -21,6 +23,7 @@ export async function listVehicles(options?: {
       search: options?.search || null,
       vehicle_status: options?.vehicle_status || null,
       warranty_status: options?.warranty_status || null,
+      include_other_companies: options?.include_other_companies ? 1 : 0,
       limit: options?.limit || 50,
       offset: options?.offset || 0,
     }),

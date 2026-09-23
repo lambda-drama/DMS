@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import {
   Dialog,
   DialogContent,
@@ -24,9 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LinkWithCreate } from '@/components/link-with-create';
 import { SearchableSelect } from '@/components/searchable-select';
-import { useCustomers } from '@/hooks/use-dms';
+import { useColors, useCustomers } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
+import * as commonSvc from '@/services/common';
 import * as vehiclesSvc from '@/services/vehicles';
 import type { VINNoFull } from '@/types/dms';
 
@@ -68,8 +70,10 @@ export function EditVehicleDialog({
   const [form, setForm] = useState({
     plate_number: '',
     engine_number: '',
+    company: '',
     current_customer: '',
     current_odometer: '',
+    odometer_unit: 'km',
     exterior_color: '',
     interior_color: '',
     vehicle_status: 'In Stock',
@@ -80,14 +84,28 @@ export function EditVehicleDialog({
     special_notes: '',
   });
 
+  // Companies selected in DMS Settings — the only companies a vehicle may be
+  // moved to (plus the one it already belongs to).
+  const { data: dmsCompanies } = useSWR(open ? 'dms-companies' : null, () =>
+    commonSvc.fetchCompanies()
+  );
+
+  // Color link fields (Link → Color), with a "create new color" shortcut.
+  const [exteriorColorSearch, setExteriorColorSearch] = useState('');
+  const [interiorColorSearch, setInteriorColorSearch] = useState('');
+  const { data: exteriorColors, isLoading: exteriorColorsLoading } = useColors(exteriorColorSearch);
+  const { data: interiorColors, isLoading: interiorColorsLoading } = useColors(interiorColorSearch);
+
   useEffect(() => {
     if (!open || !vehicle) return;
     setForm({
       plate_number: vehicle.plate_number || '',
       engine_number: vehicle.engine_number || '',
+      company: vehicle.company || '',
       current_customer: vehicle.current_customer || '',
       current_odometer:
         vehicle.current_odometer != null ? String(vehicle.current_odometer) : '',
+      odometer_unit: vehicle.odometer_unit || 'km',
       exterior_color: vehicle.exterior_color || '',
       interior_color: vehicle.interior_color || '',
       vehicle_status: vehicle.vehicle_status || 'In Stock',
@@ -99,6 +117,8 @@ export function EditVehicleDialog({
       special_notes: vehicle.special_notes || '',
     });
     setCustomerSearch('');
+    setExteriorColorSearch('');
+    setInteriorColorSearch('');
   }, [open, vehicle]);
 
   const customerOptions = useMemo(
@@ -110,6 +130,18 @@ export function EditVehicleDialog({
     [customers, form.current_customer, vehicle?.customer_name]
   );
 
+  // Company choices: the vehicle's existing company first, then the companies
+  // selected in DMS Settings. Nothing else can be picked.
+  const companyOptions = useMemo(() => {
+    const out: string[] = [];
+    const existing = (vehicle?.company || '').trim();
+    if (existing) out.push(existing);
+    for (const company of dmsCompanies || []) {
+      if (company.name && !out.includes(company.name)) out.push(company.name);
+    }
+    return out;
+  }, [vehicle?.company, dmsCompanies]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!vehicle?.name) return;
@@ -118,10 +150,12 @@ export function EditVehicleDialog({
       await vehiclesSvc.updateVehicle(vehicle.name, {
         plate_number: form.plate_number.trim() || null,
         engine_number: form.engine_number.trim() || null,
+        company: form.company || null,
         current_customer: form.current_customer || null,
         current_odometer: form.current_odometer
           ? Number(form.current_odometer)
           : null,
+        odometer_unit: form.odometer_unit || 'km',
         exterior_color: form.exterior_color.trim() || null,
         interior_color: form.interior_color.trim() || null,
         vehicle_status: form.vehicle_status || null,
@@ -151,7 +185,7 @@ export function EditVehicleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Edit vehicle</DialogTitle>
@@ -193,14 +227,37 @@ export function EditVehicleDialog({
                 }}
                 onSearchChange={setCustomerSearch}
                 placeholder="Search customers..."
+                portaled
               />
+            </div>
+            <div className="space-y-1">
+              <Label>Company</Label>
+              <Select
+                value={form.company}
+                onValueChange={(v) => setForm((p) => ({ ...p, company: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companyOptions.map((company) => (
+                    <SelectItem key={company} value={company}>
+                      {company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                The vehicle&apos;s current company or a company selected in DMS Settings.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label>Odometer</Label>
+                <Label>Odometer (current mileage)</Label>
                 <Input
                   type="number"
                   min={0}
+                  placeholder="e.g. 12500"
                   value={form.current_odometer}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, current_odometer: e.target.value }))
@@ -208,23 +265,38 @@ export function EditVehicleDialog({
                 />
               </div>
               <div className="space-y-1">
-                <Label>Vehicle status</Label>
+                <Label>Odometer unit</Label>
                 <Select
-                  value={form.vehicle_status}
-                  onValueChange={(v) => setForm((p) => ({ ...p, vehicle_status: v }))}
+                  value={form.odometer_unit}
+                  onValueChange={(v) => setForm((p) => ({ ...p, odometer_unit: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {VEHICLE_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="km">km</SelectItem>
+                    <SelectItem value="miles">miles</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Vehicle status</Label>
+              <Select
+                value={form.vehicle_status}
+                onValueChange={(v) => setForm((p) => ({ ...p, vehicle_status: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VEHICLE_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2 rounded-md border p-3">
@@ -304,21 +376,43 @@ export function EditVehicleDialog({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>Exterior color</Label>
-                <Input
-                  value={form.exterior_color}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, exterior_color: e.target.value }))
-                  }
-                />
+                <LinkWithCreate
+                  doctype="Color"
+                  onCreated={(name) => setForm((p) => ({ ...p, exterior_color: name }))}
+                >
+                  <SearchableSelect
+                    options={(exteriorColors || []).map((c) => ({
+                      value: c.name,
+                      label: c.label || c.name,
+                    }))}
+                    value={form.exterior_color}
+                    onValueChange={(v) => setForm((p) => ({ ...p, exterior_color: v }))}
+                    onSearchChange={setExteriorColorSearch}
+                    placeholder="Search color..."
+                    isLoading={exteriorColorsLoading}
+                    portaled
+                  />
+                </LinkWithCreate>
               </div>
               <div className="space-y-1">
                 <Label>Interior color</Label>
-                <Input
-                  value={form.interior_color}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, interior_color: e.target.value }))
-                  }
-                />
+                <LinkWithCreate
+                  doctype="Color"
+                  onCreated={(name) => setForm((p) => ({ ...p, interior_color: name }))}
+                >
+                  <SearchableSelect
+                    options={(interiorColors || []).map((c) => ({
+                      value: c.name,
+                      label: c.label || c.name,
+                    }))}
+                    value={form.interior_color}
+                    onValueChange={(v) => setForm((p) => ({ ...p, interior_color: v }))}
+                    onSearchChange={setInteriorColorSearch}
+                    placeholder="Search color..."
+                    isLoading={interiorColorsLoading}
+                    portaled
+                  />
+                </LinkWithCreate>
               </div>
             </div>
             <div className="space-y-1">
