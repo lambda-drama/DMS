@@ -5,6 +5,7 @@ from frappe import _
 from frappe.utils import cint, strip_html
 from dms.api.utils import get_dms_companies, get_dms_default_customer, get_dms_default_customer_group, get_vehicle_customer_groups
 from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
+from dms.utils.customer_contact import changed_contact_values, sync_customer_contact
 
 _COLOR_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
 
@@ -138,7 +139,13 @@ def update_customer_contact(customer, data=None):
 	if "email_id" in data:
 		updates["email_id"] = (data.get("email_id") or "").strip()
 	if updates:
-		frappe.db.set_value("Customer", customer, updates, update_modified=True)
+		# Customer.mobile_no / email_id are read-only fetch_from fields on the
+		# primary Contact, so write there (and mirror back) — a plain db_set would
+		# be reverted the next time the Customer is saved. Only real changes are
+		# pushed, so posting back unchanged values never clears the Contact.
+		changes = changed_contact_values(customer, **updates)
+		if changes:
+			sync_customer_contact(customer, **changes)
 
 	frappe.db.commit()
 	return get_customer_contact(customer)
