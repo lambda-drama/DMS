@@ -998,9 +998,14 @@ export interface VINNoFull {
   vehicle_status?: string;
   import_type?: string;
   registration_date?: string;
+  registration_country?: string;
   insurance_company?: string;
+  insurance_policy_number?: string;
   insurance_expiry_date?: string;
   is_fleet_vehicle?: boolean;
+  fleet_company?: string;
+  fleet_reference?: string;
+  charger_type?: string;
   special_notes?: string;
   internal_notes?: string;
 }

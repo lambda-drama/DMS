@@ -57,6 +57,68 @@ export type RateOverrides = Record<string, number>;
 /** Job Card Part Item row name -> billed quantity (reduced from the job card qty). */
 export type QtyOverrides = Record<string, number>;
 
+export type InvoiceTaxPreviewRow = {
+  description?: string | null;
+  rate?: number;
+  tax_amount: number;
+  is_withholding?: number | boolean;
+};
+
+export type InvoiceTaxPreview = {
+  company: string;
+  customer?: string | null;
+  currency?: string;
+  net_total: number;
+  total_taxes_and_charges: number;
+  grand_total: number;
+  rounded_total?: number;
+  rounding_adjustment?: number;
+  /** Sum of the tax rows that are not the withholding (i.e. VAT). */
+  vat_amount: number;
+  /** Withholding rows — negative, as it is deducted from the invoice total. */
+  withholding_amount: number;
+  tax_rows: InvoiceTaxPreviewRow[];
+  tax_template?: string | null;
+  withholding_category?: string | null;
+  withholding_group?: string | null;
+  /** Inline reason when the template / withholding category is not configured yet. */
+  message?: string | null;
+};
+
+export type InvoiceTaxPreviewLine = {
+  item_code?: string | null;
+  qty: number;
+  rate: number;
+  description?: string;
+};
+
+/**
+ * VAT / tax-withholding breakdown for the invoice screens, before anything is saved.
+ * Lines must already be net of discounts.
+ */
+export async function getInvoiceTaxPreview(params: {
+  company: string;
+  customer?: string | null;
+  lines: InvoiceTaxPreviewLine[];
+  posting_date?: string | null;
+  apply_taxes?: boolean | number;
+  apply_tax_withholding?: boolean | number;
+  currency?: string | null;
+}): Promise<InvoiceTaxPreview> {
+  return apiRequest<InvoiceTaxPreview>(`/api/method/${API}.get_invoice_tax_preview`, {
+    method: 'POST',
+    body: JSON.stringify({
+      company: params.company,
+      customer: params.customer || null,
+      lines: params.lines,
+      posting_date: params.posting_date || null,
+      apply_taxes: params.apply_taxes ? 1 : 0,
+      apply_tax_withholding: params.apply_tax_withholding ? 1 : 0,
+      currency: params.currency || null,
+    }),
+  });
+}
+
 export async function getInvoicePreviewFromJobCard(
   jobCard: string,
   options?: {

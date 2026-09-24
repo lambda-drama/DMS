@@ -245,6 +245,45 @@ def get_invoice_preview_from_job_card(
 
 
 @frappe.whitelist()
+def get_invoice_tax_preview(
+	company=None,
+	customer=None,
+	lines=None,
+	posting_date=None,
+	apply_taxes=0,
+	apply_tax_withholding=0,
+	currency=None,
+):
+	"""VAT / tax-withholding breakdown for the invoice screens, before anything is saved.
+
+	`lines` are `{item_code, qty, rate}` rows already net of discounts. Returns the
+	tax rows, VAT total, withholding total and the grand total the created invoice
+	will have (computed with ERPNext's own totals on an unsaved invoice).
+	"""
+	_ensure_erpnext()
+	frappe.has_permission("Sales Invoice", "create", throw=True)
+
+	if isinstance(lines, str):
+		import json
+
+		lines = json.loads(lines or "[]")
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		build_invoice_tax_preview,
+	)
+
+	return build_invoice_tax_preview(
+		company=company,
+		customer=resolve_dms_customer(customer),
+		lines=lines,
+		posting_date=posting_date,
+		apply_taxes=bool(cint(apply_taxes)),
+		apply_tax_withholding=bool(cint(apply_tax_withholding)),
+		currency=currency,
+	)
+
+
+@frappe.whitelist()
 def create_standalone_invoice(data):
 	"""Create a Sales Invoice from the DMS UI (labour + parts, no job card)."""
 	_ensure_erpnext()

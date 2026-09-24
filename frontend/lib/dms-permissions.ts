@@ -15,6 +15,7 @@ export type DmsPermissionModule =
   | 'spare-parts'
   | 'vehicle-services'
   | 'vehicle-models'
+  | 'service-packages'
   | 'item-prices'
   | 'job-card-terms'
   | 'sales-invoice-tc'
@@ -82,6 +83,7 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'spare-parts': 'spare-parts',
   'vehicle-services': 'vehicle-services',
   'vehicle-models': 'vehicle-models',
+  'service-packages': 'service-packages',
   'item-prices': 'item-prices',
   'job-card-terms': 'job-card-terms',
   'sales-invoice-tc': 'sales-invoice-tc',

@@ -6,6 +6,7 @@ from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_dms_companies, resolve_
 from dms.dealer_management_system.utils.company_permissions import (
 	apply_vin_company_scope,
 	assert_dms_company_access,
+	can_view_all_companies,
 )
 
 
@@ -230,15 +231,29 @@ def update_vehicle(name, data):
 			assert_dms_company_access(new_company)
 			doc.company = new_company or None
 
+	# The vehicle Item backs the ERPNext Serial No created for this VIN, so it can
+	# only be corrected before that Serial No exists.
+	new_item = (data.get("linked_item") or "").strip()
+	if new_item and new_item != (doc.linked_item or ""):
+		if doc.linked_serial:
+			frappe.throw(
+				_(
+					"Vehicle Item cannot be changed after Serial No {0} was created for this vehicle."
+				).format(frappe.bold(doc.linked_serial))
+			)
+
 	updatable = [
-		"engine_number", "plate_number", "model", "brand", "model_variant",
-		"model_year", "fuel_type", "transmission", "drive_type",
+		"engine_number", "plate_number", "linked_item", "model", "brand", "model_variant",
+		"model_year", "production_date", "fuel_type", "transmission", "drive_type",
+		"engine_code",
 		"exterior_color", "interior_color", "interior_material",
 		"current_customer", "current_odometer", "odometer_unit",
 		"warranty_start_date", "warranty_end_date", "warranty_km_limit",
 		"warranty_status",
 		"vehicle_status", "special_notes", "internal_notes",
+		"import_type", "registration_date", "registration_country",
 		"insurance_company", "insurance_policy_number", "insurance_expiry_date",
+		"is_fleet_vehicle", "fleet_company", "fleet_reference",
 	]
 
 	for field in updatable:
@@ -259,6 +274,35 @@ def update_vehicle(name, data):
 		"vehicle_status": doc.vehicle_status,
 		"warranty_status": doc.warranty_status,
 	}
+
+
+@frappe.whitelist()
+def delete_vehicle(name):
+	"""Delete a VIN No record.
+
+	Requires the `delete` permission on VIN No (DocPerm), and for company-scoped
+	users a vehicle inside the DMS Settings companies. Documents that reference the
+	vehicle (job cards, appointments, orders, inspections, …) block the delete —
+	Frappe's link-exists message is surfaced to the caller unchanged so the user
+	sees exactly what still points at the vehicle.
+	"""
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Vehicle is required"))
+
+	# Company scope: never let a scoped user delete a vehicle they cannot see.
+	scope = {} if can_view_all_companies() else apply_vin_company_scope()
+	if not frappe.db.exists("VIN No", {**scope, "name": name}):
+		frappe.throw(
+			_("Vehicle {0} was not found.").format(frappe.bold(name)), frappe.PermissionError
+		)
+
+	doc = frappe.get_doc("VIN No", name)
+	doc.check_permission("delete")
+
+	frappe.delete_doc("VIN No", doc.name)
+	frappe.db.commit()
+	return {"name": doc.name, "vin_number": doc.vin_number}
 
 
 @frappe.whitelist()
