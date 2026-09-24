@@ -83,6 +83,8 @@ def get_service_estimates(
 			"diagnostic_invoice",
 			"diagnostic_fee",
 			"total_before_vat",
+			"vat_rate",
+			"vat_amount",
 			"grand_total",
 			"customer_decision",
 			"company",

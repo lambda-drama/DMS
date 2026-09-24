@@ -1009,6 +1009,48 @@ def _tax_withholding_group_for_category(category: str, posting_date=None) -> str
 	return next(iter(groups)) if len(groups) == 1 else None
 
 
+def _readonly_tax_withholding_for_preview(si) -> tuple[str, str | None]:
+	"""Category + group for a preview — like `resolve_dms_tax_withholding`, no writes.
+
+	The read path never touches the Customer (the write twin saves the category /
+	group on the customer when Use Withholding Group is off).
+	"""
+	category = get_dms_default_tax_withholding_category(getattr(si, "company", None))
+	posting_date = getattr(si, "posting_date", None) or today()
+	dms_group = get_dms_default_tax_withholding_group()
+
+	group = None
+	if use_dms_withholding_group():
+		group = dms_group
+	else:
+		customer = (getattr(si, "customer", None) or "").strip()
+		if customer and frappe.db.exists("Customer", customer):
+			group = (
+				frappe.db.get_value("Customer", customer, "tax_withholding_group") or ""
+			).strip()
+
+	group = group or _tax_withholding_group_for_category(category, posting_date)
+
+	try:
+		frappe.get_cached_doc("Tax Withholding Category", category).get_applicable_tax_row(
+			posting_date, group
+		)
+	except Exception:
+		frappe.throw(
+			_(
+				"Tax Withholding Category {0} has no rate for group {2} on {1}. Set that Tax Withholding "
+				"Group on DMS Settings (or on the customer) / add a matching rate row, then try again."
+			).format(
+				frappe.bold(category),
+				frappe.bold(posting_date),
+				frappe.bold(group or _("(none)")),
+			),
+			title=_("Tax Withholding"),
+		)
+
+	return category, group
+
+
 def resolve_dms_tax_withholding(si) -> tuple[str, str | None]:
 	"""Category + group to withhold with, validated against the invoice posting date.
 
@@ -1108,6 +1150,136 @@ def _apply_sales_invoice_tax_choice(si, apply_taxes: bool, apply_tax_withholding
 
 	# Run after taxes: `_clear_sales_invoice_taxes` also blanks the withholding setup.
 	_apply_tax_withholding_choice(si, apply_tax_withholding)
+
+
+def build_invoice_tax_preview(
+	company: str | None = None,
+	customer: str | None = None,
+	lines=None,
+	posting_date=None,
+	apply_taxes: bool = False,
+	apply_tax_withholding=False,
+	currency: str | None = None,
+) -> dict:
+	"""VAT + tax withholding a Sales Invoice would show, without saving anything.
+
+	`lines` are `{item_code?, qty, rate}` rows that are **already net of discounts**
+	(the screens show their own discounted subtotal). An unsaved Sales Invoice is
+	built with those lines and the DMS Settings tax template / withholding category,
+	then ERPNext's own totals run — so the numbers match exactly what creating the
+	invoice produces. Nothing is inserted, and the customer is never written to.
+	"""
+	_ensure_erpnext()
+
+	company = (company or "").strip()
+	if not company:
+		frappe.throw(_("Company is required to preview taxes."))
+
+	preview = {
+		"company": company,
+		"customer": (customer or "").strip() or None,
+		"currency": (currency or "").strip()
+		or frappe.get_cached_value("Company", company, "default_currency"),
+		"net_total": 0.0,
+		"total_taxes_and_charges": 0.0,
+		"grand_total": 0.0,
+		"rounded_total": 0.0,
+		"rounding_adjustment": 0.0,
+		"vat_amount": 0.0,
+		"withholding_amount": 0.0,
+		"tax_rows": [],
+		"tax_template": None,
+		"withholding_category": None,
+		"withholding_group": None,
+		"message": None,
+	}
+
+	si = frappe.new_doc("Sales Invoice")
+	si.company = company
+	si.customer = preview["customer"]
+	si.currency = preview["currency"]
+	si.conversion_rate = 1
+	si.price_list_currency = preview["currency"]
+	si.plc_conversion_rate = 1
+	si.posting_date = getdate(posting_date) if posting_date else getdate(today())
+	si.set_posting_time = 1
+	si.update_stock = 0
+	si.ignore_pricing_rule = 1
+
+	for row in lines or []:
+		qty = flt(row.get("qty"))
+		if qty <= 0:
+			continue
+		si.append(
+			"items",
+			{
+				"item_code": (row.get("item_code") or "").strip() or None,
+				"qty": qty,
+				"rate": flt(row.get("rate")),
+				"description": (row.get("description") or "")[:140] or None,
+			},
+		)
+
+	if not si.get("items"):
+		return preview
+
+	try:
+		if cint(apply_taxes):
+			_apply_dms_default_taxes_and_charges(si)
+			preview["tax_template"] = si.taxes_and_charges
+		else:
+			_clear_sales_invoice_taxes(si)
+
+		if cint(apply_tax_withholding):
+			category, group = _readonly_tax_withholding_for_preview(si)
+			preview["withholding_category"] = category
+			preview["withholding_group"] = group
+			_apply_tax_withholding_to_sales_invoice(si, category, group)
+		else:
+			_apply_tax_withholding_to_sales_invoice(si, None, None)
+
+		# Same order as the Sales Invoice controller: totals, withholding, totals.
+		si.calculate_taxes_and_totals()
+		from erpnext.accounts.doctype.tax_withholding_entry.tax_withholding_entry import (
+			SalesTaxWithholding,
+		)
+
+		SalesTaxWithholding(si).on_validate()
+		si.calculate_taxes_and_totals()
+	except Exception as exc:
+		# Missing template / no rate row / no account mapped — reported inline by the
+		# screens instead of blocking every recalculation with a toast.
+		preview["message"] = str(exc)
+		return preview
+
+	tax_rows = []
+	for row in si.get("taxes") or []:
+		is_withholding = bool(cint(row.get("is_tax_withholding_account")))
+		amount = flt(row.get("tax_amount"))
+		tax_rows.append(
+			{
+				"description": row.get("description"),
+				"rate": flt(row.get("rate")),
+				"tax_amount": amount,
+				"is_withholding": 1 if is_withholding else 0,
+			}
+		)
+
+	preview.update(
+		{
+			"net_total": flt(si.net_total),
+			"total_taxes_and_charges": flt(si.total_taxes_and_charges),
+			"grand_total": flt(si.grand_total),
+			"rounded_total": flt(si.rounded_total),
+			"rounding_adjustment": flt(si.rounding_adjustment),
+			"vat_amount": flt(sum(row["tax_amount"] for row in tax_rows if not row["is_withholding"])),
+			"withholding_amount": flt(
+				sum(row["tax_amount"] for row in tax_rows if row["is_withholding"])
+			),
+			"tax_rows": tax_rows,
+		}
+	)
+	return preview
 
 
 def _clear_sales_order_taxes(so, prevent_reapply: bool = True) -> None:

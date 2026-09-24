@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useVehicles, useVehicle } from "@/hooks/use-dms";
@@ -12,10 +13,27 @@ import * as vehiclesSvc from "@/services/vehicles";
 import type { VINNoListItem } from "@/types/dms";
 import { DetailSheet, DetailSection, DetailRow } from "@/components/detail-sheet";
 import { EditVehicleDialog } from "@/components/vehicles/edit-vehicle-dialog";
+import { ListRowActions } from "@/components/list-row-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -42,6 +60,10 @@ import {
   Fuel,
   Pencil,
   Building2,
+  MoreHorizontal,
+  Eye,
+  ExternalLink,
+  Trash2,
 } from "lucide-react";
 
 const statusOptions = [
@@ -86,7 +108,7 @@ function getWarrantyBadge(status?: string) {
 
 export default function VehiclesPage() {
   const { navigate, viewParams } = useNavigation();
-  const { canWrite } = usePermissions();
+  const { canWrite, canDelete } = usePermissions();
   const customerFromUrl = viewParams.get("customer");
   const [search, setSearch] = usePersistedFilter("vehicles", "search", "");
   const [statusFilter, setStatusFilter] = usePersistedFilter("vehicles", "status", "all");
@@ -96,11 +118,37 @@ export default function VehiclesPage() {
   const [pageSize, setPageSize] = useState(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  // Row-level edit: the slide-over stays closed and the full VIN record is loaded by name.
+  const [editRowId, setEditRowId] = useState<string | null>(null);
+  // Vehicle queued for deletion (row action or slide-over footer).
+  const [deleteTarget, setDeleteTarget] = useState<{ name: string; vin_number?: string } | null>(
+    null
+  );
+  const [deleting, setDeleting] = useState(false);
 
   // "Show other companies" — vehicles belonging to companies outside DMS Settings.
   const includeOtherCompanies = otherCompanies === "1";
 
-  const { data: selectedVehicle, isLoading: detailLoading, mutate: mutateVehicle } = useVehicle(selectedId);
+  const activeVehicleId = selectedId ?? editRowId;
+  const {
+    data: selectedVehicle,
+    isLoading: detailLoading,
+    error: vehicleError,
+    mutate: mutateVehicle,
+  } = useVehicle(activeVehicleId);
+
+  // Open the edit dialog only once the full record has loaded, so every field
+  // (interior colour, warranty dates, notes) is pre-filled when it appears.
+  useEffect(() => {
+    if (!editRowId || selectedVehicle?.name !== editRowId) return;
+    setEditOpen(true);
+  }, [editRowId, selectedVehicle]);
+
+  useEffect(() => {
+    if (!editRowId || !vehicleError) return;
+    toast.error("Could not load this vehicle for editing");
+    setEditRowId(null);
+  }, [editRowId, vehicleError]);
 
   const listFilters = {
     customer: customerFromUrl || undefined,
@@ -110,7 +158,7 @@ export default function VehiclesPage() {
     include_other_companies: includeOtherCompanies ? 1 : 0,
   };
 
-  const { data: result, isLoading, error } = useVehicles({
+  const { data: result, isLoading, error, mutate: mutateVehicles } = useVehicles({
     ...listFilters,
     limit: pageSize,
     offset: (page - 1) * pageSize,
@@ -139,6 +187,38 @@ export default function VehiclesPage() {
   useEffect(() => {
     setPage(1);
   }, [search, statusFilter, warrantyFilter, customerFromUrl, otherCompanies]);
+
+  function openEditFromRow(row: VINNoListItem) {
+    // Close the slide-over when a different vehicle is being edited from the list,
+    // so the dialog always loads the row that was clicked.
+    setSelectedId((prev) => (prev && prev !== row.name ? null : prev));
+    setEditRowId(row.name);
+  }
+
+  function requestDeleteVehicle(name: string, vinNumber?: string) {
+    setDeleteTarget({ name, vin_number: vinNumber });
+  }
+
+  async function handleDeleteVehicle() {
+    if (!deleteTarget) return;
+    const { name } = deleteTarget;
+    setDeleting(true);
+    try {
+      await vehiclesSvc.deleteVehicle(name);
+      toast.success("Vehicle deleted");
+      setSelectedId((prev) => (prev === name ? null : prev));
+      setEditRowId((prev) => (prev === name ? null : prev));
+      setDeleteTarget(null);
+      void mutateVehicles();
+    } catch (err: unknown) {
+      // Documents that still reference the vehicle (estimates, job cards, …) block
+      // the delete; Frappe names them in the message.
+      toast.error(err instanceof Error ? err.message : "Failed to delete vehicle");
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const stats = useMemo(() => {
     if (!vehicles) return { total: 0, inStock: 0, delivered: 0, inService: 0 };
@@ -319,6 +399,7 @@ export default function VehiclesPage() {
                     <TableHead>Warranty</TableHead>
                     <TableHead>Status</TableHead>
                     {includeOtherCompanies ? <TableHead>Company</TableHead> : null}
+                    <TableHead className="w-[1%] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -422,6 +503,45 @@ export default function VehiclesPage() {
                           </span>
                         </TableCell>
                       ) : null}
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <ListRowActions doctype="VIN No" docName={v.name}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setSelectedId(v.name)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              {canWrite("vehicles") ? (
+                                <DropdownMenuItem onClick={() => openEditFromRow(v)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit Vehicle
+                                </DropdownMenuItem>
+                              ) : null}
+                              <DropdownMenuItem
+                                onClick={() => window.open(`/app/vin-no/${v.name}`, "_blank")}
+                              >
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Open in Desk
+                              </DropdownMenuItem>
+                              {canDelete("vehicles") ? (
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => requestDeleteVehicle(v.name, v.vin_number)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              ) : null}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </ListRowActions>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -455,7 +575,7 @@ export default function VehiclesPage() {
 
       {/* Detail slide-over */}
       <DetailSheet
-        open={!!selectedId}
+        open={!!selectedId && !editOpen}
         onOpenChange={(open) => !open && setSelectedId(null)}
         title={selectedVehicle?.vin_number || selectedId || ""}
         subtitle={selectedVehicle?.model_name ? `${selectedVehicle.model_name} ${selectedVehicle.model_year || ""}`.trim() : undefined}
@@ -463,14 +583,31 @@ export default function VehiclesPage() {
         isLoading={detailLoading}
         onOpenInDesk={() => window.open(`/app/vin-no/${selectedId}`, "_blank")}
         footer={
-          canWrite("vehicles") && selectedVehicle ? (
-            <Button
-              className="w-full sm:w-auto"
-              onClick={() => setEditOpen(true)}
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Vehicle
-            </Button>
+          selectedVehicle &&
+          (canWrite("vehicles") || canDelete("vehicles")) ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              {canDelete("vehicles") ? (
+                <Button
+                  variant="outline"
+                  className="w-full text-destructive hover:text-destructive sm:w-auto"
+                  onClick={() =>
+                    requestDeleteVehicle(selectedVehicle.name, selectedVehicle.vin_number)
+                  }
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Vehicle
+                </Button>
+              ) : null}
+              {canWrite("vehicles") ? (
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Vehicle
+                </Button>
+              ) : null}
+            </div>
           ) : null
         }
       >
@@ -528,12 +665,53 @@ export default function VehiclesPage() {
 
       <EditVehicleDialog
         open={editOpen}
-        onOpenChange={setEditOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open);
+          if (!open) setEditRowId(null);
+        }}
         vehicle={selectedVehicle || null}
         onUpdated={() => {
           void mutateVehicle();
         }}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete vehicle</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete <strong>{deleteTarget?.vin_number || deleteTarget?.name}</strong>? The VIN
+              record is removed permanently. Documents that still reference it — service estimates,
+              job cards, appointments, invoices — must be deleted first.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Keep vehicle</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteVehicle();
+              }}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete vehicle"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -85,6 +86,12 @@ export default function ServiceEstimatesPage() {
   const [pageSize, setPageSize] = useState(50);
   const [deleteTarget, setDeleteTarget] = useState<DMSServiceEstimate | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Show the amounts a customer pays (grand total incl. VAT) instead of the net.
+  const [includeVat, setIncludeVat] = usePersistedFilter(
+    'service-estimates',
+    'include_vat',
+    false
+  );
 
   const hasDateFilters = Boolean(postingFrom || postingTo);
 
@@ -177,6 +184,13 @@ export default function ServiceEstimatesPage() {
                 ))}
               </SelectContent>
             </Select>
+            <label className="flex items-center gap-2 whitespace-nowrap rounded-md border px-3 py-2 text-sm">
+              <Checkbox
+                checked={includeVat}
+                onCheckedChange={(checked) => setIncludeVat(Boolean(checked))}
+              />
+              Include VAT
+            </label>
           </div>
 
           {/* Posting date range */}
@@ -232,7 +246,10 @@ export default function ServiceEstimatesPage() {
                       <TableHead>Customer</TableHead>
                       <TableHead>Vehicle</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Before VAT</TableHead>
+                      {includeVat ? <TableHead className="text-right">VAT</TableHead> : null}
+                      <TableHead className="text-right">
+                        {includeVat ? 'Grand Total (incl. VAT)' : 'Before VAT'}
+                      </TableHead>
                       <TableHead className="text-right">Diagnostic Fee</TableHead>
                       <TableHead className="text-right w-[88px]">Actions</TableHead>
                     </TableRow>
@@ -258,7 +275,13 @@ export default function ServiceEstimatesPage() {
                             <Badge variant={statusVariant(est.status)}>{est.status}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {(est.total_before_vat || 0).toLocaleString()}
+                            {includeVat ? (est.vat_amount || 0).toLocaleString() : null}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {(includeVat
+                              ? est.grand_total || 0
+                              : est.total_before_vat || 0
+                            ).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
                             {(est.diagnostic_fee || 0).toLocaleString()}
@@ -329,7 +352,13 @@ export default function ServiceEstimatesPage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <User className="h-3.5 w-3.5" />
-                          {(est.total_before_vat || 0).toLocaleString()} before VAT
+                          {includeVat
+                            ? `${(est.grand_total || 0).toLocaleString()} incl. VAT${
+                                est.vat_amount
+                                  ? ` (VAT ${Number(est.vat_amount).toLocaleString()})`
+                                  : ''
+                              }`
+                            : `${(est.total_before_vat || 0).toLocaleString()} before VAT`}
                         </span>
                       </div>
                       {est.posting_date && (

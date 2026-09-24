@@ -62,17 +62,8 @@ import {
   fetchServiceBayDetail,
 } from "@/services/common";
 import { useServiceEstimate, useSpareParts, useTechnicians, useVehicleServiceItems, useServicePackagesForVin, useServiceBays } from "@/hooks/use-dms";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { usePermissions } from "@/contexts/permissions-context";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { WarrantyStatusBanner } from "@/components/warranty-status-banner";
 import { AmountSummaryPopover } from "@/components/amount-summary-popover";
@@ -176,13 +167,18 @@ export default function ServiceEstimateDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
   const { data: estimate, isLoading, error, mutate } = useServiceEstimate(id || null);
-  const { canWrite, canDelete } = usePermissions();
+  const { canWrite } = usePermissions();
 
   const [busy, setBusy] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [showAdvanceDialog, setShowAdvanceDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("diagnosis");
+  // Shared with the Service Estimates list: show the VAT-inclusive amounts a
+  // customer actually pays, instead of the net (before VAT).
+  const [includeVat, setIncludeVat] = usePersistedFilter(
+    "service-estimates",
+    "include_vat",
+    false
+  );
   const [diagnosisFindings, setDiagnosisFindings] = useState("");
   const [recommendedRepairs, setRecommendedRepairs] = useState("");
   const [labourRows, setLabourRows] = useState<EstimateLabourRow[]>([emptyLabourRow()]);
@@ -435,7 +431,6 @@ export default function ServiceEstimateDetailPage() {
   );
   const isAccepted = estimate?.status === "Accepted";
   const canEditEstimate = Boolean(isEstimateEditable && canWrite("service-estimates"));
-  const canDeleteEstimate = Boolean(canDelete("service-estimates"));
 
   useEffect(() => {
     if (!estimate?.vehicle_vin || !selectedServicePackage || !canEditEstimate) {
@@ -655,21 +650,6 @@ export default function ServiceEstimateDetailPage() {
     }
   };
 
-  const handleDeleteEstimate = async () => {
-    if (!id) return;
-    setDeleting(true);
-    try {
-      await estimatesSvc.deleteServiceEstimate(id);
-      toast.success("Service estimate deleted");
-      navigate("service-estimates");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete estimate");
-    } finally {
-      setDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  };
-
   const handleServiceItemSelect = async (idx: number, itemName: string) => {
     if (!itemName) {
       setLabourRows((prev) =>
@@ -876,6 +856,13 @@ export default function ServiceEstimateDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <label className="flex items-center gap-2 whitespace-nowrap rounded-md border px-3 py-1.5 text-sm">
+            <Checkbox
+              checked={includeVat}
+              onCheckedChange={(checked) => setIncludeVat(Boolean(checked))}
+            />
+            Include VAT
+          </label>
           <AmountSummaryPopover
             title="Estimate totals"
             lines={[
@@ -884,17 +871,19 @@ export default function ServiceEstimateDetailPage() {
                 value: `${(estimate.diagnostic_fee || 0).toLocaleString()} ETB`,
               },
               {
-                label: "Customer net (before VAT)",
+                label: "Customer net (excl. VAT)",
                 value: `${(estimate.total_before_vat || 0).toLocaleString()} ETB`,
+                highlight: !includeVat,
               },
               {
                 label: `VAT (${estimate.vat_rate || 15}%)`,
                 value: `${(estimate.vat_amount || 0).toLocaleString()} ETB`,
+                highlight: includeVat,
               },
               {
-                label: "Grand total",
+                label: "Total payable (incl. VAT)",
                 value: `${(estimate.grand_total || 0).toLocaleString()} ETB`,
-                highlight: true,
+                highlight: includeVat,
               },
             ]}
           />
@@ -922,12 +911,6 @@ export default function ServiceEstimateDetailPage() {
             <Button variant="outline" size="sm" onClick={() => setActiveTab("estimation")}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit estimate
-            </Button>
-          )}
-          {canDeleteEstimate && (
-            <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
             </Button>
           )}
         </div>
@@ -1412,20 +1395,30 @@ export default function ServiceEstimateDetailPage() {
               <Separator />
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">Customer net (before VAT)</p>
-                  <p className="text-lg font-semibold text-primary">
+                  <p className="text-sm text-muted-foreground">Customer net (excl. VAT)</p>
+                  <p
+                    className={`text-lg font-semibold ${
+                      includeVat ? "" : "text-primary"
+                    }`}
+                  >
                     {netBeforeVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">VAT ({vatRate}%)</p>
-                  <p className="text-lg font-semibold">
+                  <p
+                    className={`text-lg font-semibold ${
+                      includeVat ? "text-primary" : ""
+                    }`}
+                  >
                     {previewVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Grand total</p>
-                  <p className="text-lg font-bold">
+                  <p className="text-sm text-muted-foreground">
+                    Total payable{includeVat ? " (incl. VAT)" : ""}
+                  </p>
+                  <p className={`text-lg font-bold ${includeVat ? "text-primary" : ""}`}>
                     {previewGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -1482,14 +1475,16 @@ export default function ServiceEstimateDetailPage() {
                     </p>
                   )}
                   <p>
-                    Customer amount (before VAT):{" "}
+                    Customer amount (excl. VAT):{" "}
                     <strong>{(estimate.total_before_vat || 0).toLocaleString()} ETB</strong>
                   </p>
                   <p>
-                    VAT: <strong>{(estimate.vat_amount || 0).toLocaleString()} ETB</strong>
+                    VAT ({estimate.vat_rate || 15}%):{" "}
+                    <strong>{(estimate.vat_amount || 0).toLocaleString()} ETB</strong>
                   </p>
-                  <p>
-                    Grand total: <strong>{(estimate.grand_total || 0).toLocaleString()} ETB</strong>
+                  <p className={includeVat ? "text-primary" : undefined}>
+                    Total payable (incl. VAT):{" "}
+                    <strong>{(estimate.grand_total || 0).toLocaleString()} ETB</strong>
                   </p>
                   {!isSupplementary && (
                     <p className="text-muted-foreground">
@@ -1843,31 +1838,6 @@ export default function ServiceEstimateDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete service estimate?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently removes {estimate.name}. You cannot delete an estimate that already has a
-              linked job card or diagnostic invoice.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={(e) => {
-                e.preventDefault();
-                void handleDeleteEstimate();
-              }}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete estimate"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Create dialogs */}
       <CreateSparePartDialog

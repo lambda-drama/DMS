@@ -19,6 +19,7 @@ import {
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
 import { SearchableSelect } from "@/components/searchable-select";
+import { InvoiceTaxBreakdown } from "@/components/invoices/invoice-tax-breakdown";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -190,6 +191,8 @@ export default function NewInvoicePage() {
   const [remarks, setRemarks] = useState("");
   const [applyTaxes, setApplyTaxes] = useState(false);
   const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
+  const [taxPreview, setTaxPreview] = useState<invoicesSvc.InvoiceTaxPreview | null>(null);
+  const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
 
   const isStandalone = !jobCardId;
   const showVinOnCustomer = isStandalone && isDmsInvoice;
@@ -349,6 +352,57 @@ export default function NewInvoicePage() {
   const labourNet = labourTotal - labourDiscountTotal;
   const partsNet = partsTotal - partsDiscountTotal;
   const subtotal = labourNet + partsNet;
+
+  // Live VAT / tax-withholding amounts for the invoice being built. Lines are
+  // already net of the group discounts, so the taxable base is this subtotal.
+  useEffect(() => {
+    if (!company || !customer || subtotal <= 0) {
+      setTaxPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setTaxPreviewLoading(true);
+      invoicesSvc
+        .getInvoiceTaxPreview({
+          company,
+          customer,
+          currency,
+          posting_date: postingDate,
+          apply_taxes: applyTaxes,
+          apply_tax_withholding: applyTaxWithholding,
+          lines: [
+            ...(labourNet > 0 ? [{ qty: 1, rate: labourNet, description: "Labour" }] : []),
+            ...(partsNet > 0 ? [{ qty: 1, rate: partsNet, description: "Parts" }] : []),
+          ],
+        })
+        .then((data) => {
+          if (!cancelled) setTaxPreview(data);
+        })
+        .catch(() => {
+          if (!cancelled) setTaxPreview(null);
+        })
+        .finally(() => {
+          if (!cancelled) setTaxPreviewLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    company,
+    customer,
+    currency,
+    postingDate,
+    applyTaxes,
+    applyTaxWithholding,
+    labourNet,
+    partsNet,
+    subtotal,
+  ]);
 
   const clearVinFields = () => {
     setVehicleVin("");
@@ -1336,12 +1390,23 @@ export default function NewInvoicePage() {
                 <span>Subtotal (excl. tax)</span>
                 <span>{subtotal.toLocaleString()}</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Tax and grand total are calculated in ERPNext on save.
-                {isStandalone &&
-                  (labourDiscountTotal > 0 || partsDiscountTotal > 0) &&
-                  " Labour/parts discounts reduce each line rate (and Discount Amount on the Sales Invoice)."}
-              </p>
+
+              <InvoiceTaxBreakdown
+                subtotal={subtotal}
+                currency={currency}
+                applyTaxes={applyTaxes}
+                applyTaxWithholding={applyTaxWithholding}
+                preview={taxPreview}
+                isLoading={taxPreviewLoading}
+                className="mt-2"
+              />
+
+              {isStandalone && (labourDiscountTotal > 0 || partsDiscountTotal > 0) ? (
+                <p className="text-xs text-muted-foreground">
+                  Labour/parts discounts reduce each line rate (and Discount Amount on the Sales
+                  Invoice).
+                </p>
+              ) : null}
             </div>
           </CardContent>
         </Card>

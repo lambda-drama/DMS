@@ -496,3 +496,118 @@ export async function getMastersOptions(): Promise<MastersOptions> {
     body: JSON.stringify({}),
   });
 }
+
+// ============ VEHICLE SERVICE PACKAGES ============
+
+export type ServicePackageLabourRow = {
+  labor_operation: string;
+  operation_name?: string;
+  standard_hours?: number;
+  quantity?: number;
+  total_hours?: number;
+  notes?: string;
+};
+
+export type ServicePackagePartRow = {
+  part_item: string;
+  part_name?: string;
+  quantity?: number;
+  unit_price?: number;
+  total_price?: number;
+};
+
+export type ServicePackageMaster = {
+  name: string;
+  package_name: string;
+  package_id?: string;
+  description?: string;
+  vehicle_model?: string;
+  /** List rows carry model labels; the detail form carries child rows. */
+  applicable_vehicle_models?: (string | { vehicle_model: string })[];
+  interval_km?: number;
+  interval_months?: number;
+  labour_discount_amount?: number;
+  before_discount?: number;
+  after_discount?: number;
+  total_amount?: number;
+  package_price?: number;
+  total_labor_hours?: number;
+  is_active?: number;
+  modified?: string;
+  labor_operations?: ServicePackageLabourRow[];
+  parts_included?: ServicePackagePartRow[];
+};
+
+export type ServicePackageInput = {
+  package_name?: string;
+  package_id?: string | null;
+  description?: string;
+  vehicle_model?: string | null;
+  applicable_vehicle_models?: { vehicle_model: string }[];
+  interval_km?: number;
+  interval_months?: number;
+  labour_discount_amount?: number;
+  before_discount?: number;
+  after_discount?: number;
+  total_amount?: number;
+  is_active?: number;
+  labor_operations?: ServicePackageLabourRow[];
+  parts_included?: ServicePackagePartRow[];
+};
+
+export type ServicePackageSaveResult = {
+  name: string;
+  package_name: string;
+};
+
+export async function listVehicleServicePackages(options?: {
+  search?: string;
+  active_filter?: 'active' | 'all' | 'inactive';
+  vehicle_model?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paginated<ServicePackageMaster>> {
+  return apiRequest(`/api/method/${API}.list_vehicle_service_packages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      search: options?.search || null,
+      active_filter: options?.active_filter || 'active',
+      vehicle_model: options?.vehicle_model || null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    }),
+  });
+}
+
+export async function getVehicleServicePackage(name: string): Promise<ServicePackageMaster> {
+  return apiRequest(`/api/method/${API}.get_vehicle_service_package`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createVehicleServicePackage(
+  data: ServicePackageInput
+): Promise<ServicePackageSaveResult> {
+  return apiRequest(`/api/method/${API}.create_vehicle_service_package`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function updateVehicleServicePackage(
+  name: string,
+  data: ServicePackageInput
+): Promise<ServicePackageSaveResult> {
+  return apiRequest(`/api/method/${API}.update_vehicle_service_package`, {
+    method: 'POST',
+    body: JSON.stringify({ name, data }),
+  });
+}
+
+export async function deleteVehicleServicePackage(name: string): Promise<{ name: string }> {
+  return apiRequest(`/api/method/${API}.delete_vehicle_service_package`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}

@@ -1409,3 +1409,347 @@ def get_masters_options():
 		"vehicle_model_transmissions": list(VEHICLE_MODEL_TRANSMISSIONS),
 		"vehicle_model_drive_types": list(VEHICLE_MODEL_DRIVE_TYPES),
 	}
+
+
+# ── Vehicle Service Packages ─────────────────────────────────────────────────
+
+
+def _package_vehicle_models(data: dict) -> list[dict]:
+	"""Normalise `applicable_vehicle_models` into Package Vehicle Model rows."""
+	raw = data.get("applicable_vehicle_models")
+	if isinstance(raw, str):
+		try:
+			raw = json.loads(raw)
+		except (TypeError, ValueError):
+			raw = [raw]
+
+	models: list[dict] = []
+	seen: set[str] = set()
+	for entry in raw or []:
+		model = entry.get("vehicle_model") if isinstance(entry, dict) else entry
+		model = (model or "").strip() if isinstance(model, str) else ""
+		if not model or model in seen:
+			continue
+		seen.add(model)
+		models.append({"vehicle_model": model})
+	return models
+
+
+def _package_labour_rows(data: dict) -> tuple[list[dict], float]:
+	"""Normalise labour rows; return the rows and their total hours."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		vehicle_service_item_estimated_hours,
+	)
+
+	raw = data.get("labor_operations") or []
+	if isinstance(raw, str):
+		try:
+			raw = json.loads(raw)
+		except (TypeError, ValueError):
+			raw = []
+
+	rows: list[dict] = []
+	total_hours = 0.0
+	for entry in raw:
+		if not isinstance(entry, dict):
+			continue
+
+		service_item = (entry.get("labor_operation") or "").strip()
+		if not service_item:
+			continue
+
+		quantity = flt(entry.get("quantity")) or 1
+		standard_hours = flt(entry.get("standard_hours")) or vehicle_service_item_estimated_hours(
+			service_item
+		)
+		hours = flt(entry.get("total_hours")) or (quantity * standard_hours)
+		total_hours += hours
+
+		rows.append(
+			{
+				"labor_operation": service_item,
+				"operation_name": (entry.get("operation_name") or "").strip(),
+				"standard_hours": standard_hours,
+				"quantity": quantity,
+				"total_hours": hours,
+				"notes": entry.get("notes") or "",
+			}
+		)
+
+	return rows, total_hours
+
+
+def _package_part_rows(data: dict) -> list[dict]:
+	"""Normalise parts rows; blank unit prices fall back to the Spare Part rate."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		spare_part_default_selling_price,
+	)
+
+	raw = data.get("parts_included") or []
+	if isinstance(raw, str):
+		try:
+			raw = json.loads(raw)
+		except (TypeError, ValueError):
+			raw = []
+
+	rows: list[dict] = []
+	for entry in raw:
+		if not isinstance(entry, dict):
+			continue
+
+		part = (entry.get("part_item") or "").strip()
+		if not part:
+			continue
+
+		quantity = flt(entry.get("quantity")) or 1
+		unit_price = flt(entry.get("unit_price")) or flt(spare_part_default_selling_price(part))
+		rows.append(
+			{
+				"part_item": part,
+				"part_name": (entry.get("part_name") or "").strip(),
+				"quantity": quantity,
+				"unit_price": unit_price,
+				"total_price": quantity * unit_price,
+			}
+		)
+
+	return rows
+
+
+def _package_values(data: dict, is_new: bool = False) -> dict:
+	"""Build Vehicle Service Package values from the master screen payload.
+
+	Only keys present in ``data`` are written, so partial updates (e.g. toggling
+	``is_active``) never wipe the child tables. Computed fields are always derived
+	server side so the Desk form and the SPA agree.
+	"""
+	values: dict = {}
+
+	if "package_name" in data or is_new:
+		package_name = (data.get("package_name") or "").strip()
+		if not package_name:
+			frappe.throw(_("Package Name is required"))
+		values["package_name"] = package_name
+
+	for field in ("package_id", "vehicle_model"):
+		if field in data:
+			values[field] = (data.get(field) or "").strip() or None
+
+	if "description" in data:
+		values["description"] = data.get("description") or ""
+
+	for field in ("interval_km", "interval_months"):
+		if field in data:
+			values[field] = cint(data.get(field))
+
+	if "labour_discount_amount" in data:
+		values["labour_discount_amount"] = flt(data.get("labour_discount_amount"))
+
+	if "is_active" in data:
+		values["is_active"] = 1 if cint(data.get("is_active")) else 0
+	elif is_new:
+		values["is_active"] = 1
+
+	if "applicable_vehicle_models" in data:
+		models = _package_vehicle_models(data)
+		values["applicable_vehicle_models"] = models
+		if not values.get("vehicle_model") and models:
+			values["vehicle_model"] = models[0]["vehicle_model"]
+
+	if "labor_operations" in data:
+		labour_rows, total_hours = _package_labour_rows(data)
+		values["labor_operations"] = labour_rows
+		values["total_labor_hours"] = total_hours
+
+	if "parts_included" in data:
+		values["parts_included"] = _package_part_rows(data)
+
+	before_discount = flt(data.get("before_discount"))
+	after_discount = flt(data.get("after_discount"))
+	if "before_discount" in data:
+		values["before_discount"] = before_discount
+	if "after_discount" in data:
+		values["after_discount"] = after_discount
+
+	if ({"before_discount", "after_discount", "total_amount"} & set(data)) or is_new:
+		total_amount = flt(data.get("total_amount")) or after_discount or before_discount
+		values["total_amount"] = total_amount
+		values["package_price"] = after_discount or total_amount
+
+	return values
+
+
+def _attach_package_vehicle_models(rows: list[dict]) -> None:
+	"""Attach applicable vehicle model labels to package list rows."""
+	names = [row["name"] for row in rows if row.get("name")]
+	if not names:
+		return
+
+	links = frappe.get_all(
+		"Package Vehicle Model",
+		filters={
+			"parent": ["in", names],
+			"parenttype": "Vehicle Service Package",
+			"parentfield": "applicable_vehicle_models",
+		},
+		fields=["parent", "vehicle_model"],
+		limit=len(names) * 50,
+	)
+
+	model_names = {link["vehicle_model"] for link in links if link.get("vehicle_model")}
+	labels: dict[str, str] = {}
+	if model_names:
+		labels = {
+			model["name"]: model.get("model_name") or model["name"]
+			for model in frappe.get_all(
+				"Vehicle Model",
+				filters={"name": ["in", list(model_names)]},
+				fields=["name", "model_name"],
+				limit=len(model_names) + 1,
+			)
+		}
+
+	by_parent: dict[str, list[str]] = {}
+	for link in links:
+		model = link.get("vehicle_model")
+		if not model:
+			continue
+		by_parent.setdefault(link["parent"], []).append(labels.get(model, model))
+
+	for row in rows:
+		row["applicable_vehicle_models"] = by_parent.get(row["name"], [])
+
+
+@frappe.whitelist()
+def list_vehicle_service_packages(search=None, active_filter=None, vehicle_model=None, limit=50, offset=0):
+	"""Vehicle Service Package masters for the Master → Service Packages screen."""
+	frappe.has_permission("Vehicle Service Package", "read", throw=True)
+
+	limit = cint(limit) or 50
+	offset = cint(offset) or 0
+
+	filters: dict = {}
+	status = (active_filter or "active").strip().lower()
+	if status not in ("active", "all", "inactive"):
+		status = "active"
+	if status != "all":
+		filters["is_active"] = 1 if status == "active" else 0
+
+	if (vehicle_model or "").strip():
+		from dms.api.service_packages import _package_names_for_vehicle_model
+
+		package_names = sorted(_package_names_for_vehicle_model(vehicle_model.strip()))
+		if not package_names:
+			return {"data": [], "total": 0}
+		filters["name"] = ["in", package_names]
+
+	or_filters = None
+	if search and str(search).strip():
+		q = f"%{search.strip()}%"
+		search_fields = _meta_fields(
+			"Vehicle Service Package", ["package_name", "package_id", "description"]
+		)
+		or_filters = [[f, "like", q] for f in search_fields] or None
+
+	fields = _meta_fields(
+		"Vehicle Service Package",
+		[
+			"name",
+			"package_name",
+			"package_id",
+			"description",
+			"vehicle_model",
+			"interval_km",
+			"interval_months",
+			"labour_discount_amount",
+			"before_discount",
+			"after_discount",
+			"total_amount",
+			"package_price",
+			"total_labor_hours",
+			"is_active",
+			"modified",
+		],
+	)
+	if "name" not in fields:
+		fields.insert(0, "name")
+
+	rows = frappe.get_all(
+		"Vehicle Service Package",
+		fields=fields,
+		filters=filters or None,
+		or_filters=or_filters,
+		limit=limit,
+		limit_start=offset,
+		order_by="package_name asc",
+	)
+	total = _count("Vehicle Service Package", filters=filters or None, or_filters=or_filters)
+
+	_attach_package_vehicle_models(rows)
+
+	return {"data": rows, "total": total}
+
+
+@frappe.whitelist()
+def get_vehicle_service_package(name):
+	frappe.has_permission("Vehicle Service Package", "read", throw=True)
+	if not name or not frappe.db.exists("Vehicle Service Package", name):
+		frappe.throw(_("Vehicle Service Package {0} was not found.").format(frappe.bold(name or "")))
+	return frappe.get_doc("Vehicle Service Package", name).as_dict()
+
+
+@frappe.whitelist()
+def create_vehicle_service_package(data=None):
+	frappe.has_permission("Vehicle Service Package", "create", throw=True)
+
+	values = _package_values(_parse_data(data), is_new=True)
+	if frappe.db.exists("Vehicle Service Package", values["package_name"]):
+		frappe.throw(
+			_("Vehicle Service Package {0} already exists.").format(frappe.bold(values["package_name"]))
+		)
+
+	doc = frappe.get_doc({"doctype": "Vehicle Service Package", **values})
+	doc.insert()
+	frappe.db.commit()
+	return {"name": doc.name, "package_name": doc.package_name}
+
+
+@frappe.whitelist()
+def update_vehicle_service_package(name, data):
+	frappe.has_permission("Vehicle Service Package", "write", throw=True)
+	if not name or not frappe.db.exists("Vehicle Service Package", name):
+		frappe.throw(_("Vehicle Service Package {0} was not found.").format(frappe.bold(name or "")))
+
+	values = _package_values(_parse_data(data))
+	new_name = values.get("package_name")
+	if new_name and new_name != name and frappe.db.exists("Vehicle Service Package", new_name):
+		frappe.throw(
+			_("Vehicle Service Package {0} already exists.").format(frappe.bold(new_name))
+		)
+
+	doc = frappe.get_doc("Vehicle Service Package", name)
+	doc.update(values)
+	doc.save()
+
+	# `package_name` drives autoname, so follow a rename like the Desk form does.
+	if new_name and new_name != doc.name:
+		renamed = frappe.rename_doc(
+			"Vehicle Service Package", doc.name, new_name, force=True, merge=False
+		)
+		doc = frappe.get_doc(
+			"Vehicle Service Package", renamed if isinstance(renamed, str) else renamed.name
+		)
+
+	frappe.db.commit()
+	return {"name": doc.name, "package_name": doc.package_name}
+
+
+@frappe.whitelist()
+def delete_vehicle_service_package(name):
+	frappe.has_permission("Vehicle Service Package", "delete", throw=True)
+	if not name or not frappe.db.exists("Vehicle Service Package", name):
+		frappe.throw(_("Vehicle Service Package {0} was not found.").format(frappe.bold(name or "")))
+
+	frappe.delete_doc("Vehicle Service Package", name)
+	frappe.db.commit()
+	return {"name": name}

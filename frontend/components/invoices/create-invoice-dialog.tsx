@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
+import { InvoiceTaxBreakdown } from '@/components/invoices/invoice-tax-breakdown';
 import {
   buildGroupDiscountPayload,
   groupDiscountAmount,
@@ -105,6 +106,8 @@ export function CreateInvoiceDialog({
   const [applyTaxes, setApplyTaxes] = useState(false);
   const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
   const [remark, setRemark] = useState('');
+  const [taxPreview, setTaxPreview] = useState<invoicesSvc.InvoiceTaxPreview | null>(null);
+  const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
   const [excludedRows, setExcludedRows] = useState<string[]>([]);
   const [editedQty, setEditedQty] = useState<Record<string, number>>({});
@@ -220,6 +223,50 @@ export function CreateInvoiceDialog({
       cancelled = true;
     };
   }, [open, jobCardId, onOpenChange, applyDiscountsFromPreview]);
+
+  // VAT / tax-withholding amounts for the lines above — recalculated whenever a
+  // checkbox, a line or the posting date changes, so the total is visible before
+  // the invoice is created.
+  useEffect(() => {
+    if (!open || !preview || preview.lines.length === 0) {
+      setTaxPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setTaxPreviewLoading(true);
+      invoicesSvc
+        .getInvoiceTaxPreview({
+          company: preview.company,
+          customer: preview.customer,
+          currency: preview.currency,
+          posting_date: postingDate,
+          apply_taxes: applyTaxes,
+          apply_tax_withholding: applyTaxWithholding,
+          lines: preview.lines.map((line) => ({
+            item_code: line.item_code,
+            qty: line.qty,
+            rate: line.rate,
+            description: line.description,
+          })),
+        })
+        .then((data) => {
+          if (!cancelled) setTaxPreview(data);
+        })
+        .catch(() => {
+          if (!cancelled) setTaxPreview(null);
+        })
+        .finally(() => {
+          if (!cancelled) setTaxPreviewLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [open, preview, postingDate, applyTaxes, applyTaxWithholding]);
 
   useEffect(() => {
     if (!open || !jobCardId || skipWarrantyRefetch.current) return;
@@ -809,6 +856,15 @@ export function CreateInvoiceDialog({
                 saved on the customer. ERPNext fills the Tax Withholding Entries on save.
               </p>
             </div>
+
+            <InvoiceTaxBreakdown
+              subtotal={preview.estimated_total}
+              currency={preview.currency}
+              applyTaxes={applyTaxes}
+              applyTaxWithholding={applyTaxWithholding}
+              preview={taxPreview}
+              isLoading={taxPreviewLoading}
+            />
           </>
         ) : null}
 

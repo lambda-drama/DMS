@@ -59,6 +59,14 @@ export async function updateVehicle(
   });
 }
 
+/** Delete a VIN No. Requires delete permission; linked documents block the call. */
+export async function deleteVehicle(name: string): Promise<{ name: string; vin_number?: string }> {
+  return apiRequest(`/api/method/${API}.delete_vehicle`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function getVehicleItems(search?: string): Promise<VehicleItem[]> {
   return apiRequest<VehicleItem[]>(`/api/method/${API}.get_vehicle_items`, {
     method: 'POST',

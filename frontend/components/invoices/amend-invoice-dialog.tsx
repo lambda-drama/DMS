@@ -28,6 +28,7 @@ import { Loader2, FilePenLine, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '@/contexts/permissions-context';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
+import { InvoiceTaxBreakdown } from '@/components/invoices/invoice-tax-breakdown';
 import {
   groupDiscountAmount,
   parseDiscountValue,
@@ -87,6 +88,8 @@ export function AmendInvoiceDialog({
   const [discountInput, setDiscountInput] = useState('');
   const [applyTaxes, setApplyTaxes] = useState(false);
   const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
+  const [taxPreview, setTaxPreview] = useState<invoicesSvc.InvoiceTaxPreview | null>(null);
+  const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
   const [submitAfterSave, setSubmitAfterSave] = useState(false);
 
   const canDeleteDraft =
@@ -177,6 +180,71 @@ export function AmendInvoiceDialog({
   const discountValue = parseDiscountValue(discountMode, discountInput);
   const discountTotal = groupDiscountAmount(linesSubtotal, discountMode, discountValue);
   const estimatedNet = Math.max(linesSubtotal - discountTotal, 0);
+
+  // VAT / tax-withholding preview for the edited lines — the discount is spread over
+  // the line rates so the taxable base matches "Estimated net".
+  useEffect(() => {
+    const company = (invoice?.company || '').trim();
+    const customer = (invoice?.customer || '').trim();
+    if (!open || !company || !customer || estimatedNet <= 0) {
+      setTaxPreview(null);
+      return;
+    }
+
+    const factor = linesSubtotal > 0 ? estimatedNet / linesSubtotal : 0;
+    const previewLines = lines
+      .filter((row) => Number(row.qty) > 0)
+      .map((row) => ({
+        item_code: row.item_code,
+        qty: Number(row.qty),
+        rate: (Number(row.rate) || 0) * factor,
+        description: row.item_name || undefined,
+      }));
+    if (previewLines.length === 0) {
+      setTaxPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setTaxPreviewLoading(true);
+      invoicesSvc
+        .getInvoiceTaxPreview({
+          company,
+          customer,
+          currency: invoice?.currency,
+          posting_date: invoice?.posting_date,
+          apply_taxes: applyTaxes,
+          apply_tax_withholding: applyTaxWithholding,
+          lines: previewLines,
+        })
+        .then((data) => {
+          if (!cancelled) setTaxPreview(data);
+        })
+        .catch(() => {
+          if (!cancelled) setTaxPreview(null);
+        })
+        .finally(() => {
+          if (!cancelled) setTaxPreviewLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    open,
+    invoice?.company,
+    invoice?.customer,
+    invoice?.currency,
+    invoice?.posting_date,
+    lines,
+    linesSubtotal,
+    estimatedNet,
+    applyTaxes,
+    applyTaxWithholding,
+  ]);
 
   const updateLine = (idx: number, patch: Partial<EditableLine>) => {
     setLines((prev) => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
@@ -359,9 +427,15 @@ export function AmendInvoiceDialog({
                 <span>Estimated net (excl. tax)</span>
                 <span>{formatMoney(estimatedNet, invoice.currency)}</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Tax and grand total are recalculated in ERPNext on save.
-              </p>
+
+              <InvoiceTaxBreakdown
+                subtotal={estimatedNet}
+                currency={invoice.currency}
+                applyTaxes={applyTaxes}
+                applyTaxWithholding={applyTaxWithholding}
+                preview={taxPreview}
+                isLoading={taxPreviewLoading}
+              />
             </div>
 
             <div className="space-y-2">

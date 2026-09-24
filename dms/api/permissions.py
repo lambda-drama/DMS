@@ -17,6 +17,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"spare-parts": "Spare Part",
 	"vehicle-services": "Vehicle Service Item",
 	"vehicle-models": "Vehicle Model",
+	"service-packages": "Vehicle Service Package",
 	"item-prices": "Item Price",
 	"job-card-terms": "DMS Job Card Terms",
 	"sales-invoice-tc": "DMS Sales Invoice TC",
