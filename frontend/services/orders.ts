@@ -25,6 +25,12 @@ export type DmsOrderListItem = {
   docstatus?: number;
   per_billed?: number;
   converted?: boolean;
+  /** Cancelled order that was amended into this one. */
+  amended_from?: string | null;
+  /** 1 when this cancelled order already has an amendment draft. */
+  already_amended?: number | boolean;
+  /** The amendment draft that replaced this cancelled order, if any. */
+  amended_as?: string | null;
 };
 
 export type DmsOrderItem = {
@@ -220,6 +226,14 @@ export async function cancelDmsOrder(name: string): Promise<{ name: string; stat
 
 export async function deleteDraftDmsOrder(name: string): Promise<{ deleted: string }> {
   return apiRequest(`/api/method/${API}.delete_draft_dms_order`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+/** Amend a cancelled order — creates a new editable draft copy to re-submit. */
+export async function amendDmsOrder(name: string): Promise<DmsOrderDetail> {
+  return apiRequest(`/api/method/${API}.amend_dms_order`, {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
