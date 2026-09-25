@@ -64,7 +64,7 @@ const STATUS_OPTIONS = ['Draft', 'To Deliver and Bill', 'To Bill', 'To Deliver',
 
 export default function OrdersPage() {
   const { viewParams, navigate } = useNavigation();
-  const { canCreate, canDelete, canSubmit, canCancel } = usePermissions();
+  const { canCreate, canWrite, canDelete, canSubmit, canCancel } = usePermissions();
 
   const [search, setSearch] = usePersistedFilter('orders', 'search', '');
   const [status, setStatus] = usePersistedFilter('orders', 'status', '');
@@ -74,6 +74,7 @@ export default function OrdersPage() {
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<DmsOrderListItem | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [amending, setAmending] = useState(false);
 
   const canOrder = canCreate('orders');
   const canCollectPayment = canCreate('orders') || canCreate('payment-entries');
@@ -113,6 +114,12 @@ export default function OrdersPage() {
     return row.docstatus === 2 || row.status === 'Cancelled';
   }
 
+  // A cancelled order can be amended once (Desk rule); afterwards the replacement
+  // draft can be opened instead.
+  const canAmendFor = (
+    row: Pick<DmsOrderListItem, 'docstatus' | 'status' | 'already_amended'>
+  ) => (canCreate('orders') || canWrite('orders')) && isCancelled(row) && !row.already_amended;
+
   // Accepts a table row or the full detail — the dialogs only need these fields.
   const canPayFor = (order: DmsOrderListItem | null | undefined) =>
     Boolean(order) && order!.docstatus === 1 && !order!.converted && (order!.balance || 0) > 0.0001;
@@ -144,6 +151,22 @@ export default function OrdersPage() {
       toast.error(err instanceof Error ? err.message : `Failed to ${label}`);
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function handleAmend(name: string) {
+    setAmending(true);
+    try {
+      const draft = await ordersSvc.amendDmsOrder(name);
+      toast.success(`Amended draft ${draft.name} created`);
+      setSelectedId(null);
+      // Refresh the list so the cancelled order now shows its amendment link.
+      void mutate();
+      navigate('order-new', { id: draft.name });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to amend the order');
+    } finally {
+      setAmending(false);
     }
   }
 
@@ -340,6 +363,25 @@ export default function OrdersPage() {
                                       Cancel
                                     </DropdownMenuItem>
                                   ) : null}
+                                  {canAmendFor(row) ? (
+                                    <DropdownMenuItem
+                                      disabled={amending}
+                                      onClick={() => void handleAmend(row.name)}
+                                    >
+                                      <FilePenLine className="mr-2 h-4 w-4" />
+                                      Amend Order
+                                    </DropdownMenuItem>
+                                  ) : null}
+                                  {isCancelled(row) && row.amended_as ? (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        navigate('order-new', { id: row.amended_as as string })
+                                      }
+                                    >
+                                      <FilePenLine className="mr-2 h-4 w-4" />
+                                      Open Amendment
+                                    </DropdownMenuItem>
+                                  ) : null}
                                 </>
                               )}
                             </DropdownMenuContent>
@@ -456,6 +498,31 @@ export default function OrdersPage() {
                       Cancel
                     </Button>
                   ) : null}
+                  {canAmendFor(selected) ? (
+                    <Button
+                      disabled={amending || busy !== null}
+                      onClick={() => void handleAmend(selected.name)}
+                    >
+                      {amending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <FilePenLine className="mr-2 h-4 w-4" />
+                      )}
+                      Amend Order
+                    </Button>
+                  ) : null}
+                  {isCancelled(selected) && selected.amended_as ? (
+                    <Button
+                      variant="outline"
+                      disabled={busy !== null}
+                      onClick={() =>
+                        navigate('order-new', { id: selected.amended_as as string })
+                      }
+                    >
+                      <FilePenLine className="mr-2 h-4 w-4" />
+                      Open Amendment
+                    </Button>
+                  ) : null}
                 </>
               )}
             </div>
@@ -475,6 +542,12 @@ export default function OrdersPage() {
               <DetailRow label="Expected delivery" value={selected.delivery_date} />
               <DetailRow label="Warehouse" value={selected.warehouse || undefined} />
               <DetailRow label="Status" value={selected.status} />
+              {selected.amended_from ? (
+                <DetailRow label="Amended from" value={selected.amended_from} />
+              ) : null}
+              {selected.amended_as ? (
+                <DetailRow label="Amended as" value={selected.amended_as} />
+              ) : null}
             </DetailSection>
             <DetailSection title="Amounts">
               <DetailRow

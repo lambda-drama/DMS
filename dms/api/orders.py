@@ -210,11 +210,26 @@ def list_dms_orders(
 		start=int(offset),
 	)
 
+	# Mark cancelled orders that already have an amendment so the list can offer
+	# Amend (once) or jump to the replacement draft.
+	amended_as_map: dict[str, str] = {}
+	if rows:
+		for link in frappe.get_all(
+			"Sales Order",
+			filters={"amended_from": ["in", [r.name for r in rows]]},
+			fields=["name", "amended_from"],
+		):
+			# One amendment per cancelled order (Desk rule); keep first if duplicates.
+			amended_as_map.setdefault(link.amended_from, link.name)
+
 	for row in rows:
+		amended_as = amended_as_map.get(row.name)
 		row["advance_paid"] = flt(row.get("advance_paid"))
 		row["balance"] = max(flt(row.get("grand_total")) - row["advance_paid"], 0)
 		row["converted"] = flt(row.get("per_billed")) >= 100
 		row["sales_order"] = row["name"]
+		row["already_amended"] = 1 if amended_as else 0
+		row["amended_as"] = amended_as
 
 	return {"data": rows, "total": total}
 
@@ -406,6 +421,8 @@ def get_dms_order(name):
 	advance_paid = flt(so.get("advance_paid"))
 	grand_total = flt(so.grand_total)
 
+	amended_as = frappe.db.get_value("Sales Order", {"amended_from": so.name}, "name")
+
 	return {
 		"name": so.name,
 		"sales_order": so.name,
@@ -425,6 +442,9 @@ def get_dms_order(name):
 		"docstatus": so.docstatus,
 		"per_billed": flt(so.per_billed),
 		"converted": flt(so.per_billed) >= 100,
+		"already_amended": 1 if amended_as else 0,
+		"amended_as": amended_as,
+		"amended_from": so.get("amended_from"),
 		"advance_paid": advance_paid,
 		"balance": max(grand_total - advance_paid, 0),
 		"remarks": remarks or None,
@@ -549,6 +569,67 @@ def delete_draft_dms_order(name):
 	frappe.delete_doc("Sales Order", so.name, force=1)
 	frappe.db.commit()
 	return {"deleted": so.name}
+
+
+@frappe.whitelist()
+def amend_dms_order(name):
+	"""Amend a cancelled DMS order (Sales Order) — same idea as Desk Amend.
+
+	Creates a new *draft* copy with ``amended_from`` set so the UI can continue
+	editing lines / rates / discounts before submitting it again.
+	"""
+	from frappe.model.document import copy_doc
+	from frappe.utils import nowdate
+
+	name = (name or "").strip()
+	if not name:
+		frappe.throw(_("Order is required."))
+
+	so = _load_order(name)
+	if so.docstatus != 2:
+		frappe.throw(_("Only cancelled orders can be amended. Cancel the order first."))
+
+	existing = frappe.db.exists("Sales Order", {"amended_from": name})
+	if existing:
+		frappe.throw(_("This order is already amended as {0}.").format(frappe.bold(existing)))
+
+	frappe.has_permission("Sales Order", "create", throw=True)
+
+	# Mirror Desk amend: copy cancelled doc (including no_copy fields), then set amended_from.
+	amended = copy_doc(so, ignore_no_copy=True)
+	amended.amended_from = name
+	if amended.meta.has_field("amendment_date"):
+		amended.amendment_date = nowdate()
+
+	# Always start as an editable draft.
+	amended.docstatus = 0
+	if amended.meta.has_field("status"):
+		amended.status = "Draft"
+
+	# Clear billing / delivery / payment leftovers that must not carry over.
+	for fieldname in ("per_billed", "per_delivered", "advance_paid"):
+		if amended.meta.has_field(fieldname):
+			amended.set(fieldname, 0)
+	if amended.meta.has_field("billing_status"):
+		amended.billing_status = "Not Billed"
+	if amended.meta.has_field("delivery_status"):
+		amended.delivery_status = "Not Delivered"
+	if amended.meta.has_field("advance_payment_status"):
+		amended.advance_payment_status = "Not Requested"
+
+	# Keep the amendment in the DMS order family (copy_doc already carries the
+	# no_copy flags, but be explicit) and clear the proforma family flag.
+	ensure_sales_order_dms_order_field()
+	meta = frappe.get_meta("Sales Order")
+	if meta.has_field(ORDER_FLAG_FIELD):
+		amended.set(ORDER_FLAG_FIELD, 1)
+	if meta.has_field(PROFORMA_FLAG_FIELD):
+		amended.set(PROFORMA_FLAG_FIELD, 0)
+
+	amended.insert()
+	frappe.db.commit()
+
+	return get_dms_order(amended.name)
 
 
 @frappe.whitelist()
