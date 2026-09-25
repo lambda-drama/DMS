@@ -275,7 +275,9 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 			continue
 		for row in jc.parts or []:
 			if row.name == row_name:
-				if abs(flt(row.unit_price or 0) - flt(payload.get("unit_price"))) >= 0.01:
+				if "unit_price" in payload and abs(
+					flt(row.unit_price or 0) - flt(payload.get("unit_price"))
+				) >= 0.01:
 					actual_changes = True
 					break
 		if actual_changes:
@@ -288,7 +290,9 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 				continue
 			for row in jc.labour or []:
 				if row.name == row_name:
-					if abs(flt(row.rate_per_hour or 0) - flt(payload.get("rate_per_hour"))) >= 0.01:
+					if "rate_per_hour" in payload and abs(
+						flt(row.rate_per_hour or 0) - flt(payload.get("rate_per_hour"))
+					) >= 0.01:
 						actual_changes = True
 						break
 			if actual_changes:
@@ -297,6 +301,18 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 	if actual_changes:
 		require_edit_price()
 
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+		apply_line_discount_from_payload,
+	)
+
+	discount_keys = ("discount", "discount_type", "discount_value")
+
+	def _apply_discount(row, payload) -> bool:
+		if not any(key in payload for key in discount_keys):
+			return False
+		apply_line_discount_from_payload(row, payload)
+		return True
+
 	changed = False
 	for payload in parts or []:
 		row_name = (payload.get("name") or payload.get("row_name") or "").strip()
@@ -304,8 +320,11 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 			continue
 		for row in jc.parts or []:
 			if row.name == row_name:
-				row.unit_price = flt(payload.get("unit_price"))
-				changed = True
+				if "unit_price" in payload:
+					row.unit_price = flt(payload.get("unit_price"))
+					changed = True
+				if _apply_discount(row, payload):
+					changed = True
 				break
 
 	for payload in labour or []:
@@ -314,8 +333,11 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 			continue
 		for row in jc.labour or []:
 			if row.name == row_name:
-				row.rate_per_hour = flt(payload.get("rate_per_hour"))
-				changed = True
+				if "rate_per_hour" in payload:
+					row.rate_per_hour = flt(payload.get("rate_per_hour"))
+					changed = True
+				if _apply_discount(row, payload):
+					changed = True
 				break
 
 	if not changed:

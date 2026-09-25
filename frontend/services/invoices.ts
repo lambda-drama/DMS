@@ -158,6 +158,9 @@ export type StandaloneInvoiceLabourLine = {
   estimated_hours?: number;
   rate_per_hour?: number;
   description?: string;
+  /** Per-line discount applied to this line's amount. */
+  discount_type?: '' | 'Percentage' | 'Amount';
+  discount_value?: number;
 };
 
 export type StandaloneInvoicePartLine = {
@@ -165,7 +168,16 @@ export type StandaloneInvoicePartLine = {
   qty?: number;
   quantity?: number;
   unit_price?: number;
+  /** Per-line discount applied to this line's amount. */
+  discount_type?: '' | 'Percentage' | 'Amount';
+  discount_value?: number;
 };
+
+/** Job card child row name -> per-line discount (persisted on the job card). */
+export type JobCardLineDiscountMap = Record<
+  string,
+  { discount_type: '' | 'Percentage' | 'Amount'; discount_value: number }
+>;
 
 export type StandaloneInvoiceGroupDiscount = {
   type: 'percentage' | 'amount';
@@ -232,6 +244,8 @@ export async function createInvoiceFromJobCard(
     qtyOverrides?: QtyOverrides;
     /** Saved on the linked Job Card's `remark` field and shown on the invoice detail. */
     remarks?: string;
+    /** Per-line discounts entered on the invoice screen (saved on the job card). */
+    lineDiscounts?: JobCardLineDiscountMap;
   }
 ): Promise<string> {
   return apiRequest<string>(`/api/method/${JC_API}.make_sales_invoice_from_job_card`, {
@@ -254,6 +268,10 @@ export async function createInvoiceFromJobCard(
           ? options.qtyOverrides
           : null,
       remarks: options?.remarks ?? null,
+      line_discounts:
+        options?.lineDiscounts && Object.keys(options.lineDiscounts).length
+          ? options.lineDiscounts
+          : null,
     }),
   });
 }

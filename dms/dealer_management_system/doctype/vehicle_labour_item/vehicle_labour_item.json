@@ -17,6 +17,10 @@
   "actual_hours",
   "rate_per_hour",
   "amount",
+  "discount_type",
+  "discount_value",
+  "discount_amount",
+  "net_amount",
   "is_warranty",
   "line_status",
   "notes"
@@ -96,6 +100,34 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "description": "Optional line discount, on top of any labour discount on the document",
+   "fieldname": "discount_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Discount Type",
+   "options": "\nPercentage\nAmount"
+  },
+  {
+   "fieldname": "discount_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Discount"
+  },
+  {
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount Amount",
+   "read_only": 1
+  },
+  {
+   "description": "Amount after this line's discount",
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Net Amount",
    "read_only": 1
   },
   {

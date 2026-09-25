@@ -62,11 +62,14 @@ import * as vehiclesSvc from "@/services/vehicles";
 import * as sparePartSalesSvc from "@/services/sparePartSales";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
 import { AddLineButton } from "@/components/ui/add-line-button";
+import { LineDiscountButton } from "@/components/line-discount-button";
 import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import {
   buildGroupDiscountPayload,
+  discountModeFromBackend,
   groupDiscountAmount,
+  lineDiscountAmount,
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
@@ -80,6 +83,8 @@ interface LabourRow {
   display_name: string;
   estimated_hours: number;
   rate_per_hour: number;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
 }
 
 interface PartRow {
@@ -89,6 +94,8 @@ interface PartRow {
   bin_location?: string;
   quantity: number;
   unit_price: number;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
   never_requested?: boolean;
   /**
    * Job card billable quantity — the highest quantity that may be invoiced for
@@ -104,6 +111,8 @@ function emptyLabourRow(): LabourRow {
     display_name: "",
     estimated_hours: 0,
     rate_per_hour: 0,
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -113,6 +122,8 @@ function emptyPartRow(): PartRow {
     item_name: "",
     quantity: 1,
     unit_price: 0,
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -126,6 +137,26 @@ function buildRateOverridesFromRows(
   }
   for (const row of parts) {
     if (row.source_row) out[row.source_row] = row.unit_price;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Per-line discounts keyed by the job card child row name. Every sourced row is
+ * sent (zeros included) so clearing a discount on the invoice clears it on the
+ * job card too.
+ */
+function buildLineDiscountsFromRows(
+  labour: LabourRow[],
+  parts: PartRow[]
+): invoicesSvc.JobCardLineDiscountMap | undefined {
+  const out: invoicesSvc.JobCardLineDiscountMap = {};
+  for (const row of [...labour, ...parts]) {
+    if (!row.source_row) continue;
+    out[row.source_row] = {
+      discount_type: row.discount_type,
+      discount_value: row.discount_value,
+    };
   }
   return Object.keys(out).length ? out : undefined;
 }
@@ -290,6 +321,8 @@ export default function NewInvoicePage() {
       display_name: sl.custom_display_name || sl.display_name || sl.service_name || "",
       estimated_hours: sl.actual_hours || sl.estimated_hours || 1,
       rate_per_hour: sl.rate_per_hour || 0,
+      discount_type: sl.discount_type || "",
+      discount_value: sl.discount_value ?? 0,
     }));
     const parts: PartRow[] = (jobCard.parts || []).map((pl) => {
       // Mirror the backend billable qty: issued, else requested − returned.
@@ -306,6 +339,8 @@ export default function NewInvoicePage() {
         quantity: billable,
         max_quantity: billable,
         unit_price: pl.unit_price || 0,
+        discount_type: pl.discount_type || "",
+        discount_value: pl.discount_value ?? 0,
         never_requested: Boolean(pl.never_requested),
       };
     });
@@ -337,20 +372,40 @@ export default function NewInvoicePage() {
     0
   );
   const partsTotal = filledPartRows.reduce((sum, r) => sum + r.quantity * r.unit_price, 0);
+
+  // Per-line discounts come off each line before the labour/parts group discount.
+  const rowLineDiscount = (
+    gross: number,
+    type: LabourRow["discount_type"],
+    value: number
+  ) => lineDiscountAmount(gross, discountModeFromBackend(type), value);
+  const labourLineDiscountTotal = filledLabourRows.reduce(
+    (sum, r) =>
+      sum + rowLineDiscount(r.estimated_hours * r.rate_per_hour, r.discount_type, r.discount_value),
+    0
+  );
+  const partsLineDiscountTotal = filledPartRows.reduce(
+    (sum, r) =>
+      sum + rowLineDiscount(r.quantity * r.unit_price, r.discount_type, r.discount_value),
+    0
+  );
+  const labourBase = Math.max(labourTotal - labourLineDiscountTotal, 0);
+  const partsBase = Math.max(partsTotal - partsLineDiscountTotal, 0);
+
   const labourDiscountValue = parseDiscountValue(labourDiscountMode, labourDiscountInput);
   const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
   const labourDiscountTotal = groupDiscountAmount(
-    labourTotal,
+    labourBase,
     labourDiscountMode,
     labourDiscountValue
   );
   const partsDiscountTotal = groupDiscountAmount(
-    partsTotal,
+    partsBase,
     partsDiscountMode,
     partsDiscountValue
   );
-  const labourNet = labourTotal - labourDiscountTotal;
-  const partsNet = partsTotal - partsDiscountTotal;
+  const labourNet = labourBase - labourDiscountTotal;
+  const partsNet = partsBase - partsDiscountTotal;
   const subtotal = labourNet + partsNet;
 
   // Live VAT / tax-withholding amounts for the invoice being built. Lines are
@@ -711,6 +766,7 @@ export default function NewInvoicePage() {
           rateOverrides: buildRateOverridesFromRows(filledLabourRows, filledPartRows),
           excludeRows: removedPartRows.length ? removedPartRows : undefined,
           qtyOverrides: buildQtyOverridesFromRows(filledPartRows),
+          lineDiscounts: buildLineDiscountsFromRows(filledLabourRows, filledPartRows),
         });
         toast.success(asDraft ? "Invoice saved as draft" : "Invoice created successfully");
         navigate("invoices");
@@ -751,7 +807,7 @@ export default function NewInvoicePage() {
 
     if (
       labourDiscountMode === "amount" &&
-      labourDiscountValue > labourTotal &&
+      labourDiscountValue > labourBase &&
       labourTotal > 0
     ) {
       toast.error("Labour discount cannot exceed labour total");
@@ -759,7 +815,7 @@ export default function NewInvoicePage() {
     }
     if (
       partsDiscountMode === "amount" &&
-      partsDiscountValue > partsTotal &&
+      partsDiscountValue > partsBase &&
       partsTotal > 0
     ) {
       toast.error("Parts discount cannot exceed parts total");
@@ -793,11 +849,15 @@ export default function NewInvoicePage() {
           rate_per_hour: r.rate_per_hour,
           // Display name → Sales Invoice Item description.
           description: r.display_name.trim() || undefined,
+          discount_type: r.discount_type,
+          discount_value: r.discount_value,
         })),
         parts: filledPartRows.map((r) => ({
           spare_part: r.item_code,
           qty: r.quantity,
           unit_price: r.unit_price,
+          discount_type: r.discount_type,
+          discount_value: r.discount_value,
         })),
         is_dms_invoice: isDmsInvoice,
         vehicle_vin: showVinOnCustomer && vehicleVin ? vehicleVin : undefined,
@@ -1156,12 +1216,27 @@ export default function NewInvoicePage() {
                   </div>
                   <div className="space-y-1 sm:col-span-3">
                     <Label className="text-xs">{canEditPrice ? "Rate/hr" : "Rate/hr (fixed)"}</Label>
-                    <DecimalInput
-                      min={0}
-                      value={row.rate_per_hour}
-                      onValueChange={canEditPrice ? (rate_per_hour) => updateLabourRow(idx, { rate_per_hour }) : () => {}}
-                      disabled={!canEditPrice}
-                    />
+                    <div className="flex items-center gap-1">
+                      <DecimalInput
+                        min={0}
+                        value={row.rate_per_hour}
+                        onValueChange={canEditPrice ? (rate_per_hour) => updateLabourRow(idx, { rate_per_hour }) : () => {}}
+                        disabled={!canEditPrice}
+                      />
+                      <LineDiscountButton
+                        label={row.display_name || row.vehicle_service_item_name || "this service line"}
+                        lineAmount={(row.estimated_hours || 0) * (row.rate_per_hour || 0)}
+                        discountType={row.discount_type}
+                        discountValue={row.discount_value}
+                        disabled={!row.vehicle_service_item}
+                        onApply={(discount) =>
+                          updateLabourRow(idx, {
+                            discount_type: discount.discount_type,
+                            discount_value: discount.discount_value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end sm:col-span-2">
@@ -1197,7 +1272,7 @@ export default function NewInvoicePage() {
                 }}
                 value={labourDiscountInput}
                 onValueChange={setLabourDiscountInput}
-                subtotal={labourTotal}
+                subtotal={labourBase}
               />
             )}
           </CardContent>
@@ -1303,12 +1378,27 @@ export default function NewInvoicePage() {
                   </div>
                   <div className="space-y-1 sm:col-span-3">
                     <Label className="text-xs">{canEditPrice ? "Unit price" : "Unit price (fixed)"}</Label>
-                    <DecimalInput
-                      min={0}
-                      value={row.unit_price}
-                      onValueChange={canEditPrice ? (unit_price) => updatePartRow(idx, { unit_price }) : () => {}}
-                      disabled={!canEditPrice}
-                    />
+                    <div className="flex items-center gap-1">
+                      <DecimalInput
+                        min={0}
+                        value={row.unit_price}
+                        onValueChange={canEditPrice ? (unit_price) => updatePartRow(idx, { unit_price }) : () => {}}
+                        disabled={!canEditPrice}
+                      />
+                      <LineDiscountButton
+                        label={row.item_name || row.item_code || "this part"}
+                        lineAmount={(row.quantity || 0) * (row.unit_price || 0)}
+                        discountType={row.discount_type}
+                        discountValue={row.discount_value}
+                        disabled={!row.item_code}
+                        onApply={(discount) =>
+                          updatePartRow(idx, {
+                            discount_type: discount.discount_type,
+                            discount_value: discount.discount_value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end sm:col-span-2">
@@ -1344,7 +1434,7 @@ export default function NewInvoicePage() {
                 }}
                 value={partsDiscountInput}
                 onValueChange={setPartsDiscountInput}
-                subtotal={partsTotal}
+                subtotal={partsBase}
               />
             )}
           </CardContent>

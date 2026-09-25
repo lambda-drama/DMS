@@ -344,17 +344,25 @@ class DMSJobCard(Document):
 	def calculate_costing_and_totals(self):
 		"""Totals exclude warranty labour/parts.
 
-		• total_labor_cost — billable labour (hours × rate).
-		• total_parts_cost — billable parts amount from the parts table.
+		• total_labor_cost — billable labour (hours × rate) less each line discount.
+		• total_parts_cost — billable parts amount less each line discount.
 		• total_amount / net_amount — customer subtotal before/after discount.
+
+		Per-line discounts are applied first; the document-level labour/parts
+		discount (Discount warranty type) then applies to the discounted subtotal.
 		"""
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			apply_line_discount,
+		)
+
 		total_labor = 0.0
 		total_parts = 0.0
 
 		for row in self.labour or []:
 			row.amount = apply_vehicle_labour_row_pricing(row)
+			line_net = apply_line_discount(row, row.amount)
 			if is_labour_row_billable(row):
-				total_labor += flt(row.amount)
+				total_labor += line_net
 
 		for row in self.parts or []:
 			if not row.item_code:
@@ -365,11 +373,12 @@ class DMSJobCard(Document):
 				row.unit_price = spare_part_default_selling_price(row.item_code)
 
 			row.total_amount = round(qty * flt(row.unit_price or 0), 2)
+			line_net = apply_line_discount(row, row.total_amount)
 
 			if not is_part_row_billable(row):
 				continue
 
-			total_parts += flt(row.total_amount)
+			total_parts += line_net
 
 		self.total_labor_cost = round(total_labor, 2)
 		self.total_parts_cost = round(total_parts, 2)
@@ -479,6 +488,7 @@ def make_sales_invoice_from_job_card(
 	qty_overrides=None,
 	remarks=None,
 	apply_tax_withholding=None,
+	line_discounts=None,
 ):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		create_sales_invoice_from_dms_job_card,
@@ -508,6 +518,7 @@ def make_sales_invoice_from_job_card(
 		apply_tax_withholding=(
 			None if apply_tax_withholding is None else bool(int(apply_tax_withholding or 0))
 		),
+		line_discounts=line_discounts,
 	)
 
 

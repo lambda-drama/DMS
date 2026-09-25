@@ -5,6 +5,16 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -195,6 +205,8 @@ export function EditVehicleDialog({
   const { mutate } = useSWRConfig();
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('vehicle');
+  /** Odometer-rollback warning awaiting the user's "save anyway". */
+  const [rollbackPrompt, setRollbackPrompt] = useState<string | null>(null);
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [fleetSearch, setFleetSearch] = useState('');
@@ -225,8 +237,10 @@ export function EditVehicleDialog({
     commonSvc.fetchCompanies()
   );
 
-  // The vehicle Item is frozen once the Serial No exists (it is the serial's item).
+  // The vehicle Item backs the vehicle's Serial No. It can be changed while that
+  // serial has no transactions; changing it replaces the serial.
   const hasLinkedSerial = Boolean((vehicle?.linked_serial || '').trim());
+  const serialInUse = Boolean(vehicle?.serial_in_use);
 
   useEffect(() => {
     if (!open || !vehicle) return;
@@ -346,6 +360,30 @@ export function EditVehicleDialog({
     e.preventDefault();
     if (!vehicle?.name) return;
 
+    // A lower reading needs the user's OK before we touch the vehicle.
+    const rollback = localOdometerRollbackMessage();
+    if (rollback) {
+      setRollbackPrompt(rollback);
+      return;
+    }
+
+    await saveVehicle(false);
+  }
+
+  /** Local mirror of the server's check, so we can ask before sending. */
+  function localOdometerRollbackMessage(): string | null {
+    if (form.current_odometer === '') return null;
+    const previous = Number(vehicle?.current_odometer || 0);
+    const next = Number(form.current_odometer);
+    if (previous > 0 && Number.isFinite(next) && next > 0 && next < previous) {
+      return `Odometer rollback detected! Previous: ${previous} km, New: ${next} km.`;
+    }
+    return null;
+  }
+
+  async function saveVehicle(confirmRollback: boolean) {
+    if (!vehicle?.name) return;
+
     const payload: Record<string, unknown> = {
       company: form.company || null,
       model: form.model || null,
@@ -383,10 +421,10 @@ export function EditVehicleDialog({
       internal_notes: form.internal_notes.trim() || null,
     };
 
-    // The Item is locked by the backend once a Serial No exists for this VIN.
-    if (!hasLinkedSerial) {
-      payload.linked_item = form.linked_item || null;
-    }
+    // Changing the item replaces the vehicle's Serial No. The backend refuses once
+    // that serial has transactions (the field is locked then).
+    payload.linked_item = form.linked_item || null;
+    if (confirmRollback) payload.confirm_odometer_rollback = 1;
 
     setSaving(true);
     try {
@@ -402,13 +440,21 @@ export function EditVehicleDialog({
       onUpdated?.(vehicle.name);
       onOpenChange(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update vehicle');
+      const message = err instanceof Error ? err.message : '';
+      // The server still flags a rollback (e.g. the stored reading differs from the
+      // one we loaded) — ask the user instead of failing the save.
+      if (!confirmRollback && /odometer rollback detected/i.test(message)) {
+        setRollbackPrompt(message);
+        return;
+      }
+      toast.error(message || 'Failed to update vehicle');
     } finally {
       setSaving(false);
     }
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
@@ -446,13 +492,15 @@ export function EditVehicleDialog({
                     onSearchChange={setItemSearch}
                     placeholder="Search vehicle item..."
                     isLoading={itemsLoading}
-                    disabled={hasLinkedSerial}
+                    disabled={serialInUse}
                     portaled
                   />
                   <p className="text-xs text-muted-foreground">
-                    {hasLinkedSerial
-                      ? `Locked — Serial No ${vehicle?.linked_serial} was created from this item.`
-                      : 'ERPNext Item this vehicle is registered as.'}
+                    {serialInUse
+                      ? `Locked — Serial No ${vehicle?.linked_serial} already has transactions.`
+                      : hasLinkedSerial
+                        ? `Saving a different item replaces Serial No ${vehicle?.linked_serial} with one for the new item.`
+                        : 'ERPNext Item this vehicle is registered as.'}
                   </p>
                 </div>
                 <div className="space-y-1">
@@ -945,6 +993,39 @@ export function EditVehicleDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* A lower odometer is usually a typo but can be genuine (cluster replacement) —
+        warn and let the user decide instead of blocking the save. */}
+    <AlertDialog
+      open={rollbackPrompt !== null}
+      onOpenChange={(open) => !open && setRollbackPrompt(null)}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Odometer rollback detected</AlertDialogTitle>
+          <AlertDialogDescription>
+            {rollbackPrompt} The new reading is lower than the one stored on this vehicle. Save it
+            anyway? Only do this when the reading is genuinely lower (for example an instrument
+            cluster replacement).
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={saving}>Go back</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={saving}
+            onClick={(e) => {
+              e.preventDefault();
+              setRollbackPrompt(null);
+              void saveVehicle(true);
+            }}
+          >
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Save anyway
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

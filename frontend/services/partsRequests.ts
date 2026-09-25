@@ -144,11 +144,16 @@ export async function removePartLineFromJobCard(
   });
 }
 
+export type JobCardLineDiscountPatch = {
+  discount_type?: '' | 'Percentage' | 'Amount';
+  discount_value?: number;
+};
+
 export async function updateJobCardLinePricing(
   jobCard: string,
   payload: {
-    parts?: Array<{ name: string; unit_price: number }>;
-    labour?: Array<{ name: string; rate_per_hour: number }>;
+    parts?: Array<{ name: string; unit_price?: number } & JobCardLineDiscountPatch>;
+    labour?: Array<{ name: string; rate_per_hour?: number } & JobCardLineDiscountPatch>;
   }
 ): Promise<{
   job_card: string;

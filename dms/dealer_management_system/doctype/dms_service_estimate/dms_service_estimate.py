@@ -39,13 +39,18 @@ class DMSServiceEstimate(Document):
 		self.calculate_totals()
 
 	def calculate_totals(self):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			apply_line_discount,
+		)
+
 		total_labor = 0.0
 		total_parts = 0.0
 
 		for row in self.labour or []:
 			row.amount = apply_vehicle_labour_row_pricing(row)
+			line_net = apply_line_discount(row, row.amount)
 			if is_labour_row_billable(row):
-				total_labor += flt(row.amount)
+				total_labor += line_net
 
 		for row in self.parts or []:
 			if not row.item_code:
@@ -54,8 +59,9 @@ class DMSServiceEstimate(Document):
 			if flt(row.unit_price or 0) <= 0:
 				row.unit_price = spare_part_default_selling_price(row.item_code)
 			row.total_amount = round(qty * flt(row.unit_price or 0), 2)
+			line_net = apply_line_discount(row, row.total_amount)
 			if is_part_row_billable(row):
-				total_parts += flt(row.total_amount)
+				total_parts += line_net
 
 		self.total_labor_cost = round(total_labor, 2)
 		self.total_parts_cost = round(total_parts, 2)
@@ -231,11 +237,17 @@ def submit_for_customer_approval(estimate_name: str) -> dict:
 
 	doc.calculate_totals()
 	if doc.warranty_application_type == "Discount":
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			doc_line_discount_total,
+		)
+
 		gross = flt(doc.total_labor_cost or 0) + flt(doc.total_parts_cost or 0)
-		if gross > 0 and flt(doc.discount_amount or 0) < 1:
+		# A per-line discount also satisfies this requirement.
+		has_discount = flt(doc.discount_amount or 0) >= 1 or doc_line_discount_total(doc) >= 1
+		if gross > 0 and not has_discount:
 			frappe.throw(
 				_(
-					"Set a labour and/or parts discount (total at least 1) when "
+					"Set a line or labour/parts discount (total at least 1) when "
 					"Warranty Application Type is Discount."
 				)
 			)

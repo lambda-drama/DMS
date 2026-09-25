@@ -537,6 +537,8 @@ export interface DMSServiceEstimate {
   decision_date?: string;
   customer_signature?: string;
   rejection_signature?: string;
+  /** Single document attached on the estimate; copied to the job card on accept. */
+  attachment?: string | null;
   terms_and_conditions?: string;
   terms_and_conditions_ar?: string;
   terms_accepted?: number | boolean;
@@ -581,6 +583,12 @@ export interface JobCardPartItem {
   unit_price: number;
   total_price?: number;
   total_amount?: number;
+  /** Per-line discount: '', 'Percentage' or 'Amount'. */
+  discount_type?: '' | 'Percentage' | 'Amount' | null;
+  discount_value?: number;
+  discount_amount?: number;
+  /** Gross amount less this line's discount. */
+  net_amount?: number;
   is_warranty?: boolean;
   line_status?:
     | 'Requested'
@@ -611,6 +619,12 @@ export interface VehicleLabourItem {
   rate?: number;
   rate_per_hour?: number;
   amount?: number;
+  /** Per-line discount: '', 'Percentage' or 'Amount'. */
+  discount_type?: '' | 'Percentage' | 'Amount' | null;
+  discount_value?: number;
+  discount_amount?: number;
+  /** Gross amount less this line's discount. */
+  net_amount?: number;
   technician?: string;
   technician_name?: string;
   is_warranty?: boolean;
@@ -963,6 +977,8 @@ export interface VINNoFull {
   model?: string;
   model_name?: string;
   linked_serial?: string;
+  /** True when the linked Serial No already has stock transactions. */
+  serial_in_use?: boolean;
   brand?: string;
   brand_label?: string;
   model_variant?: string;

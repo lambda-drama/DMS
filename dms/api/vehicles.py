@@ -86,6 +86,63 @@ def get_vehicles(
 	return {"data": vehicles, "total": total}
 
 
+def _serial_no_in_use(serial_no: str | None) -> bool:
+	"""True when a Serial No already has stock transactions.
+
+	Mirrors ERPNext's own guard (``SerialNo.on_trash``) plus the status ERPNext
+	sets once a serial moves through stock, so we only ever replace serials that
+	are still untouched.
+	"""
+	serial = (serial_no or "").strip()
+	if not serial or not frappe.db.exists("Serial No", serial):
+		return False
+
+	status = (frappe.db.get_value("Serial No", serial, "status") or "").strip()
+	if status and status != "Inactive":
+		return True
+
+	from erpnext.stock.doctype.serial_no.serial_no import get_serial_nos
+
+	rows = frappe.db.sql(
+		"""select serial_no from `tabStock Ledger Entry`
+		where serial_no like %s and is_cancelled = 0""",
+		("%%%s%%" % serial,),
+		as_dict=True,
+	)
+	return any(serial.upper() in get_serial_nos(d.serial_no) for d in rows)
+
+
+def _odometer_rollback_message(doc, new_odometer) -> str | None:
+	"""Warning when ``new_odometer`` is below the vehicle's stored reading."""
+	previous = cint(doc.get("current_odometer") or 0)
+	new = cint(new_odometer or 0)
+	if previous and new and new < previous:
+		return _("Odometer rollback detected! Previous: {0} km, New: {1} km.").format(previous, new)
+	return None
+
+
+def _apply_odometer_rollback_choice(doc, data) -> str | None:
+	"""Honour the Edit Vehicle dialog's odometer-rollback confirmation.
+
+	A lower reading is a warning, not a hard stop: on the first save we throw so the
+	UI can ask, and the confirmed retry (``confirm_odometer_rollback``) lets the save
+	through — ``VIN No.validate_odometer`` then only warns. Returns the warning text
+	when the reading rolls back, else ``None``.
+	"""
+	if "current_odometer" not in data:
+		return None
+
+	message = _odometer_rollback_message(doc, data.get("current_odometer"))
+	if not message:
+		return None
+
+	if not cint(data.get("confirm_odometer_rollback")):
+		frappe.throw(message, title=_("Odometer rollback"))
+
+	frappe.flags.allow_odometer_rollback = True
+	return message
+
+
 @frappe.whitelist()
 def get_vehicle(name):
 	if not name:
@@ -108,6 +165,9 @@ def get_vehicle(name):
 
 	summary = get_warranty_summary(doc, recalculate=True)
 	data["warranty_summary"] = summary
+	# Whether the vehicle's Serial No already has stock transactions — the Edit
+	# Vehicle dialog locks the Item field once it does.
+	data["serial_in_use"] = _serial_no_in_use(doc.linked_serial)
 	# Keep top-level field aligned with live summary (detail sheet / forms)
 	if summary.get("warranty_status"):
 		data["warranty_status"] = summary["warranty_status"]
@@ -222,6 +282,10 @@ def update_vehicle(name, data):
 	doc = frappe.get_doc("VIN No", name)
 	doc.check_permission("write")
 
+	# Odometer rollback must be confirmed first — checked before anything is touched
+	# so a declined confirmation leaves the vehicle and its Serial No untouched.
+	odometer_warning = _apply_odometer_rollback_choice(doc, data)
+
 	# Company: keep the vehicle's current company, or move it to a company selected
 	# in DMS Settings. Those are the only two choices the Edit Vehicle dialog offers,
 	# and the rule is enforced here too. A blank value clears the company.
@@ -231,16 +295,30 @@ def update_vehicle(name, data):
 			assert_dms_company_access(new_company)
 			doc.company = new_company or None
 
-	# The vehicle Item backs the ERPNext Serial No created for this VIN, so it can
-	# only be corrected before that Serial No exists.
+	# The vehicle Item backs the ERPNext Serial No created for this VIN. ERPNext
+	# forbids editing a Serial No's item, so changing the item means replacing the
+	# serial — allowed only while that serial has no stock transactions.
 	new_item = (data.get("linked_item") or "").strip()
-	if new_item and new_item != (doc.linked_item or ""):
-		if doc.linked_serial:
+	item_changed = bool(new_item) and new_item != (doc.linked_item or "")
+	old_serial = (doc.linked_serial or "").strip()
+	replace_serial = False
+
+	if item_changed and old_serial:
+		if _serial_no_in_use(old_serial):
 			frappe.throw(
 				_(
-					"Vehicle Item cannot be changed after Serial No {0} was created for this vehicle."
-				).format(frappe.bold(doc.linked_serial))
+					"Vehicle Item cannot be changed: Serial No {0} already has transactions. "
+					"Only a vehicle whose Serial No has no stock transactions can be re-itemised."
+				).format(frappe.bold(old_serial))
 			)
+		# Clear the link first: the VIN is what references the Serial No, and
+		# delete_doc refuses while any document still links to it.
+		doc.db_set("linked_serial", None, update_modified=False)
+		# Drop the untouched Serial No — its name is the VIN, so it must be gone
+		# before the VIN recreates it for the new item (see VINNo.on_update).
+		frappe.delete_doc("Serial No", old_serial, ignore_permissions=True)
+		doc.linked_serial = None
+		replace_serial = True
 
 	updatable = [
 		"engine_number", "plate_number", "linked_item", "model", "brand", "model_variant",
@@ -262,10 +340,16 @@ def update_vehicle(name, data):
 
 	if "warranty_status" in data:
 		frappe.flags.preserve_warranty_status = True
+	# Saving recreates the Serial No for the new item; skip the sync pass so it is
+	# never pointed at the serial we just removed.
+	if replace_serial:
+		frappe.flags.skip_vin_serial_sync = True
 	try:
 		doc.save()
 	finally:
 		frappe.flags.preserve_warranty_status = False
+		frappe.flags.skip_vin_serial_sync = False
+		frappe.flags.allow_odometer_rollback = False
 	frappe.db.commit()
 
 	return {
@@ -273,6 +357,10 @@ def update_vehicle(name, data):
 		"company": doc.company,
 		"vehicle_status": doc.vehicle_status,
 		"warranty_status": doc.warranty_status,
+		"linked_item": doc.linked_item,
+		"linked_serial": doc.linked_serial,
+		"serial_replaced": replace_serial,
+		"odometer_warning": odometer_warning,
 	}
 
 
