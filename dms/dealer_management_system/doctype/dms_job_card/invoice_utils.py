@@ -22,9 +22,13 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
 	apply_discount_fields_from_payload,
 	compute_group_discount_amount,
+	doc_line_discount_total,
 	job_card_combined_discount_amount,
 	job_card_labour_discount_dict,
 	job_card_parts_discount_dict,
+	line_discount_amount,
+	line_effective_rate,
+	normalize_job_card_discount_type,
 	parse_discount_payload,
 )
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
@@ -306,6 +310,82 @@ def _line_base_rate(default_rate: float, source_row: str | None, overrides: dict
 	if source_row and source_row in overrides:
 		return flt(overrides[source_row])
 	return flt(default_rate)
+
+
+def _row_line_discount(row) -> tuple[str, float]:
+	"""``(mode, value)`` of a child row's own discount — ``("", 0)`` when none."""
+	if isinstance(row, dict):
+		mode = normalize_job_card_discount_type(row.get("discount_type"))
+		value = flt(row.get("discount_value"))
+	else:
+		mode = normalize_job_card_discount_type(getattr(row, "discount_type", None))
+		value = flt(getattr(row, "discount_value", 0))
+	return mode or "", value
+
+
+def _line_discount_rates(base_rate: float, qty: float, row) -> tuple[float, float, str]:
+	"""``(full_rate, net_rate, mode)`` for a job card / estimate line.
+
+	``full_rate`` is the untouched selling price the invoice should show;
+	``net_rate`` has the line's own discount taken off. Invoice builders pass the
+	full rate as the line's list price and let the discount show as a discount.
+	"""
+	full = flt(base_rate)
+	mode, value = _row_line_discount(row)
+	if not mode or value <= 0:
+		return full, full, ""
+	return full, line_effective_rate(full, qty, mode, value), mode
+
+
+def _line_invoice_discount(
+	price_list_rate: float, net_rate: float, discount_mode: str = ""
+) -> dict:
+	"""Sales Invoice Item price + discount fields.
+
+	The full price goes on ``price_list_rate`` and the difference to ``rate`` is
+	carried as the line discount, so the discount stays visible on the invoice.
+	ERPNext keeps a line discount only while ``rate == price_list_rate -
+	discount_amount`` (``taxes_and_totals.calculate_item_rate``); otherwise it drops
+	the discount and keeps the typed rate, so the two must always agree.
+
+	``discount_percentage`` is only set when ERPNext's own recomputation
+	(``price_list_rate * pct / 100``) reproduces the same unit discount.
+	"""
+	full = flt(price_list_rate)
+	net = flt(net_rate)
+	fields = {
+		"price_list_rate": full,
+		"rate_with_margin": full,
+		"discount_percentage": 0.0,
+		"discount_amount": 0.0,
+		"rate": net,
+		"margin_type": "",
+		"margin_rate_or_amount": 0.0,
+	}
+
+	unit_discount = flt(full - net)
+	if unit_discount <= 0:
+		return fields
+
+	fields["discount_amount"] = unit_discount
+	if discount_mode == "Percentage" and full:
+		pct = flt(unit_discount / full * 100.0, 2)
+		if 0 < pct < 100 and abs(flt(full * pct / 100.0) - unit_discount) < 0.005:
+			fields["discount_percentage"] = pct
+	return fields
+
+
+def _line_discount_values(row, base_amount) -> tuple[float, float]:
+	"""``(discount, net)`` for a child row's own discount on ``base_amount``."""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+		line_discount_amount,
+	)
+
+	base = flt(base_amount)
+	discount = line_discount_amount(
+		base, getattr(row, "discount_type", None), getattr(row, "discount_value", 0)
+	)
+	return discount, round(max(base - discount, 0.0), 2)
 
 
 def part_billable_qty(row, qty_overrides: dict[str, float] | None = None) -> float:
@@ -613,22 +693,21 @@ def resolve_invoice_line_pricing(
 	}
 
 
-def _si_item_pricing_fields(pricing: dict) -> dict:
+def _si_item_pricing_fields(
+	pricing: dict, *, price_list_rate=None, discount_mode: str = ""
+) -> dict:
 	"""Selling fields for a Sales Invoice Item.
 
 	Warranty is not stored as a 0 net rate: a site Server Script rejects rate=0.
 	Covered lines keep the full selling rate; the write-off is an invoice discount.
+
+	``price_list_rate`` (when given) is the line's full selling price before its own
+	discount, so the discount shows on the invoice instead of being baked into the
+	rate.
 	"""
-	base = flt(pricing.get("rate"))
-	return {
-		"price_list_rate": base,
-		"rate_with_margin": base,
-		"discount_percentage": 0.0,
-		"discount_amount": 0.0,
-		"rate": base,
-		"margin_type": "",
-		"margin_rate_or_amount": 0.0,
-	}
+	net = flt(pricing.get("rate"))
+	full = flt(price_list_rate) if price_list_rate is not None else net
+	return _line_invoice_discount(full, net, discount_mode)
 
 
 _SI_ITEM_RATE_FIELDS = (
@@ -1761,6 +1840,7 @@ def create_sales_invoice_from_dms_job_card(
 	qty_overrides=None,
 	remarks: str | None = None,
 	apply_tax_withholding=None,
+	line_discounts=None,
 ) -> str:
 	"""Build a Sales Invoice from labour + parts, link `invoice` on the Job Card."""
 	_ensure_erpnext()
@@ -1811,10 +1891,12 @@ def create_sales_invoice_from_dms_job_card(
 			total_disc = job_card_combined_discount_amount(jc)
 		else:
 			total_disc = flt(jc.discount_amount)
+		# A per-line discount also satisfies the "some discount" requirement.
+		total_disc += doc_line_discount_total(jc)
 		if total_disc < 1:
 			frappe.throw(
 				_(
-					"Set a labour and/or parts discount (total at least 1) when "
+					"Set a line or labour/parts discount (total at least 1) when "
 					"Warranty Application Type is Discount."
 				)
 			)
@@ -1833,6 +1915,10 @@ def create_sales_invoice_from_dms_job_card(
 	overrides = normalize_rate_overrides(rate_overrides)
 	if overrides:
 		_apply_rate_overrides_to_job_card(jc, overrides)
+		jc = frappe.get_doc("DMS Job Card", job_card_name)
+
+	# Per-line discounts entered on the invoice screen win over what is stored.
+	if _apply_line_discounts_to_job_card(jc, line_discounts):
 		jc = frappe.get_doc("DMS Job Card", job_card_name)
 
 	# Mirror the reduced / dropped part lines onto the Job Card so its costing
@@ -1983,12 +2069,17 @@ def _append_preview_line(
 	issue: str | None = None,
 	never_requested: bool = False,
 	max_qty: float | None = None,
+	full_rate: float | None = None,
 ) -> None:
 	pricing = resolve_invoice_line_pricing(
 		line_type, base_rate, qty, warranty_application_type
 	)
 	if not pricing["include"]:
 		return
+
+	# ``full_rate`` is the line's price before its own discount; the review screen
+	# strikes it through next to ``rate`` so the discount is visible.
+	full = flt(full_rate) if full_rate is not None else flt(base_rate)
 
 	lines.append(
 		{
@@ -1999,7 +2090,7 @@ def _append_preview_line(
 			"qty": qty,
 			"rate": pricing["rate"],
 			"amount": pricing["amount"],
-			"base_rate": round(flt(base_rate), 2),
+			"base_rate": round(full, 2),
 			"discount_percentage": pricing["discount_percentage"],
 			"is_warranty_covered": pricing["is_warranty_covered"],
 			"source_row": source_row,
@@ -2042,6 +2133,7 @@ def _build_preview_lines(
 			if base_rate <= 0:
 				base_rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
 			base_rate = _line_base_rate(base_rate, row.name, overrides)
+			full_rate, net_rate, _mode = _line_discount_rates(base_rate, qty, row)
 
 			_append_preview_line(
 				lines,
@@ -2049,10 +2141,11 @@ def _build_preview_lines(
 				item_code=item_code,
 				description=_labour_row_service_name(row) or row.vehicle_service_item,
 				qty=qty,
-				base_rate=base_rate,
+				base_rate=net_rate,
 				warranty_application_type=warranty_application_type,
 				source_row=row.name,
 				issue=_labour_row_issue_text(row),
+				full_rate=full_rate,
 			)
 	else:
 		for ji in jc.get("job_items") or []:
@@ -2101,6 +2194,7 @@ def _build_preview_lines(
 		if base_rate <= 0:
 			base_rate = spare_part_default_selling_price(part.item_code)
 		base_rate = _line_base_rate(base_rate, part.name, overrides)
+		full_rate, net_rate, _mode = _line_discount_rates(base_rate, qty, part)
 
 		item_name = frappe.db.get_value("Item", erp_item, "item_name") or erp_item
 		_append_preview_line(
@@ -2109,11 +2203,12 @@ def _build_preview_lines(
 			item_code=erp_item,
 			description=item_name,
 			qty=qty,
-			base_rate=base_rate,
+			base_rate=net_rate,
 			warranty_application_type=warranty_application_type,
 			source_row=part.name,
 			never_requested=part.name in never_requested_rows,
 			max_qty=part_issue_qty(part),
+			full_rate=full_rate,
 		)
 
 	return lines
@@ -2167,6 +2262,49 @@ def _apply_rate_overrides_to_job_card(jc, overrides: dict[str, float]) -> None:
 		jc.calculate_costing_and_totals()
 	jc.save(ignore_permissions=True)
 	frappe.db.commit()
+
+
+def _apply_line_discounts_to_job_card(jc, line_discounts) -> bool:
+	"""Persist per-line discounts chosen on the invoice screen onto the job card.
+
+	``line_discounts`` maps a labour / parts child row name to
+	``{discount_type, discount_value}`` (or a nested ``discount`` object). Mirrors
+	``_apply_rate_overrides_to_job_card``: the job card is the source of truth, so
+	the invoice is built from the saved line discounts.
+	"""
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+		apply_line_discount_from_payload,
+	)
+
+	if not line_discounts:
+		return False
+	if isinstance(line_discounts, str):
+		import json
+
+		try:
+			line_discounts = json.loads(line_discounts)
+		except (json.JSONDecodeError, TypeError, ValueError):
+			return False
+	if not isinstance(line_discounts, dict):
+		return False
+
+	changed = False
+	for row in list(jc.get("labour") or []) + list(jc.get("parts") or []):
+		payload = line_discounts.get(row.name)
+		if not isinstance(payload, dict):
+			continue
+		apply_line_discount_from_payload(row, payload)
+		changed = True
+
+	if not changed:
+		return False
+
+	jc.flags.ignore_validate_update_after_submit = True
+	if hasattr(jc, "calculate_costing_and_totals"):
+		jc.calculate_costing_and_totals()
+	jc.save(ignore_permissions=True)
+	frappe.db.commit()
+	return True
 
 
 def resolve_job_card_for_sales_invoice(si) -> str | None:
@@ -2227,14 +2365,22 @@ def sync_sales_invoice_rates_to_job_card(si) -> dict:
 			continue
 		hours = labour_row_hours(row)
 		amount = round(hours * new_rate, 2)
+		disc_amount, net_amount = _line_discount_values(row, amount)
 		frappe.db.set_value(
 			"Vehicle Labour Item",
 			row.name,
-			{"rate_per_hour": new_rate, "amount": amount},
+			{
+				"rate_per_hour": new_rate,
+				"amount": amount,
+				"discount_amount": disc_amount,
+				"net_amount": net_amount,
+			},
 			update_modified=False,
 		)
 		row.rate_per_hour = new_rate
 		row.amount = amount
+		row.discount_amount = disc_amount
+		row.net_amount = net_amount
 		updated_lines += 1
 
 	for row in jc.get("parts") or []:
@@ -2248,14 +2394,22 @@ def sync_sales_invoice_rates_to_job_card(si) -> dict:
 			continue
 		qty = part_issue_qty(row)
 		total_amount = round(qty * new_rate, 2)
+		disc_amount, net_amount = _line_discount_values(row, total_amount)
 		frappe.db.set_value(
 			"Job Card Part Item",
 			row.name,
-			{"unit_price": new_rate, "total_amount": total_amount},
+			{
+				"unit_price": new_rate,
+				"total_amount": total_amount,
+				"discount_amount": disc_amount,
+				"net_amount": net_amount,
+			},
 			update_modified=False,
 		)
 		row.unit_price = new_rate
 		row.total_amount = total_amount
+		row.discount_amount = disc_amount
+		row.net_amount = net_amount
 		updated_lines += 1
 
 	if updated_lines:
@@ -2382,10 +2536,14 @@ def _apply_group_discount_dict_to_si_items(items, discount: dict | None) -> None
 	for idx, row in enumerate(items):
 		if idx >= len(final_rates):
 			break
-		row.rate = final_rates[idx]
-		row.price_list_rate = final_rates[idx]
+		final_rate = final_rates[idx]
+		# Keep the line's full selling price and fold this discount into the line's
+		# own discount, so a discount already on the invoice stays visible.
+		full_rate = flt(row.price_list_rate) or flt(row.rate) or final_rate
+		row.rate = final_rate
+		row.price_list_rate = full_rate
 		row.discount_percentage = 0
-		row.discount_amount = 0
+		row.discount_amount = flt(full_rate - final_rate)
 		if use_dms and idx < len(dms_discounts):
 			row.custom_dms_discount = dms_discounts[idx]
 
@@ -2525,10 +2683,14 @@ def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -
 	for idx, row in enumerate(items):
 		if idx >= len(final_rates):
 			break
-		row.rate = final_rates[idx]
-		row.price_list_rate = final_rates[idx]
+		final_rate = final_rates[idx]
+		# Keep the line's full selling price and fold this discount into the line's
+		# own discount, so a discount already on the invoice stays visible.
+		full_rate = flt(row.price_list_rate) or flt(row.rate) or final_rate
+		row.rate = final_rate
+		row.price_list_rate = full_rate
 		row.discount_percentage = 0
-		row.discount_amount = 0
+		row.discount_amount = flt(full_rate - final_rate)
 		if use_dms and idx < len(dms_discounts):
 			row.custom_dms_discount = dms_discounts[idx]
 
@@ -2547,8 +2709,17 @@ def append_si_items(
 	qty_edits = normalize_qty_overrides(qty_overrides)
 	line_fields: list[dict] = []
 
-	def _append_priced_item(item_code: str, qty: float, pricing: dict):
-		fields = _si_item_pricing_fields(pricing)
+	def _append_priced_item(
+		item_code: str,
+		qty: float,
+		pricing: dict,
+		*,
+		price_list_rate=None,
+		discount_mode: str = "",
+	):
+		fields = _si_item_pricing_fields(
+			pricing, price_list_rate=price_list_rate, discount_mode=discount_mode
+		)
 		child = si.append(
 			"items",
 			{
@@ -2592,14 +2763,21 @@ def append_si_items(
 			if base_rate <= 0:
 				base_rate = vehicle_service_item_labour_rate(row.vehicle_service_item)
 			base_rate = _line_base_rate(base_rate, row.name, overrides)
+			full_rate, net_rate, discount_mode = _line_discount_rates(base_rate, qty, row)
 
 			pricing = resolve_invoice_line_pricing(
-				"Labour", base_rate, qty, warranty_application_type
+				"Labour", net_rate, qty, warranty_application_type
 			)
 			if not pricing["include"]:
 				continue
 
-			child = _append_priced_item(item_code, qty, pricing)
+			child = _append_priced_item(
+				item_code,
+				qty,
+				pricing,
+				price_list_rate=full_rate,
+				discount_mode=discount_mode,
+			)
 			child.description = (_labour_row_service_name(row) or item_code)[:4096]
 
 	else:
@@ -2644,14 +2822,21 @@ def append_si_items(
 		if base_rate <= 0:
 			base_rate = spare_part_default_selling_price(part.item_code)
 		base_rate = _line_base_rate(base_rate, part.name, overrides)
+		full_rate, net_rate, discount_mode = _line_discount_rates(base_rate, qty, part)
 
 		pricing = resolve_invoice_line_pricing(
-			"Parts", base_rate, qty, warranty_application_type
+			"Parts", net_rate, qty, warranty_application_type
 		)
 		if not pricing["include"]:
 			continue
 
-		row = _append_priced_item(erp_item, qty, pricing)
+		row = _append_priced_item(
+			erp_item,
+			qty,
+			pricing,
+			price_list_rate=full_rate,
+			discount_mode=discount_mode,
+		)
 		_apply_stock_item_warehouse(row, erp_item, part, jc)
 
 	return line_fields
@@ -2732,10 +2917,14 @@ def apply_missing_dms_vin_updates(
 	if changed:
 		# Prevent VIN No.sync_customer_history from appending the new owner to history.
 		frappe.flags.skip_vin_customer_history_sync = True
+		# The odometer here comes from the job card / invoice being saved, so a lower
+		# one warns (VIN No.validate_odometer) instead of blocking the invoice.
+		frappe.flags.allow_odometer_rollback = True
 		try:
 			vin_doc.save()
 		finally:
 			frappe.flags.skip_vin_customer_history_sync = False
+			frappe.flags.allow_odometer_rollback = False
 
 
 def _normalize_standalone_discount(discount) -> dict | None:
@@ -2951,7 +3140,11 @@ def create_standalone_dms_sales_invoice(
 		base_rate = flt(row.get("rate_per_hour") or row.get("rate") or 0)
 		if base_rate <= 0:
 			base_rate = vehicle_service_item_labour_rate(vsi)
-		return qty, base_rate, qty * base_rate, None
+		# Keep the full rate and return a net line amount, so the invoice shows the
+		# full price with this line's discount instead of a pre-reduced rate.
+		mode, value = _row_line_discount(row)
+		line_disc = line_discount_amount(qty * base_rate, mode, value) if mode else 0.0
+		return qty, base_rate, round(qty * base_rate - line_disc, 2), None
 
 	def _standalone_parts_line_amount(row) -> tuple[float, float, float]:
 		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
@@ -2963,7 +3156,9 @@ def create_standalone_dms_sales_invoice(
 		base_rate = flt(row.get("unit_price") or row.get("rate") or 0)
 		if base_rate <= 0:
 			base_rate = spare_part_default_selling_price(spare_part)
-		return qty, base_rate, qty * base_rate
+		mode, value = _row_line_discount(row)
+		line_disc = line_discount_amount(qty * base_rate, mode, value) if mode else 0.0
+		return qty, base_rate, round(qty * base_rate - line_disc, 2)
 
 	labour_group_total = 0.0
 	for row in labour_lines:
@@ -3022,6 +3217,8 @@ def create_standalone_dms_sales_invoice(
 				"line_discount": line_discount,
 				"qty": qty,
 				"discount_percentage": disc_pct,
+				# The row's own discount mode, so a % line discount shows as a % on the bill.
+				"discount_mode": _row_line_discount(row)[0],
 			}
 		)
 		unit_disc = flt(line_discount / qty) if qty else 0.0
@@ -3068,6 +3265,8 @@ def create_standalone_dms_sales_invoice(
 				"line_discount": line_discount,
 				"qty": qty,
 				"discount_percentage": disc_pct,
+				# The row's own discount mode, so a % line discount shows as a % on the bill.
+				"discount_mode": _row_line_discount(row)[0],
 			}
 		)
 		unit_disc = flt(line_discount / qty) if qty else 0.0
@@ -3124,7 +3323,7 @@ def create_standalone_dms_sales_invoice(
 
 
 def _apply_standalone_line_pricing(si, line_pricing: list[dict], use_dms_discount_field: bool) -> None:
-	"""Write base + ERPNext line discount + net rate so the bill reflects DMS discounts."""
+	"""Write the full price + ERPNext line discount + net rate so the bill shows the discount."""
 	for idx, item in enumerate(si.get("items") or []):
 		if idx >= len(line_pricing):
 			break
@@ -3133,16 +3332,13 @@ def _apply_standalone_line_pricing(si, line_pricing: list[dict], use_dms_discoun
 		base = flt(p.get("base_rate"))
 		final = flt(p.get("final_rate"))
 		line_disc = flt(p.get("line_discount"))
-		disc_pct = flt(p.get("discount_percentage"))
-		unit_disc = flt(line_disc / qty) if qty else 0.0
 
-		item.price_list_rate = base
-		if disc_pct > 0:
-			item.discount_percentage = disc_pct
-			item.discount_amount = flt(base * disc_pct / 100.0)
-		else:
-			item.discount_percentage = 0
-			item.discount_amount = unit_disc
+		# Full selling price stays on the line; the discount (the line's own discount
+		# plus its share of the group discount) is shown as the line's discount.
+		fields = _line_invoice_discount(base, final, str(p.get("discount_mode") or ""))
+		item.price_list_rate = fields["price_list_rate"]
+		item.discount_percentage = fields["discount_percentage"]
+		item.discount_amount = fields["discount_amount"]
 		item.rate = final
 		item.amount = flt(qty * final)
 		item.net_rate = final
@@ -3385,7 +3581,11 @@ def create_standalone_dms_sales_order(
 		base_rate = flt(row.get("rate_per_hour") or row.get("rate") or 0)
 		if base_rate <= 0:
 			base_rate = vehicle_service_item_labour_rate(vsi)
-		return qty, base_rate, qty * base_rate, None
+		# Keep the full rate and return a net line amount, so the invoice shows the
+		# full price with this line's discount instead of a pre-reduced rate.
+		mode, value = _row_line_discount(row)
+		line_disc = line_discount_amount(qty * base_rate, mode, value) if mode else 0.0
+		return qty, base_rate, round(qty * base_rate - line_disc, 2), None
 
 	def _standalone_parts_line_amount(row) -> tuple[float, float, float]:
 		spare_part = (row.get("spare_part") or row.get("item_code") or "").strip()
@@ -3397,7 +3597,9 @@ def create_standalone_dms_sales_order(
 		base_rate = flt(row.get("unit_price") or row.get("rate") or 0)
 		if base_rate <= 0:
 			base_rate = spare_part_default_selling_price(spare_part)
-		return qty, base_rate, qty * base_rate
+		mode, value = _row_line_discount(row)
+		line_disc = line_discount_amount(qty * base_rate, mode, value) if mode else 0.0
+		return qty, base_rate, round(qty * base_rate - line_disc, 2)
 
 	labour_group_total = 0.0
 	for row in labour_lines:

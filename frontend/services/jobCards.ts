@@ -553,6 +553,8 @@ export async function updateLabourLineOnJobCard(
     rate_per_hour?: number;
     display_name?: string;
     custom_display_name?: string;
+    discount_type?: '' | 'Percentage' | 'Amount';
+    discount_value?: number;
   }
 ): Promise<{
   job_card: string;
@@ -561,9 +563,13 @@ export async function updateLabourLineOnJobCard(
   estimated_hours?: number;
   rate_per_hour?: number;
   amount?: number;
+  discount_type?: string | null;
+  discount_value?: number;
+  discount_amount?: number;
+  net_amount?: number;
   total_labor_cost?: number;
   total_amount?: number;
-  net_amount?: number;
+  net_amount_total?: number;
 }> {
   return apiRequest(`/api/method/${API}.update_labour_line_on_job_card`, {
     method: "POST",
@@ -574,6 +580,8 @@ export async function updateLabourLineOnJobCard(
       rate_per_hour: data.rate_per_hour ?? null,
       display_name: data.display_name || data.custom_display_name || null,
       custom_display_name: data.custom_display_name || data.display_name || null,
+      discount_type: data.discount_type ?? null,
+      discount_value: data.discount_value ?? null,
     }),
   });
 }

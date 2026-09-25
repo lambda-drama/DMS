@@ -318,6 +318,38 @@ def _normalize_received_from_phone(phone):
 	return f"+251{digits}"
 
 
+def _sync_customer_contact_from_inspection(doc, data) -> None:
+	"""Push phone / email typed on the inspection form onto the Customer record.
+
+	``Customer.mobile_no`` / ``email_id`` are read-only ``fetch_from`` fields of the
+	primary Contact, so the values must go through :func:`sync_customer_contact` —
+	assigning the Customer columns directly is reverted on the next save.
+
+	Only values the form actually carries and that differ from what is stored are
+	written, so saving an inspection never clears or rewrites a customer's contact
+	details. Silently skipped when the user may not edit Customers.
+	"""
+	customer = (getattr(doc, "customer", None) or "").strip()
+	if not customer or not frappe.db.exists("Customer", customer):
+		return
+
+	updates: dict[str, str] = {}
+	mobile = (data.get("customer_mobile_no") or "").strip()
+	email = (data.get("customer_email_id") or "").strip()
+	if mobile:
+		updates["mobile_no"] = mobile
+	if email:
+		updates["email_id"] = email
+	if not updates or not frappe.has_permission("Customer", "write"):
+		return
+
+	from dms.utils.customer_contact import changed_contact_values, sync_customer_contact
+
+	changes = changed_contact_values(customer, **updates)
+	if changes:
+		sync_customer_contact(customer, **changes)
+
+
 def _apply_inspection_payload(doc, data, as_draft):
 	exterior_photos = data.get("exterior_photos") or _first_photo(data.get("exterior_view_photos"))
 	service_advisor = _resolve_service_advisor(data, required=not as_draft)
@@ -325,6 +357,7 @@ def _apply_inspection_payload(doc, data, as_draft):
 	company = (data.get("company") or "").strip()
 
 	doc.customer = resolve_dms_customer(data.get("customer")) if data.get("customer") else None
+	_sync_customer_contact_from_inspection(doc, data)
 	doc.service_advisor = service_advisor
 	doc.customer_vehicle = customer_vehicle
 	doc.vin_chassis = data.get("vin_chassis") or data.get("vehicle_vin")

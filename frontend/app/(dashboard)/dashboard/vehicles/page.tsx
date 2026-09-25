@@ -62,7 +62,6 @@ import {
   Building2,
   MoreHorizontal,
   Eye,
-  ExternalLink,
   Trash2,
 } from "lucide-react";
 
@@ -523,12 +522,6 @@ export default function VehiclesPage() {
                                   Edit Vehicle
                                 </DropdownMenuItem>
                               ) : null}
-                              <DropdownMenuItem
-                                onClick={() => window.open(`/app/vin-no/${v.name}`, "_blank")}
-                              >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Open in Desk
-                              </DropdownMenuItem>
                               {canDelete("vehicles") ? (
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
@@ -581,7 +574,6 @@ export default function VehiclesPage() {
         subtitle={selectedVehicle?.model_name ? `${selectedVehicle.model_name} ${selectedVehicle.model_year || ""}`.trim() : undefined}
         badge={selectedVehicle?.vehicle_status ? { label: selectedVehicle.vehicle_status } : undefined}
         isLoading={detailLoading}
-        onOpenInDesk={() => window.open(`/app/vin-no/${selectedId}`, "_blank")}
         footer={
           selectedVehicle &&
           (canWrite("vehicles") || canDelete("vehicles")) ? (

@@ -71,10 +71,15 @@ import { AddLineButton } from "@/components/ui/add-line-button";
 import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import { LinkWithCreate } from "@/components/link-with-create";
+import {
+  LineDiscountButton,
+} from "@/components/line-discount-button";
+import { FileAttachmentCard } from "@/components/file-attachment-card";
 import { technicianNameFromList } from "@/lib/technician-label";
 import {
   buildGroupDiscountPayload,
   groupDiscountAmount,
+  lineDiscountAmount,
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
@@ -132,6 +137,8 @@ type EstimateLabourRow = {
   technician_name: string;
   estimated_hours: number;
   rate_per_hour: number;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
 };
 
 type EstimatePartRow = {
@@ -140,6 +147,8 @@ type EstimatePartRow = {
   bin_location?: string;
   quantity_requested: number;
   unit_price: number;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
 };
 
 function emptyLabourRow(): EstimateLabourRow {
@@ -151,6 +160,8 @@ function emptyLabourRow(): EstimateLabourRow {
     technician_name: "",
     estimated_hours: 0,
     rate_per_hour: 0,
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -160,6 +171,8 @@ function emptyPartRow(): EstimatePartRow {
     item_name: "",
     quantity_requested: 1,
     unit_price: 0,
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -251,7 +264,7 @@ export default function ServiceEstimateDetailPage() {
     );
     setDiagnosisFindings(estimate.diagnosis_findings || "");
     setRecommendedRepairs(estimate.recommended_repairs || "");
-    const loadedLabour = (estimate.labour || []).map((row) => ({
+    const loadedLabour = (estimate.labour || []).map((row): EstimateLabourRow => ({
       vehicle_service_item: row.vehicle_service_item || "",
       vehicle_service_item_name:
         row.service_name || row.vehicle_service_item || "",
@@ -265,13 +278,17 @@ export default function ServiceEstimateDetailPage() {
       technician_name: row.technician_name || "",
       estimated_hours: row.estimated_hours ?? 1,
       rate_per_hour: row.rate_per_hour ?? 0,
+      discount_type: row.discount_type || "",
+      discount_value: row.discount_value ?? 0,
     }));
-    const loadedParts = (estimate.parts || []).map((row) => ({
+    const loadedParts = (estimate.parts || []).map((row): EstimatePartRow => ({
       item_code: row.item_code || "",
       item_name: row.part_name || row.item_code || "",
       bin_location: row.bin_location || "",
       quantity_requested: row.quantity_requested ?? 1,
       unit_price: row.unit_price ?? 0,
+      discount_type: row.discount_type || "",
+      discount_value: row.discount_value ?? 0,
     }));
     setLabourRows(loadedLabour.length ? loadedLabour : [emptyLabourRow()]);
     setPartRows(loadedParts.length ? loadedParts : [emptyPartRow()]);
@@ -345,7 +362,7 @@ export default function ServiceEstimateDetailPage() {
       });
       setLabourRows(
         lines.labour.length
-          ? lines.labour.map((row) => {
+          ? lines.labour.map((row): EstimateLabourRow => {
               const label = row.service_code
                 ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
                 : (row.service_name || row.vehicle_service_item);
@@ -357,18 +374,22 @@ export default function ServiceEstimateDetailPage() {
                 technician_name: "",
                 estimated_hours: row.estimated_hours,
                 rate_per_hour: row.rate_per_hour,
+                discount_type: "",
+                discount_value: 0,
               };
             })
           : [emptyLabourRow()]
       );
       setPartRows(
         lines.parts.length
-          ? lines.parts.map((row) => ({
+          ? lines.parts.map((row): EstimatePartRow => ({
               item_code: row.item_code,
               item_name: row.item_name || row.item_code,
               bin_location: row.bin_location,
               quantity_requested: row.quantity_requested,
               unit_price: row.unit_price,
+              discount_type: "",
+              discount_value: 0,
             }))
           : [emptyPartRow()]
       );
@@ -612,6 +633,21 @@ export default function ServiceEstimateDetailPage() {
       : {}),
   });
 
+  /** Save the estimate's attachment ('' removes it). */
+  const saveEstimateAttachment = async (url: string) => {
+    if (!id) return;
+    setBusy(true);
+    try {
+      await estimatesSvc.updateServiceEstimate(id, { attachment: url || null });
+      await mutate();
+      toast.success(url ? "Attachment saved" : "Attachment removed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save the attachment");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveEstimate = async () => {
     if (!id) return;
     const filledLabour = labourRows.filter((r) => r.vehicle_service_item);
@@ -631,6 +667,8 @@ export default function ServiceEstimateDetailPage() {
           estimated_hours: row.estimated_hours,
           rate_per_hour: row.rate_per_hour,
           amount: (row.estimated_hours || 0) * (row.rate_per_hour || 0),
+          discount_type: row.discount_type,
+          discount_value: row.discount_value,
         })),
         parts: filledParts.map((row) => ({
           item_code: row.item_code,
@@ -639,6 +677,8 @@ export default function ServiceEstimateDetailPage() {
           quantity_requested: row.quantity_requested,
           unit_price: row.unit_price,
           total_amount: (row.quantity_requested || 0) * (row.unit_price || 0),
+          discount_type: row.discount_type,
+          discount_value: row.discount_value,
         })),
       });
       await mutate();
@@ -794,16 +834,39 @@ export default function ServiceEstimateDetailPage() {
     (sum, row) => sum + (row.quantity_requested || 0) * (row.unit_price || 0),
     0
   );
-  const grossTotal = labourTotal + partsTotal;
+  // Per-line discounts come off each line before the labour/parts group discount.
+  const labourLineDiscountTotal = filledLabourRows.reduce(
+    (sum, row) =>
+      sum +
+      lineDiscountAmount(
+        (row.estimated_hours || 0) * (row.rate_per_hour || 0),
+        discountModeFromBackend(row.discount_type),
+        row.discount_value
+      ),
+    0
+  );
+  const partsLineDiscountTotal = filledPartRows.reduce(
+    (sum, row) =>
+      sum +
+      lineDiscountAmount(
+        (row.quantity_requested || 0) * (row.unit_price || 0),
+        discountModeFromBackend(row.discount_type),
+        row.discount_value
+      ),
+    0
+  );
+  const labourBase = Math.max(labourTotal - labourLineDiscountTotal, 0);
+  const partsBase = Math.max(partsTotal - partsLineDiscountTotal, 0);
+  const grossTotal = labourBase + partsBase;
   const labourDiscountValue = parseDiscountValue(labourDiscountMode, labourDiscountInput);
   const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
-  const labourDiscountTotal = groupDiscountAmount(labourTotal, labourDiscountMode, labourDiscountValue);
-  const partsDiscountTotal = groupDiscountAmount(partsTotal, partsDiscountMode, partsDiscountValue);
+  const labourDiscountTotal = groupDiscountAmount(labourBase, labourDiscountMode, labourDiscountValue);
+  const partsDiscountTotal = groupDiscountAmount(partsBase, partsDiscountMode, partsDiscountValue);
   const combinedDiscountTotal = labourDiscountTotal + partsDiscountTotal;
   const netBeforeVat = (() => {
     if (warrantyApplicationType === "All Invoice") return 0;
-    if (warrantyApplicationType === "Spare Part") return labourTotal;
-    if (warrantyApplicationType === "Labour") return partsTotal;
+    if (warrantyApplicationType === "Spare Part") return labourBase;
+    if (warrantyApplicationType === "Labour") return partsBase;
     if (warrantyApplicationType === "Discount") {
       return Math.max(grossTotal - combinedDiscountTotal, 0);
     }
@@ -831,6 +894,17 @@ export default function ServiceEstimateDetailPage() {
     }
     return true;
   };
+
+  // Rendered beside the approval card so it sits on the same line, not in a section of its own.
+  const attachmentCard = (
+    <FileAttachmentCard
+      title="Attachment"
+      value={estimate.attachment}
+      disabled={!canEditEstimate}
+      busy={busy}
+      onChange={saveEstimateAttachment}
+    />
+  );
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
@@ -1038,7 +1112,7 @@ export default function ServiceEstimateDetailPage() {
                     onModeChange={setLabourDiscountMode}
                     value={labourDiscountInput}
                     onValueChange={setLabourDiscountInput}
-                    subtotal={labourTotal}
+                    subtotal={labourBase}
                   />
                   <GroupDiscountFields
                     label="Parts"
@@ -1046,7 +1120,7 @@ export default function ServiceEstimateDetailPage() {
                     onModeChange={setPartsDiscountMode}
                     value={partsDiscountInput}
                     onValueChange={setPartsDiscountInput}
-                    subtotal={partsTotal}
+                    subtotal={partsBase}
                   />
                 </div>
               )}
@@ -1214,15 +1288,34 @@ export default function ServiceEstimateDetailPage() {
                     </div>
                     <div className="space-y-1 sm:col-span-2">
                       <Label className="text-xs">Rate/Hr</Label>
-                      <DecimalInput
-                        min={0}
-                        placeholder="0"
-                        value={row.rate_per_hour}
-                        disabled={!canEditEstimate}
-                        onValueChange={(rate_per_hour) =>
-                          updateLabourRow(idx, { rate_per_hour })
-                        }
-                      />
+                      <div className="flex items-center gap-1">
+                        <DecimalInput
+                          min={0}
+                          placeholder="0"
+                          value={row.rate_per_hour}
+                          disabled={!canEditEstimate}
+                          onValueChange={(rate_per_hour) =>
+                            updateLabourRow(idx, { rate_per_hour })
+                          }
+                        />
+                        <LineDiscountButton
+                          label={
+                            row.display_name ||
+                            row.vehicle_service_item_name ||
+                            "this service line"
+                          }
+                          lineAmount={(row.estimated_hours || 0) * (row.rate_per_hour || 0)}
+                          discountType={row.discount_type}
+                          discountValue={row.discount_value}
+                          disabled={!canEditEstimate || !row.vehicle_service_item}
+                          onApply={(discount) =>
+                            updateLabourRow(idx, {
+                              discount_type: discount.discount_type,
+                              discount_value: discount.discount_value,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                   {canEditEstimate && (
@@ -1304,15 +1397,30 @@ export default function ServiceEstimateDetailPage() {
                     </div>
                     <div className="space-y-1 sm:col-span-3">
                       <Label className="text-xs">Unit Price</Label>
-                      <DecimalInput
-                        min={0}
-                        placeholder="0"
-                        value={row.unit_price}
-                        disabled={!canEditEstimate}
-                        onValueChange={(unit_price) =>
-                          updatePartRow(idx, { unit_price })
-                        }
-                      />
+                      <div className="flex items-center gap-1">
+                        <DecimalInput
+                          min={0}
+                          placeholder="0"
+                          value={row.unit_price}
+                          disabled={!canEditEstimate}
+                          onValueChange={(unit_price) =>
+                            updatePartRow(idx, { unit_price })
+                          }
+                        />
+                        <LineDiscountButton
+                          label={row.item_name || row.item_code || "this part"}
+                          lineAmount={(row.quantity_requested || 0) * (row.unit_price || 0)}
+                          discountType={row.discount_type}
+                          discountValue={row.discount_value}
+                          disabled={!canEditEstimate || !row.item_code}
+                          onApply={(discount) =>
+                            updatePartRow(idx, {
+                              discount_type: discount.discount_type,
+                              discount_value: discount.discount_value,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                   {canEditEstimate && (
@@ -1343,13 +1451,13 @@ export default function ServiceEstimateDetailPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Labour</p>
                   <p className="text-lg font-semibold">
-                    {labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {labourBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Parts</p>
                   <p className="text-lg font-semibold">
-                    {partsTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {partsBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
@@ -1359,6 +1467,23 @@ export default function ServiceEstimateDetailPage() {
                   </p>
                 </div>
               </div>
+              {labourLineDiscountTotal + partsLineDiscountTotal > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex flex-col items-end text-sm">
+                    <div className="flex w-full max-w-xs justify-between">
+                      <span className="text-muted-foreground">Line discounts</span>
+                      <span className="font-medium text-orange-600">
+                        -
+                        {(labourLineDiscountTotal + partsLineDiscountTotal).toLocaleString(
+                          undefined,
+                          { minimumFractionDigits: 2 }
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
               {warrantyApplicationType && warrantyApplicationType !== "none" && (
                 <>
                   <Separator />
@@ -1518,6 +1643,8 @@ export default function ServiceEstimateDetailPage() {
                 }}
               />
 
+              {/* Attachment shares the row with the accept card (no section of its own). */}
+              <div className="grid items-start gap-4 lg:grid-cols-2">
               <Card className={!termsAccepted ? "opacity-60" : undefined}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-700">
@@ -1568,6 +1695,8 @@ export default function ServiceEstimateDetailPage() {
                   </Button>
                 </CardContent>
               </Card>
+              {attachmentCard}
+              </div>
 
               {!isSupplementary && (
               <Card className={!termsAccepted ? "opacity-60" : undefined}>
@@ -1672,6 +1801,7 @@ export default function ServiceEstimateDetailPage() {
           )}
 
           {status === "Accepted" && (
+            <div className="grid items-start gap-4 lg:grid-cols-2">
             <Card>
               <CardContent className="flex flex-col items-start gap-3 p-6">
                 <Badge className="bg-green-600">Accepted</Badge>
@@ -1702,24 +1832,32 @@ export default function ServiceEstimateDetailPage() {
                 </div>
               </CardContent>
             </Card>
+            {attachmentCard}
+            </div>
           )}
 
           {status === "Rejected" && (
+            <div className="grid items-start gap-4 lg:grid-cols-2">
             <Card>
               <CardContent className="flex flex-col items-start gap-3 p-6">
                 <Badge variant="destructive">Rejected</Badge>
                 <p>Diagnostic invoice: {estimate.diagnostic_invoice || "—"}</p>
               </CardContent>
             </Card>
+            {attachmentCard}
+            </div>
           )}
 
           {!["Pending Customer Approval", "Accepted", "Rejected"].includes(status) && (
-            <Card>
-              <CardContent className="p-6 text-sm text-muted-foreground">
-                Complete diagnosis and estimation, then submit for customer approval to enable
-                signatures here.
-              </CardContent>
-            </Card>
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              <Card>
+                <CardContent className="p-6 text-sm text-muted-foreground">
+                  Complete diagnosis and estimation, then submit for customer approval to enable
+                  signatures here.
+                </CardContent>
+              </Card>
+              {attachmentCard}
+            </div>
           )}
         </TabsContent>
       </Tabs>

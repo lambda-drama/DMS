@@ -152,7 +152,13 @@ class VINNo(Document):
             self.next_service_due_date = add_months(self.delivery_date, self.service_interval_months)
     
     def validate_odometer(self):
-        """Prevent odometer rollback"""
+        """Warn on an odometer rollback; block only until the caller confirms.
+
+        A lower reading is usually a typo, but it can be real (instrument cluster
+        replacement, imported odometer). Callers whose UI already asked the user set
+        ``allow_odometer_rollback``; then the new reading is kept and the warning is
+        shown instead of failing the save.
+        """
         if self.is_new():
             return
         
@@ -160,11 +166,18 @@ class VINNo(Document):
         
         if previous_odometer and self.current_odometer:
             if self.current_odometer < previous_odometer:
-                frappe.throw(
-                    _("Odometer rollback detected! Previous: {0} km, New: {1} km.").format(
-                        previous_odometer, self.current_odometer
-                    )
+                message = _("Odometer rollback detected! Previous: {0} km, New: {1} km.").format(
+                    previous_odometer, self.current_odometer
                 )
+                if not self.odometer_rollback_confirmed():
+                    frappe.throw(message, title=_("Odometer rollback"))
+                frappe.msgprint(
+                    _("{0} The new reading was saved because it was confirmed.").format(message),
+                    title=_("Odometer rollback"),
+                    alert=True,
+                    indicator="orange",
+                )
+                return
             
             increase = self.current_odometer - previous_odometer
             if increase > 30000:
@@ -173,6 +186,14 @@ class VINNo(Document):
                     alert=True,
                     indicator="orange"
                 )
+    
+    def odometer_rollback_confirmed(self) -> bool:
+        """True when the caller confirmed a lower odometer (see validate_odometer)."""
+        return bool(
+            frappe.flags.get("allow_odometer_rollback")
+            or self.flags.get("allow_odometer_rollback")
+            or self.get("allow_odometer_rollback")
+        )
 
     # ========== CUSTOMER HISTORY ==========
 

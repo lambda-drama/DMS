@@ -61,6 +61,80 @@ def compute_group_discount_amount(
 	return min(value, subtotal)
 
 
+def line_discount_amount(base_amount, discount_type, discount_value) -> float:
+	"""Currency value of a per-line discount on ``base_amount``."""
+	return round(compute_group_discount_amount(base_amount, discount_type, discount_value), 2)
+
+
+def line_net_amount(base_amount, discount_type, discount_value) -> float:
+	"""``base_amount`` after the per-line discount, never below zero."""
+	base = flt(base_amount)
+	return round(max(base - line_discount_amount(base, discount_type, discount_value), 0.0), 2)
+
+
+def line_effective_rate(base_rate, qty, discount_type, discount_value) -> float:
+	"""Unit rate after a per-line discount (used when building invoices).
+
+	The job-card/estimate screens keep the gross rate on the line and store the
+	discount separately, so invoice builders call this to bill the shaded rate.
+	"""
+	base = flt(base_rate)
+	qty = flt(qty)
+	if qty <= 0:
+		return base
+	gross = base * qty
+	return flt((gross - compute_group_discount_amount(gross, discount_type, discount_value)) / qty)
+
+
+def row_line_discount_type(row):
+	return normalize_job_card_discount_type(getattr(row, "discount_type", None))
+
+
+def doc_line_discount_total(doc) -> float:
+	"""Sum of per-line discounts across a document's labour and parts tables."""
+	total = 0.0
+	for table in ("labour", "parts"):
+		for row in getattr(doc, table, None) or []:
+			total += flt(getattr(row, "discount_amount", 0))
+	return round(total, 2)
+
+
+def row_line_discount_value(row) -> float:
+	return flt(getattr(row, "discount_value", 0))
+
+
+def apply_line_discount(row, base_amount) -> float:
+	"""Write discount_amount / net_amount on a child row; return the net amount."""
+	base = flt(base_amount)
+	discount = line_discount_amount(base, row_line_discount_type(row), row_line_discount_value(row))
+	row.discount_amount = discount
+	row.net_amount = round(max(base - discount, 0.0), 2)
+	return row.net_amount
+
+
+def apply_line_discount_from_payload(row, data: dict) -> None:
+	"""Set discount_type / discount_value on a child row from an API row payload.
+
+	Accepts either flat ``discount_type`` / ``discount_value`` keys or a nested
+	``discount`` object (``{type, value}``) so callers can reuse the group payload.
+	"""
+	if not isinstance(data, dict):
+		return
+
+	parsed = parse_discount_payload(data.get("discount")) if "discount" in data else None
+	if parsed:
+		row.discount_type = discount_type_for_select(parsed["type"])
+		row.discount_value = parsed["value"]
+	elif "discount" in data:
+		row.discount_type = None
+		row.discount_value = 0
+
+	if "discount_type" in data:
+		row.discount_type = discount_type_for_select(data.get("discount_type"))
+	if "discount_value" in data:
+		row.discount_value = flt(data.get("discount_value"))
+
+
 def job_card_labour_discount_dict(doc) -> dict | None:
 	dtype = normalize_job_card_discount_type(getattr(doc, "labour_discount_type", None))
 	value = flt(getattr(doc, "labour_discount_value", 0))

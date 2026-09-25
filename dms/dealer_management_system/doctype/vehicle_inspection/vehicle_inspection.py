@@ -72,7 +72,14 @@ class VehicleInspection(Document):
 			vin.current_odometer = self.odometer
 			vin.odometer_last_updated = now_datetime()
 
-		vin.save(ignore_permissions=True)
+		# The odometer typed on this inspection is the reading the advisor saw on the
+		# vehicle, so a lower one warns (VIN No.validate_odometer) instead of blocking
+		# the submit.
+		frappe.flags.allow_odometer_rollback = True
+		try:
+			vin.save(ignore_permissions=True)
+		finally:
+			frappe.flags.allow_odometer_rollback = False
 
 		if self.odometer and old_odometer != self.odometer:
 			frappe.msgprint(

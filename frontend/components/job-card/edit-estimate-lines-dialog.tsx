@@ -27,6 +27,7 @@ import { AddLineButton } from "@/components/ui/add-line-button";
 import { CreateServiceItemDialog } from "@/components/create-service-item-dialog";
 import { CreateSparePartDialog } from "@/components/create-spare-part-dialog";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
+import { LineDiscountButton } from "@/components/line-discount-button";
 import {
   useServiceEstimate,
   useServicePackagesForVin,
@@ -48,6 +49,7 @@ import { fetchServicePackageLines } from "@/services/service-packages";
 import * as estimatesSvc from "@/services/serviceEstimates";
 import {
   buildGroupDiscountPayload,
+  lineDiscountAmount,
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
 
@@ -59,6 +61,8 @@ type LabourRow = {
   technician_name: string;
   estimated_hours: number;
   rate_per_hour: number;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
 };
 
 type PartRow = {
@@ -67,6 +71,8 @@ type PartRow = {
   bin_location?: string;
   quantity_requested: number;
   unit_price: number;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
 };
 
 function emptyLabourRow(): LabourRow {
@@ -78,6 +84,8 @@ function emptyLabourRow(): LabourRow {
     technician_name: "",
     estimated_hours: 0,
     rate_per_hour: 0,
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -87,6 +95,8 @@ function emptyPartRow(): PartRow {
     item_name: "",
     quantity_requested: 1,
     unit_price: 0,
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -163,7 +173,7 @@ export function EditEstimateLinesDialog({
     if (hydratedRef.current === estimate.name) return;
     hydratedRef.current = estimate.name;
 
-    const loadedLabour = (estimate.labour || []).map((row) => ({
+    const loadedLabour = (estimate.labour || []).map((row): LabourRow => ({
       vehicle_service_item: row.vehicle_service_item || "",
       vehicle_service_item_name: row.service_name || row.vehicle_service_item || "",
       display_name:
@@ -176,13 +186,17 @@ export function EditEstimateLinesDialog({
       technician_name: row.technician_name || "",
       estimated_hours: row.estimated_hours ?? 1,
       rate_per_hour: row.rate_per_hour ?? 0,
+      discount_type: row.discount_type || "",
+      discount_value: row.discount_value ?? 0,
     }));
-    const loadedParts = (estimate.parts || []).map((row) => ({
+    const loadedParts = (estimate.parts || []).map((row): PartRow => ({
       item_code: row.item_code || "",
       item_name: row.part_name || row.item_code || "",
       bin_location: row.bin_location || "",
       quantity_requested: row.quantity_requested ?? 1,
       unit_price: row.unit_price ?? 0,
+      discount_type: row.discount_type || "",
+      discount_value: row.discount_value ?? 0,
     }));
     setLabourRows(loadedLabour.length ? loadedLabour : [emptyLabourRow()]);
     setPartRows(loadedParts.length ? loadedParts : [emptyPartRow()]);
@@ -213,7 +227,7 @@ export function EditEstimateLinesDialog({
         });
         setLabourRows(
           lines.labour.length
-            ? lines.labour.map((row) => {
+            ? lines.labour.map((row): LabourRow => {
                 const label = row.service_code
                   ? `${row.service_code}: ${row.service_name || row.vehicle_service_item}`
                   : row.service_name || row.vehicle_service_item;
@@ -225,18 +239,22 @@ export function EditEstimateLinesDialog({
                   technician_name: "",
                   estimated_hours: row.estimated_hours,
                   rate_per_hour: row.rate_per_hour,
+                  discount_type: "",
+                  discount_value: 0,
                 };
               })
             : [emptyLabourRow()]
         );
         setPartRows(
           lines.parts.length
-            ? lines.parts.map((row) => ({
+            ? lines.parts.map((row): PartRow => ({
                 item_code: row.item_code,
                 item_name: row.item_name || row.item_code,
                 bin_location: row.bin_location,
                 quantity_requested: row.quantity_requested,
                 unit_price: row.unit_price,
+                discount_type: "",
+                discount_value: 0,
               }))
             : [emptyPartRow()]
         );
@@ -390,6 +408,8 @@ export function EditEstimateLinesDialog({
           estimated_hours: row.estimated_hours,
           rate_per_hour: row.rate_per_hour,
           amount: (row.estimated_hours || 0) * (row.rate_per_hour || 0),
+          discount_type: row.discount_type,
+          discount_value: row.discount_value,
         })),
         parts: filledParts.map((row) => ({
           item_code: row.item_code,
@@ -398,6 +418,8 @@ export function EditEstimateLinesDialog({
           quantity_requested: row.quantity_requested,
           unit_price: row.unit_price,
           total_amount: (row.quantity_requested || 0) * (row.unit_price || 0),
+          discount_type: row.discount_type,
+          discount_value: row.discount_value,
         })),
       } as Parameters<typeof estimatesSvc.updateServiceEstimate>[1]);
       await mutate();
@@ -412,6 +434,38 @@ export function EditEstimateLinesDialog({
   };
 
   const showPackage = Boolean(selectedServicePackage || servicePackageOptions.length);
+
+  // Per-line discounts come off each line before the labour/parts group discount.
+  const labourGross = labourRows.reduce(
+    (sum, row) => sum + (row.estimated_hours || 0) * (row.rate_per_hour || 0),
+    0
+  );
+  const partsGross = partRows.reduce(
+    (sum, row) => sum + (row.quantity_requested || 0) * (row.unit_price || 0),
+    0
+  );
+  const labourLineDiscountTotal = labourRows.reduce(
+    (sum, row) =>
+      sum +
+      lineDiscountAmount(
+        (row.estimated_hours || 0) * (row.rate_per_hour || 0),
+        discountModeFromBackend(row.discount_type),
+        row.discount_value
+      ),
+    0
+  );
+  const partsLineDiscountTotal = partRows.reduce(
+    (sum, row) =>
+      sum +
+      lineDiscountAmount(
+        (row.quantity_requested || 0) * (row.unit_price || 0),
+        discountModeFromBackend(row.discount_type),
+        row.discount_value
+      ),
+    0
+  );
+  const labourBase = Math.max(labourGross - labourLineDiscountTotal, 0);
+  const partsBase = Math.max(partsGross - partsLineDiscountTotal, 0);
 
   return (
     <>
@@ -471,11 +525,7 @@ export function EditEstimateLinesDialog({
                     onModeChange={setLabourDiscountMode}
                     value={labourDiscountInput}
                     onValueChange={setLabourDiscountInput}
-                    subtotal={labourRows.reduce(
-                      (sum, row) =>
-                        sum + (row.estimated_hours || 0) * (row.rate_per_hour || 0),
-                      0
-                    )}
+                    subtotal={labourBase}
                   />
                   <GroupDiscountFields
                     label="Parts"
@@ -483,11 +533,7 @@ export function EditEstimateLinesDialog({
                     onModeChange={setPartsDiscountMode}
                     value={partsDiscountInput}
                     onValueChange={setPartsDiscountInput}
-                    subtotal={partRows.reduce(
-                      (sum, row) =>
-                        sum + (row.quantity_requested || 0) * (row.unit_price || 0),
-                      0
-                    )}
+                    subtotal={partsBase}
                   />
                 </div>
               )}
@@ -593,13 +639,28 @@ export function EditEstimateLinesDialog({
                     </div>
                     <div className="space-y-1 sm:col-span-2">
                       <Label className="text-xs">Rate/hr</Label>
-                      <DecimalInput
-                        min={0}
-                        value={row.rate_per_hour}
-                        onValueChange={(rate_per_hour) =>
-                          updateLabourRow(idx, { rate_per_hour })
-                        }
-                      />
+                      <div className="flex items-center gap-1">
+                        <DecimalInput
+                          min={0}
+                          value={row.rate_per_hour}
+                          onValueChange={(rate_per_hour) =>
+                            updateLabourRow(idx, { rate_per_hour })
+                          }
+                        />
+                        <LineDiscountButton
+                          label={row.display_name || row.vehicle_service_item_name || "this line"}
+                          lineAmount={(row.estimated_hours || 0) * (row.rate_per_hour || 0)}
+                          discountType={row.discount_type}
+                          discountValue={row.discount_value}
+                          disabled={!row.vehicle_service_item}
+                          onApply={(discount) =>
+                            updateLabourRow(idx, {
+                              discount_type: discount.discount_type,
+                              discount_value: discount.discount_value,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                     <div className="flex justify-end sm:col-span-2">
                       <Button
@@ -672,11 +733,26 @@ export function EditEstimateLinesDialog({
                     </div>
                     <div className="space-y-1 sm:col-span-3">
                       <Label className="text-xs">Unit price</Label>
-                      <DecimalInput
-                        min={0}
-                        value={row.unit_price}
-                        onValueChange={(unit_price) => updatePartRow(idx, { unit_price })}
-                      />
+                      <div className="flex items-center gap-1">
+                        <DecimalInput
+                          min={0}
+                          value={row.unit_price}
+                          onValueChange={(unit_price) => updatePartRow(idx, { unit_price })}
+                        />
+                        <LineDiscountButton
+                          label={row.item_name || row.item_code || "this part"}
+                          lineAmount={(row.quantity_requested || 0) * (row.unit_price || 0)}
+                          discountType={row.discount_type}
+                          discountValue={row.discount_value}
+                          disabled={!row.item_code}
+                          onApply={(discount) =>
+                            updatePartRow(idx, {
+                              discount_type: discount.discount_type,
+                              discount_value: discount.discount_value,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                     <div className="flex justify-end sm:col-span-2">
                       <Button

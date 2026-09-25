@@ -66,6 +66,7 @@
   "terms_accepted_at",
   "customer_signature",
   "rejection_signature",
+  "attachment",
   "rejection_reason",
   "lost_sale_follow_up_date",
   "lost_sale_status",
@@ -448,6 +449,12 @@
    "fieldname": "rejection_signature",
    "fieldtype": "Attach Image",
    "label": "Customer Signature (Rejection)"
+  },
+  {
+   "description": "Documents for this estimate (photos, third-party quotes, warranty papers…). Copied to the Job Card's Approval Attachment when the customer accepts.",
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Attachment"
   },
   {
    "depends_on": "eval:doc.customer_decision=='Rejected' || doc.customer_decision=='Partially Accepted' || doc.status=='Rejected'",

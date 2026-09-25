@@ -76,6 +76,8 @@ import {
   MoreHorizontal,
   Copy,
   FilePenLine,
+  Paperclip,
+  Eye,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -128,6 +130,12 @@ import { AddExtraLabourSection } from "@/components/job-card/add-extra-labour-se
 import { CreateRepeatJobDialog } from "@/components/job-card/create-repeat-job-dialog";
 import { EditEstimateLinesDialog } from "@/components/job-card/edit-estimate-lines-dialog";
 import { EditLabourLineDialog } from "@/components/job-card/edit-labour-line-dialog";
+import {
+  LineDiscountButton,
+  type LineDiscountValue,
+} from "@/components/line-discount-button";
+import { attachmentFileName } from "@/components/file-attachment-card";
+import { FilePreviewDialog } from "@/components/file-preview-dialog";
 import * as partsRequestsSvc from "@/services/partsRequests";
 import type { AdditionalWorkRequestSummary } from "@/services/partsRequests";
 import { CollectPaymentDialog } from "@/components/invoices/collect-payment-dialog";
@@ -302,6 +310,7 @@ export default function JobCardDetailPage() {
   const [bayLinkedWorkshop, setBayLinkedWorkshop] = useState<string>("");
   const [bayLinkedWarehouse, setBayLinkedWarehouse] = useState<string>("");
   const [savingLinePrice, setSavingLinePrice] = useState<string | null>(null);
+  const [savingLineDiscount, setSavingLineDiscount] = useState<string | null>(null);
   const [lineToDelete, setLineToDelete] = useState<{
     kind: "labour" | "part";
     name: string;
@@ -312,6 +321,8 @@ export default function JobCardDetailPage() {
   const [savingLabourEdit, setSavingLabourEdit] = useState(false);
   const [stageEditActive, setStageEditActive] = useState(false);
   const [showEstimateEditDialog, setShowEstimateEditDialog] = useState(false);
+  /** In-place viewer for the estimate attachment carried onto this job card. */
+  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
   const autoPartsTabJobRef = useRef<string | null>(null);
 
   const hasActivePartsRequest = (requests?: Array<{ status: string }>) =>
@@ -650,6 +661,11 @@ export default function JobCardDetailPage() {
     canEditPrice &&
     !hasActiveInvoice &&
     !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
+  // Line discounts shade the rate (no Edit Price permission needed); blocked only
+  // once the card is invoiced or closed.
+  const canEditLineDiscount =
+    !hasActiveInvoice &&
+    !["Cancelled", "Delivered", "Completed"].includes(workflowStatus);
   const canAmendCancelled =
     workflowStatus === "Cancelled" && !jobCard.already_amended;
   const existingAmendment =
@@ -935,6 +951,49 @@ export default function JobCardDetailPage() {
       toast.error(err instanceof Error ? err.message : "Failed to update part price");
     } finally {
       setSavingLinePrice(null);
+    }
+  };
+
+  const saveLabourLineDiscount = async (rowName: string, discount: LineDiscountValue) => {
+    setSavingLineDiscount(rowName);
+    try {
+      await jobCardsSvc.updateLabourLineOnJobCard(id, rowName, {
+        discount_type: discount.discount_type,
+        discount_value: discount.discount_value,
+      });
+      await mutate();
+      toast.success(
+        discount.discount_value > 0
+          ? "Service line discount saved"
+          : "Service line discount removed"
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update line discount");
+    } finally {
+      setSavingLineDiscount(null);
+    }
+  };
+
+  const savePartLineDiscount = async (rowName: string, discount: LineDiscountValue) => {
+    setSavingLineDiscount(rowName);
+    try {
+      await partsRequestsSvc.updateJobCardLinePricing(id, {
+        parts: [
+          {
+            name: rowName,
+            discount_type: discount.discount_type,
+            discount_value: discount.discount_value,
+          },
+        ],
+      });
+      await mutate();
+      toast.success(
+        discount.discount_value > 0 ? "Part discount saved" : "Part discount removed"
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update part discount");
+    } finally {
+      setSavingLineDiscount(null);
     }
   };
 
@@ -1231,8 +1290,15 @@ export default function JobCardDetailPage() {
 
   // ─── Cost calculations ─────────────────────────────────────
 
-  const labourTotal = jobCard.total_labor_cost || jobCard.labour?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
-  const partsTotal = jobCard.total_parts_cost || jobCard.parts?.reduce((sum, p) => sum + (p.total_amount || 0), 0) || 0;
+  // Prefer the stored (line-discount-aware) totals; fall back to per-line nets.
+  const labourTotal =
+    jobCard.total_labor_cost ||
+    jobCard.labour?.reduce((sum, l) => sum + (l.net_amount ?? l.amount ?? 0), 0) ||
+    0;
+  const partsTotal =
+    jobCard.total_parts_cost ||
+    jobCard.parts?.reduce((sum, p) => sum + (p.net_amount ?? p.total_amount ?? 0), 0) ||
+    0;
   const grandTotal = jobCard.total_amount || labourTotal + partsTotal;
 
   const labourEstimatedHours =
@@ -2154,6 +2220,26 @@ export default function JobCardDetailPage() {
                     </div>
                   </>
                 )}
+                {jobCard.approval_attachment ? (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-2">Customer approval attachment</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowAttachmentPreview(true)}
+                        title="View attachment"
+                        className="flex w-full items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+                      >
+                        <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate">
+                          {attachmentFileName(jobCard.approval_attachment)}
+                        </span>
+                        <Eye className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    </div>
+                  </>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -2558,7 +2644,22 @@ export default function JobCardDetailPage() {
                             })}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {(line.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            <div className="flex items-center justify-end gap-1">
+                              <span>
+                                {(line.net_amount ?? line.amount ?? 0).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                })}
+                              </span>
+                              <LineDiscountButton
+                                label={labourLineLabel(line)}
+                                lineAmount={line.amount || 0}
+                                discountType={line.discount_type}
+                                discountValue={line.discount_value}
+                                disabled={!canEditLineDiscount || !line.name}
+                                busy={savingLineDiscount === line.name}
+                                onApply={(discount) => saveLabourLineDiscount(line.name, discount)}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>
                             {line.is_warranty ? (
@@ -2697,7 +2798,23 @@ export default function JobCardDetailPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {(part.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            <div className="flex items-center justify-end gap-1">
+                              <span>
+                                {(part.net_amount ?? part.total_amount ?? 0).toLocaleString(
+                                  undefined,
+                                  { minimumFractionDigits: 2 }
+                                )}
+                              </span>
+                              <LineDiscountButton
+                                label={part.part_name || part.item_code || "this part"}
+                                lineAmount={part.total_amount || 0}
+                                discountType={part.discount_type}
+                                discountValue={part.discount_value}
+                                disabled={!canEditLineDiscount || !part.name}
+                                busy={savingLineDiscount === part.name}
+                                onApply={(discount) => savePartLineDiscount(part.name, discount)}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
@@ -3626,6 +3743,17 @@ export default function JobCardDetailPage() {
         vehicleVin={jobCard.vehicle_vin}
         vehicleModel={jobCard.vehicle_model}
         onSaved={() => void mutate()}
+      />
+
+      <FilePreviewDialog
+        open={showAttachmentPreview}
+        onOpenChange={setShowAttachmentPreview}
+        url={jobCard.approval_attachment}
+        title={
+          jobCard.approval_attachment
+            ? attachmentFileName(jobCard.approval_attachment)
+            : "Customer approval attachment"
+        }
       />
 
       <CreateInvoiceDialog

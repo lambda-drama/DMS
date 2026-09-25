@@ -5,7 +5,7 @@ import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
-import { CustomerContactCard } from '@/components/customer-contact-card';
+import { CustomerContactCard, type CustomerContactValue } from '@/components/customer-contact-card';
 import { ImageCaptureField } from '@/components/image-capture-field';
 import { MultiImageCaptureField } from '@/components/multi-image-capture-field';
 import { SignaturePad } from '@/components/signature-pad';
@@ -304,6 +304,12 @@ export default function NewInspectionPage() {
     customer_name: string;
     mobile_no?: string;
   } | null>(null);
+  // Phone / email typed in the CustomerContactCard — pushed to the Customer when
+  // the inspection is saved (see customer_mobile_no / customer_email_id below).
+  const [customerContact, setCustomerContact] = useState<CustomerContactValue>({
+    mobile_no: '',
+    email_id: '',
+  });
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
   const [warrantySummary, setWarrantySummary] = useState<VehicleWarrantySummary | null>(null);
@@ -336,6 +342,12 @@ export default function NewInspectionPage() {
   const [customerTerms, setCustomerTerms] = useState<BilingualCustomerTerms | null>(null);
   const [termsLoading, setTermsLoading] = useState(false);
   const [scanPerformed, setScanPerformed] = useState(false);
+
+  // The contact card re-fetches when the customer changes; drop the old values so
+  // saving can never push the previous customer's phone onto the new customer.
+  useEffect(() => {
+    setCustomerContact({ mobile_no: '', email_id: '' });
+  }, [selectedCustomer]);
 
   // Real data hooks
   const { data: customers, isLoading: customersLoading } = useCustomers(customerSearch);
@@ -812,6 +824,15 @@ export default function NewInspectionPage() {
     const filledComplaints = complaints.filter((c) => c.text.trim());
     return {
       customer: selectedCustomer || undefined,
+      // Phone / email typed in the contact card — the backend writes real changes
+      // onto the Customer's primary Contact. Blank values are omitted so saving an
+      // inspection never clears a customer's stored contact details.
+      customer_mobile_no: selectedCustomer
+        ? customerContact.mobile_no.trim() || undefined
+        : undefined,
+      customer_email_id: selectedCustomer
+        ? customerContact.email_id.trim() || undefined
+        : undefined,
       vin_chassis: selectedVehicle || undefined,
       customer_vehicle: customerVehicle || undefined,
       service_advisor: serviceAdvisor || undefined,
@@ -1083,6 +1104,7 @@ export default function NewInspectionPage() {
                     customer={selectedCustomer}
                     customerName={selectedCustomerMeta?.customer_name}
                     fallback={{ mobile_no: selectedCustomerMeta?.mobile_no }}
+                    onChange={setCustomerContact}
                   />
                 ) : null}
 

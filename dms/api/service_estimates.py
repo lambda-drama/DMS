@@ -167,6 +167,7 @@ def update_service_estimate(name, data):
 		"labour_discount_value",
 		"parts_discount_type",
 		"parts_discount_value",
+		"attachment",
 	}
 
 	for field in scalar_fields:
@@ -194,11 +195,19 @@ def update_service_estimate(name, data):
 			if label:
 				row["custom_display_name"] = label
 
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+		apply_line_discount_from_payload,
+	)
+
 	for table in allowed_child:
 		if table in data and isinstance(data[table], list):
 			doc.set(table, [])
 			for row in data[table]:
-				doc.append(table, row)
+				child = doc.append(table, row)
+				if isinstance(row, dict) and any(
+					key in row for key in ("discount", "discount_type", "discount_value")
+				):
+					apply_line_discount_from_payload(child, row)
 
 	doc.save()
 	synced_job_card = None

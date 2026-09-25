@@ -50,8 +50,22 @@ export async function getCurrentServiceAdvisor(): Promise<{
   });
 }
 
+/**
+ * Form-only keys the DMS inspection screen posts that are not stored on the
+ * Vehicle Inspection doctype itself.
+ */
+export type InspectionFormExtras = {
+  as_draft?: boolean | number;
+  /**
+   * Phone / email typed in the customer contact card. The backend writes real
+   * changes onto the Customer's primary Contact; blank values are ignored.
+   */
+  customer_mobile_no?: string;
+  customer_email_id?: string;
+};
+
 export async function createInspection(
-  data: Partial<VehicleInspection> & { as_draft?: boolean | number }
+  data: Partial<VehicleInspection> & InspectionFormExtras
 ): Promise<{
   name: string;
   docstatus: number;
@@ -68,7 +82,7 @@ export async function createInspection(
 
 export async function updateInspection(
   name: string,
-  data: Partial<VehicleInspection> & { as_draft?: boolean | number }
+  data: Partial<VehicleInspection> & InspectionFormExtras
 ): Promise<{
   name: string;
   docstatus?: number;

@@ -122,6 +122,8 @@ def make_dms_job_card_from_estimate(
 			"customer_approval_status": "Approved",
 			"approved_amount": est.grand_total,
 			"customer_signature": est.customer_signature,
+			# Documents attached on the estimate follow the work onto the job card.
+			"approval_attachment": est.get("attachment"),
 			"posting_date": today(),
 			"opened_date_time": now_datetime(),
 			"warranty_status": est.warranty_status,
@@ -233,6 +235,8 @@ def make_dms_job_card_from_estimate(
 				"estimated_hours": row.estimated_hours,
 				"rate_per_hour": row.rate_per_hour,
 				"amount": row.amount,
+				"discount_type": getattr(row, "discount_type", None),
+				"discount_value": getattr(row, "discount_value", None),
 				"is_warranty": row.is_warranty,
 				"notes": row.notes,
 			},
@@ -249,6 +253,8 @@ def make_dms_job_card_from_estimate(
 				"quantity_requested": row.quantity_requested,
 				"unit_price": row.unit_price,
 				"total_amount": row.total_amount,
+				"discount_type": getattr(row, "discount_type", None),
+				"discount_value": getattr(row, "discount_value", None),
 				"is_warranty": row.is_warranty,
 				"notes": row.notes,
 				"line_status": "Requested",
@@ -315,6 +321,8 @@ def sync_job_card_from_accepted_estimate(est) -> str | None:
 				"estimated_hours": row.estimated_hours,
 				"rate_per_hour": row.rate_per_hour,
 				"amount": row.amount,
+				"discount_type": getattr(row, "discount_type", None),
+				"discount_value": getattr(row, "discount_value", None),
 				"is_warranty": row.is_warranty,
 				"notes": row.notes,
 			},
@@ -332,6 +340,8 @@ def sync_job_card_from_accepted_estimate(est) -> str | None:
 				"quantity_requested": row.quantity_requested,
 				"unit_price": row.unit_price,
 				"total_amount": row.total_amount,
+				"discount_type": getattr(row, "discount_type", None),
+				"discount_value": getattr(row, "discount_value", None),
 				"is_warranty": row.is_warranty,
 				"notes": row.notes,
 				"line_status": "Requested",
@@ -341,6 +351,9 @@ def sync_job_card_from_accepted_estimate(est) -> str | None:
 
 	jc.warranty_application_type = est.warranty_application_type
 	_apply_job_card_type_from_estimate(jc, est)
+	# Carry the estimate's attachment onto the job card's approval attachment.
+	if hasattr(jc, "approval_attachment") and est.get("attachment"):
+		jc.approval_attachment = est.attachment
 	jc.labour_discount_type = est.labour_discount_type
 	jc.labour_discount_value = est.labour_discount_value
 	jc.parts_discount_type = est.parts_discount_type

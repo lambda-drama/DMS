@@ -624,6 +624,7 @@
    "label": "Approval Reference"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "approval_attachment",
    "fieldtype": "Attach",
    "label": "Approval Attachment"
@@ -1041,7 +1042,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-18 14:12:17.523645",
+ "modified": "2026-09-25 18:40:45.297310",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

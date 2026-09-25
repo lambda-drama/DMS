@@ -701,7 +701,14 @@ def _append_labour_line_payload(doc, line, default_complaint=None):
 			"is_warranty": 1 if line.get("is_warranty") else 0,
 		},
 	)
-	return doc.labour[-1]
+	row = doc.labour[-1]
+	if any(key in line for key in ("discount", "discount_type", "discount_value")):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			apply_line_discount_from_payload,
+		)
+
+		apply_line_discount_from_payload(row, line)
+	return row
 
 
 def _append_part_line_payload(doc, part, default_warehouse=None):
@@ -747,7 +754,14 @@ def _append_part_line_payload(doc, part, default_warehouse=None):
 			"is_warranty": 1 if part.get("is_warranty") else 0,
 		},
 	)
-	return doc.parts[-1]
+	row = doc.parts[-1]
+	if any(key in part for key in ("discount", "discount_type", "discount_value")):
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			apply_line_discount_from_payload,
+		)
+
+		apply_line_discount_from_payload(row, part)
+	return row
 
 
 @frappe.whitelist()
@@ -883,8 +897,10 @@ def update_labour_line_on_job_card(
 	rate_per_hour=None,
 	display_name=None,
 	custom_display_name=None,
+	discount_type=None,
+	discount_value=None,
 ):
-	"""Update hours, rate, or display name on a job card labour line."""
+	"""Update hours, rate, display name or line discount on a job card labour line."""
 	jc_name = (job_card or "").strip()
 	row_name = (labour_row or "").strip()
 	if not jc_name:
@@ -934,6 +950,16 @@ def update_labour_line_on_job_card(
 	if label:
 		row.set(LABOUR_DISPLAY_NAME_FIELD, label)
 
+	# Per-line discount (leaving both unset keeps the existing discount).
+	if discount_type is not None or discount_value is not None:
+		from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
+			apply_line_discount_from_payload,
+		)
+
+		apply_line_discount_from_payload(
+			row, {"discount_type": discount_type, "discount_value": discount_value}
+		)
+
 	jc.flags.ignore_validate_update_after_submit = True
 	if hasattr(jc, "calculate_costing_and_totals"):
 		jc.calculate_costing_and_totals()
@@ -947,9 +973,13 @@ def update_labour_line_on_job_card(
 		"estimated_hours": row.estimated_hours,
 		"rate_per_hour": row.rate_per_hour,
 		"amount": row.amount,
+		"discount_type": getattr(row, "discount_type", None),
+		"discount_value": getattr(row, "discount_value", None),
+		"discount_amount": getattr(row, "discount_amount", None),
+		"net_amount": getattr(row, "net_amount", None),
 		"total_labor_cost": jc.total_labor_cost,
 		"total_amount": jc.total_amount,
-		"net_amount": getattr(jc, "net_amount", None),
+		"net_amount_total": getattr(jc, "net_amount", None),
 	}
 
 
