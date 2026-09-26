@@ -1,0 +1,2669 @@
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[5598],
+	{
+		1435: (e, t, a) => {
+			a.r(t), a.d(t, { default: () => H });
+			var n = a(95155),
+				s = a(12115),
+				r = a(44855),
+				i = a(66609),
+				l = a(61878),
+				o = a(6296),
+				d = a(67899),
+				c = a(60285),
+				u = a(7915),
+				m = a(38399),
+				h = a(12651),
+				x = a(68459),
+				p = a(32390),
+				f = a(48368),
+				v = a(13175),
+				y = a(55833),
+				g = a(63360),
+				b = a(98883),
+				_ = a(93408),
+				j = a(33745),
+				N = a(74350),
+				w = a(4474),
+				S = a(84437),
+				O = a(39658),
+				A = a(79792),
+				T = a(90901),
+				k = a(64705),
+				$ = a(65816),
+				C = a(94411);
+			function P(e, t) {
+				return new Intl.NumberFormat("en-US", {
+					style: "currency",
+					currency: t || "ETB",
+					minimumFractionDigits: 2,
+				}).format(e ?? 0);
+			}
+			function J({ open: e, onOpenChange: t, order: a, onCreated: r }) {
+				let [l, d] = (0, s.useState)(!1),
+					[c, u] = (0, s.useState)(""),
+					[m, h] = (0, s.useState)(""),
+					[x, p] = (0, s.useState)(!0),
+					[v, y] = (0, s.useState)(!1),
+					{ mutate: g } = (0, T.iX)(),
+					b = a?.currency || "ETB";
+				(0, s.useEffect)(() => {
+					if (!e || !a) return;
+					d(!1);
+					let t = new Date().toISOString().slice(0, 10);
+					u(t), h(t), p(!0), y(!1);
+				}, [e, a]);
+				let _ = async () => {
+					if (a) {
+						d(!0);
+						try {
+							let e = await $._I(a.name, {
+									posting_date: c || null,
+									due_date: m || null,
+									submit: +!!x,
+								}),
+								n = `Invoice ${e.name} created — ${P(e.grand_total, b)}${
+									0 === e.docstatus ? " (draft)" : ""
+								}`;
+							if (v && x)
+								try {
+									let t = await C.bB(e.name, a.company);
+									g(
+										(e) => Array.isArray(e) && "customer-advances" === e[0],
+										void 0,
+										{ revalidate: !0 }
+									).catch(() => void 0),
+										i.o.success(n, { description: (0, k.U)(t) });
+								} catch (e) {
+									i.o.error(n, {
+										description:
+											e instanceof Error
+												? `The advance could not be applied: ${e.message}`
+												: "The advance could not be applied — reconcile it from the Reconciliation Hub.",
+									});
+								}
+							else
+								v
+									? i.o.warning(n, {
+											description:
+												"ERPNext settles advances only against submitted invoices — submit the invoice, then apply the advance.",
+									  })
+									: i.o.success(n);
+							r?.(e.name), t(!1);
+						} catch (e) {
+							i.o.error(
+								e instanceof Error ? e.message : "Failed to create the invoice"
+							);
+						} finally {
+							d(!1);
+						}
+					}
+				};
+				return (0, n.jsx)(N.lG, {
+					open: e,
+					onOpenChange: (e) => !l && t(e),
+					children: (0, n.jsxs)(N.Cf, {
+						className: "sm:max-w-md",
+						children: [
+							(0, n.jsxs)(N.c7, {
+								children: [
+									(0, n.jsx)(N.L3, { children: "Create Sales Invoice" }),
+									(0, n.jsx)(N.rr, {
+										children: a
+											? `Invoices the remaining quantity of order ${a.name}. Stock is verified — the invoice only goes through when the parts are available.`
+											: "Create the invoice for this order.",
+									}),
+								],
+							}),
+							(0, n.jsxs)("div", {
+								className: "grid gap-3 py-2",
+								children: [
+									(0, n.jsxs)("div", {
+										className:
+											"rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground",
+										children: [
+											"Order total ",
+											P(a?.grand_total, b),
+											" \xb7 paid",
+											" ",
+											P(a?.advance_paid, b),
+											" \xb7 balance",
+											" ",
+											P(a?.balance, b),
+										],
+									}),
+									(0, n.jsxs)("div", {
+										className: "grid grid-cols-2 gap-3",
+										children: [
+											(0, n.jsxs)("div", {
+												className: "space-y-1",
+												children: [
+													(0, n.jsx)(A.J, { children: "Posting date" }),
+													(0, n.jsx)(O.p, {
+														type: "date",
+														value: c,
+														onChange: (e) => u(e.target.value),
+													}),
+												],
+											}),
+											(0, n.jsxs)("div", {
+												className: "space-y-1",
+												children: [
+													(0, n.jsx)(A.J, { children: "Due date" }),
+													(0, n.jsx)(O.p, {
+														type: "date",
+														value: m,
+														onChange: (e) => h(e.target.value),
+													}),
+												],
+											}),
+										],
+									}),
+									(0, n.jsxs)("div", {
+										className: "flex items-center gap-2",
+										children: [
+											(0, n.jsx)(S.S, {
+												id: "order_invoice_submit",
+												checked: x,
+												onCheckedChange: (e) => p(!!e),
+											}),
+											(0, n.jsx)(A.J, {
+												htmlFor: "order_invoice_submit",
+												className: "cursor-pointer font-normal",
+												children: "Submit the invoice",
+											}),
+										],
+									}),
+									(0, n.jsx)(k.y, {
+										id: "order_invoice_reconcile_advance",
+										customer: a?.customer,
+										company: a?.company,
+										currency: b,
+										enabled: e,
+										checked: v,
+										onCheckedChange: y,
+										willSubmit: x,
+									}),
+								],
+							}),
+							(0, n.jsxs)(N.Es, {
+								children: [
+									(0, n.jsx)(w.$, {
+										type: "button",
+										variant: "outline",
+										onClick: () => t(!1),
+										disabled: l,
+										children: "Cancel",
+									}),
+									(0, n.jsxs)(w.$, {
+										type: "button",
+										onClick: () => void _(),
+										disabled: l || !a,
+										children: [
+											l
+												? (0, n.jsx)(o.A, {
+														className: "mr-2 h-4 w-4 animate-spin",
+												  })
+												: (0, n.jsx)(f.A, { className: "mr-2 h-4 w-4" }),
+											"Create Invoice",
+										],
+									}),
+								],
+							}),
+						],
+					}),
+				});
+			}
+			var D = a(42427),
+				E = a(9245);
+			function I({ open: e, onOpenChange: t, order: a, onPaid: r }) {
+				let [i, l] = (0, s.useState)([]);
+				(0, s.useEffect)(() => {
+					e &&
+						a &&
+						(l([]),
+						E.us(a.company)
+							.then((e) => l(e || []))
+							.catch(() => l([])));
+				}, [e, a?.name]);
+				let o = a
+					? {
+							name: a.name,
+							documentLabel: "order",
+							partyName: a.customer_name || a.customer,
+							currency: a.currency,
+							grandTotal: a.grand_total || 0,
+							outstanding: a.balance || 0,
+							grandTotalLabel: "Order total",
+							outstandingLabel: "Order balance",
+							dueDate: a.delivery_date,
+							docstatus: a.docstatus,
+					  }
+					: null;
+				return (0, n.jsx)(D.d, {
+					open: e,
+					onOpenChange: t,
+					title: "Record Payment",
+					target: o,
+					modes: i,
+					onRecord: async (e, t) => $.yL(a?.name || "", { payments: e, remarks: t }),
+					onPaid: r,
+				});
+			}
+			var z = a(79984),
+				F = a(38291),
+				B = a(43447),
+				Q = a(26518),
+				R = a(83786),
+				L = a(31521);
+			function q(e, t) {
+				return new Intl.NumberFormat("en-US", {
+					style: "currency",
+					currency: t || "ETB",
+					minimumFractionDigits: 2,
+				}).format(e ?? 0);
+			}
+			let U = [
+				"Draft",
+				"To Deliver and Bill",
+				"To Bill",
+				"To Deliver",
+				"Completed",
+				"Cancelled",
+			];
+			function H() {
+				let { viewParams: e, navigate: t } = (0, y.c)(),
+					{
+						canCreate: a,
+						canWrite: N,
+						canDelete: S,
+						canSubmit: A,
+						canCancel: T,
+					} = (0, g.Sk)(),
+					[k, C] = (0, L.P)("orders", "search", ""),
+					[P, D] = (0, L.P)("orders", "status", ""),
+					[E, H] = (0, s.useState)(k),
+					[V, W] = (0, s.useState)(e.get("name")),
+					[X, Z] = (0, s.useState)(!1),
+					[G, M] = (0, s.useState)(!1),
+					[K, Y] = (0, s.useState)(null),
+					[ee, et] = (0, s.useState)(null),
+					[ea, en] = (0, s.useState)(!1),
+					es = a("orders"),
+					er = a("orders") || a("payment-entries"),
+					ei = a("orders") || a("invoices");
+				(0, s.useEffect)(() => {
+					let e = window.setTimeout(() => H(k.trim()), 250);
+					return () => window.clearTimeout(e);
+				}, [k]);
+				let {
+						data: el,
+						isLoading: eo,
+						error: ed,
+						mutate: ec,
+					} = (0, r.Ay)(["dms-orders", E, P], () =>
+						$.yV({ search: E || void 0, status: P || void 0, limit: 100 })
+					),
+					{
+						data: eu,
+						isLoading: em,
+						mutate: eh,
+					} = (0, r.Ay)(V ? ["dms-order", V] : null, () => $.Xs(V)),
+					ex = el?.data || [],
+					ep = el?.total || 0;
+				function ef(e) {
+					return 0 === e.docstatus || "Draft" === e.status;
+				}
+				function ev(e) {
+					return 2 === e.docstatus || "Cancelled" === e.status;
+				}
+				let ey = (e) => (a("orders") || N("orders")) && ev(e) && !e.already_amended,
+					eg = (e) =>
+						!!e && 1 === e.docstatus && !e.converted && (e.balance || 0) > 1e-4,
+					eb = (e) => !!e && 1 === e.docstatus && !e.converted;
+				async function e_() {
+					ec(), V && eh();
+				}
+				async function ej(e, t) {
+					et(e);
+					try {
+						await t(), await e_();
+					} catch (t) {
+						i.o.error(t instanceof Error ? t.message : `Failed to ${e}`);
+					} finally {
+						et(null);
+					}
+				}
+				async function eN(e) {
+					en(!0);
+					try {
+						let a = await $.wJ(e);
+						i.o.success(`Amended draft ${a.name} created`),
+							W(null),
+							ec(),
+							t("order-new", { id: a.name });
+					} catch (e) {
+						i.o.error(e instanceof Error ? e.message : "Failed to amend the order");
+					} finally {
+						en(!1);
+					}
+				}
+				return (0, n.jsxs)("div", {
+					className: "min-w-0 space-y-4 sm:space-y-6",
+					children: [
+						(0, n.jsxs)("div", {
+							className:
+								"flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+							children: [
+								(0, n.jsxs)("div", {
+									children: [
+										(0, n.jsx)("h1", {
+											className: "dms-stat-value text-xl tracking-tight",
+											children: "Orders",
+										}),
+										(0, n.jsx)("p", {
+											className: "text-muted-foreground",
+											children:
+												"Customer orders for parts that are not in stock — take a payment now, invoice later",
+										}),
+									],
+								}),
+								(0, n.jsx)(j.l, {
+									module: "orders",
+									label: "New Order",
+									onClick: () => t("order-new"),
+								}),
+							],
+						}),
+						(0, n.jsx)(z.Zp, {
+							children: (0, n.jsxs)(z.Wu, {
+								className: "pt-6 space-y-4",
+								children: [
+									(0, n.jsxs)("div", {
+										className:
+											"flex flex-col gap-3 sm:flex-row sm:items-center",
+										children: [
+											(0, n.jsxs)("div", {
+												className: "relative flex-1",
+												children: [
+													(0, n.jsx)(l.A, {
+														className:
+															"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+													}),
+													(0, n.jsx)(O.p, {
+														className: "pl-9",
+														placeholder:
+															"Search order no or customer…",
+														value: k,
+														onChange: (e) => C(e.target.value),
+													}),
+												],
+											}),
+											(0, n.jsxs)(Q.l6, {
+												value: P || "all",
+												onValueChange: (e) => D("all" === e ? "" : e),
+												children: [
+													(0, n.jsx)(Q.bq, {
+														className: "sm:w-56",
+														children: (0, n.jsx)(Q.yv, {
+															placeholder: "All statuses",
+														}),
+													}),
+													(0, n.jsxs)(Q.gC, {
+														children: [
+															(0, n.jsx)(Q.eb, {
+																value: "all",
+																children: "All statuses",
+															}),
+															U.map((e) =>
+																(0, n.jsx)(
+																	Q.eb,
+																	{ value: e, children: e },
+																	e
+																)
+															),
+														],
+													}),
+												],
+											}),
+										],
+									}),
+									eo
+										? (0, n.jsx)("div", {
+												className: "flex justify-center py-12",
+												children: (0, n.jsx)(o.A, {
+													className:
+														"h-6 w-6 animate-spin text-muted-foreground",
+												}),
+										  })
+										: ed
+										? (0, n.jsx)("p", {
+												className:
+													"py-8 text-center text-sm text-destructive",
+												children: ed.message || "Failed to load orders",
+										  })
+										: 0 === ex.length
+										? (0, n.jsxs)("div", {
+												className:
+													"flex flex-col items-center py-12 text-muted-foreground",
+												children: [
+													(0, n.jsx)(d.A, {
+														className: "mb-2 h-10 w-10 opacity-40",
+													}),
+													(0, n.jsx)("p", {
+														className: "text-sm",
+														children: "No orders found",
+													}),
+												],
+										  })
+										: (0, n.jsx)("div", {
+												className: "overflow-x-auto rounded-md border",
+												children: (0, n.jsxs)(R.XI, {
+													children: [
+														(0, n.jsx)(R.A0, {
+															children: (0, n.jsxs)(R.Hj, {
+																children: [
+																	(0, n.jsx)(R.nd, {
+																		children: "Order",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		children: "Customer",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		children: "Order date",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		children: "Expected",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		className: "text-right",
+																		children: "Total",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		className: "text-right",
+																		children: "Paid",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		className: "text-right",
+																		children: "Balance",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		children: "Status",
+																	}),
+																	(0, n.jsx)(R.nd, {
+																		className: "w-12",
+																	}),
+																],
+															}),
+														}),
+														(0, n.jsx)(R.BF, {
+															children: ex.map((e) =>
+																(0, n.jsxs)(
+																	R.Hj,
+																	{
+																		className:
+																			"cursor-pointer",
+																		onClick: () => W(e.name),
+																		children: [
+																			(0, n.jsx)(R.nA, {
+																				className:
+																					"text-sm font-medium",
+																				children: e.name,
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				className:
+																					"text-sm",
+																				children:
+																					e.customer_name ||
+																					e.customer ||
+																					"—",
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				className:
+																					"text-sm",
+																				children:
+																					e.transaction_date ||
+																					"—",
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				className:
+																					"text-sm",
+																				children:
+																					e.delivery_date ||
+																					"—",
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				className:
+																					"text-right tabular-nums text-sm",
+																				children: q(
+																					e.grand_total,
+																					e.currency
+																				),
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				className:
+																					"text-right tabular-nums text-sm",
+																				children: q(
+																					e.advance_paid,
+																					e.currency
+																				),
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				className:
+																					"text-right tabular-nums text-sm",
+																				children: q(
+																					e.balance,
+																					e.currency
+																				),
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				children: (0,
+																				n.jsxs)("div", {
+																					className:
+																						"flex flex-wrap items-center gap-1.5",
+																					children: [
+																						ev(e)
+																							? (0,
+																							  n.jsx)(
+																									F.E,
+																									{
+																										variant:
+																											"outline",
+																										className:
+																											"text-muted-foreground",
+																										children:
+																											"Cancelled",
+																									}
+																							  )
+																							: ef(e)
+																							? (0,
+																							  n.jsx)(
+																									F.E,
+																									{
+																										variant:
+																											"outline",
+																										children:
+																											"Draft",
+																									}
+																							  )
+																							: e.converted
+																							? (0,
+																							  n.jsx)(
+																									F.E,
+																									{
+																										variant:
+																											"secondary",
+																										children:
+																											"Invoiced",
+																									}
+																							  )
+																							: (0,
+																							  n.jsx)(
+																									F.E,
+																									{
+																										children:
+																											e.status ||
+																											"Submitted",
+																									}
+																							  ),
+																						e.apply_tax_withholding
+																							? (0,
+																							  n.jsx)(
+																									F.E,
+																									{
+																										variant:
+																											"outline",
+																										title: `Tax withholding (TCS) applies on this order's invoice${
+																											e.tax_withholding_category
+																												? ` — ${e.tax_withholding_category}`
+																												: ""
+																										}`,
+																										children:
+																											"TCS",
+																									}
+																							  )
+																							: null,
+																					],
+																				}),
+																			}),
+																			(0, n.jsx)(R.nA, {
+																				onClick: (e) =>
+																					e.stopPropagation(),
+																				children: (0,
+																				n.jsx)(_.m, {
+																					doctype:
+																						"Sales Order",
+																					docName:
+																						e.name,
+																					children: (0,
+																					n.jsxs)(B.rI, {
+																						children: [
+																							(0,
+																							n.jsx)(
+																								B.ty,
+																								{
+																									asChild:
+																										!0,
+																									children:
+																										(0,
+																										n.jsx)(
+																											w.$,
+																											{
+																												variant:
+																													"ghost",
+																												size: "icon",
+																												className:
+																													"h-8 w-8 shrink-0",
+																												disabled:
+																													null !==
+																													ee,
+																												children:
+																													null !==
+																													ee
+																														? (0,
+																														  n.jsx)(
+																																o.A,
+																																{
+																																	className:
+																																		"h-4 w-4 animate-spin",
+																																}
+																														  )
+																														: (0,
+																														  n.jsx)(
+																																c.A,
+																																{
+																																	className:
+																																		"h-4 w-4",
+																																}
+																														  ),
+																											}
+																										),
+																								}
+																							),
+																							(0,
+																							n.jsxs)(
+																								B.SQ,
+																								{
+																									align: "end",
+																									children:
+																										[
+																											(0,
+																											n.jsxs)(
+																												B._2,
+																												{
+																													onClick:
+																														() =>
+																															W(
+																																e.name
+																															),
+																													children:
+																														[
+																															(0,
+																															n.jsx)(
+																																u.A,
+																																{
+																																	className:
+																																		"mr-2 h-4 w-4",
+																																}
+																															),
+																															"View Order",
+																														],
+																												}
+																											),
+																											ef(
+																												e
+																											)
+																												? (0,
+																												  n.jsxs)(
+																														n.Fragment,
+																														{
+																															children:
+																																[
+																																	(0,
+																																	n.jsxs)(
+																																		B._2,
+																																		{
+																																			onClick:
+																																				() =>
+																																					t(
+																																						"order-new",
+																																						{
+																																							id: e.name,
+																																						}
+																																					),
+																																			children:
+																																				[
+																																					(0,
+																																					n.jsx)(
+																																						m.A,
+																																						{
+																																							className:
+																																								"mr-2 h-4 w-4",
+																																						}
+																																					),
+																																					"Edit Draft",
+																																				],
+																																		}
+																																	),
+																																	(0,
+																																	n.jsxs)(
+																																		B._2,
+																																		{
+																																			disabled:
+																																				!A(
+																																					"orders"
+																																				),
+																																			onClick:
+																																				() =>
+																																					void ej(
+																																						"submit the order",
+																																						() =>
+																																							$.PT(
+																																								e.name
+																																							)
+																																					),
+																																			children:
+																																				[
+																																					(0,
+																																					n.jsx)(
+																																						h.A,
+																																						{
+																																							className:
+																																								"mr-2 h-4 w-4",
+																																						}
+																																					),
+																																					"Submit",
+																																				],
+																																		}
+																																	),
+																																	(0,
+																																	n.jsxs)(
+																																		B._2,
+																																		{
+																																			className:
+																																				"text-destructive focus:text-destructive",
+																																			disabled:
+																																				!S(
+																																					"orders"
+																																				),
+																																			onClick:
+																																				() =>
+																																					void ej(
+																																						"delete the order",
+																																						() =>
+																																							$.NU(
+																																								e.name
+																																							)
+																																					),
+																																			children:
+																																				[
+																																					(0,
+																																					n.jsx)(
+																																						x.A,
+																																						{
+																																							className:
+																																								"mr-2 h-4 w-4",
+																																						}
+																																					),
+																																					"Delete Draft",
+																																				],
+																																		}
+																																	),
+																																],
+																														}
+																												  )
+																												: (0,
+																												  n.jsxs)(
+																														n.Fragment,
+																														{
+																															children:
+																																[
+																																	er &&
+																																	eg(
+																																		e
+																																	)
+																																		? (0,
+																																		  n.jsxs)(
+																																				B._2,
+																																				{
+																																					onClick:
+																																						() => {
+																																							Y(
+																																								e
+																																							),
+																																								Z(
+																																									!0
+																																								);
+																																						},
+																																					children:
+																																						[
+																																							(0,
+																																							n.jsx)(
+																																								p.A,
+																																								{
+																																									className:
+																																										"mr-2 h-4 w-4",
+																																								}
+																																							),
+																																							"Record Payment",
+																																						],
+																																				}
+																																		  )
+																																		: null,
+																																	ei &&
+																																	eb(
+																																		e
+																																	)
+																																		? (0,
+																																		  n.jsxs)(
+																																				B._2,
+																																				{
+																																					onClick:
+																																						() => {
+																																							Y(
+																																								e
+																																							),
+																																								M(
+																																									!0
+																																								);
+																																						},
+																																					children:
+																																						[
+																																							(0,
+																																							n.jsx)(
+																																								f.A,
+																																								{
+																																									className:
+																																										"mr-2 h-4 w-4",
+																																								}
+																																							),
+																																							"Create Invoice",
+																																						],
+																																				}
+																																		  )
+																																		: null,
+																																	ev(
+																																		e
+																																	) ||
+																																	e.converted
+																																		? null
+																																		: (0,
+																																		  n.jsxs)(
+																																				B._2,
+																																				{
+																																					className:
+																																						"text-destructive focus:text-destructive",
+																																					disabled:
+																																						!T(
+																																							"orders"
+																																						),
+																																					onClick:
+																																						() =>
+																																							void ej(
+																																								"cancel the order",
+																																								() =>
+																																									$.rG(
+																																										e.name
+																																									)
+																																							),
+																																					children:
+																																						[
+																																							(0,
+																																							n.jsx)(
+																																								v.A,
+																																								{
+																																									className:
+																																										"mr-2 h-4 w-4",
+																																								}
+																																							),
+																																							"Cancel",
+																																						],
+																																				}
+																																		  ),
+																																	ey(
+																																		e
+																																	)
+																																		? (0,
+																																		  n.jsxs)(
+																																				B._2,
+																																				{
+																																					disabled:
+																																						ea,
+																																					onClick:
+																																						() =>
+																																							void eN(
+																																								e.name
+																																							),
+																																					children:
+																																						[
+																																							(0,
+																																							n.jsx)(
+																																								m.A,
+																																								{
+																																									className:
+																																										"mr-2 h-4 w-4",
+																																								}
+																																							),
+																																							"Amend Order",
+																																						],
+																																				}
+																																		  )
+																																		: null,
+																																	ev(
+																																		e
+																																	) &&
+																																	e.amended_as
+																																		? (0,
+																																		  n.jsxs)(
+																																				B._2,
+																																				{
+																																					onClick:
+																																						() =>
+																																							t(
+																																								"order-new",
+																																								{
+																																									id: e.amended_as,
+																																								}
+																																							),
+																																					children:
+																																						[
+																																							(0,
+																																							n.jsx)(
+																																								m.A,
+																																								{
+																																									className:
+																																										"mr-2 h-4 w-4",
+																																								}
+																																							),
+																																							"Open Amendment",
+																																						],
+																																				}
+																																		  )
+																																		: null,
+																																],
+																														}
+																												  ),
+																										],
+																								}
+																							),
+																						],
+																					}),
+																				}),
+																			}),
+																		],
+																	},
+																	e.name
+																)
+															),
+														}),
+													],
+												}),
+										  }),
+									(0, n.jsx)("p", {
+										className: "text-xs text-muted-foreground",
+										children:
+											ep > ex.length
+												? `Showing the latest ${ex.length} of ${ep} orders — refine the search to narrow it down.`
+												: `${ex.length} order${
+														1 === ex.length ? "" : "s"
+												  }`,
+									}),
+								],
+							}),
+						}),
+						(0, n.jsx)(b.BN, {
+							open: !!V && !X && !G,
+							onOpenChange: (e) => !e && W(null),
+							title: eu ? `Order ${eu.name}` : V || "Order",
+							subtitle: eu
+								? `${eu.customer_name || eu.customer} \xb7 ${eu.transaction_date}`
+								: void 0,
+							badge: eu
+								? ev(eu)
+									? { label: "Cancelled", variant: "outline" }
+									: ef(eu)
+									? { label: "Draft", variant: "outline" }
+									: eu.converted
+									? { label: "Invoiced", variant: "secondary" }
+									: { label: eu.status || "Submitted", variant: "secondary" }
+								: void 0,
+							footer: eu
+								? (0, n.jsx)("div", {
+										className:
+											"flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end",
+										children: ef(eu)
+											? (0, n.jsxs)(n.Fragment, {
+													children: [
+														(0, n.jsxs)(w.$, {
+															variant: "outline",
+															disabled: !es || null !== ee,
+															onClick: () =>
+																t("order-new", { id: eu.name }),
+															children: [
+																(0, n.jsx)(m.A, {
+																	className: "mr-2 h-4 w-4",
+																}),
+																"Edit",
+															],
+														}),
+														(0, n.jsxs)(w.$, {
+															disabled: !A("orders") || null !== ee,
+															onClick: () =>
+																void ej("submit the order", () =>
+																	$.PT(eu.name)
+																),
+															children: [
+																ee
+																	? (0, n.jsx)(o.A, {
+																			className:
+																				"mr-2 h-4 w-4 animate-spin",
+																	  })
+																	: (0, n.jsx)(h.A, {
+																			className:
+																				"mr-2 h-4 w-4",
+																	  }),
+																"Submit",
+															],
+														}),
+														(0, n.jsxs)(w.$, {
+															variant: "outline",
+															className: "text-destructive",
+															disabled: !S("orders") || null !== ee,
+															onClick: () =>
+																void ej("delete the order", () =>
+																	$.NU(eu.name)
+																),
+															children: [
+																(0, n.jsx)(x.A, {
+																	className: "mr-2 h-4 w-4",
+																}),
+																"Delete Draft",
+															],
+														}),
+													],
+											  })
+											: (0, n.jsxs)(n.Fragment, {
+													children: [
+														er && eg(eu)
+															? (0, n.jsxs)(w.$, {
+																	disabled: null !== ee,
+																	onClick: () => {
+																		Y(eu), Z(!0);
+																	},
+																	children: [
+																		(0, n.jsx)(p.A, {
+																			className:
+																				"mr-2 h-4 w-4",
+																		}),
+																		"Record Payment",
+																	],
+															  })
+															: null,
+														ei && eb(eu)
+															? (0, n.jsxs)(w.$, {
+																	variant: eg(eu)
+																		? "outline"
+																		: "default",
+																	disabled: null !== ee,
+																	onClick: () => {
+																		Y(eu), M(!0);
+																	},
+																	children: [
+																		(0, n.jsx)(f.A, {
+																			className:
+																				"mr-2 h-4 w-4",
+																		}),
+																		"Create Invoice",
+																	],
+															  })
+															: null,
+														ev(eu)
+															? null
+															: (0, n.jsxs)(w.$, {
+																	variant: "outline",
+																	className: "text-destructive",
+																	disabled:
+																		!T("orders") ||
+																		null !== ee ||
+																		eu.converted,
+																	onClick: () =>
+																		void ej(
+																			"cancel the order",
+																			() => $.rG(eu.name)
+																		),
+																	children: [
+																		(0, n.jsx)(v.A, {
+																			className:
+																				"mr-2 h-4 w-4",
+																		}),
+																		"Cancel",
+																	],
+															  }),
+														ey(eu)
+															? (0, n.jsxs)(w.$, {
+																	disabled: ea || null !== ee,
+																	onClick: () =>
+																		void eN(eu.name),
+																	children: [
+																		ea
+																			? (0, n.jsx)(o.A, {
+																					className:
+																						"mr-2 h-4 w-4 animate-spin",
+																			  })
+																			: (0, n.jsx)(m.A, {
+																					className:
+																						"mr-2 h-4 w-4",
+																			  }),
+																		"Amend Order",
+																	],
+															  })
+															: null,
+														ev(eu) && eu.amended_as
+															? (0, n.jsxs)(w.$, {
+																	variant: "outline",
+																	disabled: null !== ee,
+																	onClick: () =>
+																		t("order-new", {
+																			id: eu.amended_as,
+																		}),
+																	children: [
+																		(0, n.jsx)(m.A, {
+																			className:
+																				"mr-2 h-4 w-4",
+																		}),
+																		"Open Amendment",
+																	],
+															  })
+															: null,
+													],
+											  }),
+								  })
+								: null,
+							children: em
+								? (0, n.jsx)("div", {
+										className: "flex justify-center py-8",
+										children: (0, n.jsx)(o.A, {
+											className:
+												"h-5 w-5 animate-spin text-muted-foreground",
+										}),
+								  })
+								: eu
+								? (0, n.jsxs)(n.Fragment, {
+										children: [
+											(0, n.jsxs)(b.JH, {
+												title: "Order",
+												children: [
+													(0, n.jsx)(b.Qb, {
+														label: "Customer",
+														value: eu.customer_name || eu.customer,
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Company",
+														value: eu.company,
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Order date",
+														value: eu.transaction_date,
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Expected delivery",
+														value: eu.delivery_date,
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Warehouse",
+														value: eu.warehouse || void 0,
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Status",
+														value: eu.status,
+													}),
+													eu.amended_from
+														? (0, n.jsx)(b.Qb, {
+																label: "Amended from",
+																value: eu.amended_from,
+														  })
+														: null,
+													eu.amended_as
+														? (0, n.jsx)(b.Qb, {
+																label: "Amended as",
+																value: eu.amended_as,
+														  })
+														: null,
+												],
+											}),
+											(0, n.jsxs)(b.JH, {
+												title: "Amounts",
+												children: [
+													(0, n.jsx)(b.Qb, {
+														label: "Net total",
+														value: q(
+															eu.net_total ?? eu.grand_total,
+															eu.currency
+														),
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "VAT",
+														value:
+															Number(eu.total_taxes_and_charges) > 0
+																? q(
+																		eu.total_taxes_and_charges,
+																		eu.currency
+																  )
+																: "Not included",
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Order total",
+														value: q(eu.grand_total, eu.currency),
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Tax withholding (TCS)",
+														value: eu.apply_tax_withholding
+															? [
+																	eu.tax_withholding_category,
+																	eu.tax_withholding_group,
+															  ]
+																	.filter(Boolean)
+																	.join(" \xb7 ") ||
+															  "Applied on the invoice"
+															: "Not applied",
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Paid / advance",
+														value: q(eu.advance_paid, eu.currency),
+													}),
+													(0, n.jsx)(b.Qb, {
+														label: "Balance",
+														value: q(eu.balance, eu.currency),
+													}),
+												],
+											}),
+											(0, n.jsx)(b.JH, {
+												title: "Items",
+												children: eu.items.length
+													? (0, n.jsx)("div", {
+															className: "space-y-2",
+															children: eu.items.map((e) =>
+																(0, n.jsxs)(
+																	"div",
+																	{
+																		className:
+																			"flex items-start justify-between gap-3 text-sm",
+																		children: [
+																			(0, n.jsxs)("div", {
+																				className:
+																					"min-w-0",
+																				children: [
+																					(0, n.jsx)(
+																						"p",
+																						{
+																							className:
+																								"truncate font-medium",
+																							children:
+																								e.item_name ||
+																								e.spare_part,
+																						}
+																					),
+																					(0, n.jsx)(
+																						"p",
+																						{
+																							className:
+																								"truncate text-xs text-muted-foreground",
+																							children:
+																								[
+																									e.spare_part,
+																									`${
+																										e.qty
+																									} \xd7 ${q(
+																										e.rate,
+																										eu.currency
+																									)}`,
+																								]
+																									.filter(
+																										Boolean
+																									)
+																									.join(
+																										" \xb7 "
+																									),
+																						}
+																					),
+																				],
+																			}),
+																			(0, n.jsx)("span", {
+																				className:
+																					"whitespace-nowrap tabular-nums",
+																				children: q(
+																					e.amount,
+																					eu.currency
+																				),
+																			}),
+																		],
+																	},
+																	`${e.spare_part}-${e.item_code}`
+																)
+															),
+													  })
+													: (0, n.jsx)("p", {
+															className:
+																"text-sm text-muted-foreground",
+															children: "No items.",
+													  }),
+											}),
+											(0, n.jsx)(b.JH, {
+												title: "Labour",
+												children: eu.labour.length
+													? (0, n.jsx)("div", {
+															className: "space-y-2",
+															children: eu.labour.map((e, t) =>
+																(0, n.jsxs)(
+																	"div",
+																	{
+																		className:
+																			"flex items-start justify-between gap-3 text-sm",
+																		children: [
+																			(0, n.jsxs)("div", {
+																				className:
+																					"min-w-0",
+																				children: [
+																					(0, n.jsx)(
+																						"p",
+																						{
+																							className:
+																								"truncate font-medium",
+																							children:
+																								e.vehicle_service_item_name ||
+																								e.vehicle_service_item,
+																						}
+																					),
+																					(0, n.jsx)(
+																						"p",
+																						{
+																							className:
+																								"truncate text-xs text-muted-foreground",
+																							children:
+																								[
+																									`${
+																										e.hours
+																									} \xd7 ${q(
+																										e.rate_per_hour,
+																										eu.currency
+																									)}`,
+																								]
+																									.filter(
+																										Boolean
+																									)
+																									.join(
+																										" \xb7 "
+																									),
+																						}
+																					),
+																				],
+																			}),
+																			(0, n.jsx)("span", {
+																				className:
+																					"whitespace-nowrap tabular-nums",
+																				children: q(
+																					e.amount,
+																					eu.currency
+																				),
+																			}),
+																		],
+																	},
+																	`${e.vehicle_service_item}-${t}`
+																)
+															),
+													  })
+													: (0, n.jsx)("p", {
+															className:
+																"text-sm text-muted-foreground",
+															children: "No labour lines.",
+													  }),
+											}),
+											(0, n.jsx)(b.JH, {
+												title: "Payments",
+												children: eu.payments.length
+													? (0, n.jsx)("div", {
+															className: "space-y-2",
+															children: eu.payments.map((e) =>
+																(0, n.jsxs)(
+																	"div",
+																	{
+																		className:
+																			"flex items-start justify-between gap-3 text-sm",
+																		children: [
+																			(0, n.jsxs)("div", {
+																				className:
+																					"min-w-0",
+																				children: [
+																					(0, n.jsx)(
+																						"p",
+																						{
+																							className:
+																								"truncate font-medium",
+																							children:
+																								e.name,
+																						}
+																					),
+																					(0, n.jsx)(
+																						"p",
+																						{
+																							className:
+																								"truncate text-xs text-muted-foreground",
+																							children:
+																								[
+																									e.posting_date,
+																									e.mode_of_payment,
+																									e.reference_no,
+																								]
+																									.filter(
+																										Boolean
+																									)
+																									.join(
+																										" \xb7 "
+																									),
+																						}
+																					),
+																				],
+																			}),
+																			(0, n.jsx)("span", {
+																				className:
+																					"whitespace-nowrap tabular-nums",
+																				children: q(
+																					e.allocated_amount,
+																					eu.currency
+																				),
+																			}),
+																		],
+																	},
+																	e.name
+																)
+															),
+													  })
+													: (0, n.jsx)("p", {
+															className:
+																"text-sm text-muted-foreground",
+															children: "No payment recorded yet.",
+													  }),
+											}),
+											(0, n.jsx)(b.JH, {
+												title: "Invoices",
+												children: eu.sales_invoices.length
+													? (0, n.jsx)("div", {
+															className: "space-y-1 text-sm",
+															children: eu.sales_invoices.map((e) =>
+																(0, n.jsx)(
+																	"p",
+																	{
+																		className: "font-medium",
+																		children: e,
+																	},
+																	e
+																)
+															),
+													  })
+													: (0, n.jsx)("p", {
+															className:
+																"text-sm text-muted-foreground",
+															children: "Not invoiced yet.",
+													  }),
+											}),
+											eu.remarks
+												? (0, n.jsx)(b.JH, {
+														title: "Remarks",
+														children: (0, n.jsx)(b.Qb, {
+															label: "Remarks",
+															value: eu.remarks,
+														}),
+												  })
+												: null,
+										],
+								  })
+								: null,
+						}),
+						(0, n.jsx)(I, {
+							open: X,
+							onOpenChange: (e) => {
+								Z(e), e || Y(null);
+							},
+							order: K,
+							onPaid: () => void e_(),
+						}),
+						(0, n.jsx)(J, {
+							open: G,
+							onOpenChange: (e) => {
+								M(e), e || Y(null);
+							},
+							order: K,
+							onCreated: () => void e_(),
+						}),
+					],
+				});
+			}
+		},
+		9245: (e, t, a) => {
+			a.d(t, {
+				$h: () => g,
+				AF: () => m,
+				CE: () => r,
+				JK: () => c,
+				Wv: () => f,
+				Z1: () => x,
+				_M: () => y,
+				_o: () => p,
+				dG: () => i,
+				dr: () => l,
+				f$: () => o,
+				s0: () => v,
+				sA: () => h,
+				us: () => u,
+				x: () => d,
+			});
+			var n = a(49876);
+			let s = "dms.api.invoices";
+			async function r(e) {
+				return (0, n.AT)(`/api/method/${s}.get_invoices`, {
+					method: "POST",
+					body: JSON.stringify({
+						status: e?.status || null,
+						search: e?.search || null,
+						limit: e?.limit || 50,
+						offset: e?.offset || 0,
+						include_total: 1,
+						posting_from: e?.posting_from || null,
+						posting_to: e?.posting_to || null,
+					}),
+				});
+			}
+			async function i(e) {
+				return (0, n.AT)(`/api/method/${s}.get_invoice_tax_preview`, {
+					method: "POST",
+					body: JSON.stringify({
+						company: e.company,
+						customer: e.customer || null,
+						lines: e.lines,
+						posting_date: e.posting_date || null,
+						apply_taxes: +!!e.apply_taxes,
+						apply_tax_withholding: +!!e.apply_tax_withholding,
+						currency: e.currency || null,
+					}),
+				});
+			}
+			async function l(e, t) {
+				return (0, n.AT)(`/api/method/${s}.get_invoice_preview_from_job_card`, {
+					method: "POST",
+					body: JSON.stringify({
+						job_card: e,
+						warranty_application_type: t?.warrantyApplicationType ?? null,
+						discount_amount: t?.discountAmount ?? null,
+						labour_discount: t?.labourDiscount ?? null,
+						parts_discount: t?.partsDiscount ?? null,
+						rate_overrides: t?.rateOverrides ?? null,
+						exclude_rows: t?.excludeRows?.length ? t.excludeRows : null,
+						qty_overrides:
+							t?.qtyOverrides && Object.keys(t.qtyOverrides).length
+								? t.qtyOverrides
+								: null,
+					}),
+				});
+			}
+			async function o(e) {
+				return (0, n.AT)(`/api/method/${s}.create_standalone_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function d(e, t) {
+				return (0, n.AT)(
+					"/api/method/dms.dealer_management_system.doctype.dms_job_card.dms_job_card.make_sales_invoice_from_job_card",
+					{
+						method: "POST",
+						body: JSON.stringify({
+							job_card: e,
+							due_date: t?.dueDate || null,
+							posting_date: t?.postingDate || null,
+							submit: +!!t?.submit,
+							warranty_application_type: t?.warrantyApplicationType ?? null,
+							discount_amount: t?.discountAmount ?? null,
+							labour_discount: t?.labourDiscount ?? null,
+							parts_discount: t?.partsDiscount ?? null,
+							rate_overrides: t?.rateOverrides ?? null,
+							apply_taxes: +!!t?.applyTaxes,
+							apply_tax_withholding: +!!t?.applyTaxWithholding,
+							exclude_rows: t?.excludeRows?.length ? t.excludeRows : null,
+							qty_overrides:
+								t?.qtyOverrides && Object.keys(t.qtyOverrides).length
+									? t.qtyOverrides
+									: null,
+							remarks: t?.remarks ?? null,
+							line_discounts:
+								t?.lineDiscounts && Object.keys(t.lineDiscounts).length
+									? t.lineDiscounts
+									: null,
+						}),
+					}
+				);
+			}
+			async function c(e) {
+				return (0, n.AT)(`/api/method/${s}.get_sales_invoice_detail`, {
+					method: "POST",
+					body: JSON.stringify({ sales_invoice: e }),
+				});
+			}
+			async function u(e) {
+				return (0, n.AT)(`/api/method/${s}.list_modes_of_payment`, {
+					method: "POST",
+					body: JSON.stringify({ company: e || null }),
+				});
+			}
+			async function m(e) {
+				return (0, n.AT)(`/api/method/${s}.cancel_sales_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ sales_invoice: e }),
+				});
+			}
+			async function h(e) {
+				return (0, n.AT)(`/api/method/${s}.delete_draft_sales_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ sales_invoice: e }),
+				});
+			}
+			async function x(e) {
+				return (0, n.AT)(`/api/method/${s}.amend_sales_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ sales_invoice: e }),
+				});
+			}
+			async function p(e) {
+				return (0, n.AT)(`/api/method/${s}.update_draft_sales_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function f(e) {
+				return (0, n.AT)(`/api/method/${s}.update_job_card_prices_from_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ sales_invoice: e }),
+				});
+			}
+			async function v(e) {
+				return (0, n.AT)(`/api/method/${s}.get_credit_note_preview`, {
+					method: "POST",
+					body: JSON.stringify({ sales_invoice: e }),
+				});
+			}
+			async function y(e) {
+				return (0, n.AT)(`/api/method/${s}.create_credit_note`, {
+					method: "POST",
+					body: JSON.stringify({
+						data: {
+							sales_invoice: e.salesInvoice,
+							posting_date: e.postingDate || null,
+							remarks: e.remarks || null,
+							apply_taxes: e.applyTaxes,
+							submit: +(!1 !== e.submit),
+							lines: e.lines,
+						},
+					}),
+				});
+			}
+			async function g(e) {
+				return (0, n.AT)(`/api/method/${s}.collect_payment`, {
+					method: "POST",
+					body: JSON.stringify({
+						sales_invoice: e.salesInvoice,
+						mode_of_payment: e.modeOfPayment || null,
+						paid_amount: e.paidAmount ?? null,
+						reference_no: e.referenceNo || null,
+						payments: e.payments || null,
+						remarks: e.remarks || null,
+					}),
+				});
+			}
+		},
+		26518: (e, t, a) => {
+			a.d(t, { bq: () => u, eb: () => h, gC: () => m, l6: () => d, yv: () => c });
+			var n = a(95155);
+			a(12115);
+			var s = a(40287),
+				r = a(66088),
+				i = a(94514),
+				l = a(9921),
+				o = a(91337);
+			function d({ ...e }) {
+				return (0, n.jsx)(s.bL, { "data-slot": "select", ...e });
+			}
+			function c({ ...e }) {
+				return (0, n.jsx)(s.WT, { "data-slot": "select-value", ...e });
+			}
+			function u({ className: e, size: t = "default", children: a, ...i }) {
+				return (0, n.jsxs)(s.l9, {
+					"data-slot": "select-trigger",
+					"data-size": t,
+					className: (0, o.cn)(
+						"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-full border bg-transparent px-4 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+						e
+					),
+					...i,
+					children: [
+						a,
+						(0, n.jsx)(s.In, {
+							asChild: !0,
+							children: (0, n.jsx)(r.A, { className: "size-4 opacity-50" }),
+						}),
+					],
+				});
+			}
+			function m({ className: e, children: t, position: a = "popper", ...r }) {
+				return (0, n.jsx)(s.ZL, {
+					children: (0, n.jsxs)(s.UC, {
+						"data-slot": "select-content",
+						className: (0, o.cn)(
+							"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+							"popper" === a &&
+								"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+							e
+						),
+						position: a,
+						...r,
+						children: [
+							(0, n.jsx)(x, {}),
+							(0, n.jsx)(s.LM, {
+								className: (0, o.cn)(
+									"p-1",
+									"popper" === a &&
+										"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
+								),
+								children: t,
+							}),
+							(0, n.jsx)(p, {}),
+						],
+					}),
+				});
+			}
+			function h({ className: e, children: t, ...a }) {
+				return (0, n.jsxs)(s.q7, {
+					"data-slot": "select-item",
+					className: (0, o.cn)(
+						"focus:bg-dms-green-light focus:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+						e
+					),
+					...a,
+					children: [
+						(0, n.jsx)("span", {
+							className:
+								"absolute right-2 flex size-3.5 items-center justify-center",
+							children: (0, n.jsx)(s.VF, {
+								children: (0, n.jsx)(i.A, { className: "size-4" }),
+							}),
+						}),
+						(0, n.jsx)(s.p4, { children: t }),
+					],
+				});
+			}
+			function x({ className: e, ...t }) {
+				return (0, n.jsx)(s.PP, {
+					"data-slot": "select-scroll-up-button",
+					className: (0, o.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...t,
+					children: (0, n.jsx)(l.A, { className: "size-4" }),
+				});
+			}
+			function p({ className: e, ...t }) {
+				return (0, n.jsx)(s.wn, {
+					"data-slot": "select-scroll-down-button",
+					className: (0, o.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...t,
+					children: (0, n.jsx)(r.A, { className: "size-4" }),
+				});
+			}
+		},
+		31521: (e, t, a) => {
+			a.d(t, { P: () => s });
+			var n = a(12115);
+			function s(e, t, a) {
+				let s = `dms:listFilters:${e}:${t}`,
+					[r, i] = (0, n.useState)(() => {
+						let e = (function (e) {
+							try {
+								let t = window.localStorage.getItem(e);
+								if (null === t) return;
+								return JSON.parse(t);
+							} catch {
+								return;
+							}
+						})(s);
+						return void 0 === e ? a : e;
+					});
+				return (
+					(0, n.useEffect)(() => {
+						try {
+							JSON.stringify(r) === JSON.stringify(a)
+								? window.localStorage.removeItem(s)
+								: window.localStorage.setItem(s, JSON.stringify(r));
+						} catch {}
+					}, [s, r, a]),
+					[r, i]
+				);
+			}
+		},
+		33745: (e, t, a) => {
+			a.d(t, { l: () => o });
+			var n = a(95155),
+				s = a(51914),
+				r = a(63360),
+				i = a(4474),
+				l = a(91337);
+			function o({ module: e, label: t, className: a, ...d }) {
+				let { canCreate: c } = (0, r.Sk)();
+				return c(e)
+					? (0, n.jsxs)(i.$, {
+							"aria-label": t,
+							title: t,
+							className: (0, l.cn)(
+								"h-9 w-9 shrink-0 p-0 sm:h-10 sm:w-auto sm:px-4 sm:py-2",
+								a
+							),
+							...d,
+							children: [
+								(0, n.jsx)(s.A, { className: "h-4 w-4 shrink-0" }),
+								(0, n.jsx)("span", {
+									className: "hidden sm:inline sm:ml-2",
+									children: t,
+								}),
+							],
+					  })
+					: null;
+			}
+		},
+		38291: (e, t, a) => {
+			a.d(t, { E: () => o });
+			var n = a(95155);
+			a(12115);
+			var s = a(42442),
+				r = a(18460),
+				i = a(91337);
+			let l = (0, r.F)(
+				"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+				{
+					variants: {
+						variant: {
+							default:
+								"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+							secondary:
+								"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+							destructive:
+								"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+							outline:
+								"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+						},
+					},
+					defaultVariants: { variant: "default" },
+				}
+			);
+			function o({ className: e, variant: t, asChild: a = !1, ...r }) {
+				let d = a ? s.DX : "span";
+				return (0, n.jsx)(d, {
+					"data-slot": "badge",
+					className: (0, i.cn)(l({ variant: t }), e),
+					...r,
+				});
+			}
+		},
+		39540: (e, t, a) => {
+			a.d(t, { T: () => r });
+			var n = a(95155);
+			a(12115);
+			var s = a(91337);
+			function r({ className: e, ...t }) {
+				return (0, n.jsx)("textarea", {
+					"data-slot": "textarea",
+					className: (0, s.cn)(
+						"border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+						e
+					),
+					...t,
+				});
+			}
+		},
+		43447: (e, t, a) => {
+			a.d(t, {
+				SQ: () => o,
+				_2: () => d,
+				lp: () => c,
+				mB: () => u,
+				rI: () => i,
+				ty: () => l,
+			});
+			var n = a(95155);
+			a(12115);
+			var s = a(61108),
+				r = a(91337);
+			function i({ ...e }) {
+				return (0, n.jsx)(s.bL, { "data-slot": "dropdown-menu", ...e });
+			}
+			function l({ ...e }) {
+				return (0, n.jsx)(s.l9, { "data-slot": "dropdown-menu-trigger", ...e });
+			}
+			function o({ className: e, sideOffset: t = 4, ...a }) {
+				return (0, n.jsx)(s.ZL, {
+					children: (0, n.jsx)(s.UC, {
+						"data-slot": "dropdown-menu-content",
+						sideOffset: t,
+						className: (0, r.cn)(
+							"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+							e
+						),
+						...a,
+					}),
+				});
+			}
+			function d({ className: e, inset: t, variant: a = "default", ...i }) {
+				return (0, n.jsx)(s.q7, {
+					"data-slot": "dropdown-menu-item",
+					"data-inset": t,
+					"data-variant": a,
+					className: (0, r.cn)(
+						"focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+						e
+					),
+					...i,
+				});
+			}
+			function c({ className: e, inset: t, ...a }) {
+				return (0, n.jsx)(s.JU, {
+					"data-slot": "dropdown-menu-label",
+					"data-inset": t,
+					className: (0, r.cn)("px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", e),
+					...a,
+				});
+			}
+			function u({ className: e, ...t }) {
+				return (0, n.jsx)(s.wv, {
+					"data-slot": "dropdown-menu-separator",
+					className: (0, r.cn)("bg-border -mx-1 my-1 h-px", e),
+					...t,
+				});
+			}
+		},
+		49580: (e, t, a) => {
+			a.d(t, { e: () => d });
+			var n = a(95155),
+				s = a(12115),
+				r = a(81262),
+				i = a(5240),
+				l = a(4474),
+				o = a(43447);
+			function d({
+				doctype: e,
+				docName: t,
+				noLetterhead: a = 0,
+				triggerPrint: c = 0,
+				className: u,
+				variant: m = "default",
+			}) {
+				let [h, x] = (0, s.useState)(null),
+					[p, f] = (0, s.useState)(!1),
+					[v, y] = (0, s.useState)(!1);
+				(0, s.useEffect)(() => {
+					if (!e) return void x(["Standard"]);
+					let t = !1;
+					return (
+						(0, i.Iy)(e)
+							.then((e) => {
+								t || x(e.length ? e : ["Standard"]);
+							})
+							.catch(() => {
+								t || x(["Standard"]);
+							}),
+						() => {
+							t = !0;
+						}
+					);
+				}, [e]);
+				let g = (n) => {
+						e &&
+							t &&
+							(function (e, t, a = "Standard", n) {
+								let s = new URLSearchParams();
+								s.set("doctype", e),
+									s.set("name", t),
+									s.set("format", a),
+									s.set("trigger_print", String(n?.triggerPrint ?? 0)),
+									s.set("no_letterhead", String(n?.noLetterhead ?? 0));
+								let r = window.location.origin;
+								window.open(
+									`${r}/printview?${s.toString()}`,
+									"_blank",
+									"noopener,noreferrer"
+								);
+							})(e, t, n, { noLetterhead: a, triggerPrint: c });
+					},
+					b = async (a) => {
+						if ((a.stopPropagation(), a.preventDefault(), !v && e && t)) {
+							y(!0);
+							try {
+								let t = h;
+								if (!t) {
+									let a = await (0, i.Iy)(e);
+									(t = a.length ? a : ["Standard"]), x(t);
+								}
+								if (t.length <= 1) return void g(t[0] || "Standard");
+								f(!0);
+							} catch {
+								g("Standard");
+							} finally {
+								y(!1);
+							}
+						}
+					},
+					_ = "icon" === m,
+					j = {
+						type: "button",
+						variant: _ ? "ghost" : "outline",
+						size: _ ? "icon" : "sm",
+						className: u,
+						"aria-label": "Print",
+						title: "Print",
+						disabled: v,
+					};
+				return h && h.length > 1
+					? (0, n.jsxs)(o.rI, {
+							open: p,
+							onOpenChange: f,
+							children: [
+								(0, n.jsx)(o.ty, {
+									asChild: !0,
+									children: (0, n.jsxs)(l.$, {
+										...j,
+										onClick: (e) => e.stopPropagation(),
+										children: [
+											(0, n.jsx)(r.A, {
+												className: _ ? "h-4 w-4" : "h-4 w-4 mr-2",
+											}),
+											!_ && "Print",
+										],
+									}),
+								}),
+								(0, n.jsxs)(o.SQ, {
+									align: "end",
+									side: "bottom",
+									sideOffset: 4,
+									collisionPadding: 8,
+									className: "min-w-[180px] z-[9999]",
+									onClick: (e) => e.stopPropagation(),
+									children: [
+										(0, n.jsx)(o.lp, {
+											className: "text-xs font-medium text-muted-foreground",
+											children: "Print format",
+										}),
+										(0, n.jsx)(o.mB, {}),
+										h.map((e) =>
+											(0, n.jsx)(
+												o._2,
+												{
+													onSelect: () => {
+														g(e), f(!1);
+													},
+													children: e,
+												},
+												e
+											)
+										),
+									],
+								}),
+							],
+					  })
+					: (0, n.jsxs)(l.$, {
+							...j,
+							onClick: b,
+							children: [
+								(0, n.jsx)(r.A, { className: _ ? "h-4 w-4" : "h-4 w-4 mr-2" }),
+								!_ && "Print",
+							],
+					  });
+			}
+		},
+		64705: (e, t, a) => {
+			a.d(t, { U: () => m, y: () => h });
+			var n = a(95155),
+				s = a(44855),
+				r = a(6296),
+				i = a(71275),
+				l = a(84437),
+				o = a(79792),
+				d = a(91337),
+				c = a(94411);
+			function u(e, t) {
+				let a = Number(e || 0);
+				try {
+					return new Intl.NumberFormat("en-US", {
+						style: "currency",
+						currency: t || "ETB",
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					}).format(a);
+				} catch {
+					return `${a.toFixed(2)} ${t || ""}`.trim();
+				}
+			}
+			function m(e) {
+				let t = e.currency || void 0;
+				return e.allocated_total <= 0
+					? "No advances were available to apply."
+					: `Advances ${u(e.allocated_total, t)} applied \xb7 balance ${u(
+							e.outstanding_after,
+							t
+					  )} (was ${u(e.outstanding_before, t)})`;
+			}
+			function h({
+				customer: e,
+				company: t,
+				currency: a,
+				enabled: m = !0,
+				checked: x,
+				onCheckedChange: p,
+				willSubmit: f,
+				id: v,
+				className: y,
+			}) {
+				let { data: g, isLoading: b } = (0, s.Ay)(
+					m && e ? ["customer-advances", e, t || ""] : null,
+					() => c.kT(e, t || void 0)
+				);
+				if (!e) return null;
+				let _ = g?.advances || [],
+					j = g?.total_available || 0,
+					N = g?.advances?.[0]?.currency || a;
+				return b && !g
+					? (0, n.jsxs)("p", {
+							className: "flex items-center gap-2 text-xs text-muted-foreground",
+							children: [
+								(0, n.jsx)(r.A, { className: "h-3.5 w-3.5 animate-spin" }),
+								"Checking open advances…",
+							],
+					  })
+					: _.length
+					? (0, n.jsxs)("div", {
+							className: (0, d.cn)(
+								"space-y-2 rounded-md border bg-muted/30 p-3 text-sm",
+								y
+							),
+							children: [
+								(0, n.jsxs)("div", {
+									className: "flex items-center justify-between gap-3",
+									children: [
+										(0, n.jsxs)("span", {
+											className:
+												"flex items-center gap-1.5 text-muted-foreground",
+											children: [
+												(0, n.jsx)(i.A, { className: "h-4 w-4" }),
+												"Advance available",
+											],
+										}),
+										(0, n.jsx)("span", {
+											className: "font-medium tabular-nums",
+											children: u(j, N),
+										}),
+									],
+								}),
+								(0, n.jsxs)("ul", {
+									className: "space-y-1 text-xs text-muted-foreground",
+									children: [
+										_.slice(0, 4).map((e) =>
+											(0, n.jsxs)(
+												"li",
+												{
+													className:
+														"flex items-center justify-between gap-3",
+													children: [
+														(0, n.jsx)("span", {
+															className: "truncate",
+															children: [
+																e.name,
+																e.posting_date,
+																e.mode_of_payment,
+															]
+																.filter(Boolean)
+																.join(" \xb7 "),
+														}),
+														(0, n.jsx)("span", {
+															className:
+																"whitespace-nowrap tabular-nums",
+															children: u(
+																e.unallocated_amount,
+																e.currency || N
+															),
+														}),
+													],
+												},
+												e.name
+											)
+										),
+										_.length > 4
+											? (0, n.jsxs)("li", {
+													className: "italic",
+													children: [
+														"+",
+														_.length - 4,
+														" more advance(s)",
+													],
+											  })
+											: null,
+									],
+								}),
+								(0, n.jsxs)("div", {
+									className: "flex items-start gap-2 border-t pt-2",
+									children: [
+										(0, n.jsx)(l.S, {
+											id: v,
+											checked: x,
+											disabled: !f,
+											onCheckedChange: (e) => p(!0 === e),
+											className: "mt-0.5",
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-0.5",
+											children: [
+												(0, n.jsx)(o.J, {
+													htmlFor: v,
+													className:
+														"cursor-pointer font-normal disabled:cursor-not-allowed",
+													children:
+														"Apply this advance to the invoice now",
+												}),
+												(0, n.jsx)("p", {
+													className: "text-xs text-muted-foreground",
+													children: f
+														? "Reconciles the receipt(s) against the new invoice right after creation and shows the balance left to collect."
+														: "Tick “Submit invoice” above — ERPNext only settles advances against a submitted invoice.",
+												}),
+											],
+										}),
+									],
+								}),
+							],
+					  })
+					: (0, n.jsx)("p", {
+							className: "text-xs text-muted-foreground",
+							children: "No open advance (downpayment) for this customer.",
+					  });
+			}
+		},
+		65816: (e, t, a) => {
+			a.d(t, {
+				Fi: () => l,
+				NU: () => u,
+				PT: () => d,
+				Xs: () => i,
+				Yh: () => o,
+				_I: () => x,
+				m3: () => p,
+				rG: () => c,
+				wJ: () => m,
+				yL: () => h,
+				yV: () => r,
+			});
+			var n = a(49876);
+			let s = "dms.api.orders";
+			async function r(e) {
+				return (0, n.AT)(`/api/method/${s}.list_dms_orders`, {
+					method: "POST",
+					body: JSON.stringify({
+						search: e?.search || null,
+						status: e?.status || null,
+						customer: e?.customer || null,
+						from_date: e?.from_date || null,
+						to_date: e?.to_date || null,
+						limit: e?.limit ?? 50,
+						offset: e?.offset ?? 0,
+					}),
+				});
+			}
+			async function i(e) {
+				return (0, n.AT)(`/api/method/${s}.get_dms_order`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function l(e) {
+				return (0, n.AT)(`/api/method/${s}.create_dms_order`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function o(e) {
+				return (0, n.AT)(`/api/method/${s}.update_dms_order`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function d(e) {
+				return (0, n.AT)(`/api/method/${s}.submit_dms_order`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function c(e) {
+				return (0, n.AT)(`/api/method/${s}.cancel_dms_order`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function u(e) {
+				return (0, n.AT)(`/api/method/${s}.delete_draft_dms_order`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function m(e) {
+				return (0, n.AT)(`/api/method/${s}.amend_dms_order`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function h(e, t) {
+				return (0, n.AT)(`/api/method/${s}.record_dms_order_payment`, {
+					method: "POST",
+					body: JSON.stringify({ name: e, data: t }),
+				});
+			}
+			async function x(e, t) {
+				return (0, n.AT)(`/api/method/${s}.create_dms_order_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ name: e, data: t || {} }),
+				});
+			}
+			async function p(e) {
+				return (0, n.AT)(`/api/method/${s}.get_order_tax_preview`, {
+					method: "POST",
+					body: JSON.stringify({
+						data: {
+							customer: e.customer || null,
+							company: e.company || null,
+							warehouse: e.warehouse || null,
+							currency: e.currency || null,
+							transaction_date: e.transaction_date || null,
+							delivery_date: e.delivery_date || null,
+							apply_taxes: +!!e.apply_taxes,
+							apply_tax_withholding: +!!e.apply_tax_withholding,
+							parts: e.parts?.length ? e.parts : null,
+							labour: e.labour?.length ? e.labour : null,
+							labour_discount: e.labour_discount || null,
+							parts_discount: e.parts_discount || null,
+						},
+					}),
+				});
+			}
+		},
+		79984: (e, t, a) => {
+			a.d(t, { BT: () => o, Wu: () => d, ZB: () => l, Zp: () => r, aR: () => i });
+			var n = a(95155);
+			a(12115);
+			var s = a(91337);
+			function r({ className: e, ...t }) {
+				return (0, n.jsx)("div", {
+					"data-slot": "card",
+					className: (0, s.cn)(
+						"bg-card text-card-foreground flex flex-col gap-2 rounded-[1.15rem] border py-3 shadow-[0_4px_20px_rgba(15,61,94,0.05)]",
+						e
+					),
+					...t,
+				});
+			}
+			function i({ className: e, ...t }) {
+				return (0, n.jsx)("div", {
+					"data-slot": "card-header",
+					className: (0, s.cn)(
+						"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-3",
+						e
+					),
+					...t,
+				});
+			}
+			function l({ className: e, ...t }) {
+				return (0, n.jsx)("div", {
+					"data-slot": "card-title",
+					className: (0, s.cn)(
+						"leading-none font-serif-display font-semibold tracking-tight",
+						e
+					),
+					...t,
+				});
+			}
+			function o({ className: e, ...t }) {
+				return (0, n.jsx)("div", {
+					"data-slot": "card-description",
+					className: (0, s.cn)("text-muted-foreground text-sm", e),
+					...t,
+				});
+			}
+			function d({ className: e, ...t }) {
+				return (0, n.jsx)("div", {
+					"data-slot": "card-content",
+					className: (0, s.cn)("px-4", e),
+					...t,
+				});
+			}
+		},
+		83786: (e, t, a) => {
+			a.d(t, {
+				A0: () => i,
+				BF: () => l,
+				Hj: () => o,
+				XI: () => r,
+				nA: () => c,
+				nd: () => d,
+			});
+			var n = a(95155);
+			a(12115);
+			var s = a(91337);
+			function r({ className: e, ...t }) {
+				return (0, n.jsx)("div", {
+					"data-slot": "table-container",
+					className: "relative w-full overflow-x-auto",
+					children: (0, n.jsx)("table", {
+						"data-slot": "table",
+						className: (0, s.cn)("w-full caption-bottom text-sm", e),
+						...t,
+					}),
+				});
+			}
+			function i({ className: e, ...t }) {
+				return (0, n.jsx)("thead", {
+					"data-slot": "table-header",
+					className: (0, s.cn)("[&_tr]:border-b", e),
+					...t,
+				});
+			}
+			function l({ className: e, ...t }) {
+				return (0, n.jsx)("tbody", {
+					"data-slot": "table-body",
+					className: (0, s.cn)("[&_tr:last-child]:border-0", e),
+					...t,
+				});
+			}
+			function o({ className: e, ...t }) {
+				return (0, n.jsx)("tr", {
+					"data-slot": "table-row",
+					className: (0, s.cn)(
+						"hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
+						e
+					),
+					...t,
+				});
+			}
+			function d({ className: e, ...t }) {
+				return (0, n.jsx)("th", {
+					"data-slot": "table-head",
+					className: (0, s.cn)(
+						"text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+						e
+					),
+					...t,
+				});
+			}
+			function c({ className: e, ...t }) {
+				return (0, n.jsx)("td", {
+					"data-slot": "table-cell",
+					className: (0, s.cn)(
+						"p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+						e
+					),
+					...t,
+				});
+			}
+		},
+		84437: (e, t, a) => {
+			a.d(t, { S: () => l });
+			var n = a(95155);
+			a(12115);
+			var s = a(47279),
+				r = a(94514),
+				i = a(91337);
+			function l({ className: e, ...t }) {
+				return (0, n.jsx)(s.bL, {
+					"data-slot": "checkbox",
+					className: (0, i.cn)(
+						"peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+						e
+					),
+					...t,
+					children: (0, n.jsx)(s.C1, {
+						"data-slot": "checkbox-indicator",
+						className: "flex items-center justify-center text-current transition-none",
+						children: (0, n.jsx)(r.A, { className: "size-3.5" }),
+					}),
+				});
+			}
+		},
+		93408: (e, t, a) => {
+			a.d(t, { m: () => r });
+			var n = a(95155),
+				s = a(49580);
+			function r({ children: e, doctype: t, docName: a, showPrint: i = !0 }) {
+				return (0, n.jsxs)("div", {
+					className: "flex items-center justify-end gap-0.5",
+					onClick: (e) => e.stopPropagation(),
+					children: [
+						e,
+						i ? (0, n.jsx)(s.e, { variant: "icon", doctype: t, docName: a }) : null,
+					],
+				});
+			}
+		},
+		94411: (e, t, a) => {
+			a.d(t, {
+				$X: () => x,
+				BP: () => u,
+				DJ: () => h,
+				Jz: () => r,
+				PJ: () => d,
+				R0: () => l,
+				WU: () => i,
+				bB: () => f,
+				eI: () => p,
+				kT: () => o,
+				wk: () => c,
+			});
+			var n = a(49876);
+			let s = "dms.api.payment_entries";
+			async function r(e) {
+				return (0, n.AT)(`/api/method/${s}.get_payment_entries`, {
+					method: "POST",
+					body: JSON.stringify({
+						status: e?.status || null,
+						search: e?.search || null,
+						party: e?.party || null,
+						advance_only: +!!e?.advance_only,
+						limit: e?.limit || 30,
+						offset: e?.offset || 0,
+						include_total: 1,
+						posting_from: e?.posting_from || null,
+						posting_to: e?.posting_to || null,
+					}),
+				});
+			}
+			async function i(e) {
+				return (0, n.AT)(`/api/method/${s}.get_payment_entry_detail`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function l(e) {
+				return (0, n.AT)(`/api/method/${s}.create_advance_payment`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function o(e, t) {
+				return (0, n.AT)(`/api/method/${s}.get_customer_advances`, {
+					method: "POST",
+					body: JSON.stringify({ customer: e, company: t || null }),
+				});
+			}
+			async function d(e) {
+				return (0, n.AT)(`/api/method/${s}.cancel_payment_entry`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function c(e, t = !0) {
+				return (0, n.AT)(`/api/method/${s}.amend_payment_entry`, {
+					method: "POST",
+					body: JSON.stringify({ name: e, submit: +!!t }),
+				});
+			}
+			async function u(e) {
+				return (0, n.AT)(`/api/method/${s}.delete_draft_payment_entry`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			let m = "dms.api.reconciliation";
+			async function h(e, t) {
+				return (0, n.AT)(`/api/method/${m}.get_reconciliation_overview`, {
+					method: "POST",
+					body: JSON.stringify({ customer: e, company: t || null }),
+				});
+			}
+			async function x(e, t, a, s) {
+				return (0, n.AT)(`/api/method/${m}.preview_allocation`, {
+					method: "POST",
+					body: JSON.stringify({
+						customer: e,
+						company: t,
+						invoice_keys: a,
+						payment_keys: s,
+					}),
+				});
+			}
+			async function p(e, t, a, s) {
+				return (0, n.AT)(`/api/method/${m}.reconcile_payments`, {
+					method: "POST",
+					body: JSON.stringify({
+						customer: e,
+						company: t,
+						invoice_keys: a,
+						payment_keys: s,
+					}),
+				});
+			}
+			async function f(e, t, a) {
+				return (0, n.AT)(`/api/method/${m}.reconcile_invoice_advances`, {
+					method: "POST",
+					body: JSON.stringify({
+						sales_invoice: e,
+						company: t || null,
+						payment_keys: a?.length ? a : null,
+					}),
+				});
+			}
+		},
+	},
+]);

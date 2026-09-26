@@ -39,9 +39,13 @@ frappe.ui.form.on("DMS CRM Opportunity", {
 		if (frm.is_new()) return;
 
 		const can_quote =
-			["Won", "Booking / Deposit", "Order Confirmed", "Quotation Submitted", "Negotiation"].includes(
-				frm.doc.stage,
-			) || frm.doc.status === "Won";
+			[
+				"Won",
+				"Booking / Deposit",
+				"Order Confirmed",
+				"Quotation Submitted",
+				"Negotiation",
+			].includes(frm.doc.stage) || frm.doc.status === "Won";
 
 		if (can_quote) {
 			frm.add_custom_button(__("Create Quotation"), () => {
@@ -71,11 +75,13 @@ frappe.ui.form.on("DMS CRM Opportunity", {
 			frm.set_value("branch", "");
 		}
 		if (frm.doc.company && !frm.doc.currency) {
-			frappe.db.get_value("Company", frm.doc.company, "default_currency").then(({ message }) => {
-				if (message?.default_currency) {
-					frm.set_value("currency", message.default_currency);
-				}
-			});
+			frappe.db
+				.get_value("Company", frm.doc.company, "default_currency")
+				.then(({ message }) => {
+					if (message?.default_currency) {
+						frm.set_value("currency", message.default_currency);
+					}
+				});
 		}
 	},
 
@@ -92,11 +98,10 @@ frappe.ui.form.on("DMS CRM Opportunity", {
 
 	async model(frm) {
 		if (!frm.doc.model) return;
-		const { message } = await frappe.db.get_value(
-			"Vehicle Model",
-			frm.doc.model,
-			["brand", "variant"],
-		);
+		const { message } = await frappe.db.get_value("Vehicle Model", frm.doc.model, [
+			"brand",
+			"variant",
+		]);
 		if (!message) return;
 		if (message.brand && !frm.doc.brand) {
 			frm.set_value("brand", message.brand);
@@ -133,11 +138,11 @@ frappe.ui.form.on("DMS CRM Opportunity Item", {
 		const row = frappe.get_doc(cdt, cdn);
 		if (!row.item_code) return;
 
-		const { message } = await frappe.db.get_value(
-			"Item",
-			row.item_code,
-			["item_name", "stock_uom", "standard_rate"],
-		);
+		const { message } = await frappe.db.get_value("Item", row.item_code, [
+			"item_name",
+			"stock_uom",
+			"standard_rate",
+		]);
 		if (!message) return;
 
 		await frappe.model.set_value(cdt, cdn, {

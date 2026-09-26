@@ -8,7 +8,6 @@ from frappe import _
 
 from dms.crm_api.common import ensure_crm_read, paginate
 
-
 GATE = "DMS CRM Lead"
 
 
@@ -45,7 +44,16 @@ def get_contacts(search=None, limit=50, offset=0):
 			["name", "like", f"%{search}%"],
 		]
 
-	fields = ["name", "first_name", "last_name", "email_id", "mobile_no", "company_name", "status", "modified"]
+	fields = [
+		"name",
+		"first_name",
+		"last_name",
+		"email_id",
+		"mobile_no",
+		"company_name",
+		"status",
+		"modified",
+	]
 	meta = frappe.get_meta("Contact")
 	fields = [f for f in fields if meta.has_field(f) or f == "name"]
 

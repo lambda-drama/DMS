@@ -181,9 +181,7 @@ def get_calendar_events(
 		for r in rows:
 			customer_name = None
 			if r.get("customer"):
-				customer_name = (
-					frappe.db.get_value("Customer", r.customer, "customer_name") or r.customer
-				)
+				customer_name = frappe.db.get_value("Customer", r.customer, "customer_name") or r.customer
 			events.append(
 				{
 					"id": r.name,
@@ -231,9 +229,7 @@ def get_calendar_events(
 		for r in rows:
 			customer_name = None
 			if r.get("customer"):
-				customer_name = (
-					frappe.db.get_value("Customer", r.customer, "customer_name") or r.customer
-				)
+				customer_name = frappe.db.get_value("Customer", r.customer, "customer_name") or r.customer
 			title = customer_name or r.opportunity or r.name
 			if r.vehicle_vin:
 				title = f"{title} · {r.vehicle_vin}"

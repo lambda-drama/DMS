@@ -80,9 +80,7 @@ class DMSCRMLoyaltyAdjustment(Document):
 		company = frappe.db.get_value("Loyalty Program", program, "company") or (
 			frappe.defaults.get_user_default("Company")
 		)
-		expiry_days = cint(
-			frappe.db.get_value("Loyalty Program", program, "expiry_duration") or 365
-		)
+		expiry_days = cint(frappe.db.get_value("Loyalty Program", program, "expiry_duration") or 365)
 		tier = frappe.db.get_value("Customer", self.customer, "loyalty_program_tier")
 
 		entry = frappe.get_doc(

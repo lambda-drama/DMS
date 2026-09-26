@@ -33,10 +33,7 @@ REPORT_SECTION_FIELDNAMES = tuple(REPORT_SECTION_FIELDS.values())
 
 
 def _settings_ready() -> bool:
-	return bool(
-		frappe.db.exists("DocType", SETTINGS_DOCTYPE)
-		and frappe.db.exists("DocType", DETAIL_DOCTYPE)
-	)
+	return bool(frappe.db.exists("DocType", SETTINGS_DOCTYPE) and frappe.db.exists("DocType", DETAIL_DOCTYPE))
 
 
 def _detail_meta_fieldnames() -> set[str]:
@@ -282,7 +279,9 @@ def can_view_staff_audit(user: str | None = None) -> bool:
 def require_staff_audit_access(user: str | None = None):
 	if not can_view_staff_audit(user):
 		frappe.throw(
-			_("Only System Manager, Dealer Manager, or users listed in DMS CRM User Settings may view Staff Audit."),
+			_(
+				"Only System Manager, Dealer Manager, or users listed in DMS CRM User Settings may view Staff Audit."
+			),
 			frappe.PermissionError,
 		)
 

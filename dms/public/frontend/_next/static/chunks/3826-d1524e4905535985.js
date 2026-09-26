@@ -1,1 +1,1208 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[3826],{23826:(e,s,r)=>{r.r(s),r.d(s,{default:()=>G});var t=r(95155),l=r(12115),o=r(44855),a=r(66609),n=r(51914),i=r(33210),c=r(6296),d=r(68459),m=r(439),u=r(9199),h=r(4474),p=r(79984),x=r(84437),f=r(39658),y=r(79792),j=r(74350),g=r(10086),v=r(45328),N=r(49876);let S="dms.api.advanced_permissions";async function b(){return(0,N.AT)(`/api/method/${S}.get_advanced_permission_bootstrap`,{method:"POST",body:JSON.stringify({})})}async function C(e,s=1){return(0,N.AT)(`/api/method/${S}.create_role`,{method:"POST",body:JSON.stringify({role_name:e,desk_access:s})})}async function R(e){return(0,N.AT)(`/api/method/${S}.create_role_profile`,{method:"POST",body:JSON.stringify({data:e})})}async function w(e){return(0,N.AT)(`/api/method/${S}.get_role_profile`,{method:"POST",body:JSON.stringify({name:e})})}async function M(e,s){return(0,N.AT)(`/api/method/${S}.remove_role_from_profile`,{method:"POST",body:JSON.stringify({role_profile:e,role:s})})}async function _(e,s){return(0,N.AT)(`/api/method/${S}.add_role_to_profile`,{method:"POST",body:JSON.stringify({role_profile:e,role:s})})}async function A(e,s){return(0,N.AT)(`/api/method/${S}.get_role_permissions`,{method:"POST",body:JSON.stringify({doctype:e||"",role:s||""})})}async function P(e,s,r=0){return(0,N.AT)(`/api/method/${S}.add_role_permission`,{method:"POST",body:JSON.stringify({doctype:e,role:s,permlevel:r})})}async function T(e){return(0,N.AT)(`/api/method/${S}.update_role_permission`,{method:"POST",body:JSON.stringify(e)})}async function O(e,s,r,t=0){return(0,N.AT)(`/api/method/${S}.remove_role_permission`,{method:"POST",body:JSON.stringify({doctype:e,role:s,permlevel:r,if_owner:t})})}async function $(e){return(0,N.AT)(`/api/method/${S}.reset_role_permissions`,{method:"POST",body:JSON.stringify({doctype:e})})}async function k(e){return(0,N.AT)(`/api/method/${S}.get_user_roles`,{method:"POST",body:JSON.stringify({user:e})})}async function D(e){return(0,N.AT)(`/api/method/${S}.save_user_roles`,{method:"POST",body:JSON.stringify({data:e})})}let E={select:"Select",read:"Read",write:"Write",create:"Create",delete:"Delete",submit:"Submit",cancel:"Cancel",amend:"Amend",print:"Print",email:"Email",report:"Report",import:"Import",export:"Export",share:"Share",if_owner:"If Owner"},U=["select","read","write","create","delete","submit","cancel","amend","print","email","report","import","export","share","if_owner"];function J({label:e,hint:s,options:r,value:l,onChange:o,placeholder:a,onCreate:c,createLabel:d,allowAdd:m=!0,allowRemove:u=!0,onChipClick:p}){let x=m?r.filter(e=>!l.includes(e)):[];return(0,t.jsxs)("div",{className:"space-y-2",children:[(0,t.jsxs)("div",{className:"flex items-center justify-between gap-2",children:[(0,t.jsx)(y.J,{children:e}),c?(0,t.jsxs)(h.$,{type:"button",variant:"outline",size:"sm",className:"h-7",onClick:c,children:[(0,t.jsx)(n.A,{className:"mr-1 h-3.5 w-3.5"}),d||"New"]}):null]}),s?(0,t.jsx)("p",{className:"text-xs text-muted-foreground",children:s}):null,(0,t.jsx)("div",{className:"flex min-h-10 flex-wrap gap-1.5 rounded-xl border bg-background px-2 py-2",children:0===l.length?(0,t.jsx)("span",{className:"px-1 text-xs text-muted-foreground",children:a}):l.map(e=>(0,t.jsxs)("span",{className:`inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs ${p?"cursor-pointer hover:bg-muted":""}`,onClick:()=>p?.(e),children:[e,u?(0,t.jsx)("button",{type:"button",className:"text-muted-foreground hover:text-foreground",onClick:s=>{s.stopPropagation(),o(l.filter(s=>s!==e))},"aria-label":`Remove ${e}`,children:(0,t.jsx)(i.A,{className:"h-3 w-3"})}):null]},e))}),x.length>0?(0,t.jsx)(g.Zi,{options:x.map(e=>({value:e,label:e})),value:"",onValueChange:e=>{e&&!l.includes(e)&&o([...l,e])},placeholder:`Add ${e.toLowerCase()}…`}):null]})}function F({open:e,onOpenChange:s,onCreated:r}){let[o,n]=(0,l.useState)(""),[i,d]=(0,l.useState)(!0),[m,u]=(0,l.useState)(!1);async function p(){let e=o.trim();if(!e)return void a.o.error("Role name is required");u(!0);try{let t=await C(e,+!!i);r(t.name,t.selected_roles||[]),s(!1)}catch(e){a.o.error(e instanceof Error?e.message:"Failed to create role")}finally{u(!1)}}return(0,l.useEffect)(()=>{e&&(n(""),d(!0))},[e]),(0,t.jsx)(j.lG,{open:e,onOpenChange:s,children:(0,t.jsxs)(j.Cf,{className:"sm:max-w-md",children:[(0,t.jsxs)(j.c7,{children:[(0,t.jsx)(j.L3,{children:"New Role"}),(0,t.jsx)(j.rr,{children:"Creates a Frappe Role and adds it to the list used on this screen."})]}),(0,t.jsxs)("div",{className:"space-y-3 py-2",children:[(0,t.jsxs)("div",{className:"space-y-1",children:[(0,t.jsx)(y.J,{children:"Role name"}),(0,t.jsx)(f.p,{value:o,onChange:e=>n(e.target.value),placeholder:"e.g. Service Advisor",autoFocus:!0})]}),(0,t.jsxs)("label",{className:"flex items-center gap-2 text-sm",children:[(0,t.jsx)(x.S,{checked:i,onCheckedChange:e=>d(!!e)}),"Desk access"]})]}),(0,t.jsxs)(j.Es,{children:[(0,t.jsx)(h.$,{type:"button",variant:"outline",onClick:()=>s(!1),children:"Cancel"}),(0,t.jsxs)(h.$,{type:"button",disabled:m,onClick:()=>void p(),children:[m?(0,t.jsx)(c.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Create Role"]})]})]})})}function Z({open:e,onOpenChange:s,roleOptions:r,onCreated:o}){let[n,i]=(0,l.useState)(""),[d,m]=(0,l.useState)([]),[u,p]=(0,l.useState)(!1);async function x(){let e=n.trim();if(!e)return void a.o.error("Role Profile name is required");p(!0);try{let r=await R({role_profile:e,roles:d});o(r.name,r.selected_role_profiles||[]),s(!1)}catch(e){a.o.error(e instanceof Error?e.message:"Failed to create role profile")}finally{p(!1)}}return(0,l.useEffect)(()=>{e&&(i(""),m([]))},[e]),(0,t.jsx)(j.lG,{open:e,onOpenChange:s,children:(0,t.jsxs)(j.Cf,{className:"sm:max-w-md",children:[(0,t.jsxs)(j.c7,{children:[(0,t.jsx)(j.L3,{children:"New Role Profile"}),(0,t.jsx)(j.rr,{children:"Creates a Role Profile you can assign to users. The role list is the same Roles Table MultiSelect on DMS CRM User Settings."})]}),(0,t.jsxs)("div",{className:"space-y-3 py-2",children:[(0,t.jsxs)("div",{className:"space-y-1",children:[(0,t.jsx)(y.J,{children:"Profile name"}),(0,t.jsx)(f.p,{value:n,onChange:e=>i(e.target.value),placeholder:"e.g. Aftersales Staff",autoFocus:!0})]}),(0,t.jsx)(J,{label:"Roles in this profile",hint:"Only roles already on DMS CRM User Settings → Roles.",options:r,value:d,onChange:m,placeholder:r.length?"Add roles from DMS CRM User Settings…":"No roles on DMS CRM User Settings yet — create or select roles first"})]}),(0,t.jsxs)(j.Es,{children:[(0,t.jsx)(h.$,{type:"button",variant:"outline",onClick:()=>s(!1),children:"Cancel"}),(0,t.jsxs)(h.$,{type:"button",disabled:u,onClick:()=>void x(),children:[u?(0,t.jsx)(c.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Create Role Profile"]})]})]})})}function L({profile:e,roleOptions:s,onOpenChange:r}){let[o,i]=(0,l.useState)([]),[m,u]=(0,l.useState)(!1),[p,x]=(0,l.useState)(null),[f,v]=(0,l.useState)(!1),[N,S]=(0,l.useState)(!1),b=s.filter(e=>!o.includes(e));async function C(s){if(e&&s){v(!0);try{let r=await _(e,s);i(r.roles||[]),a.o.success(`Added ${s}`)}catch(e){a.o.error(e instanceof Error?e.message:"Failed to add role")}finally{v(!1)}}}async function R(s){if(e){x(s);try{let r=await M(e,s);i(r.roles||[]),a.o.success(`Removed ${s}`)}catch(e){a.o.error(e instanceof Error?e.message:"Failed to remove role")}finally{x(null)}}}return(0,l.useEffect)(()=>{if(!e){i([]),S(!1);return}S(!1),u(!0),w(e).then(e=>i(e.roles||[])).catch(e=>a.o.error(e instanceof Error?e.message:"Failed to load role profile")).finally(()=>u(!1))},[e]),(0,t.jsx)(j.lG,{open:!!e,onOpenChange:r,children:(0,t.jsxs)(j.Cf,{className:"overflow-visible sm:max-w-md",children:[(0,t.jsxs)(j.c7,{children:[(0,t.jsx)(j.L3,{children:e||"Role Profile"}),(0,t.jsx)(j.rr,{children:"Roles in this profile. Adding or removing a role here updates the Role Profile; it does not assign the profile to any user."})]}),(0,t.jsxs)("div",{className:"min-h-24 space-y-3 py-2",children:[(0,t.jsxs)("div",{className:"flex items-center justify-between gap-2",children:[(0,t.jsx)(y.J,{children:"Roles"}),(0,t.jsxs)(h.$,{type:"button",variant:"outline",size:"sm",className:"h-7",disabled:m||f||0===b.length,onClick:()=>S(e=>!e),children:[(0,t.jsx)(n.A,{className:"mr-1 h-3.5 w-3.5"}),"Add"]})]}),N&&b.length>0?(0,t.jsx)(g.Zi,{options:b.map(e=>({value:e,label:e})),value:"",onValueChange:e=>{e&&C(e)},placeholder:"Choose a role…",emptyMessage:"No more roles on DMS CRM User Settings",disabled:f}):null,m?(0,t.jsx)("div",{className:"flex justify-center py-6",children:(0,t.jsx)(c.A,{className:"h-5 w-5 animate-spin text-muted-foreground"})}):0===o.length?(0,t.jsxs)("p",{className:"text-sm text-muted-foreground",children:["No roles in this profile.",b.length?" Use Add to choose roles.":""]}):(0,t.jsx)("ul",{className:"max-h-64 space-y-1.5 overflow-y-auto",children:o.map(e=>(0,t.jsxs)("li",{className:"flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm",children:[(0,t.jsx)("span",{children:e}),(0,t.jsxs)(h.$,{type:"button",variant:"ghost",size:"sm",className:"h-7 text-destructive hover:text-destructive",disabled:p===e||f,onClick:()=>void R(e),children:[p===e?(0,t.jsx)(c.A,{className:"h-3.5 w-3.5 animate-spin"}):(0,t.jsx)(d.A,{className:"h-3.5 w-3.5"}),"Remove"]})]},e))}),!m&&0===b.length&&s.length>0?(0,t.jsx)("p",{className:"text-xs text-muted-foreground",children:"All roles from DMS CRM User Settings are already in this profile."}):null,m||0!==s.length?null:(0,t.jsx)("p",{className:"text-xs text-muted-foreground",children:"No roles on DMS CRM User Settings yet — create or select roles first."})]}),(0,t.jsx)(j.Es,{children:(0,t.jsx)(h.$,{type:"button",variant:"outline",onClick:()=>r(!1),children:"Close"})})]})})}function B(){let{data:e,isLoading:s,mutate:r}=(0,o.Ay)("advanced-perm-bootstrap",()=>b());return s?(0,t.jsx)("div",{className:"flex justify-center py-10",children:(0,t.jsx)(c.A,{className:"h-6 w-6 animate-spin text-muted-foreground"})}):e?.can_manage?(0,t.jsx)(V,{data:e,onRefresh:()=>void r()}):null}function V({data:e,onRefresh:s}){let r=e.selected_roles||[],o=e.selected_role_profiles||[],[n,i]=(0,l.useState)(!1),[c,d]=(0,l.useState)(!1),[u,h]=(0,l.useState)(null);return(0,t.jsxs)("div",{className:"space-y-4 border-t pt-8",children:[(0,t.jsxs)("div",{children:[(0,t.jsxs)("h2",{className:"flex items-center gap-2 text-lg font-semibold tracking-tight",children:[(0,t.jsx)(m.A,{className:"h-5 w-5"}),"Advanced Permission"]}),(0,t.jsx)("p",{className:"text-sm text-muted-foreground",children:"Role Permission Manager for DMS and CRM documents. Only Dealer Manager, System Manager, and Administrator can use this section."})]}),(0,t.jsxs)(p.Zp,{children:[(0,t.jsxs)(p.aR,{children:[(0,t.jsx)(p.ZB,{className:"text-base",children:"Roles & Role Profiles on this screen"}),(0,t.jsx)(p.BT,{children:"These lists come from DMS CRM User Settings. Roles are maintained from Desk. Role Profiles are created here (or on Desk) and stored on that same settings document. Click a Role Profile to see its roles and add more."})]}),(0,t.jsx)(p.Wu,{className:"space-y-4",children:(0,t.jsxs)("div",{className:"grid gap-4 md:grid-cols-2",children:[(0,t.jsx)(J,{label:"Roles",hint:"Only these roles appear in Role Permission Manager. Same list as Roles on DMS CRM User Settings. Add or remove roles from Desk.",options:r,value:r,onChange:()=>{},allowAdd:!1,allowRemove:!1,placeholder:"No roles on DMS CRM User Settings yet",onCreate:()=>i(!0),createLabel:"New Role"}),(0,t.jsx)(J,{label:"Role Profiles",hint:"Role Profiles work like ERPNext: applying a profile sets that user’s roles. Click a profile to view, add, or remove its roles.",options:o,value:o,onChange:()=>{},allowAdd:!1,allowRemove:!1,onChipClick:h,placeholder:"No role profiles on DMS CRM User Settings yet",onCreate:()=>d(!0),createLabel:"New Role Profile"})]})})]}),(0,t.jsx)(F,{open:n,onOpenChange:i,onCreated:()=>{a.o.success("Role created and added to DMS CRM User Settings"),s()}}),(0,t.jsx)(Z,{open:c,onOpenChange:d,roleOptions:[...r].sort(),onCreated:()=>{a.o.success("Role Profile created and added to DMS CRM User Settings"),s()}}),(0,t.jsx)(L,{profile:u,roleOptions:[...r].sort(),onOpenChange:e=>{e||h(null)}}),(0,t.jsx)(W,{users:e.whitelisted_users||[],roles:r,profiles:o}),(0,t.jsx)(z,{doctypes:e.doctypes||[],roles:r}),(0,t.jsx)(v.g,{embedded:!0})]})}function W({users:e,roles:s,profiles:r}){let[o,n]=(0,l.useState)(""),[i,d]=(0,l.useState)([]),[m,u]=(0,l.useState)([]),[x,f]=(0,l.useState)(!1),[j,v]=(0,l.useState)(!1),N=(0,l.useMemo)(()=>e.map(e=>({value:e.user,label:e.full_name||e.user})),[e]);async function S(){if(!o)return void a.o.error("Select a user");v(!0);try{let e=await D({user:o,roles:i,role_profiles:m});d(e.roles),u(e.role_profiles),a.o.success("User roles updated")}catch(e){a.o.error(e instanceof Error?e.message:"Failed to save user roles")}finally{v(!1)}}return(0,l.useEffect)(()=>{if(!o){d([]),u([]);return}f(!0),k(o).then(e=>{d(e.roles||[]),u(e.role_profiles||[])}).catch(e=>a.o.error(e instanceof Error?e.message:"Failed to load user roles")).finally(()=>f(!1))},[o]),(0,t.jsxs)(p.Zp,{children:[(0,t.jsxs)(p.aR,{children:[(0,t.jsx)(p.ZB,{className:"text-base",children:"Give users roles"}),(0,t.jsx)(p.BT,{children:"Assign Role Profiles (ERPNext style) or individual roles to a whitelisted DMS user. If a Role Profile is set, Frappe applies that profile’s roles."})]}),(0,t.jsxs)(p.Wu,{className:"space-y-4",children:[(0,t.jsxs)("div",{className:"space-y-2",children:[(0,t.jsx)(y.J,{children:"User"}),(0,t.jsx)(g.Zi,{options:N,value:o,onValueChange:n,placeholder:"Select whitelisted user…"})]}),x?(0,t.jsx)(c.A,{className:"h-5 w-5 animate-spin"}):o?(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(J,{label:"Role Profiles",options:r,value:m,onChange:u,placeholder:"No role profile"}),(0,t.jsx)(J,{label:"Roles",hint:m.length?"Role Profile is set — extra roles may be overwritten when the User is saved in Desk.":void 0,options:s,value:i,onChange:d,placeholder:"No extra roles"}),(0,t.jsxs)(h.$,{onClick:()=>void S(),disabled:j,children:[j?(0,t.jsx)(c.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Save user roles"]})]}):null]})]})}function z({doctypes:e,roles:s}){let[r,o]=(0,l.useState)(""),[i,m]=(0,l.useState)(""),[f,j]=(0,l.useState)([]),[v,N]=(0,l.useState)(!1),[S,b]=(0,l.useState)(!1),C=(0,l.useMemo)(()=>e.map(e=>({value:e.name,label:`${e.name} (${e.module})`})),[e]),R=(0,l.useMemo)(()=>s.map(e=>({value:e,label:e})),[s]);async function w(){if(!r&&!i)return void j([]);N(!0);try{let e=await A(r||void 0,i||void 0);j(e||[])}catch(e){a.o.error(e instanceof Error?e.message:"Failed to load permissions"),j([])}finally{N(!1)}}async function M(e,s,r){try{await T({doctype:e.parent,role:e.role,permlevel:e.permlevel||0,ptype:s,value:+!!r,if_owner:e.if_owner||0}),j(t=>t.map(t=>t.parent===e.parent&&t.role===e.role&&t.permlevel===e.permlevel?{...t,[s]:+!!r}:t))}catch(e){a.o.error(e instanceof Error?e.message:"Failed to update")}}async function _(){if(!r||!i)return void a.o.error("Select a Document Type and a Role");b(!0);try{await P(r,i,0),a.o.success("Permission rule added"),await w()}catch(e){a.o.error(e instanceof Error?e.message:"Failed to add")}finally{b(!1)}}async function k(e){try{await O(e.parent,e.role,e.permlevel||0,e.if_owner||0),a.o.success("Rule removed"),await w()}catch(e){a.o.error(e instanceof Error?e.message:"Failed to remove")}}async function D(){if(!r)return void a.o.error("Select a Document Type to reset");if(window.confirm(`Restore original permissions for ${r}?`))try{await $(r),a.o.success("Permissions reset"),await w()}catch(e){a.o.error(e instanceof Error?e.message:"Failed to reset")}}return(0,l.useEffect)(()=>{w()},[r,i]),(0,t.jsxs)(p.Zp,{children:[(0,t.jsxs)(p.aR,{children:[(0,t.jsx)(p.ZB,{className:"text-base",children:"Role Permission Manager"}),(0,t.jsx)(p.BT,{children:"Only DocTypes used in DMS and CRM are listed. Roles come only from the Roles Table MultiSelect on DMS CRM User Settings. Select a Document Type to see each of those roles and tick Read, Write, Create, and so on."})]}),(0,t.jsxs)(p.Wu,{className:"space-y-4",children:[(0,t.jsxs)("div",{className:"grid gap-3 md:grid-cols-2",children:[(0,t.jsxs)("div",{className:"space-y-2",children:[(0,t.jsx)(y.J,{children:"Document Type"}),(0,t.jsx)(g.Zi,{options:C,value:r,onValueChange:o,placeholder:"Select doctype…"})]}),(0,t.jsxs)("div",{className:"space-y-2",children:[(0,t.jsx)(y.J,{children:"Role"}),(0,t.jsx)(g.Zi,{options:R,value:i,onValueChange:m,placeholder:s.length?"All listed roles":"No CRM roles configured",emptyMessage:"No roles in DMS CRM User Settings"})]})]}),0===s.length?(0,t.jsx)("p",{className:"rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground",children:"Add roles on DMS CRM User Settings (Roles Table MultiSelect), then save. Only those roles are shown here."}):null,(0,t.jsxs)("div",{className:"flex flex-wrap gap-2",children:[(0,t.jsxs)(h.$,{onClick:()=>void _(),disabled:S||!r||!i,children:[S?(0,t.jsx)(c.A,{className:"mr-2 h-4 w-4 animate-spin"}):(0,t.jsx)(n.A,{className:"mr-2 h-4 w-4"}),"Add rule"]}),(0,t.jsxs)(h.$,{variant:"outline",onClick:()=>void D(),disabled:!r,children:[(0,t.jsx)(u.A,{className:"mr-2 h-4 w-4"}),"Restore original"]})]}),v?(0,t.jsx)("div",{className:"flex justify-center py-8",children:(0,t.jsx)(c.A,{className:"h-6 w-6 animate-spin"})}):r||i?0===f.length?(0,t.jsx)("p",{className:"py-6 text-center text-sm text-muted-foreground",children:"No CRM roles to show. Add roles on DMS CRM User Settings first."}):(0,t.jsx)("div",{className:"overflow-x-auto rounded-lg border",children:(0,t.jsxs)("table",{className:"w-full min-w-[720px] text-sm",children:[(0,t.jsx)("thead",{className:"bg-muted/40 text-left text-xs",children:(0,t.jsxs)("tr",{children:[(0,t.jsx)("th",{className:"px-3 py-2 font-medium",children:"DocType"}),(0,t.jsx)("th",{className:"px-3 py-2 font-medium",children:"Role"}),(0,t.jsx)("th",{className:"px-3 py-2 font-medium",children:"Lvl"}),U.map(e=>(0,t.jsx)("th",{className:"px-1 py-2 text-center font-medium",children:E[e]},e)),(0,t.jsx)("th",{className:"px-2 py-2"})]})}),(0,t.jsx)("tbody",{children:f.map(e=>(0,t.jsxs)("tr",{className:"border-t",children:[(0,t.jsx)("td",{className:"px-3 py-2 font-medium",children:e.parent}),(0,t.jsx)("td",{className:"px-3 py-2",children:e.role}),(0,t.jsx)("td",{className:"px-3 py-2 text-muted-foreground",children:e.permlevel||0}),U.map(s=>!e.is_submittable&&["submit","cancel","amend"].includes(s)?(0,t.jsx)("td",{className:"px-1 py-2 text-center text-muted-foreground",children:"—"},s):(0,t.jsx)("td",{className:"px-1 py-2 text-center",children:(0,t.jsx)(x.S,{checked:!!e[s],onCheckedChange:r=>void M(e,s,!!r)})},s)),(0,t.jsx)("td",{className:"px-2 py-2",children:(0,t.jsx)(h.$,{variant:"ghost",size:"icon",className:"text-destructive",onClick:()=>void k(e),children:(0,t.jsx)(d.A,{className:"h-4 w-4"})})})]},`${e.parent}-${e.role}-${e.permlevel}-${e.if_owner||0}`))})]})}):(0,t.jsx)("p",{className:"py-6 text-center text-sm text-muted-foreground",children:"Select a Document Type to see each CRM role and tick permissions."})]})]})}function G(){return(0,t.jsx)(B,{})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[3826],
+	{
+		23826: (e, s, r) => {
+			r.r(s), r.d(s, { default: () => G });
+			var t = r(95155),
+				l = r(12115),
+				o = r(44855),
+				a = r(66609),
+				n = r(51914),
+				i = r(33210),
+				c = r(6296),
+				d = r(68459),
+				m = r(439),
+				u = r(9199),
+				h = r(4474),
+				p = r(79984),
+				x = r(84437),
+				f = r(39658),
+				y = r(79792),
+				j = r(74350),
+				g = r(10086),
+				v = r(45328),
+				N = r(49876);
+			let S = "dms.api.advanced_permissions";
+			async function b() {
+				return (0, N.AT)(`/api/method/${S}.get_advanced_permission_bootstrap`, {
+					method: "POST",
+					body: JSON.stringify({}),
+				});
+			}
+			async function C(e, s = 1) {
+				return (0, N.AT)(`/api/method/${S}.create_role`, {
+					method: "POST",
+					body: JSON.stringify({ role_name: e, desk_access: s }),
+				});
+			}
+			async function R(e) {
+				return (0, N.AT)(`/api/method/${S}.create_role_profile`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function w(e) {
+				return (0, N.AT)(`/api/method/${S}.get_role_profile`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function M(e, s) {
+				return (0, N.AT)(`/api/method/${S}.remove_role_from_profile`, {
+					method: "POST",
+					body: JSON.stringify({ role_profile: e, role: s }),
+				});
+			}
+			async function _(e, s) {
+				return (0, N.AT)(`/api/method/${S}.add_role_to_profile`, {
+					method: "POST",
+					body: JSON.stringify({ role_profile: e, role: s }),
+				});
+			}
+			async function A(e, s) {
+				return (0, N.AT)(`/api/method/${S}.get_role_permissions`, {
+					method: "POST",
+					body: JSON.stringify({ doctype: e || "", role: s || "" }),
+				});
+			}
+			async function P(e, s, r = 0) {
+				return (0, N.AT)(`/api/method/${S}.add_role_permission`, {
+					method: "POST",
+					body: JSON.stringify({ doctype: e, role: s, permlevel: r }),
+				});
+			}
+			async function T(e) {
+				return (0, N.AT)(`/api/method/${S}.update_role_permission`, {
+					method: "POST",
+					body: JSON.stringify(e),
+				});
+			}
+			async function O(e, s, r, t = 0) {
+				return (0, N.AT)(`/api/method/${S}.remove_role_permission`, {
+					method: "POST",
+					body: JSON.stringify({ doctype: e, role: s, permlevel: r, if_owner: t }),
+				});
+			}
+			async function $(e) {
+				return (0, N.AT)(`/api/method/${S}.reset_role_permissions`, {
+					method: "POST",
+					body: JSON.stringify({ doctype: e }),
+				});
+			}
+			async function k(e) {
+				return (0, N.AT)(`/api/method/${S}.get_user_roles`, {
+					method: "POST",
+					body: JSON.stringify({ user: e }),
+				});
+			}
+			async function D(e) {
+				return (0, N.AT)(`/api/method/${S}.save_user_roles`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			let E = {
+					select: "Select",
+					read: "Read",
+					write: "Write",
+					create: "Create",
+					delete: "Delete",
+					submit: "Submit",
+					cancel: "Cancel",
+					amend: "Amend",
+					print: "Print",
+					email: "Email",
+					report: "Report",
+					import: "Import",
+					export: "Export",
+					share: "Share",
+					if_owner: "If Owner",
+				},
+				U = [
+					"select",
+					"read",
+					"write",
+					"create",
+					"delete",
+					"submit",
+					"cancel",
+					"amend",
+					"print",
+					"email",
+					"report",
+					"import",
+					"export",
+					"share",
+					"if_owner",
+				];
+			function J({
+				label: e,
+				hint: s,
+				options: r,
+				value: l,
+				onChange: o,
+				placeholder: a,
+				onCreate: c,
+				createLabel: d,
+				allowAdd: m = !0,
+				allowRemove: u = !0,
+				onChipClick: p,
+			}) {
+				let x = m ? r.filter((e) => !l.includes(e)) : [];
+				return (0, t.jsxs)("div", {
+					className: "space-y-2",
+					children: [
+						(0, t.jsxs)("div", {
+							className: "flex items-center justify-between gap-2",
+							children: [
+								(0, t.jsx)(y.J, { children: e }),
+								c
+									? (0, t.jsxs)(h.$, {
+											type: "button",
+											variant: "outline",
+											size: "sm",
+											className: "h-7",
+											onClick: c,
+											children: [
+												(0, t.jsx)(n.A, { className: "mr-1 h-3.5 w-3.5" }),
+												d || "New",
+											],
+									  })
+									: null,
+							],
+						}),
+						s
+							? (0, t.jsx)("p", {
+									className: "text-xs text-muted-foreground",
+									children: s,
+							  })
+							: null,
+						(0, t.jsx)("div", {
+							className:
+								"flex min-h-10 flex-wrap gap-1.5 rounded-xl border bg-background px-2 py-2",
+							children:
+								0 === l.length
+									? (0, t.jsx)("span", {
+											className: "px-1 text-xs text-muted-foreground",
+											children: a,
+									  })
+									: l.map((e) =>
+											(0, t.jsxs)(
+												"span",
+												{
+													className: `inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs ${
+														p ? "cursor-pointer hover:bg-muted" : ""
+													}`,
+													onClick: () => p?.(e),
+													children: [
+														e,
+														u
+															? (0, t.jsx)("button", {
+																	type: "button",
+																	className:
+																		"text-muted-foreground hover:text-foreground",
+																	onClick: (s) => {
+																		s.stopPropagation(),
+																			o(
+																				l.filter(
+																					(s) => s !== e
+																				)
+																			);
+																	},
+																	"aria-label": `Remove ${e}`,
+																	children: (0, t.jsx)(i.A, {
+																		className: "h-3 w-3",
+																	}),
+															  })
+															: null,
+													],
+												},
+												e
+											)
+									  ),
+						}),
+						x.length > 0
+							? (0, t.jsx)(g.Zi, {
+									options: x.map((e) => ({ value: e, label: e })),
+									value: "",
+									onValueChange: (e) => {
+										e && !l.includes(e) && o([...l, e]);
+									},
+									placeholder: `Add ${e.toLowerCase()}…`,
+							  })
+							: null,
+					],
+				});
+			}
+			function F({ open: e, onOpenChange: s, onCreated: r }) {
+				let [o, n] = (0, l.useState)(""),
+					[i, d] = (0, l.useState)(!0),
+					[m, u] = (0, l.useState)(!1);
+				async function p() {
+					let e = o.trim();
+					if (!e) return void a.o.error("Role name is required");
+					u(!0);
+					try {
+						let t = await C(e, +!!i);
+						r(t.name, t.selected_roles || []), s(!1);
+					} catch (e) {
+						a.o.error(e instanceof Error ? e.message : "Failed to create role");
+					} finally {
+						u(!1);
+					}
+				}
+				return (
+					(0, l.useEffect)(() => {
+						e && (n(""), d(!0));
+					}, [e]),
+					(0, t.jsx)(j.lG, {
+						open: e,
+						onOpenChange: s,
+						children: (0, t.jsxs)(j.Cf, {
+							className: "sm:max-w-md",
+							children: [
+								(0, t.jsxs)(j.c7, {
+									children: [
+										(0, t.jsx)(j.L3, { children: "New Role" }),
+										(0, t.jsx)(j.rr, {
+											children:
+												"Creates a Frappe Role and adds it to the list used on this screen.",
+										}),
+									],
+								}),
+								(0, t.jsxs)("div", {
+									className: "space-y-3 py-2",
+									children: [
+										(0, t.jsxs)("div", {
+											className: "space-y-1",
+											children: [
+												(0, t.jsx)(y.J, { children: "Role name" }),
+												(0, t.jsx)(f.p, {
+													value: o,
+													onChange: (e) => n(e.target.value),
+													placeholder: "e.g. Service Advisor",
+													autoFocus: !0,
+												}),
+											],
+										}),
+										(0, t.jsxs)("label", {
+											className: "flex items-center gap-2 text-sm",
+											children: [
+												(0, t.jsx)(x.S, {
+													checked: i,
+													onCheckedChange: (e) => d(!!e),
+												}),
+												"Desk access",
+											],
+										}),
+									],
+								}),
+								(0, t.jsxs)(j.Es, {
+									children: [
+										(0, t.jsx)(h.$, {
+											type: "button",
+											variant: "outline",
+											onClick: () => s(!1),
+											children: "Cancel",
+										}),
+										(0, t.jsxs)(h.$, {
+											type: "button",
+											disabled: m,
+											onClick: () => void p(),
+											children: [
+												m
+													? (0, t.jsx)(c.A, {
+															className: "mr-2 h-4 w-4 animate-spin",
+													  })
+													: null,
+												"Create Role",
+											],
+										}),
+									],
+								}),
+							],
+						}),
+					})
+				);
+			}
+			function Z({ open: e, onOpenChange: s, roleOptions: r, onCreated: o }) {
+				let [n, i] = (0, l.useState)(""),
+					[d, m] = (0, l.useState)([]),
+					[u, p] = (0, l.useState)(!1);
+				async function x() {
+					let e = n.trim();
+					if (!e) return void a.o.error("Role Profile name is required");
+					p(!0);
+					try {
+						let r = await R({ role_profile: e, roles: d });
+						o(r.name, r.selected_role_profiles || []), s(!1);
+					} catch (e) {
+						a.o.error(
+							e instanceof Error ? e.message : "Failed to create role profile"
+						);
+					} finally {
+						p(!1);
+					}
+				}
+				return (
+					(0, l.useEffect)(() => {
+						e && (i(""), m([]));
+					}, [e]),
+					(0, t.jsx)(j.lG, {
+						open: e,
+						onOpenChange: s,
+						children: (0, t.jsxs)(j.Cf, {
+							className: "sm:max-w-md",
+							children: [
+								(0, t.jsxs)(j.c7, {
+									children: [
+										(0, t.jsx)(j.L3, { children: "New Role Profile" }),
+										(0, t.jsx)(j.rr, {
+											children:
+												"Creates a Role Profile you can assign to users. The role list is the same Roles Table MultiSelect on DMS CRM User Settings.",
+										}),
+									],
+								}),
+								(0, t.jsxs)("div", {
+									className: "space-y-3 py-2",
+									children: [
+										(0, t.jsxs)("div", {
+											className: "space-y-1",
+											children: [
+												(0, t.jsx)(y.J, { children: "Profile name" }),
+												(0, t.jsx)(f.p, {
+													value: n,
+													onChange: (e) => i(e.target.value),
+													placeholder: "e.g. Aftersales Staff",
+													autoFocus: !0,
+												}),
+											],
+										}),
+										(0, t.jsx)(J, {
+											label: "Roles in this profile",
+											hint: "Only roles already on DMS CRM User Settings → Roles.",
+											options: r,
+											value: d,
+											onChange: m,
+											placeholder: r.length
+												? "Add roles from DMS CRM User Settings…"
+												: "No roles on DMS CRM User Settings yet — create or select roles first",
+										}),
+									],
+								}),
+								(0, t.jsxs)(j.Es, {
+									children: [
+										(0, t.jsx)(h.$, {
+											type: "button",
+											variant: "outline",
+											onClick: () => s(!1),
+											children: "Cancel",
+										}),
+										(0, t.jsxs)(h.$, {
+											type: "button",
+											disabled: u,
+											onClick: () => void x(),
+											children: [
+												u
+													? (0, t.jsx)(c.A, {
+															className: "mr-2 h-4 w-4 animate-spin",
+													  })
+													: null,
+												"Create Role Profile",
+											],
+										}),
+									],
+								}),
+							],
+						}),
+					})
+				);
+			}
+			function L({ profile: e, roleOptions: s, onOpenChange: r }) {
+				let [o, i] = (0, l.useState)([]),
+					[m, u] = (0, l.useState)(!1),
+					[p, x] = (0, l.useState)(null),
+					[f, v] = (0, l.useState)(!1),
+					[N, S] = (0, l.useState)(!1),
+					b = s.filter((e) => !o.includes(e));
+				async function C(s) {
+					if (e && s) {
+						v(!0);
+						try {
+							let r = await _(e, s);
+							i(r.roles || []), a.o.success(`Added ${s}`);
+						} catch (e) {
+							a.o.error(e instanceof Error ? e.message : "Failed to add role");
+						} finally {
+							v(!1);
+						}
+					}
+				}
+				async function R(s) {
+					if (e) {
+						x(s);
+						try {
+							let r = await M(e, s);
+							i(r.roles || []), a.o.success(`Removed ${s}`);
+						} catch (e) {
+							a.o.error(e instanceof Error ? e.message : "Failed to remove role");
+						} finally {
+							x(null);
+						}
+					}
+				}
+				return (
+					(0, l.useEffect)(() => {
+						if (!e) {
+							i([]), S(!1);
+							return;
+						}
+						S(!1),
+							u(!0),
+							w(e)
+								.then((e) => i(e.roles || []))
+								.catch((e) =>
+									a.o.error(
+										e instanceof Error
+											? e.message
+											: "Failed to load role profile"
+									)
+								)
+								.finally(() => u(!1));
+					}, [e]),
+					(0, t.jsx)(j.lG, {
+						open: !!e,
+						onOpenChange: r,
+						children: (0, t.jsxs)(j.Cf, {
+							className: "overflow-visible sm:max-w-md",
+							children: [
+								(0, t.jsxs)(j.c7, {
+									children: [
+										(0, t.jsx)(j.L3, { children: e || "Role Profile" }),
+										(0, t.jsx)(j.rr, {
+											children:
+												"Roles in this profile. Adding or removing a role here updates the Role Profile; it does not assign the profile to any user.",
+										}),
+									],
+								}),
+								(0, t.jsxs)("div", {
+									className: "min-h-24 space-y-3 py-2",
+									children: [
+										(0, t.jsxs)("div", {
+											className: "flex items-center justify-between gap-2",
+											children: [
+												(0, t.jsx)(y.J, { children: "Roles" }),
+												(0, t.jsxs)(h.$, {
+													type: "button",
+													variant: "outline",
+													size: "sm",
+													className: "h-7",
+													disabled: m || f || 0 === b.length,
+													onClick: () => S((e) => !e),
+													children: [
+														(0, t.jsx)(n.A, {
+															className: "mr-1 h-3.5 w-3.5",
+														}),
+														"Add",
+													],
+												}),
+											],
+										}),
+										N && b.length > 0
+											? (0, t.jsx)(g.Zi, {
+													options: b.map((e) => ({
+														value: e,
+														label: e,
+													})),
+													value: "",
+													onValueChange: (e) => {
+														e && C(e);
+													},
+													placeholder: "Choose a role…",
+													emptyMessage:
+														"No more roles on DMS CRM User Settings",
+													disabled: f,
+											  })
+											: null,
+										m
+											? (0, t.jsx)("div", {
+													className: "flex justify-center py-6",
+													children: (0, t.jsx)(c.A, {
+														className:
+															"h-5 w-5 animate-spin text-muted-foreground",
+													}),
+											  })
+											: 0 === o.length
+											? (0, t.jsxs)("p", {
+													className: "text-sm text-muted-foreground",
+													children: [
+														"No roles in this profile.",
+														b.length
+															? " Use Add to choose roles."
+															: "",
+													],
+											  })
+											: (0, t.jsx)("ul", {
+													className:
+														"max-h-64 space-y-1.5 overflow-y-auto",
+													children: o.map((e) =>
+														(0, t.jsxs)(
+															"li",
+															{
+																className:
+																	"flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm",
+																children: [
+																	(0, t.jsx)("span", {
+																		children: e,
+																	}),
+																	(0, t.jsxs)(h.$, {
+																		type: "button",
+																		variant: "ghost",
+																		size: "sm",
+																		className:
+																			"h-7 text-destructive hover:text-destructive",
+																		disabled: p === e || f,
+																		onClick: () => void R(e),
+																		children: [
+																			p === e
+																				? (0, t.jsx)(c.A, {
+																						className:
+																							"h-3.5 w-3.5 animate-spin",
+																				  })
+																				: (0, t.jsx)(d.A, {
+																						className:
+																							"h-3.5 w-3.5",
+																				  }),
+																			"Remove",
+																		],
+																	}),
+																],
+															},
+															e
+														)
+													),
+											  }),
+										!m && 0 === b.length && s.length > 0
+											? (0, t.jsx)("p", {
+													className: "text-xs text-muted-foreground",
+													children:
+														"All roles from DMS CRM User Settings are already in this profile.",
+											  })
+											: null,
+										m || 0 !== s.length
+											? null
+											: (0, t.jsx)("p", {
+													className: "text-xs text-muted-foreground",
+													children:
+														"No roles on DMS CRM User Settings yet — create or select roles first.",
+											  }),
+									],
+								}),
+								(0, t.jsx)(j.Es, {
+									children: (0, t.jsx)(h.$, {
+										type: "button",
+										variant: "outline",
+										onClick: () => r(!1),
+										children: "Close",
+									}),
+								}),
+							],
+						}),
+					})
+				);
+			}
+			function B() {
+				let {
+					data: e,
+					isLoading: s,
+					mutate: r,
+				} = (0, o.Ay)("advanced-perm-bootstrap", () => b());
+				return s
+					? (0, t.jsx)("div", {
+							className: "flex justify-center py-10",
+							children: (0, t.jsx)(c.A, {
+								className: "h-6 w-6 animate-spin text-muted-foreground",
+							}),
+					  })
+					: e?.can_manage
+					? (0, t.jsx)(V, { data: e, onRefresh: () => void r() })
+					: null;
+			}
+			function V({ data: e, onRefresh: s }) {
+				let r = e.selected_roles || [],
+					o = e.selected_role_profiles || [],
+					[n, i] = (0, l.useState)(!1),
+					[c, d] = (0, l.useState)(!1),
+					[u, h] = (0, l.useState)(null);
+				return (0, t.jsxs)("div", {
+					className: "space-y-4 border-t pt-8",
+					children: [
+						(0, t.jsxs)("div", {
+							children: [
+								(0, t.jsxs)("h2", {
+									className:
+										"flex items-center gap-2 text-lg font-semibold tracking-tight",
+									children: [
+										(0, t.jsx)(m.A, { className: "h-5 w-5" }),
+										"Advanced Permission",
+									],
+								}),
+								(0, t.jsx)("p", {
+									className: "text-sm text-muted-foreground",
+									children:
+										"Role Permission Manager for DMS and CRM documents. Only Dealer Manager, System Manager, and Administrator can use this section.",
+								}),
+							],
+						}),
+						(0, t.jsxs)(p.Zp, {
+							children: [
+								(0, t.jsxs)(p.aR, {
+									children: [
+										(0, t.jsx)(p.ZB, {
+											className: "text-base",
+											children: "Roles & Role Profiles on this screen",
+										}),
+										(0, t.jsx)(p.BT, {
+											children:
+												"These lists come from DMS CRM User Settings. Roles are maintained from Desk. Role Profiles are created here (or on Desk) and stored on that same settings document. Click a Role Profile to see its roles and add more.",
+										}),
+									],
+								}),
+								(0, t.jsx)(p.Wu, {
+									className: "space-y-4",
+									children: (0, t.jsxs)("div", {
+										className: "grid gap-4 md:grid-cols-2",
+										children: [
+											(0, t.jsx)(J, {
+												label: "Roles",
+												hint: "Only these roles appear in Role Permission Manager. Same list as Roles on DMS CRM User Settings. Add or remove roles from Desk.",
+												options: r,
+												value: r,
+												onChange: () => {},
+												allowAdd: !1,
+												allowRemove: !1,
+												placeholder:
+													"No roles on DMS CRM User Settings yet",
+												onCreate: () => i(!0),
+												createLabel: "New Role",
+											}),
+											(0, t.jsx)(J, {
+												label: "Role Profiles",
+												hint: "Role Profiles work like ERPNext: applying a profile sets that user’s roles. Click a profile to view, add, or remove its roles.",
+												options: o,
+												value: o,
+												onChange: () => {},
+												allowAdd: !1,
+												allowRemove: !1,
+												onChipClick: h,
+												placeholder:
+													"No role profiles on DMS CRM User Settings yet",
+												onCreate: () => d(!0),
+												createLabel: "New Role Profile",
+											}),
+										],
+									}),
+								}),
+							],
+						}),
+						(0, t.jsx)(F, {
+							open: n,
+							onOpenChange: i,
+							onCreated: () => {
+								a.o.success("Role created and added to DMS CRM User Settings"),
+									s();
+							},
+						}),
+						(0, t.jsx)(Z, {
+							open: c,
+							onOpenChange: d,
+							roleOptions: [...r].sort(),
+							onCreated: () => {
+								a.o.success(
+									"Role Profile created and added to DMS CRM User Settings"
+								),
+									s();
+							},
+						}),
+						(0, t.jsx)(L, {
+							profile: u,
+							roleOptions: [...r].sort(),
+							onOpenChange: (e) => {
+								e || h(null);
+							},
+						}),
+						(0, t.jsx)(W, { users: e.whitelisted_users || [], roles: r, profiles: o }),
+						(0, t.jsx)(z, { doctypes: e.doctypes || [], roles: r }),
+						(0, t.jsx)(v.g, { embedded: !0 }),
+					],
+				});
+			}
+			function W({ users: e, roles: s, profiles: r }) {
+				let [o, n] = (0, l.useState)(""),
+					[i, d] = (0, l.useState)([]),
+					[m, u] = (0, l.useState)([]),
+					[x, f] = (0, l.useState)(!1),
+					[j, v] = (0, l.useState)(!1),
+					N = (0, l.useMemo)(
+						() => e.map((e) => ({ value: e.user, label: e.full_name || e.user })),
+						[e]
+					);
+				async function S() {
+					if (!o) return void a.o.error("Select a user");
+					v(!0);
+					try {
+						let e = await D({ user: o, roles: i, role_profiles: m });
+						d(e.roles), u(e.role_profiles), a.o.success("User roles updated");
+					} catch (e) {
+						a.o.error(e instanceof Error ? e.message : "Failed to save user roles");
+					} finally {
+						v(!1);
+					}
+				}
+				return (
+					(0, l.useEffect)(() => {
+						if (!o) {
+							d([]), u([]);
+							return;
+						}
+						f(!0),
+							k(o)
+								.then((e) => {
+									d(e.roles || []), u(e.role_profiles || []);
+								})
+								.catch((e) =>
+									a.o.error(
+										e instanceof Error
+											? e.message
+											: "Failed to load user roles"
+									)
+								)
+								.finally(() => f(!1));
+					}, [o]),
+					(0, t.jsxs)(p.Zp, {
+						children: [
+							(0, t.jsxs)(p.aR, {
+								children: [
+									(0, t.jsx)(p.ZB, {
+										className: "text-base",
+										children: "Give users roles",
+									}),
+									(0, t.jsx)(p.BT, {
+										children:
+											"Assign Role Profiles (ERPNext style) or individual roles to a whitelisted DMS user. If a Role Profile is set, Frappe applies that profile’s roles.",
+									}),
+								],
+							}),
+							(0, t.jsxs)(p.Wu, {
+								className: "space-y-4",
+								children: [
+									(0, t.jsxs)("div", {
+										className: "space-y-2",
+										children: [
+											(0, t.jsx)(y.J, { children: "User" }),
+											(0, t.jsx)(g.Zi, {
+												options: N,
+												value: o,
+												onValueChange: n,
+												placeholder: "Select whitelisted user…",
+											}),
+										],
+									}),
+									x
+										? (0, t.jsx)(c.A, { className: "h-5 w-5 animate-spin" })
+										: o
+										? (0, t.jsxs)(t.Fragment, {
+												children: [
+													(0, t.jsx)(J, {
+														label: "Role Profiles",
+														options: r,
+														value: m,
+														onChange: u,
+														placeholder: "No role profile",
+													}),
+													(0, t.jsx)(J, {
+														label: "Roles",
+														hint: m.length
+															? "Role Profile is set — extra roles may be overwritten when the User is saved in Desk."
+															: void 0,
+														options: s,
+														value: i,
+														onChange: d,
+														placeholder: "No extra roles",
+													}),
+													(0, t.jsxs)(h.$, {
+														onClick: () => void S(),
+														disabled: j,
+														children: [
+															j
+																? (0, t.jsx)(c.A, {
+																		className:
+																			"mr-2 h-4 w-4 animate-spin",
+																  })
+																: null,
+															"Save user roles",
+														],
+													}),
+												],
+										  })
+										: null,
+								],
+							}),
+						],
+					})
+				);
+			}
+			function z({ doctypes: e, roles: s }) {
+				let [r, o] = (0, l.useState)(""),
+					[i, m] = (0, l.useState)(""),
+					[f, j] = (0, l.useState)([]),
+					[v, N] = (0, l.useState)(!1),
+					[S, b] = (0, l.useState)(!1),
+					C = (0, l.useMemo)(
+						() => e.map((e) => ({ value: e.name, label: `${e.name} (${e.module})` })),
+						[e]
+					),
+					R = (0, l.useMemo)(() => s.map((e) => ({ value: e, label: e })), [s]);
+				async function w() {
+					if (!r && !i) return void j([]);
+					N(!0);
+					try {
+						let e = await A(r || void 0, i || void 0);
+						j(e || []);
+					} catch (e) {
+						a.o.error(e instanceof Error ? e.message : "Failed to load permissions"),
+							j([]);
+					} finally {
+						N(!1);
+					}
+				}
+				async function M(e, s, r) {
+					try {
+						await T({
+							doctype: e.parent,
+							role: e.role,
+							permlevel: e.permlevel || 0,
+							ptype: s,
+							value: +!!r,
+							if_owner: e.if_owner || 0,
+						}),
+							j((t) =>
+								t.map((t) =>
+									t.parent === e.parent &&
+									t.role === e.role &&
+									t.permlevel === e.permlevel
+										? { ...t, [s]: +!!r }
+										: t
+								)
+							);
+					} catch (e) {
+						a.o.error(e instanceof Error ? e.message : "Failed to update");
+					}
+				}
+				async function _() {
+					if (!r || !i) return void a.o.error("Select a Document Type and a Role");
+					b(!0);
+					try {
+						await P(r, i, 0), a.o.success("Permission rule added"), await w();
+					} catch (e) {
+						a.o.error(e instanceof Error ? e.message : "Failed to add");
+					} finally {
+						b(!1);
+					}
+				}
+				async function k(e) {
+					try {
+						await O(e.parent, e.role, e.permlevel || 0, e.if_owner || 0),
+							a.o.success("Rule removed"),
+							await w();
+					} catch (e) {
+						a.o.error(e instanceof Error ? e.message : "Failed to remove");
+					}
+				}
+				async function D() {
+					if (!r) return void a.o.error("Select a Document Type to reset");
+					if (window.confirm(`Restore original permissions for ${r}?`))
+						try {
+							await $(r), a.o.success("Permissions reset"), await w();
+						} catch (e) {
+							a.o.error(e instanceof Error ? e.message : "Failed to reset");
+						}
+				}
+				return (
+					(0, l.useEffect)(() => {
+						w();
+					}, [r, i]),
+					(0, t.jsxs)(p.Zp, {
+						children: [
+							(0, t.jsxs)(p.aR, {
+								children: [
+									(0, t.jsx)(p.ZB, {
+										className: "text-base",
+										children: "Role Permission Manager",
+									}),
+									(0, t.jsx)(p.BT, {
+										children:
+											"Only DocTypes used in DMS and CRM are listed. Roles come only from the Roles Table MultiSelect on DMS CRM User Settings. Select a Document Type to see each of those roles and tick Read, Write, Create, and so on.",
+									}),
+								],
+							}),
+							(0, t.jsxs)(p.Wu, {
+								className: "space-y-4",
+								children: [
+									(0, t.jsxs)("div", {
+										className: "grid gap-3 md:grid-cols-2",
+										children: [
+											(0, t.jsxs)("div", {
+												className: "space-y-2",
+												children: [
+													(0, t.jsx)(y.J, { children: "Document Type" }),
+													(0, t.jsx)(g.Zi, {
+														options: C,
+														value: r,
+														onValueChange: o,
+														placeholder: "Select doctype…",
+													}),
+												],
+											}),
+											(0, t.jsxs)("div", {
+												className: "space-y-2",
+												children: [
+													(0, t.jsx)(y.J, { children: "Role" }),
+													(0, t.jsx)(g.Zi, {
+														options: R,
+														value: i,
+														onValueChange: m,
+														placeholder: s.length
+															? "All listed roles"
+															: "No CRM roles configured",
+														emptyMessage:
+															"No roles in DMS CRM User Settings",
+													}),
+												],
+											}),
+										],
+									}),
+									0 === s.length
+										? (0, t.jsx)("p", {
+												className:
+													"rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground",
+												children:
+													"Add roles on DMS CRM User Settings (Roles Table MultiSelect), then save. Only those roles are shown here.",
+										  })
+										: null,
+									(0, t.jsxs)("div", {
+										className: "flex flex-wrap gap-2",
+										children: [
+											(0, t.jsxs)(h.$, {
+												onClick: () => void _(),
+												disabled: S || !r || !i,
+												children: [
+													S
+														? (0, t.jsx)(c.A, {
+																className:
+																	"mr-2 h-4 w-4 animate-spin",
+														  })
+														: (0, t.jsx)(n.A, {
+																className: "mr-2 h-4 w-4",
+														  }),
+													"Add rule",
+												],
+											}),
+											(0, t.jsxs)(h.$, {
+												variant: "outline",
+												onClick: () => void D(),
+												disabled: !r,
+												children: [
+													(0, t.jsx)(u.A, { className: "mr-2 h-4 w-4" }),
+													"Restore original",
+												],
+											}),
+										],
+									}),
+									v
+										? (0, t.jsx)("div", {
+												className: "flex justify-center py-8",
+												children: (0, t.jsx)(c.A, {
+													className: "h-6 w-6 animate-spin",
+												}),
+										  })
+										: r || i
+										? 0 === f.length
+											? (0, t.jsx)("p", {
+													className:
+														"py-6 text-center text-sm text-muted-foreground",
+													children:
+														"No CRM roles to show. Add roles on DMS CRM User Settings first.",
+											  })
+											: (0, t.jsx)("div", {
+													className: "overflow-x-auto rounded-lg border",
+													children: (0, t.jsxs)("table", {
+														className: "w-full min-w-[720px] text-sm",
+														children: [
+															(0, t.jsx)("thead", {
+																className:
+																	"bg-muted/40 text-left text-xs",
+																children: (0, t.jsxs)("tr", {
+																	children: [
+																		(0, t.jsx)("th", {
+																			className:
+																				"px-3 py-2 font-medium",
+																			children: "DocType",
+																		}),
+																		(0, t.jsx)("th", {
+																			className:
+																				"px-3 py-2 font-medium",
+																			children: "Role",
+																		}),
+																		(0, t.jsx)("th", {
+																			className:
+																				"px-3 py-2 font-medium",
+																			children: "Lvl",
+																		}),
+																		U.map((e) =>
+																			(0, t.jsx)(
+																				"th",
+																				{
+																					className:
+																						"px-1 py-2 text-center font-medium",
+																					children: E[e],
+																				},
+																				e
+																			)
+																		),
+																		(0, t.jsx)("th", {
+																			className: "px-2 py-2",
+																		}),
+																	],
+																}),
+															}),
+															(0, t.jsx)("tbody", {
+																children: f.map((e) =>
+																	(0, t.jsxs)(
+																		"tr",
+																		{
+																			className: "border-t",
+																			children: [
+																				(0, t.jsx)("td", {
+																					className:
+																						"px-3 py-2 font-medium",
+																					children:
+																						e.parent,
+																				}),
+																				(0, t.jsx)("td", {
+																					className:
+																						"px-3 py-2",
+																					children:
+																						e.role,
+																				}),
+																				(0, t.jsx)("td", {
+																					className:
+																						"px-3 py-2 text-muted-foreground",
+																					children:
+																						e.permlevel ||
+																						0,
+																				}),
+																				U.map((s) =>
+																					!e.is_submittable &&
+																					[
+																						"submit",
+																						"cancel",
+																						"amend",
+																					].includes(s)
+																						? (0,
+																						  t.jsx)(
+																								"td",
+																								{
+																									className:
+																										"px-1 py-2 text-center text-muted-foreground",
+																									children:
+																										"—",
+																								},
+																								s
+																						  )
+																						: (0,
+																						  t.jsx)(
+																								"td",
+																								{
+																									className:
+																										"px-1 py-2 text-center",
+																									children:
+																										(0,
+																										t.jsx)(
+																											x.S,
+																											{
+																												checked:
+																													!!e[
+																														s
+																													],
+																												onCheckedChange:
+																													(
+																														r
+																													) =>
+																														void M(
+																															e,
+																															s,
+																															!!r
+																														),
+																											}
+																										),
+																								},
+																								s
+																						  )
+																				),
+																				(0, t.jsx)("td", {
+																					className:
+																						"px-2 py-2",
+																					children: (0,
+																					t.jsx)(h.$, {
+																						variant:
+																							"ghost",
+																						size: "icon",
+																						className:
+																							"text-destructive",
+																						onClick:
+																							() =>
+																								void k(
+																									e
+																								),
+																						children:
+																							(0,
+																							t.jsx)(
+																								d.A,
+																								{
+																									className:
+																										"h-4 w-4",
+																								}
+																							),
+																					}),
+																				}),
+																			],
+																		},
+																		`${e.parent}-${e.role}-${
+																			e.permlevel
+																		}-${e.if_owner || 0}`
+																	)
+																),
+															}),
+														],
+													}),
+											  })
+										: (0, t.jsx)("p", {
+												className:
+													"py-6 text-center text-sm text-muted-foreground",
+												children:
+													"Select a Document Type to see each CRM role and tick permissions.",
+										  }),
+								],
+							}),
+						],
+					})
+				);
+			}
+			function G() {
+				return (0, t.jsx)(B, {});
+			}
+		},
+	},
+]);

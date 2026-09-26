@@ -31,12 +31,14 @@ from dms.api.reports.common import (
 	_vin_sql_clause,
 )
 
+
 def get_invoice_register_report(filters=None):
 	f = _parse_filters(filters)
 	if not frappe.db.exists("DocType", "Sales Invoice"):
 		return _result("invoice_register", _("Invoice Register"), f, {"total": 0}, [], [])
 
 	from frappe.query_builder import DocType, Order
+
 	from dms.api.invoices import _dms_sales_invoice_condition
 	from dms.api.utils import get_dms_companies
 	from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
@@ -108,6 +110,7 @@ def get_invoice_register_report(filters=None):
 		],
 		rows,
 	)
+
 
 def get_unbilled_job_cards_report(filters=None):
 	f = _parse_filters(filters)
@@ -191,6 +194,7 @@ def get_finance_dashboard(filters=None):
 	inv = get_invoice_register_report(f)
 	unb = get_unbilled_job_cards_report(f)
 	from dms.api.reports.executive import get_service_revenue_report
+
 	rev = get_service_revenue_report(f)
 	return {
 		"section_id": "finance",

@@ -290,6 +290,7 @@ def create_standalone_invoice(data):
 
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	frappe.has_permission("Sales Invoice", "create", throw=True)
@@ -351,9 +352,7 @@ def _linked_payments_for_invoice(invoice_name: str) -> list[dict]:
 	for ref in refs:
 		if not ref.parent:
 			continue
-		allocated_by_parent[ref.parent] = flt(allocated_by_parent.get(ref.parent)) + flt(
-			ref.allocated_amount
-		)
+		allocated_by_parent[ref.parent] = flt(allocated_by_parent.get(ref.parent)) + flt(ref.allocated_amount)
 
 	names = list(allocated_by_parent)
 	if not names:
@@ -386,9 +385,7 @@ def _linked_payments_for_invoice(invoice_name: str) -> list[dict]:
 	out: list[dict] = []
 	for row in rows:
 		dms_remarks = (
-			(row.get("custom_dms_remarks") or "").strip()
-			if meta.has_field("custom_dms_remarks")
-			else ""
+			(row.get("custom_dms_remarks") or "").strip() if meta.has_field("custom_dms_remarks") else ""
 		)
 		out.append(
 			{
@@ -403,9 +400,7 @@ def _linked_payments_for_invoice(invoice_name: str) -> list[dict]:
 				"status": "Submitted" if cint(row.docstatus) == 1 else "Draft",
 				"dms_remarks": dms_remarks or None,
 				"remarks": row.remarks,
-				"job_card": row.get("custom_dms_job_card")
-				if meta.has_field("custom_dms_job_card")
-				else None,
+				"job_card": row.get("custom_dms_job_card") if meta.has_field("custom_dms_job_card") else None,
 			}
 		)
 	return out
@@ -586,9 +581,7 @@ def create_credit_note(data):
 	posting_date = getdate(data.get("posting_date") or today())
 	if posting_date < getdate(si.posting_date):
 		frappe.throw(
-			_("Credit note date cannot be before the invoice date {0}.").format(
-				frappe.bold(si.posting_date)
-			)
+			_("Credit note date cannot be before the invoice date {0}.").format(frappe.bold(si.posting_date))
 		)
 
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
@@ -800,9 +793,7 @@ def amend_sales_invoice(sales_invoice):
 
 	existing = frappe.db.exists("Sales Invoice", {"amended_from": name})
 	if existing:
-		frappe.throw(
-			_("This invoice is already amended as {0}.").format(frappe.bold(existing))
-		)
+		frappe.throw(_("This invoice is already amended as {0}.").format(frappe.bold(existing)))
 
 	frappe.has_permission("Sales Invoice", "create", throw=True)
 	si.check_permission("read")
@@ -843,7 +834,10 @@ def amend_sales_invoice(sales_invoice):
 		"is_consolidated",
 	):
 		if amended.meta.has_field(fieldname):
-			amended.set(fieldname, 0 if fieldname.endswith("amount") or fieldname.endswith("points") else amended.get(fieldname))
+			amended.set(
+				fieldname,
+				0 if fieldname.endswith("amount") or fieldname.endswith("points") else amended.get(fieldname),
+			)
 
 	if amended.meta.has_field("is_return"):
 		# Keep return flag only if the cancelled doc was a return.
@@ -866,7 +860,7 @@ def amend_sales_invoice(sales_invoice):
 def _reset_sales_invoice_workflow_to_draft(doc) -> None:
 	"""Force amended / catch-up drafts onto the workflow's initial Draft state."""
 	try:
-		from frappe.model.workflow import get_workflow_name, get_workflow
+		from frappe.model.workflow import get_workflow, get_workflow_name
 	except Exception:
 		return
 
@@ -905,9 +899,7 @@ def _submit_draft_sales_invoice(si) -> None:
 		return
 
 	workflow = get_workflow(si.doctype)
-	submitted_states = {
-		s.state for s in (workflow.states or []) if cint(s.doc_status) == 1
-	}
+	submitted_states = {s.state for s in (workflow.states or []) if cint(s.doc_status) == 1}
 	transitions = get_transitions(si) or []
 
 	# Prefer an action literally named Submit, else any transition into a submitted state.
@@ -989,11 +981,7 @@ def update_draft_sales_invoice(data):
 			payload = by_name.get(str(row.name))
 			if not payload:
 				continue
-			if (
-				not applying_invoice_discount
-				and "rate" in payload
-				and payload.get("rate") is not None
-			):
+			if not applying_invoice_discount and "rate" in payload and payload.get("rate") is not None:
 				assert_price_allowed_if_changed(flt(row.rate), payload.get("rate"))
 			if "qty" in payload and payload.get("qty") is not None:
 				row.qty = flt(payload.get("qty"))
@@ -1138,9 +1126,7 @@ def update_job_card_prices_from_invoice(sales_invoice):
 
 	updated = cint(result.get("updated_lines") or 0)
 	if updated:
-		message = _("Updated {0} line(s) on Job Card {1} from invoice rates.").format(
-			updated, jc
-		)
+		message = _("Updated {0} line(s) on Job Card {1} from invoice rates.").format(updated, jc)
 	else:
 		message = _("Job Card {0} already matches invoice rates.").format(jc)
 
@@ -1405,4 +1391,3 @@ def collect_payment(
 		"outstanding_amount": flt(si.outstanding_amount),
 		"status": si.status,
 	}
-

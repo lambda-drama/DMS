@@ -48,10 +48,7 @@ def labour_line_display_name(row) -> str:
 	getter = row.get if hasattr(row, "get") else None
 	if getter:
 		return (
-			getter(LABOUR_DISPLAY_NAME_FIELD)
-			or getter("display_name")
-			or getter("service_name")
-			or ""
+			getter(LABOUR_DISPLAY_NAME_FIELD) or getter("display_name") or getter("service_name") or ""
 		).strip()
 	return (
 		getattr(row, LABOUR_DISPLAY_NAME_FIELD, None)
@@ -64,6 +61,4 @@ def labour_line_display_name(row) -> str:
 def labour_payload_display_name(line, fallback: str = "") -> str:
 	if not isinstance(line, dict):
 		return (fallback or "").strip()
-	return (
-		(line.get(LABOUR_DISPLAY_NAME_FIELD) or line.get("display_name") or fallback or "")
-	).strip()
+	return (line.get(LABOUR_DISPLAY_NAME_FIELD) or line.get("display_name") or fallback or "").strip()

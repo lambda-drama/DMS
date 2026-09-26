@@ -8,7 +8,6 @@ from datetime import timedelta
 import frappe
 from frappe.utils import cint, get_datetime, now_datetime
 
-
 POOL_DOCTYPE = "DMS CRM Lead Assignment Pool"
 
 

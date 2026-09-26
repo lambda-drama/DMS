@@ -11,7 +11,9 @@ const RATING_LABELS = {
 
 function scoreFromLabel(label) {
 	if (!label) return 0;
-	const m = String(label).trim().match(/^(\d+)/);
+	const m = String(label)
+		.trim()
+		.match(/^(\d+)/);
 	return m ? cint(m[1]) : 0;
 }
 

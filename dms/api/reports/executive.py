@@ -298,11 +298,7 @@ def get_aftersales_dashboard_report(filters=None):
 	reopened = sum(1 for jc in jcs if cint(jc.is_repeat_repair) or jc.status in ("Rework", "QC Failed"))
 	vehicles_received = len({jc.vehicle_vin for jc in jcs if jc.vehicle_vin})
 
-	customer_pay_closed = [
-		jc
-		for jc in closed
-		if _pay_bucket(jc.job_card_type) == "customer_pay"
-	]
+	customer_pay_closed = [jc for jc in closed if _pay_bucket(jc.job_card_type) == "customer_pay"]
 	customer_pay_net = sum(flt(jc.net_amount or jc.total_amount) for jc in customer_pay_closed)
 	avg_ro = round(customer_pay_net / len(customer_pay_closed), 2) if customer_pay_closed else 0.0
 
@@ -340,9 +336,7 @@ def get_aftersales_dashboard_report(filters=None):
 		else:
 			companies = {jc.company for jc in jcs if jc.company}
 			if len(companies) == 1:
-				revenue_currency = frappe.db.get_value(
-					"Company", next(iter(companies)), "default_currency"
-				)
+				revenue_currency = frappe.db.get_value("Company", next(iter(companies)), "default_currency")
 
 	waiting_parts = sum(1 for jc in jcs if jc.status == "Waiting Parts")
 	# Live WIP delayed / waiting parts (current workshop, not only period)
@@ -750,15 +744,11 @@ def get_budget_versus_actual_report(filters=None):
 	parts_sales = rev["parts_revenue"]
 	parts_cost_map = _parts_cost_by_job([jc.name for jc in jcs])
 	parts_cost = sum(parts_cost_map.values())
-	parts_gm_pct = (
-		round(((parts_sales - parts_cost) / parts_sales) * 100, 1) if parts_sales else 0.0
-	)
+	parts_gm_pct = round(((parts_sales - parts_cost) / parts_sales) * 100, 1) if parts_sales else 0.0
 	py_parts_sales = py_rev["parts_revenue"]
 	py_parts_cost = sum(_parts_cost_by_job([jc.name for jc in py_jcs]).values())
 	py_parts_gm = (
-		round(((py_parts_sales - py_parts_cost) / py_parts_sales) * 100, 1)
-		if py_parts_sales
-		else 0.0
+		round(((py_parts_sales - py_parts_cost) / py_parts_sales) * 100, 1) if py_parts_sales else 0.0
 	)
 
 	def metric(name, actual, target, unit=""):

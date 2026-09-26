@@ -28,6 +28,7 @@ def _normalize_driver_payload(payload):
 		if fieldname in payload:
 			payload[fieldname] = (str(payload.get(fieldname) or "")).strip()[:10] or None
 
+
 @frappe.whitelist()
 def get_test_vehicle_options(search=None, company=None, limit=40):
 	"""Available in-stock VINs for the test-drive Link selector."""
@@ -74,7 +75,15 @@ def get_driver_options(search=None, limit=40):
 		"Driver",
 		filters=filters,
 		or_filters=or_filters,
-		fields=["name", "full_name", "license_number", "issuing_date", "expiry_date", "cell_number", "status"],
+		fields=[
+			"name",
+			"full_name",
+			"license_number",
+			"issuing_date",
+			"expiry_date",
+			"cell_number",
+			"status",
+		],
 		order_by="full_name asc",
 		limit_page_length=min(cint(limit) or 40, 100),
 		ignore_permissions=True,
@@ -146,13 +155,9 @@ def create_test_drive(data=None):
 	opp = frappe.get_doc("DMS CRM Opportunity", opportunity)
 	if not opp.customer:
 		frappe.throw(_("Link a Customer to the deal before scheduling a Test Drive."))
-	if not opp.sales_appointment or not frappe.db.exists(
-		"DMS CRM Sales Appointment", opp.sales_appointment
-	):
+	if not opp.sales_appointment or not frappe.db.exists("DMS CRM Sales Appointment", opp.sales_appointment):
 		frappe.throw(_("Schedule a Sales Appointment before the Test Drive."))
-	appointment_status = frappe.db.get_value(
-		"DMS CRM Sales Appointment", opp.sales_appointment, "status"
-	)
+	appointment_status = frappe.db.get_value("DMS CRM Sales Appointment", opp.sales_appointment, "status")
 	if appointment_status in ("No-Show", "Cancelled"):
 		frappe.throw(_("Reschedule the failed/cancelled Sales Appointment first."))
 	if not payload.get("scheduled_datetime"):

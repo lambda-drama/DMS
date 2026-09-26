@@ -31,6 +31,7 @@ from dms.api.reports.common import (
 	_vin_sql_clause,
 )
 
+
 def get_qc_failure_report(filters=None):
 	f = _parse_filters(filters)
 	qc_rows = frappe.get_all(
@@ -40,8 +41,16 @@ def get_qc_failure_report(filters=None):
 			"status": ["in", ["QC In Progress", "QC Failed", "Rework", "Completed", "Delivered"]],
 		},
 		fields=[
-			"name", "status", "vehicle_vin", "qc_fail_reason", "qc_result", "rework_required",
-			"lead_technician", "service_advisor", "opened_date_time", "completed_date_time",
+			"name",
+			"status",
+			"vehicle_vin",
+			"qc_fail_reason",
+			"qc_result",
+			"rework_required",
+			"lead_technician",
+			"service_advisor",
+			"opened_date_time",
+			"completed_date_time",
 		],
 		limit=300,
 	)
@@ -52,10 +61,7 @@ def get_qc_failure_report(filters=None):
 	)
 	_apply_vin_numbers(qc_rows)
 
-	failed = [
-		r for r in qc_rows
-		if (r.status in ("QC Failed", "Rework")) or cint(r.rework_required) == 1
-	]
+	failed = [r for r in qc_rows if (r.status in ("QC Failed", "Rework")) or cint(r.rework_required) == 1]
 
 	total_qc = len(qc_rows)
 	fail_count = len(failed)

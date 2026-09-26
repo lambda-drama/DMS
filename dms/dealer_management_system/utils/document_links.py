@@ -86,4 +86,3 @@ def enrich_estimate_row(row: dict) -> dict:
 	if name:
 		row["job_card"] = linked_job_card_for_estimate(name)
 	return row
-

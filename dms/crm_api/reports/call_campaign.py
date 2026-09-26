@@ -148,11 +148,7 @@ def _call_source(filters):
 				try:
 					duration = max(
 						0,
-						int(
-							time_diff_in_seconds(
-								get_datetime(r.completed_on), get_datetime(r.due_datetime)
-							)
-						),
+						int(time_diff_in_seconds(get_datetime(r.completed_on), get_datetime(r.due_datetime))),
 					)
 				except Exception:
 					duration = 0
@@ -231,13 +227,9 @@ def get_crm_call_campaign_dashboard(filters=None):
 	summary["connected"] = len(connected)
 	summary["completed"] = len(completed)
 	summary["appointments_set"] = len(appts)
-	summary["contact_rate_pct"] = (
-		round(100.0 * len(connected) / len(calls), 1) if calls else 0
-	)
+	summary["contact_rate_pct"] = round(100.0 * len(connected) / len(calls), 1) if calls else 0
 	durs = [c["duration"] for c in connected if c.get("duration")]
-	summary["avg_handle_minutes"] = (
-		round(sum(durs) / len(durs) / 60.0, 2) if durs else 0
-	)
+	summary["avg_handle_minutes"] = round(sum(durs) / len(durs) / 60.0, 2) if durs else 0
 	summary["by_disposition"] = group_count(calls, "disposition")
 
 	if dt_exists(CAMPAIGN):
@@ -715,9 +707,7 @@ def _campaign_funnel_report(filters=None):
 					"appointments": appts,
 					"sales": sales,
 					"delivery_pct": round(100.0 * delivered / members, 1) if members else 0,
-					"response_pct": round(100.0 * responded / max(delivered, 1), 1)
-					if members
-					else 0,
+					"response_pct": round(100.0 * responded / max(delivered, 1), 1) if members else 0,
 					"conversion_pct": round(100.0 * sales / members, 1) if members else 0,
 					"_drill": {"view": "crm-campaign-detail", "params": {"name": r.name}},
 				}
@@ -821,17 +811,9 @@ def _channel_effectiveness_report(filters=None):
 		for b in by_ch.values():
 			b["budget"] = round(b["budget"], 2)
 			b["revenue"] = round(b["revenue"], 2)
-			b["cost_per_lead"] = (
-				round(b["budget"] / b["responses"], 2) if b["responses"] else 0
-			)
-			b["roi_pct"] = (
-				round(100.0 * (b["revenue"] - b["budget"]) / b["budget"], 1)
-				if b["budget"]
-				else 0
-			)
-			b["response_pct"] = (
-				round(100.0 * b["responses"] / b["members"], 1) if b["members"] else 0
-			)
+			b["cost_per_lead"] = round(b["budget"] / b["responses"], 2) if b["responses"] else 0
+			b["roi_pct"] = round(100.0 * (b["revenue"] - b["budget"]) / b["budget"], 1) if b["budget"] else 0
+			b["response_pct"] = round(100.0 * b["responses"] / b["members"], 1) if b["members"] else 0
 			rows.append(b)
 		rows.sort(key=lambda x: -x["revenue"])
 
@@ -904,9 +886,7 @@ def _cost_per_outcome_report(filters=None):
 			appts = cint(r.get("appointment_count"))
 			sales = cint(r.get("sale_count"))
 			cpl = flt(r.get("cost_per_lead")) or (round(budget / responses, 2) if responses else 0)
-			cpa = flt(r.get("cost_per_appointment")) or (
-				round(budget / appts, 2) if appts else 0
-			)
+			cpa = flt(r.get("cost_per_appointment")) or (round(budget / appts, 2) if appts else 0)
 			cps = flt(r.get("cost_per_sale")) or (round(budget / sales, 2) if sales else 0)
 			rows.append(
 				{
@@ -932,16 +912,8 @@ def _cost_per_outcome_report(filters=None):
 		{
 			"total": len(rows),
 			"budget": round(sum(r["budget"] for r in rows), 2),
-			"avg_cost_per_lead": round(
-				sum(r["cost_per_lead"] for r in rows) / len(rows), 2
-			)
-			if rows
-			else 0,
-			"avg_cost_per_sale": round(
-				sum(r["cost_per_sale"] for r in rows) / len(rows), 2
-			)
-			if rows
-			else 0,
+			"avg_cost_per_lead": round(sum(r["cost_per_lead"] for r in rows) / len(rows), 2) if rows else 0,
+			"avg_cost_per_sale": round(sum(r["cost_per_sale"] for r in rows) / len(rows), 2) if rows else 0,
 		},
 		[
 			col("name", "Campaign"),
@@ -1038,9 +1010,7 @@ def _revenue_attribution_report(filters=None):
 			"total": len(rows),
 			"revenue": round(total_rev, 2),
 			"budget": round(total_budget, 2),
-			"roi_pct": round(100.0 * (total_rev - total_budget) / total_budget, 1)
-			if total_budget
-			else 0,
+			"roi_pct": round(100.0 * (total_rev - total_budget) / total_budget, 1) if total_budget else 0,
 		},
 		[
 			col("name", "Campaign"),

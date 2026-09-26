@@ -49,28 +49,45 @@ def get_vehicles(
 			"engine_number": ["like", f"%{search}%"],
 		}
 
-	total = len(frappe.get_all(
-		"VIN No",
-		filters=filters,
-		or_filters=or_filters if or_filters else None,
-		limit_page_length=0,
-		pluck="name",
-	))
+	total = len(
+		frappe.get_all(
+			"VIN No",
+			filters=filters,
+			or_filters=or_filters if or_filters else None,
+			limit_page_length=0,
+			pluck="name",
+		)
+	)
 
 	vehicles = frappe.get_all(
 		"VIN No",
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "vin_number", "engine_number", "plate_number",
-			"linked_item", "model", "model_name", "model_year", "brand",
-			"fuel_type", "transmission", "exterior_color",
-			"current_customer", "customer_name",
-			"current_odometer", "odometer_unit",
-			"warranty_status", "warranty_end_date",
-			"vehicle_status", "company",
-			"next_service_due_km", "next_service_due_date",
-			"creation", "modified",
+			"name",
+			"vin_number",
+			"engine_number",
+			"plate_number",
+			"linked_item",
+			"model",
+			"model_name",
+			"model_year",
+			"brand",
+			"fuel_type",
+			"transmission",
+			"exterior_color",
+			"current_customer",
+			"customer_name",
+			"current_odometer",
+			"odometer_unit",
+			"warranty_status",
+			"warranty_end_date",
+			"vehicle_status",
+			"company",
+			"next_service_due_km",
+			"next_service_due_date",
+			"creation",
+			"modified",
 		],
 		limit=int(limit),
 		limit_start=int(offset),
@@ -174,11 +191,7 @@ def get_vehicle(name):
 		data["warranty_end_date"] = summary.get("warranty_end_date") or data.get("warranty_end_date")
 		stored = (doc.warranty_status or "").strip()
 		live = (summary.get("warranty_status") or "").strip()
-		if (
-			live
-			and live != stored
-			and stored not in ("Void", "Pending Verification")
-		):
+		if live and live != stored and stored not in ("Void", "Pending Verification"):
 			frappe.db.set_value(
 				"VIN No",
 				doc.name,
@@ -209,6 +222,7 @@ def get_vehicle_warranty_summary(vin_no=None):
 def create_vehicle(data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	company = (data.get("company") or "").strip()
@@ -224,36 +238,38 @@ def create_vehicle(data):
 
 	warranty_status = (data.get("warranty_status") or "Inactive").strip() or "Inactive"
 
-	doc = frappe.get_doc({
-		"doctype": "VIN No",
-		"vin_number": data.get("vin_number"),
-		"engine_number": data.get("engine_number"),
-		"plate_number": data.get("plate_number"),
-		"company": company,
-		"linked_item": data.get("linked_item"),
-		"model": data.get("model"),
-		"brand": data.get("brand"),
-		"model_variant": data.get("model_variant"),
-		"model_year": data.get("model_year"),
-		"production_date": data.get("production_date"),
-		"fuel_type": data.get("fuel_type"),
-		"transmission": data.get("transmission"),
-		"drive_type": data.get("drive_type"),
-		"exterior_color": data.get("exterior_color"),
-		"interior_color": data.get("interior_color"),
-		"interior_material": data.get("interior_material"),
-		"current_customer": resolve_dms_customer(data.get("current_customer")),
-		"current_odometer": data.get("current_odometer"),
-		"odometer_unit": data.get("odometer_unit", "km"),
-		"warranty_start_date": data.get("warranty_start_date"),
-		"warranty_end_date": data.get("warranty_end_date"),
-		"warranty_km_limit": data.get("warranty_km_limit"),
-		"warranty_status": warranty_status,
-		"vehicle_status": data.get("vehicle_status", "In Stock"),
-		"import_type": data.get("import_type"),
-		"registration_date": data.get("registration_date"),
-		"special_notes": data.get("special_notes"),
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "VIN No",
+			"vin_number": data.get("vin_number"),
+			"engine_number": data.get("engine_number"),
+			"plate_number": data.get("plate_number"),
+			"company": company,
+			"linked_item": data.get("linked_item"),
+			"model": data.get("model"),
+			"brand": data.get("brand"),
+			"model_variant": data.get("model_variant"),
+			"model_year": data.get("model_year"),
+			"production_date": data.get("production_date"),
+			"fuel_type": data.get("fuel_type"),
+			"transmission": data.get("transmission"),
+			"drive_type": data.get("drive_type"),
+			"exterior_color": data.get("exterior_color"),
+			"interior_color": data.get("interior_color"),
+			"interior_material": data.get("interior_material"),
+			"current_customer": resolve_dms_customer(data.get("current_customer")),
+			"current_odometer": data.get("current_odometer"),
+			"odometer_unit": data.get("odometer_unit", "km"),
+			"warranty_start_date": data.get("warranty_start_date"),
+			"warranty_end_date": data.get("warranty_end_date"),
+			"warranty_km_limit": data.get("warranty_km_limit"),
+			"warranty_status": warranty_status,
+			"vehicle_status": data.get("vehicle_status", "In Stock"),
+			"import_type": data.get("import_type"),
+			"registration_date": data.get("registration_date"),
+			"special_notes": data.get("special_notes"),
+		}
+	)
 
 	# Keep the UI-selected warranty status; validate() would otherwise recompute it.
 	frappe.flags.preserve_warranty_status = True
@@ -277,6 +293,7 @@ def create_vehicle(data):
 def update_vehicle(name, data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	doc = frappe.get_doc("VIN No", name)
@@ -321,17 +338,40 @@ def update_vehicle(name, data):
 		replace_serial = True
 
 	updatable = [
-		"engine_number", "plate_number", "linked_item", "model", "brand", "model_variant",
-		"model_year", "production_date", "fuel_type", "transmission", "drive_type",
+		"engine_number",
+		"plate_number",
+		"linked_item",
+		"model",
+		"brand",
+		"model_variant",
+		"model_year",
+		"production_date",
+		"fuel_type",
+		"transmission",
+		"drive_type",
 		"engine_code",
-		"exterior_color", "interior_color", "interior_material",
-		"current_customer", "current_odometer", "odometer_unit",
-		"warranty_start_date", "warranty_end_date", "warranty_km_limit",
+		"exterior_color",
+		"interior_color",
+		"interior_material",
+		"current_customer",
+		"current_odometer",
+		"odometer_unit",
+		"warranty_start_date",
+		"warranty_end_date",
+		"warranty_km_limit",
 		"warranty_status",
-		"vehicle_status", "special_notes", "internal_notes",
-		"import_type", "registration_date", "registration_country",
-		"insurance_company", "insurance_policy_number", "insurance_expiry_date",
-		"is_fleet_vehicle", "fleet_company", "fleet_reference",
+		"vehicle_status",
+		"special_notes",
+		"internal_notes",
+		"import_type",
+		"registration_date",
+		"registration_country",
+		"insurance_company",
+		"insurance_policy_number",
+		"insurance_expiry_date",
+		"is_fleet_vehicle",
+		"fleet_company",
+		"fleet_reference",
 	]
 
 	for field in updatable:
@@ -381,9 +421,7 @@ def delete_vehicle(name):
 	# Company scope: never let a scoped user delete a vehicle they cannot see.
 	scope = {} if can_view_all_companies() else apply_vin_company_scope()
 	if not frappe.db.exists("VIN No", {**scope, "name": name}):
-		frappe.throw(
-			_("Vehicle {0} was not found.").format(frappe.bold(name)), frappe.PermissionError
-		)
+		frappe.throw(_("Vehicle {0} was not found.").format(frappe.bold(name)), frappe.PermissionError)
 
 	doc = frappe.get_doc("VIN No", name)
 	doc.check_permission("delete")

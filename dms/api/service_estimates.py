@@ -124,9 +124,7 @@ def get_service_estimate(name):
 		result["vehicle_model_label"] = vm_label
 	enrich_estimate_row(result)
 	if doc.appointment:
-		result["assigned_bay"] = frappe.db.get_value(
-			"Service Appointment", doc.appointment, "assigned_bay"
-		)
+		result["assigned_bay"] = frappe.db.get_value("Service Appointment", doc.appointment, "assigned_bay")
 	return result
 
 
@@ -236,15 +234,11 @@ def delete_service_estimate(name):
 
 	linked_jc = linked_job_card_for_estimate(doc.name)
 	if linked_jc and frappe.db.exists("DMS Job Card", linked_jc):
-		frappe.throw(
-			_("Cannot delete — linked job card {0} exists.").format(frappe.bold(linked_jc))
-		)
+		frappe.throw(_("Cannot delete — linked job card {0} exists.").format(frappe.bold(linked_jc)))
 
 	if doc.diagnostic_invoice and frappe.db.exists("Sales Invoice", doc.diagnostic_invoice):
 		frappe.throw(
-			_("Cannot delete — diagnostic invoice {0} exists.").format(
-				frappe.bold(doc.diagnostic_invoice)
-			)
+			_("Cannot delete — diagnostic invoice {0} exists.").format(frappe.bold(doc.diagnostic_invoice))
 		)
 
 	frappe.delete_doc("DMS Service Estimate", name, force=1)

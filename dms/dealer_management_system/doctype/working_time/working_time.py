@@ -31,9 +31,7 @@ class WorkingTime(Document):
 				frappe.throw(_("Each row must have a day of the week."))
 			if day in seen_days:
 				frappe.throw(
-					_("Duplicate day {0} in weekly schedule. Use one row per day.").format(
-						frappe.bold(day)
-					)
+					_("Duplicate day {0} in weekly schedule. Use one row per day.").format(frappe.bold(day))
 				)
 			seen_days.add(day)
 
@@ -42,9 +40,7 @@ class WorkingTime(Document):
 			if start is None or end is None:
 				frappe.throw(_("Start and end time are required for {0}.").format(frappe.bold(day)))
 			if end <= start:
-				frappe.throw(
-					_("End time must be after start time on {0}.").format(frappe.bold(day))
-				)
+				frappe.throw(_("End time must be after start time on {0}.").format(frappe.bold(day)))
 
 			if row.has_lunch_break:
 				lunch_start = _time_to_seconds(row.lunch_start)
@@ -56,14 +52,10 @@ class WorkingTime(Document):
 						)
 					)
 				if lunch_end <= lunch_start:
-					frappe.throw(
-						_("Lunch end must be after lunch start on {0}.").format(frappe.bold(day))
-					)
+					frappe.throw(_("Lunch end must be after lunch start on {0}.").format(frappe.bold(day)))
 				if lunch_start < start or lunch_end > end:
 					frappe.throw(
-						_("Lunch break must fall within working hours on {0}.").format(
-							frappe.bold(day)
-						)
+						_("Lunch break must fall within working hours on {0}.").format(frappe.bold(day))
 					)
 
 
@@ -74,7 +66,5 @@ def format_day_summary(row) -> str:
 		parts.append("(half day)")
 	parts.append(f"{get_time_str(row.start_time)}–{get_time_str(row.end_time)}")
 	if row.has_lunch_break and row.lunch_start and row.lunch_end:
-		parts.append(
-			f"lunch {get_time_str(row.lunch_start)}–{get_time_str(row.lunch_end)}"
-		)
+		parts.append(f"lunch {get_time_str(row.lunch_start)}–{get_time_str(row.lunch_end)}")
 	return " ".join(parts)

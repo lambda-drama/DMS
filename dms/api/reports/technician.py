@@ -161,24 +161,28 @@ def get_technician_productivity_report(filters=None):
 		productivity_pct = round((productive / available) * 100, 1) if available else 0
 		efficiency_pct = round((sold_hours / productive) * 100, 1) if productive else 0
 		utilization_pct = round((clocked / available) * 100, 1) if available else 0
-		rows.append({
-			"technician": t.name,
-			"full_name": t.full_name or t.name,
-			"available_hours": round(available, 2),
-			"clocked_hours": round(clocked, 2),
-			"productive_hours": round(productive, 2),
-			"sold_hours": round(sold_hours, 2),
-			"idle_hours": round(idle, 2),
-			"productivity_pct": productivity_pct,
-			"efficiency_pct": efficiency_pct,
-			"utilization_pct": utilization_pct,
-			"jobs_completed": cint_safe(jobs.jobs_completed) if jobs else 0,
-			"comebacks": comeback_map.get(t.name, 0),
-			"qc_failures": qc_map.get(t.name, 0),
-			"labor_sales": round(labor_sales, 2),
-			"parts_consumed": round(parts_map.get(t.name, 0), 2),
-			"avg_repair_hours": round(flt(jobs.avg_repair_hours), 2) if jobs and jobs.avg_repair_hours is not None else None,
-		})
+		rows.append(
+			{
+				"technician": t.name,
+				"full_name": t.full_name or t.name,
+				"available_hours": round(available, 2),
+				"clocked_hours": round(clocked, 2),
+				"productive_hours": round(productive, 2),
+				"sold_hours": round(sold_hours, 2),
+				"idle_hours": round(idle, 2),
+				"productivity_pct": productivity_pct,
+				"efficiency_pct": efficiency_pct,
+				"utilization_pct": utilization_pct,
+				"jobs_completed": cint_safe(jobs.jobs_completed) if jobs else 0,
+				"comebacks": comeback_map.get(t.name, 0),
+				"qc_failures": qc_map.get(t.name, 0),
+				"labor_sales": round(labor_sales, 2),
+				"parts_consumed": round(parts_map.get(t.name, 0), 2),
+				"avg_repair_hours": round(flt(jobs.avg_repair_hours), 2)
+				if jobs and jobs.avg_repair_hours is not None
+				else None,
+			}
+		)
 
 	return _result(
 		"technician_productivity",
@@ -188,7 +192,9 @@ def get_technician_productivity_report(filters=None):
 			"technician_count": len(rows),
 			"total_sold_hours": round(sum(r["sold_hours"] for r in rows), 2),
 			"total_labor_sales": round(sum(r["labor_sales"] for r in rows), 2),
-			"avg_productivity_pct": round(sum(r["productivity_pct"] for r in rows) / len(rows), 1) if rows else 0,
+			"avg_productivity_pct": round(sum(r["productivity_pct"] for r in rows) / len(rows), 1)
+			if rows
+			else 0,
 			"avg_efficiency_pct": round(sum(r["efficiency_pct"] for r in rows) / len(rows), 1) if rows else 0,
 		},
 		[
@@ -260,6 +266,7 @@ def get_technician_time_analysis_report(filters=None):
 
 	_apply_link_display_names(rows, {"technician": "Technician"})
 	from dms.api.reports.common import _apply_vin_numbers
+
 	# Map vehicle_vin → vin_number on rows
 	for r in rows:
 		r["vehicle_vin_link"] = r.vehicle_vin
@@ -274,21 +281,23 @@ def get_technician_time_analysis_report(filters=None):
 		pause = (r.pause_reason or "").strip() or _("—")
 		if r.pause_reason:
 			by_pause[r.pause_reason] += 1
-		out.append({
-			"time_log": r.time_log,
-			"job_card": r.job_card,
-			"technician": r.technician,
-			"vin_number": getattr(r, "vin_number", None) or r.vehicle_vin,
-			"vehicle_model": r.vehicle_model,
-			"clock_in": _format_datetime_minute(r.start_time),
-			"clock_out": _format_datetime_minute(r.end_time) if r.end_time else "",
-			"actual_hours": round(actual, 2),
-			"standard_hours": round(standard, 2) if standard else None,
-			"variance_hours": variance,
-			"pause_reason": pause,
-			"notes": r.notes or "",
-			"job_status": r.job_status,
-		})
+		out.append(
+			{
+				"time_log": r.time_log,
+				"job_card": r.job_card,
+				"technician": r.technician,
+				"vin_number": getattr(r, "vin_number", None) or r.vehicle_vin,
+				"vehicle_model": r.vehicle_model,
+				"clock_in": _format_datetime_minute(r.start_time),
+				"clock_out": _format_datetime_minute(r.end_time) if r.end_time else "",
+				"actual_hours": round(actual, 2),
+				"standard_hours": round(standard, 2) if standard else None,
+				"variance_hours": variance,
+				"pause_reason": pause,
+				"notes": r.notes or "",
+				"job_status": r.job_status,
+			}
+		)
 
 	return _result(
 		"technician_time_analysis",

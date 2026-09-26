@@ -130,9 +130,7 @@ def create_tender(data=None):
 	if not payload.get("title"):
 		frappe.throw(_("Tender title is required."))
 	if not payload.get("customer") and payload.get("account"):
-		payload["customer"] = frappe.db.get_value(
-			"DMS CRM Account", payload["account"], "customer"
-		)
+		payload["customer"] = frappe.db.get_value("DMS CRM Account", payload["account"], "customer")
 	if not payload.get("customer"):
 		frappe.throw(_("Customer is required."))
 	doc = frappe.new_doc(TENDER)
@@ -224,9 +222,7 @@ def get_framework_agreements(status=None, search=None, limit=50, offset=0):
 def _renewal_due(row) -> bool:
 	if not row.get("valid_to") or row.get("status") != "Active":
 		return False
-	alert_days = (
-		frappe.db.get_value(AGREEMENT, row.name, "renewal_alert_days") or 60
-	)
+	alert_days = frappe.db.get_value(AGREEMENT, row.name, "renewal_alert_days") or 60
 	return getdate(row.valid_to) <= getdate(add_days(today(), alert_days))
 
 
@@ -247,9 +243,7 @@ def create_framework_agreement(data=None):
 	if not payload.get("agreement_title"):
 		frappe.throw(_("Agreement title is required."))
 	if not payload.get("customer") and payload.get("account"):
-		payload["customer"] = frappe.db.get_value(
-			"DMS CRM Account", payload["account"], "customer"
-		)
+		payload["customer"] = frappe.db.get_value("DMS CRM Account", payload["account"], "customer")
 	if not payload.get("customer"):
 		frappe.throw(_("Customer is required."))
 	doc = frappe.new_doc(AGREEMENT)

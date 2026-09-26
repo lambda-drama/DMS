@@ -102,7 +102,11 @@ const dms_vehicle_inspection = {
 			const plate = sa.license_plate || vin?.plate_number || "";
 			await frm.set_value("license_plate", plate || "");
 
-			if (vin?.model_year !== undefined && vin.model_year !== null && vin.model_year !== "") {
+			if (
+				vin?.model_year !== undefined &&
+				vin.model_year !== null &&
+				vin.model_year !== ""
+			) {
 				await frm.set_value("model_year", vin.model_year);
 			}
 
@@ -113,7 +117,9 @@ const dms_vehicle_inspection = {
 			frappe.msgprint({
 				title: __("Could not load appointment"),
 				indicator: "red",
-				message: __("Unable to fetch Service Appointment. Check permissions or try again."),
+				message: __(
+					"Unable to fetch Service Appointment. Check permissions or try again."
+				),
 			});
 			console.error(e);
 		} finally {
@@ -127,7 +133,11 @@ const dms_vehicle_inspection = {
 		}
 		try {
 			const vin = await frappe.db.get_doc("VIN No", frm.doc.vin_chassis);
-			if (vin?.model_year !== undefined && vin.model_year !== null && vin.model_year !== "") {
+			if (
+				vin?.model_year !== undefined &&
+				vin.model_year !== null &&
+				vin.model_year !== ""
+			) {
 				await frm.set_value("model_year", vin.model_year);
 			}
 		} catch (e) {
@@ -171,7 +181,10 @@ const dms_vehicle_inspection = {
 							return;
 						}
 						if (r.message) {
-							frappe.show_alert({ message: __("DMS Job Card created"), indicator: "green" });
+							frappe.show_alert({
+								message: __("DMS Job Card created"),
+								indicator: "green",
+							});
 							frappe.set_route("Form", "DMS Job Card", r.message);
 						}
 					},
@@ -181,40 +194,36 @@ const dms_vehicle_inspection = {
 	},
 };
 
-
-
 function apply_customer_filter_advanced(frm) {
-    frm.fields_dict.customer.get_query = function(doc, cdt, cdn) {
-        return {
-            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_customers",
-            filters: {}
-        };
-    };
+	frm.fields_dict.customer.get_query = function (doc, cdt, cdn) {
+		return {
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_customers",
+			filters: {},
+		};
+	};
 }
-
 
 function apply_vehicle_item_filter(frm) {
-    frm.fields_dict.customer_vehicle.get_query = function(doc, cdt, cdn) {
-        return {
-            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
-            filters: {}
-        };
-    };
+	frm.fields_dict.customer_vehicle.get_query = function (doc, cdt, cdn) {
+		return {
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
+			filters: {},
+		};
+	};
 }
 
-
 function apply_vin_filter(frm) {
-    frm.fields_dict.vin_chassis.get_query = function(doc, cdt, cdn) {
-        let filters = {};
-        
-        // If vehicle is selected, filter by that vehicle item
-        if (doc.customer_vehicle) {
-            filters.vehicle_item = doc.customer_vehicle;
-        }
-        
-        return {
-            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_vins",
-            filters: filters
-        };
-    };
+	frm.fields_dict.vin_chassis.get_query = function (doc, cdt, cdn) {
+		let filters = {};
+
+		// If vehicle is selected, filter by that vehicle item
+		if (doc.customer_vehicle) {
+			filters.vehicle_item = doc.customer_vehicle;
+		}
+
+		return {
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_vins",
+			filters: filters,
+		};
+	};
 }

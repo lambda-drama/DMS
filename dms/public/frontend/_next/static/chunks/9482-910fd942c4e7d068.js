@@ -1,1 +1,1779 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[9482],{39482:(e,a,t)=>{t.r(a),t.d(a,{default:()=>Z});var r=t(95155),s=t(12115),i=t(44855),l=t(79984),n=t(4474),o=t(39658),c=t(79792),d=t(23511),u=t(15306),p=t(26518),m=t(10086),v=t(99916),h=t(52118),b=t(55833),_=t(21350);let f=["by_status","by_month","by_advisor","by_technician","by_bay","by_model","by_reason","by_age_bucket"],x={fail_count:{view:"job-cards",params:{filter:"qc_failed"}},total_qc_jobs:{view:"job-cards",params:{filter:"qc"}},fail_rate_pct:{view:"job-cards",params:{filter:"qc_failed"}},total_jobs:{view:"job-cards",params:{filter:"active"}},approved:{view:"job-cards"},pending:{view:"job-cards"},technician_count:{view:"technicians"},total_sold_hours:{view:"technicians"},avg_efficiency_pct:{view:"technicians"},advisor_count:{view:"service-advisors"},total_net_sales:{view:"invoices"},arrival_rate_pct:{view:"appointments"},follow_ups:{view:"reports",params:{section:"crm",report:"customer_follow_up"}},outstanding:{view:"reports",params:{section:"crm",report:"customer_follow_up"}},avg_rating:{view:"reports",params:{section:"crm",report:"customer_satisfaction"}},retention_rate_pct:{view:"reports",params:{section:"crm",report:"customer_retention"}},audit_events:{view:"reports",params:{section:"compliance",report:"user_audit_trail"}},odometer_exceptions:{view:"reports",params:{section:"compliance",report:"odometer_exception"}},events:{view:"reports",params:{section:"compliance",report:"user_audit_trail"}},exception_count:{view:"reports",params:{section:"compliance",report:"odometer_exception"}}};function y({data:e}){let{navigate:a}=(0,b.c)(),t=e.summary||{},s=(0,_.ul)(t,"by_status"),i=(0,_.ul)(t,"by_reason"),l=(0,_.ul)(t,"by_month");return(0,r.jsxs)(_.Rd,{children:[(0,r.jsx)(_.QB,{summary:t,skip:f,max:4,links:x,onNavigate:e=>a(e.view,e.params)}),(0,r.jsxs)("div",{className:"grid gap-3 lg:grid-cols-2",children:[s.length>0?(0,r.jsx)(_.hK,{title:"By status",data:s,onSliceClick:t=>{"qc"===e.section_id||"warranty"===e.section_id?a("job-cards",t?{status:t}:{filter:"qc"}):"advisor"===e.section_id?a("appointments"):t&&a("job-cards",{status:t})}}):null,i.length>0?(0,r.jsx)(_.hK,{title:"By reason",data:i,onSliceClick:()=>{"qc"===e.section_id&&a("job-cards",{filter:"qc_failed"})}}):(0,r.jsx)(_.gf,{title:"Trend",data:l,onBarClick:()=>{"finance"===e.section_id&&a("invoices")}})]})]})}function g({data:e}){let{navigate:a}=(0,b.c)(),t=e.summary||{},s=t.revenue_currency||null,i=(0,_.ul)(t,"by_status"),l=(0,_.ul)(t,"by_pay_mix"),n=(0,_.ul)(t,"by_month"),o=(0,_.ul)(t,"by_job_type"),c=(0,_.ul)(t,"by_branch");return(0,r.jsxs)(_.Rd,{children:[s?(0,r.jsxs)("p",{className:"text-[11px] text-muted-foreground",children:["Amounts in ",(0,r.jsx)("span",{className:"font-semibold text-foreground",children:s})]}):null,(0,r.jsx)(_.$7,{onNavigate:e=>a(e.view,e.params),metrics:[{key:"vehicles_received",label:"Vehicles received",value:t.vehicles_received,hint:"Unique VINs in period",href:{view:"job-cards"}},{key:"jobs_opened",label:"Jobs opened",value:t.jobs_opened,hint:"Job cards created",href:{view:"job-cards"}},{key:"jobs_closed",label:"Jobs closed",value:t.jobs_closed,hint:"Completed / delivered",href:{view:"job-cards",params:{filter:"completed"}}},{key:"jobs_cancelled",label:"Cancelled",value:t.jobs_cancelled,hint:"Cancelled job cards",href:{view:"job-cards",params:{status:"Cancelled"}}},{key:"jobs_reopened",label:"Reopened / rework",value:t.jobs_reopened,hint:"Repeat, QC fail, rework",href:{view:"job-cards",params:{filter:"qc_failed"}}},{key:"invoiced_revenue",label:"Invoiced revenue",value:t.invoiced_revenue,display:"money",currency:s,hint:"Sales invoices / closed net",href:{view:"invoices"}},{key:"labor_revenue",label:"Labor revenue",value:t.labor_revenue??t.labour_revenue,display:"money",currency:s,hint:"Customer-pay labour",href:{view:"reports",params:{section:"executive",report:"aftersales_profitability"}}},{key:"parts_revenue",label:"Parts revenue",value:t.parts_revenue,display:"money",currency:s,hint:"Customer-pay parts",href:{view:"reports",params:{section:"executive",report:"aftersales_profitability"}}},{key:"warranty_revenue",label:"Warranty revenue",value:t.warranty_revenue,display:"money",currency:s,hint:"Warranty / recall jobs",href:{view:"reports",params:{section:"warranty",report:"dashboard"}}},{key:"internal_work_value",label:"Internal work",value:t.internal_work_value,display:"money",currency:s,hint:"Internal job value",href:{view:"job-cards"}},{key:"avg_repair_order",label:"Avg repair order",value:t.avg_repair_order,display:"money",currency:s,hint:"Net / closed customer-pay",href:{view:"reports",params:{section:"executive",report:"aftersales_dashboard"}}},{key:"open_job_cards",label:"In workshop",value:t.open_job_cards,hint:"Open active jobs",href:{view:"job-cards",params:{filter:"active"}}},{key:"overdue_promised",label:"Delayed",value:t.overdue_promised,hint:"Past promised delivery",href:{view:"job-cards",params:{filter:"overdue"}}},{key:"waiting_parts",label:"Waiting parts",value:t.waiting_parts,hint:"Jobs blocked on parts",href:{view:"job-cards",params:{status:"Waiting Parts"}}},{key:"csat_score",label:"CSAT",value:t.csat_score,display:"stars",hint:"Avg follow-up rating (1–5)",href:{view:"reports",params:{section:"crm",report:"customer_satisfaction"}}},{key:"estimate_conversion_pct",label:"Estimate conversion %",value:t.estimate_conversion_pct,progress:Number(t.estimate_conversion_pct)||0,hint:"Accepted / decided estimates",href:{view:"service-estimates"}},{key:"first_time_fix_pct",label:"First-time fix %",value:t.first_time_fix_pct,progress:Number(t.first_time_fix_pct)||0,hint:"Closed without repeat repair",href:{view:"reports",params:{section:"workshop",report:"repeat_repair"}}},{key:"gross_profit",label:"Gross profit",value:t.gross_profit,display:"money",currency:s,hint:"Net sales − direct cost",href:{view:"reports",params:{section:"executive",report:"aftersales_profitability"}}},{key:"gross_profit_pct",label:"Gross profit %",value:t.gross_profit_pct,progress:Number(t.gross_profit_pct)||0,hint:"GP / net sales",href:{view:"reports",params:{section:"executive",report:"aftersales_profitability"}}},{key:"yoy_growth_pct",label:"YoY growth %",value:t.yoy_growth_pct,hint:"Versus prior-year period",href:{view:"reports",params:{section:"executive",report:"revenue_trend"}}},{key:"budget_achievement_avg",label:"Budget achievement %",value:t.budget_achievement_avg,progress:Number(t.budget_achievement_avg)||0,hint:"Avg target achievement",href:{view:"reports",params:{section:"executive",report:"budget_versus_actual"}}}]}),(0,r.jsxs)("div",{className:"grid gap-3 lg:grid-cols-2",children:[(0,r.jsx)(_.hK,{title:"Customer-pay \xb7 Warranty \xb7 Internal",data:l,currency:s,valueIsMoney:!0,onSliceClick:()=>a("reports",{section:"executive",report:"aftersales_dashboard"})}),(0,r.jsx)(_.hK,{title:"WIP mix",data:i,onSliceClick:e=>{e&&a("job-cards",{status:e})}}),(0,r.jsx)(_.gf,{title:"Revenue by month",data:n,currency:s,valueIsMoney:!0,onBarClick:()=>a("reports",{section:"executive",report:"revenue_trend"})}),(0,r.jsx)(_.gf,{title:"Revenue by job type",data:o,currency:s,valueIsMoney:!0,onBarClick:()=>a("reports",{section:"executive",report:"revenue_trend"})}),(0,r.jsx)(_.gf,{title:"Revenue by branch",data:c,currency:s,valueIsMoney:!0,onBarClick:()=>a("reports",{section:"executive",report:"revenue_trend"})}),(0,r.jsx)(_.gf,{title:"Gross profit by branch",data:(0,_.ul)(t,"by_branch_gp"),currency:s,valueIsMoney:!0,onBarClick:()=>a("reports",{section:"executive",report:"aftersales_profitability"})})]})]})}function j({data:e}){let{navigate:a}=(0,b.c)(),t=e.summary||{},s=Number(t.invoice_count)||0,i=Number(t.unbilled_count)||0,l=[...s?[{name:"Invoiced",fullName:"Invoiced",value:s}]:[],...i?[{name:"Unbilled",fullName:"Unbilled",value:i}]:[]];return(0,r.jsxs)(_.Rd,{children:[(0,r.jsx)(_.$7,{onNavigate:e=>a(e.view,e.params),metrics:[{key:"invoice_count",label:"Invoices",value:t.invoice_count,hint:"Invoice register",href:{view:"invoices"}},{key:"grand_total",label:"Grand total",value:t.grand_total,hint:"All invoices",href:{view:"invoices"}},{key:"outstanding",label:"Outstanding",value:t.outstanding,hint:"Unpaid / overdue",href:{view:"invoices",params:{status:"Unpaid"}}},{key:"unbilled_count",label:"Unbilled jobs",value:t.unbilled_count,hint:"Open unbilled report",href:{view:"reports",params:{section:"finance",report:"unbilled_job_cards"}}}]}),(0,r.jsxs)("div",{className:"grid gap-3 lg:grid-cols-2",children:[(0,r.jsx)(_.hK,{title:"Billing mix",data:l,onSliceClick:e=>{"Unbilled"===e?a("reports",{section:"finance",report:"unbilled_job_cards"}):a("invoices")}}),(0,r.jsx)(_.gf,{title:"Revenue by month",data:(0,_.ul)(t,"by_month"),onBarClick:()=>a("invoices")})]})]})}function w({data:e}){let{navigate:a}=(0,b.c)(),t=e.summary||{},s=Number(t.requested)||0,i=Number(t.issued)||0,l=Math.max(0,s-i),n=[...i?[{name:"Issued",fullName:"Issued",value:i}]:[],...l?[{name:"Open / BO",fullName:"Open",value:l}]:[]];return(0,r.jsxs)(_.Rd,{children:[(0,r.jsx)(_.$7,{onNavigate:e=>a(e.view,e.params),metrics:[{key:"open_requests",label:"Open requests",value:t.open_requests,hint:"Parts requisitions",href:{view:"parts-requisitions",params:{filter:"active"}}},{key:"fill_rate_pct",label:"Fill rate %",value:t.fill_rate_pct,progress:Number(t.fill_rate_pct)||0,hint:"Fill rate report",href:{view:"reports",params:{section:"parts",report:"parts_fill_rate"}}},{key:"requested",label:"Qty requested",value:t.requested,hint:"Parts issued report",href:{view:"reports",params:{section:"parts",report:"parts_issued_per_job"}}},{key:"issued",label:"Qty issued",value:t.issued,hint:"Parts requisitions",href:{view:"parts-requisitions",params:{filter:"active"}}}]}),(0,r.jsxs)("div",{className:"grid gap-3 lg:grid-cols-2",children:[(0,r.jsx)(_.hK,{title:"Request status",data:(0,_.ul)(t,"by_status"),onSliceClick:e=>{e?a("parts-requisitions",{status:e}):a("parts-requisitions",{filter:"active"})}}),(0,r.jsx)(_.hK,{title:"Fill mix",data:n.length?n:(0,_.ul)(t,"by_status"),onSliceClick:()=>a("reports",{section:"parts",report:"parts_fill_rate"})})]})]})}function k({data:e}){let{navigate:a}=(0,b.c)(),t=e.summary||{},s=Number(t.open_job_cards)||0,i=Number(t.overdue_promised)||0,l=Number(t.total_in_workshop)||s;return(0,r.jsxs)(_.Rd,{children:[(0,r.jsx)(_.$7,{onNavigate:e=>a(e.view,e.params),metrics:[{key:"open",label:"Open jobs",value:s,hint:"Active WIP",href:{view:"job-cards",params:{filter:"active"}}},{key:"overdue",label:"Overdue",value:i,progress:s?Math.min(100,i/s*100):0,hint:"Past promised time",href:{view:"job-cards",params:{filter:"overdue"}}},{key:"in_shop",label:"In workshop",value:l,hint:"All open workshop jobs",href:{view:"job-cards",params:{filter:"active"}}},{key:"on_track",label:"On track",value:Math.max(0,s-i),progress:s?Math.min(100,(s-i)/s*100):0,hint:"Active jobs",href:{view:"job-cards",params:{filter:"active"}}}]}),(0,r.jsxs)("div",{className:"grid gap-3 lg:grid-cols-2",children:[(0,r.jsx)(_.hK,{title:"Status mix",data:(0,_.ul)(t,"by_status"),onSliceClick:e=>{e&&a("job-cards",{status:e})}}),(0,r.jsx)(_.gf,{title:"Age buckets",data:(0,_.ul)(t,"by_age_bucket"),onBarClick:()=>a("job-cards",{filter:"active"})})]})]})}function N({data:e}){switch(e.section_id){case"workshop":return(0,r.jsx)(k,{data:e});case"executive":return(0,r.jsx)(g,{data:e});case"finance":return(0,r.jsx)(j,{data:e});case"parts":return(0,r.jsx)(w,{data:e});default:return(0,r.jsx)(y,{data:e})}}var C=t(49876);let S="dms.api.reports";async function A(){let e=await (0,C.AT)(`/api/method/${S}.list_reports`,{method:"POST",body:JSON.stringify({})});return Array.isArray(e)?{sections:[{id:"all",title:"Reports",description:"All reports",reports:e}],reports:e}:e}async function q(e,a){return(0,C.AT)(`/api/method/${S}.get_report`,{method:"POST",body:JSON.stringify({report_id:e,filters:a||{}})})}async function I(e,a){return(0,C.AT)(`/api/method/${S}.get_section_dashboard`,{method:"POST",body:JSON.stringify({section_id:e,filters:a||{}})})}var R=t(52335),L=t(45171),O=t(5240),D=t(36020),E=t(84437),P=t(43600),J=t(6296),F=t(91958),M=t(47339),B=t(48368),V=t(66609),$=t(91337);let T=[{value:"custom",label:"Custom range"},{value:"daily",label:"Daily"},{value:"weekly",label:"Weekly"},{value:"monthly",label:"Monthly"},{value:"quarterly",label:"Quarterly"},{value:"yearly",label:"Yearly"}],K=["Customer Paid","Warranty","Internal","PDI","Campaign/Recall","Insurance","Goodwill","Fleet Contract"];function W(e){return e.toISOString().split("T")[0]}function Y(e){let a,t=new Date;if(t.setHours(12,0,0,0),"daily"===e){let e=W(t);return{from:e,to:e}}if("weekly"===e){let e=new Date(t),a=(e.getDay()+6)%7;e.setDate(e.getDate()-a);let r=new Date(e);return r.setDate(e.getDate()+6),{from:W(e),to:W(r)}}if("monthly"===e){let e=new Date(t.getFullYear(),t.getMonth(),1),a=new Date(t.getFullYear(),t.getMonth()+1,0);return{from:W(e),to:W(a)}}if("quarterly"===e){let e=Math.floor(t.getMonth()/3),a=new Date(t.getFullYear(),3*e,1),r=new Date(t.getFullYear(),3*e+3,0);return{from:W(a),to:W(r)}}return"yearly"===e?{from:W(new Date(t.getFullYear(),0,1)),to:W(new Date(t.getFullYear(),11,31))}:{from:((a=new Date).setDate(a.getDate()-30),W(a)),to:W(t)}}function Z(){let{viewParams:e,navigate:a}=(0,b.c)(),[t,f]=(0,s.useState)([]),[x,y]=(0,s.useState)(!0),g=e.get("section")||"",j=e.get("report")||"dashboard",[w,k]=(0,s.useState)("monthly"),[C,S]=(0,s.useState)(()=>Y("monthly").from),[W,Z]=(0,s.useState)(()=>Y("monthly").to),[G,U]=(0,s.useState)(""),[z,Q]=(0,s.useState)(""),[X,H]=(0,s.useState)(""),[ee,ea]=(0,s.useState)(""),[et,er]=(0,s.useState)(""),[es,ei]=(0,s.useState)(""),[el,en]=(0,s.useState)(""),[eo,ec]=(0,s.useState)(""),[ed,eu]=(0,s.useState)(""),[ep,em]=(0,s.useState)(!1),[ev,eh]=(0,s.useState)(null),[eb,e_]=(0,s.useState)(null),[ef,ex]=(0,s.useState)(!1),[ey,eg]=(0,s.useState)(null),[ej,ew]=(0,s.useState)(""),[ek,eN]=(0,s.useState)(""),[eC,eS]=(0,s.useState)(""),[eA,eq]=(0,s.useState)(""),[eI,eR]=(0,s.useState)(""),[eL,eO]=(0,s.useState)(!1),[eD,eE]=(0,s.useState)(""),[eP,eJ]=(0,s.useState)(""),[eF,eM]=(0,s.useState)(""),[eB,eV]=(0,s.useState)(""),{data:e$,isLoading:eT}=(0,D.Rr)(eD),{data:eK,isLoading:eW}=(0,D.Yj)(eP),{data:eY,isLoading:eZ}=(0,D.Uj)(eF,ej||void 0),{data:eG,isLoading:eU}=(0,D.qp)(),{data:ez,isLoading:eQ}=(0,D.jm)(),{data:eX,isLoading:eH}=(0,D.iR)(eo),e0=(0,s.useMemo)(()=>t.find(e=>e.id===g)||null,[t,g]),e1="spare_parts_stock"===j;(0,D.Tr)(e$,eT,ej,e=>ew(e.name),{search:eD,enabled:e1});let e3=e=>{if(k(e),"custom"===e)return;let a=Y(e);S(a.from),Z(a.to)},e5="monthly"!==w;(0,s.useEffect)(()=>{A().then(e=>f(e.sections||[])).catch(()=>V.o.error("Failed to load reports")).finally(()=>y(!1))},[]),(0,s.useEffect)(()=>{if(!x&&t.length){if(!g)return void a("reports",{section:t[0].id,report:"dashboard"});t.some(e=>e.id===g)||a("reports",{section:t[0].id,report:"dashboard"})}},[x,g,t,a]);let e9=eB.trim(),{data:e4=[],isLoading:e7}=(0,i.Ay)(e1?["report-spare-parts",e9,eC||null,ej||null]:null,()=>(0,O.OK)(e9||void 0,eC||void 0,ej||void 0),{dedupingInterval:3e3}),e2=X.trim(),{data:e8=[],isLoading:e6}=(0,i.Ay)(g&&!e1?["report-filter-vins",e2]:null,()=>(0,O.bf)(void 0,e2||void 0),{dedupingInterval:3e3}),ae=(0,s.useCallback)(()=>e1?{company:ej||void 0,warehouse:eC||void 0,spare_part:eA||void 0,below_minimum_only:+!!eL,include_zero_stock:1}:{from_date:C,to_date:W,...w&&"custom"!==w?{period:w}:{},...ek?{branch:ek}:{},...ee?{service_advisor:ee}:{},...et?{technician:et}:{},...es?{vehicle_model:es,vehicle_model_label:el||void 0}:{},...ed?{job_card_type:ed}:{},...G?{vin_no:G}:{}},[e1,ej,eC,eA,eL,C,W,w,ek,ee,et,es,el,ed,G]),aa=(0,s.useCallback)(async()=>{if(g){em(!0);try{if("dashboard"===j)e_(await I(g,ae())),eh(null);else{if(e1&&(!ej||!eC)){V.o.error("Select company and warehouse, then refresh."),eh(null);return}eh(await q(j,ae())),e_(null)}}catch(e){V.o.error(e instanceof Error?e.message:"Failed to load report"),eh(null),e_(null)}finally{em(!1)}}},[g,j,ae,e1,ej,eC]);(0,s.useEffect)(()=>{!x&&g&&aa()},[x,g,j]);let at=e=>{ev?"csv"===e?(0,R.hn)(ev):"excel"===e?(0,R.Oq)(ev):(eg((0,R.M7)(ev)),ex(!0)):V.o.error("Open a report tab first, then export.")};return x||!g?(0,r.jsxs)("div",{className:"space-y-3 p-1",children:[(0,r.jsx)(d.E,{className:"h-8 w-48"}),(0,r.jsx)(d.E,{className:"h-10 w-full"}),(0,r.jsx)("div",{className:"grid gap-2 sm:grid-cols-4",children:Array.from({length:4}).map((e,a)=>(0,r.jsx)(d.E,{className:"h-24 rounded-lg"},a))})]}):(0,r.jsxs)("div",{className:"space-y-3",children:[(0,r.jsx)(L.$,{open:ef,onOpenChange:e=>{ex(e),e||eg(null)},title:ev?.title||"Report",html:ey}),(0,r.jsxs)("div",{className:"flex flex-wrap items-center justify-end gap-1.5",children:[(0,r.jsxs)(n.$,{type:"button",variant:"outline",size:"sm",className:_.he,onClick:()=>void aa(),disabled:ep,children:[ep?(0,r.jsx)(J.A,{className:"h-3.5 w-3.5 animate-spin"}):(0,r.jsx)(F.A,{className:"h-3.5 w-3.5"}),"Refresh"]}),(0,r.jsxs)(n.$,{type:"button",variant:"outline",size:"sm",className:_.he,onClick:()=>at("excel"),disabled:!ev,children:[(0,r.jsx)(M.A,{className:"h-3.5 w-3.5"}),"Excel"]}),(0,r.jsxs)(n.$,{type:"button",variant:"outline",size:"sm",className:_.he,onClick:()=>at("pdf"),disabled:!ev,children:[(0,r.jsx)(B.A,{className:"h-3.5 w-3.5"}),"PDF"]}),(0,r.jsx)(n.$,{type:"button",variant:"outline",size:"sm",className:_.he,onClick:()=>at("csv"),disabled:!ev,children:"CSV"})]}),(0,r.jsx)(u.tU,{value:j,onValueChange:e=>{g&&a("reports",{section:g,report:e})},children:(0,r.jsx)("div",{className:"overflow-x-auto pb-0.5",children:(0,r.jsxs)(u.j7,{className:"h-11 w-max max-w-none justify-start gap-1 rounded-xl bg-muted/50 p-1.5",children:[(0,r.jsx)(u.Xi,{value:"dashboard",className:(0,$.cn)("font-serif-display h-8 rounded-lg border border-transparent px-3.5 text-[14px] font-normal tracking-wide","text-muted-foreground transition-colors","data-[state=active]:border-dms-gold/60 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm","data-[state=active]:font-normal"),children:"Overview"}),(e0?.reports||[]).map(e=>(0,r.jsx)(u.Xi,{value:e.id,className:(0,$.cn)("font-serif-display h-8 rounded-lg border border-transparent px-3.5 text-[14px] font-normal tracking-wide","text-muted-foreground transition-colors","data-[state=active]:border-dms-gold/60 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm","data-[state=active]:font-normal"),children:e.title},e.id))]})})}),(0,r.jsx)(l.Zp,{className:"border-border/80 shadow-none",children:(0,r.jsxs)(l.Wu,{className:"space-y-3 pt-4",children:[(0,r.jsx)("div",{className:"grid gap-2.5 md:grid-cols-2 xl:grid-cols-4",children:e1?(0,r.jsxs)(r.Fragment,{children:[(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(P.g,{className:"text-xs",children:"Company"}),(0,r.jsx)(m.Zi,{options:(e$||[]).map(e=>({value:e.name,label:e.company_name||e.name})),value:ej,onValueChange:e=>{ew(e),eS("")},onSearchChange:eE,placeholder:"Select company",isLoading:eT})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(P.g,{className:"text-xs",children:"Warehouse"}),(0,r.jsx)(m.Zi,{options:(eY||[]).map(e=>({value:e.name,label:e.warehouse_name||e.name})),value:eC,onValueChange:eS,onSearchChange:eM,placeholder:"Select warehouse",isLoading:eZ,disabled:!ej})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"Spare part"}),(0,r.jsx)(m.Zi,{options:e4.map(O.lE),value:eA,valueLabel:eI,onValueChange:e=>{eq(e);let a=e4.find(a=>a.name===e);eR(a?(0,O.lE)(a).label:"")},onSearchChange:eV,placeholder:"All parts",isLoading:e7})]}),(0,r.jsxs)("div",{className:"flex items-end gap-2 pb-1.5",children:[(0,r.jsx)(E.S,{id:"below-min",checked:eL,onCheckedChange:e=>eO(!0===e)}),(0,r.jsx)(c.J,{htmlFor:"below-min",className:"cursor-pointer text-xs font-normal",children:"Below minimum only"})]})]}):(0,r.jsxs)(r.Fragment,{children:[(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"Period"}),(0,r.jsxs)(p.l6,{value:w,onValueChange:e3,children:[(0,r.jsx)(p.bq,{className:"h-9",children:(0,r.jsx)(p.yv,{placeholder:"Period"})}),(0,r.jsx)(p.gC,{children:T.map(e=>(0,r.jsx)(p.eb,{value:e.value,children:e.label},e.value))})]})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"From"}),(0,r.jsx)(o.p,{type:"date",className:"h-9",value:C,disabled:"custom"!==w,onChange:e=>{k("custom"),S(e.target.value)}})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"To"}),(0,r.jsx)(o.p,{type:"date",className:"h-9",value:W,disabled:"custom"!==w,onChange:e=>{k("custom"),Z(e.target.value)}})]}),(0,r.jsx)("div",{className:"flex items-end",children:(0,r.jsx)(v.r,{onClear:()=>e3("monthly"),disabled:!e5})}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"Branch"}),(0,r.jsx)(m.Zi,{options:(eK||[]).map(e=>({value:e.name,label:e.branch||e.name})),value:ek,onValueChange:eN,onSearchChange:eJ,placeholder:"All branches",isLoading:eW})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"Advisor"}),(0,r.jsx)(m.Zi,{options:(eG||[]).map(e=>({value:e.name,label:e.full_name||e.name})),value:ee,onValueChange:ea,placeholder:"All advisors",isLoading:eU})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"Technician"}),(0,r.jsx)(m.Zi,{options:(ez||[]).map(e=>({value:e.name,label:e.full_name||e.name})),value:et,onValueChange:er,placeholder:"All technicians",isLoading:eQ})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"Model"}),(0,r.jsx)(m.Zi,{options:(eX||[]).map(e=>({value:e.name,label:e.model_name||e.name,description:e.brand_label||e.brand})),value:es,valueLabel:el,onValueChange:e=>{ei(e);let a=(eX||[]).find(a=>a.name===e);en(a?.model_name||a?.name||"")},onSearchChange:ec,placeholder:"All models",isLoading:eH})]}),(0,r.jsxs)("div",{className:"space-y-1",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"Job type"}),(0,r.jsxs)(p.l6,{value:ed||"__all__",onValueChange:e=>eu("__all__"===e?"":e),children:[(0,r.jsx)(p.bq,{className:"h-9",children:(0,r.jsx)(p.yv,{placeholder:"All types"})}),(0,r.jsxs)(p.gC,{children:[(0,r.jsx)(p.eb,{value:"__all__",children:"All types"}),K.map(e=>(0,r.jsx)(p.eb,{value:e,children:e},e))]})]})]}),(0,r.jsxs)("div",{className:"space-y-1 md:col-span-2",children:[(0,r.jsx)(c.J,{className:"text-xs",children:"VIN"}),(0,r.jsx)(m.Zi,{options:e8.map(e=>{let a;return{value:e.name,label:e.vin_number||e.name,description:(a=e.plate_number?` \xb7 ${e.plate_number}`:"",e.model_name?`${e.model_name}${a}`:e.plate_number||e.name)}}),value:G,valueLabel:z,onValueChange:e=>{U(e);let a=e8.find(a=>a.name===e);Q(a?.vin_number||a?.name||"")},onSearchChange:H,placeholder:"Optional filter…",isLoading:e6})]})]})}),ep?(0,r.jsx)("div",{className:"flex justify-center py-12",children:(0,r.jsx)(J.A,{className:"h-7 w-7 animate-spin text-dms-gold"})}):"dashboard"===j&&eb?(0,r.jsx)(N,{data:eb}):ev?(0,r.jsx)(h.R,{data:ev}):(0,r.jsx)("p",{className:"py-10 text-center text-sm text-muted-foreground",children:"Adjust filters and click Refresh."})]})})]})}},43600:(e,a,t)=>{t.d(a,{g:()=>l});var r=t(95155),s=t(79792),i=t(91337);function l({children:e,required:a=!0,className:t,...n}){return(0,r.jsxs)(s.J,{className:(0,i.cn)(t),...n,children:[e,a?(0,r.jsx)("span",{className:"ml-0.5 text-destructive",children:"*"}):null]})}},47279:(e,a,t)=>{t.d(a,{C1:()=>w,bL:()=>g});var r=t(12115),s=t(47527),i=t(68599),l=t(70379),n=t(98979),o=t(83417),c=t(63509),d=t(83935),u=t(99354),p=t(95155),m="Checkbox",[v,h]=(0,i.A)(m),[b,_]=v(m);function f(e){let{__scopeCheckbox:a,checked:t,children:s,defaultChecked:i,disabled:l,form:o,name:c,onCheckedChange:d,required:u,value:v="on",internal_do_not_use_render:h}=e,[_,f]=(0,n.i)({prop:t,defaultProp:i??!1,onChange:d,caller:m}),[x,y]=r.useState(null),[g,j]=r.useState(null),w=r.useRef(!1),k=!x||!!o||!!x.closest("form"),N={checked:_,disabled:l,setChecked:f,control:x,setControl:y,name:c,form:o,value:v,hasConsumerStoppedPropagationRef:w,required:u,defaultChecked:!C(i)&&i,isFormControl:k,bubbleInput:g,setBubbleInput:j};return(0,p.jsx)(b,{scope:a,...N,children:"function"==typeof h?h(N):s})}var x="CheckboxTrigger",y=r.forwardRef(({__scopeCheckbox:e,onKeyDown:a,onClick:t,...i},n)=>{let{control:o,value:c,disabled:d,checked:m,required:v,setControl:h,setChecked:b,hasConsumerStoppedPropagationRef:f,isFormControl:y,bubbleInput:g}=_(x,e),j=(0,s.s)(n,h),w=r.useRef(m);return r.useEffect(()=>{let e=o?.form;if(e){let a=()=>b(w.current);return e.addEventListener("reset",a),()=>e.removeEventListener("reset",a)}},[o,b]),(0,p.jsx)(u.sG.button,{type:"button",role:"checkbox","aria-checked":C(m)?"mixed":m,"aria-required":v,"data-state":S(m),"data-disabled":d?"":void 0,disabled:d,value:c,...i,ref:j,onKeyDown:(0,l.mK)(a,e=>{"Enter"===e.key&&e.preventDefault()}),onClick:(0,l.mK)(t,e=>{b(e=>!!C(e)||!e),g&&y&&(f.current=e.isPropagationStopped(),f.current||e.stopPropagation())})})});y.displayName=x;var g=r.forwardRef((e,a)=>{let{__scopeCheckbox:t,name:r,checked:s,defaultChecked:i,required:l,disabled:n,value:o,onCheckedChange:c,form:d,...u}=e;return(0,p.jsx)(f,{__scopeCheckbox:t,checked:s,defaultChecked:i,disabled:n,required:l,onCheckedChange:c,name:r,form:d,value:o,internal_do_not_use_render:({isFormControl:e})=>(0,p.jsxs)(p.Fragment,{children:[(0,p.jsx)(y,{...u,ref:a,__scopeCheckbox:t}),e&&(0,p.jsx)(N,{__scopeCheckbox:t})]})})});g.displayName=m;var j="CheckboxIndicator",w=r.forwardRef((e,a)=>{let{__scopeCheckbox:t,forceMount:r,...s}=e,i=_(j,t);return(0,p.jsx)(d.C,{present:r||C(i.checked)||!0===i.checked,children:(0,p.jsx)(u.sG.span,{"data-state":S(i.checked),"data-disabled":i.disabled?"":void 0,...s,ref:a,style:{pointerEvents:"none",...e.style}})})});w.displayName=j;var k="CheckboxBubbleInput",N=r.forwardRef(({__scopeCheckbox:e,...a},t)=>{let{control:i,hasConsumerStoppedPropagationRef:l,checked:n,defaultChecked:d,required:m,disabled:v,name:h,value:b,form:f,bubbleInput:x,setBubbleInput:y}=_(k,e),g=(0,s.s)(t,y),j=(0,o.Z)(n),w=(0,c.X)(i);r.useEffect(()=>{if(!x)return;let e=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,"checked").set,a=!l.current;if(j!==n&&e){let t=new Event("click",{bubbles:a});x.indeterminate=C(n),e.call(x,!C(n)&&n),x.dispatchEvent(t)}},[x,j,n,l]);let N=r.useRef(!C(n)&&n);return(0,p.jsx)(u.sG.input,{type:"checkbox","aria-hidden":!0,defaultChecked:d??N.current,required:m,disabled:v,name:h,value:b,form:f,...a,tabIndex:-1,ref:g,style:{...a.style,...w,position:"absolute",pointerEvents:"none",opacity:0,margin:0,transform:"translateX(-100%)"}})});function C(e){return"indeterminate"===e}function S(e){return C(e)?"indeterminate":e?"checked":"unchecked"}N.displayName=k},84437:(e,a,t)=>{t.d(a,{S:()=>n});var r=t(95155);t(12115);var s=t(47279),i=t(94514),l=t(91337);function n({className:e,...a}){return(0,r.jsx)(s.bL,{"data-slot":"checkbox",className:(0,l.cn)("peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",e),...a,children:(0,r.jsx)(s.C1,{"data-slot":"checkbox-indicator",className:"flex items-center justify-center text-current transition-none",children:(0,r.jsx)(i.A,{className:"size-3.5"})})})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[9482],
+	{
+		39482: (e, a, t) => {
+			t.r(a), t.d(a, { default: () => Z });
+			var r = t(95155),
+				s = t(12115),
+				i = t(44855),
+				l = t(79984),
+				n = t(4474),
+				o = t(39658),
+				c = t(79792),
+				d = t(23511),
+				u = t(15306),
+				p = t(26518),
+				m = t(10086),
+				v = t(99916),
+				h = t(52118),
+				b = t(55833),
+				_ = t(21350);
+			let f = [
+					"by_status",
+					"by_month",
+					"by_advisor",
+					"by_technician",
+					"by_bay",
+					"by_model",
+					"by_reason",
+					"by_age_bucket",
+				],
+				x = {
+					fail_count: { view: "job-cards", params: { filter: "qc_failed" } },
+					total_qc_jobs: { view: "job-cards", params: { filter: "qc" } },
+					fail_rate_pct: { view: "job-cards", params: { filter: "qc_failed" } },
+					total_jobs: { view: "job-cards", params: { filter: "active" } },
+					approved: { view: "job-cards" },
+					pending: { view: "job-cards" },
+					technician_count: { view: "technicians" },
+					total_sold_hours: { view: "technicians" },
+					avg_efficiency_pct: { view: "technicians" },
+					advisor_count: { view: "service-advisors" },
+					total_net_sales: { view: "invoices" },
+					arrival_rate_pct: { view: "appointments" },
+					follow_ups: {
+						view: "reports",
+						params: { section: "crm", report: "customer_follow_up" },
+					},
+					outstanding: {
+						view: "reports",
+						params: { section: "crm", report: "customer_follow_up" },
+					},
+					avg_rating: {
+						view: "reports",
+						params: { section: "crm", report: "customer_satisfaction" },
+					},
+					retention_rate_pct: {
+						view: "reports",
+						params: { section: "crm", report: "customer_retention" },
+					},
+					audit_events: {
+						view: "reports",
+						params: { section: "compliance", report: "user_audit_trail" },
+					},
+					odometer_exceptions: {
+						view: "reports",
+						params: { section: "compliance", report: "odometer_exception" },
+					},
+					events: {
+						view: "reports",
+						params: { section: "compliance", report: "user_audit_trail" },
+					},
+					exception_count: {
+						view: "reports",
+						params: { section: "compliance", report: "odometer_exception" },
+					},
+				};
+			function y({ data: e }) {
+				let { navigate: a } = (0, b.c)(),
+					t = e.summary || {},
+					s = (0, _.ul)(t, "by_status"),
+					i = (0, _.ul)(t, "by_reason"),
+					l = (0, _.ul)(t, "by_month");
+				return (0, r.jsxs)(_.Rd, {
+					children: [
+						(0, r.jsx)(_.QB, {
+							summary: t,
+							skip: f,
+							max: 4,
+							links: x,
+							onNavigate: (e) => a(e.view, e.params),
+						}),
+						(0, r.jsxs)("div", {
+							className: "grid gap-3 lg:grid-cols-2",
+							children: [
+								s.length > 0
+									? (0, r.jsx)(_.hK, {
+											title: "By status",
+											data: s,
+											onSliceClick: (t) => {
+												"qc" === e.section_id ||
+												"warranty" === e.section_id
+													? a(
+															"job-cards",
+															t ? { status: t } : { filter: "qc" }
+													  )
+													: "advisor" === e.section_id
+													? a("appointments")
+													: t && a("job-cards", { status: t });
+											},
+									  })
+									: null,
+								i.length > 0
+									? (0, r.jsx)(_.hK, {
+											title: "By reason",
+											data: i,
+											onSliceClick: () => {
+												"qc" === e.section_id &&
+													a("job-cards", { filter: "qc_failed" });
+											},
+									  })
+									: (0, r.jsx)(_.gf, {
+											title: "Trend",
+											data: l,
+											onBarClick: () => {
+												"finance" === e.section_id && a("invoices");
+											},
+									  }),
+							],
+						}),
+					],
+				});
+			}
+			function g({ data: e }) {
+				let { navigate: a } = (0, b.c)(),
+					t = e.summary || {},
+					s = t.revenue_currency || null,
+					i = (0, _.ul)(t, "by_status"),
+					l = (0, _.ul)(t, "by_pay_mix"),
+					n = (0, _.ul)(t, "by_month"),
+					o = (0, _.ul)(t, "by_job_type"),
+					c = (0, _.ul)(t, "by_branch");
+				return (0, r.jsxs)(_.Rd, {
+					children: [
+						s
+							? (0, r.jsxs)("p", {
+									className: "text-[11px] text-muted-foreground",
+									children: [
+										"Amounts in ",
+										(0, r.jsx)("span", {
+											className: "font-semibold text-foreground",
+											children: s,
+										}),
+									],
+							  })
+							: null,
+						(0, r.jsx)(_.$7, {
+							onNavigate: (e) => a(e.view, e.params),
+							metrics: [
+								{
+									key: "vehicles_received",
+									label: "Vehicles received",
+									value: t.vehicles_received,
+									hint: "Unique VINs in period",
+									href: { view: "job-cards" },
+								},
+								{
+									key: "jobs_opened",
+									label: "Jobs opened",
+									value: t.jobs_opened,
+									hint: "Job cards created",
+									href: { view: "job-cards" },
+								},
+								{
+									key: "jobs_closed",
+									label: "Jobs closed",
+									value: t.jobs_closed,
+									hint: "Completed / delivered",
+									href: { view: "job-cards", params: { filter: "completed" } },
+								},
+								{
+									key: "jobs_cancelled",
+									label: "Cancelled",
+									value: t.jobs_cancelled,
+									hint: "Cancelled job cards",
+									href: { view: "job-cards", params: { status: "Cancelled" } },
+								},
+								{
+									key: "jobs_reopened",
+									label: "Reopened / rework",
+									value: t.jobs_reopened,
+									hint: "Repeat, QC fail, rework",
+									href: { view: "job-cards", params: { filter: "qc_failed" } },
+								},
+								{
+									key: "invoiced_revenue",
+									label: "Invoiced revenue",
+									value: t.invoiced_revenue,
+									display: "money",
+									currency: s,
+									hint: "Sales invoices / closed net",
+									href: { view: "invoices" },
+								},
+								{
+									key: "labor_revenue",
+									label: "Labor revenue",
+									value: t.labor_revenue ?? t.labour_revenue,
+									display: "money",
+									currency: s,
+									hint: "Customer-pay labour",
+									href: {
+										view: "reports",
+										params: {
+											section: "executive",
+											report: "aftersales_profitability",
+										},
+									},
+								},
+								{
+									key: "parts_revenue",
+									label: "Parts revenue",
+									value: t.parts_revenue,
+									display: "money",
+									currency: s,
+									hint: "Customer-pay parts",
+									href: {
+										view: "reports",
+										params: {
+											section: "executive",
+											report: "aftersales_profitability",
+										},
+									},
+								},
+								{
+									key: "warranty_revenue",
+									label: "Warranty revenue",
+									value: t.warranty_revenue,
+									display: "money",
+									currency: s,
+									hint: "Warranty / recall jobs",
+									href: {
+										view: "reports",
+										params: { section: "warranty", report: "dashboard" },
+									},
+								},
+								{
+									key: "internal_work_value",
+									label: "Internal work",
+									value: t.internal_work_value,
+									display: "money",
+									currency: s,
+									hint: "Internal job value",
+									href: { view: "job-cards" },
+								},
+								{
+									key: "avg_repair_order",
+									label: "Avg repair order",
+									value: t.avg_repair_order,
+									display: "money",
+									currency: s,
+									hint: "Net / closed customer-pay",
+									href: {
+										view: "reports",
+										params: {
+											section: "executive",
+											report: "aftersales_dashboard",
+										},
+									},
+								},
+								{
+									key: "open_job_cards",
+									label: "In workshop",
+									value: t.open_job_cards,
+									hint: "Open active jobs",
+									href: { view: "job-cards", params: { filter: "active" } },
+								},
+								{
+									key: "overdue_promised",
+									label: "Delayed",
+									value: t.overdue_promised,
+									hint: "Past promised delivery",
+									href: { view: "job-cards", params: { filter: "overdue" } },
+								},
+								{
+									key: "waiting_parts",
+									label: "Waiting parts",
+									value: t.waiting_parts,
+									hint: "Jobs blocked on parts",
+									href: {
+										view: "job-cards",
+										params: { status: "Waiting Parts" },
+									},
+								},
+								{
+									key: "csat_score",
+									label: "CSAT",
+									value: t.csat_score,
+									display: "stars",
+									hint: "Avg follow-up rating (1–5)",
+									href: {
+										view: "reports",
+										params: {
+											section: "crm",
+											report: "customer_satisfaction",
+										},
+									},
+								},
+								{
+									key: "estimate_conversion_pct",
+									label: "Estimate conversion %",
+									value: t.estimate_conversion_pct,
+									progress: Number(t.estimate_conversion_pct) || 0,
+									hint: "Accepted / decided estimates",
+									href: { view: "service-estimates" },
+								},
+								{
+									key: "first_time_fix_pct",
+									label: "First-time fix %",
+									value: t.first_time_fix_pct,
+									progress: Number(t.first_time_fix_pct) || 0,
+									hint: "Closed without repeat repair",
+									href: {
+										view: "reports",
+										params: { section: "workshop", report: "repeat_repair" },
+									},
+								},
+								{
+									key: "gross_profit",
+									label: "Gross profit",
+									value: t.gross_profit,
+									display: "money",
+									currency: s,
+									hint: "Net sales − direct cost",
+									href: {
+										view: "reports",
+										params: {
+											section: "executive",
+											report: "aftersales_profitability",
+										},
+									},
+								},
+								{
+									key: "gross_profit_pct",
+									label: "Gross profit %",
+									value: t.gross_profit_pct,
+									progress: Number(t.gross_profit_pct) || 0,
+									hint: "GP / net sales",
+									href: {
+										view: "reports",
+										params: {
+											section: "executive",
+											report: "aftersales_profitability",
+										},
+									},
+								},
+								{
+									key: "yoy_growth_pct",
+									label: "YoY growth %",
+									value: t.yoy_growth_pct,
+									hint: "Versus prior-year period",
+									href: {
+										view: "reports",
+										params: { section: "executive", report: "revenue_trend" },
+									},
+								},
+								{
+									key: "budget_achievement_avg",
+									label: "Budget achievement %",
+									value: t.budget_achievement_avg,
+									progress: Number(t.budget_achievement_avg) || 0,
+									hint: "Avg target achievement",
+									href: {
+										view: "reports",
+										params: {
+											section: "executive",
+											report: "budget_versus_actual",
+										},
+									},
+								},
+							],
+						}),
+						(0, r.jsxs)("div", {
+							className: "grid gap-3 lg:grid-cols-2",
+							children: [
+								(0, r.jsx)(_.hK, {
+									title: "Customer-pay \xb7 Warranty \xb7 Internal",
+									data: l,
+									currency: s,
+									valueIsMoney: !0,
+									onSliceClick: () =>
+										a("reports", {
+											section: "executive",
+											report: "aftersales_dashboard",
+										}),
+								}),
+								(0, r.jsx)(_.hK, {
+									title: "WIP mix",
+									data: i,
+									onSliceClick: (e) => {
+										e && a("job-cards", { status: e });
+									},
+								}),
+								(0, r.jsx)(_.gf, {
+									title: "Revenue by month",
+									data: n,
+									currency: s,
+									valueIsMoney: !0,
+									onBarClick: () =>
+										a("reports", {
+											section: "executive",
+											report: "revenue_trend",
+										}),
+								}),
+								(0, r.jsx)(_.gf, {
+									title: "Revenue by job type",
+									data: o,
+									currency: s,
+									valueIsMoney: !0,
+									onBarClick: () =>
+										a("reports", {
+											section: "executive",
+											report: "revenue_trend",
+										}),
+								}),
+								(0, r.jsx)(_.gf, {
+									title: "Revenue by branch",
+									data: c,
+									currency: s,
+									valueIsMoney: !0,
+									onBarClick: () =>
+										a("reports", {
+											section: "executive",
+											report: "revenue_trend",
+										}),
+								}),
+								(0, r.jsx)(_.gf, {
+									title: "Gross profit by branch",
+									data: (0, _.ul)(t, "by_branch_gp"),
+									currency: s,
+									valueIsMoney: !0,
+									onBarClick: () =>
+										a("reports", {
+											section: "executive",
+											report: "aftersales_profitability",
+										}),
+								}),
+							],
+						}),
+					],
+				});
+			}
+			function j({ data: e }) {
+				let { navigate: a } = (0, b.c)(),
+					t = e.summary || {},
+					s = Number(t.invoice_count) || 0,
+					i = Number(t.unbilled_count) || 0,
+					l = [
+						...(s ? [{ name: "Invoiced", fullName: "Invoiced", value: s }] : []),
+						...(i ? [{ name: "Unbilled", fullName: "Unbilled", value: i }] : []),
+					];
+				return (0, r.jsxs)(_.Rd, {
+					children: [
+						(0, r.jsx)(_.$7, {
+							onNavigate: (e) => a(e.view, e.params),
+							metrics: [
+								{
+									key: "invoice_count",
+									label: "Invoices",
+									value: t.invoice_count,
+									hint: "Invoice register",
+									href: { view: "invoices" },
+								},
+								{
+									key: "grand_total",
+									label: "Grand total",
+									value: t.grand_total,
+									hint: "All invoices",
+									href: { view: "invoices" },
+								},
+								{
+									key: "outstanding",
+									label: "Outstanding",
+									value: t.outstanding,
+									hint: "Unpaid / overdue",
+									href: { view: "invoices", params: { status: "Unpaid" } },
+								},
+								{
+									key: "unbilled_count",
+									label: "Unbilled jobs",
+									value: t.unbilled_count,
+									hint: "Open unbilled report",
+									href: {
+										view: "reports",
+										params: {
+											section: "finance",
+											report: "unbilled_job_cards",
+										},
+									},
+								},
+							],
+						}),
+						(0, r.jsxs)("div", {
+							className: "grid gap-3 lg:grid-cols-2",
+							children: [
+								(0, r.jsx)(_.hK, {
+									title: "Billing mix",
+									data: l,
+									onSliceClick: (e) => {
+										"Unbilled" === e
+											? a("reports", {
+													section: "finance",
+													report: "unbilled_job_cards",
+											  })
+											: a("invoices");
+									},
+								}),
+								(0, r.jsx)(_.gf, {
+									title: "Revenue by month",
+									data: (0, _.ul)(t, "by_month"),
+									onBarClick: () => a("invoices"),
+								}),
+							],
+						}),
+					],
+				});
+			}
+			function w({ data: e }) {
+				let { navigate: a } = (0, b.c)(),
+					t = e.summary || {},
+					s = Number(t.requested) || 0,
+					i = Number(t.issued) || 0,
+					l = Math.max(0, s - i),
+					n = [
+						...(i ? [{ name: "Issued", fullName: "Issued", value: i }] : []),
+						...(l ? [{ name: "Open / BO", fullName: "Open", value: l }] : []),
+					];
+				return (0, r.jsxs)(_.Rd, {
+					children: [
+						(0, r.jsx)(_.$7, {
+							onNavigate: (e) => a(e.view, e.params),
+							metrics: [
+								{
+									key: "open_requests",
+									label: "Open requests",
+									value: t.open_requests,
+									hint: "Parts requisitions",
+									href: {
+										view: "parts-requisitions",
+										params: { filter: "active" },
+									},
+								},
+								{
+									key: "fill_rate_pct",
+									label: "Fill rate %",
+									value: t.fill_rate_pct,
+									progress: Number(t.fill_rate_pct) || 0,
+									hint: "Fill rate report",
+									href: {
+										view: "reports",
+										params: { section: "parts", report: "parts_fill_rate" },
+									},
+								},
+								{
+									key: "requested",
+									label: "Qty requested",
+									value: t.requested,
+									hint: "Parts issued report",
+									href: {
+										view: "reports",
+										params: {
+											section: "parts",
+											report: "parts_issued_per_job",
+										},
+									},
+								},
+								{
+									key: "issued",
+									label: "Qty issued",
+									value: t.issued,
+									hint: "Parts requisitions",
+									href: {
+										view: "parts-requisitions",
+										params: { filter: "active" },
+									},
+								},
+							],
+						}),
+						(0, r.jsxs)("div", {
+							className: "grid gap-3 lg:grid-cols-2",
+							children: [
+								(0, r.jsx)(_.hK, {
+									title: "Request status",
+									data: (0, _.ul)(t, "by_status"),
+									onSliceClick: (e) => {
+										e
+											? a("parts-requisitions", { status: e })
+											: a("parts-requisitions", { filter: "active" });
+									},
+								}),
+								(0, r.jsx)(_.hK, {
+									title: "Fill mix",
+									data: n.length ? n : (0, _.ul)(t, "by_status"),
+									onSliceClick: () =>
+										a("reports", {
+											section: "parts",
+											report: "parts_fill_rate",
+										}),
+								}),
+							],
+						}),
+					],
+				});
+			}
+			function k({ data: e }) {
+				let { navigate: a } = (0, b.c)(),
+					t = e.summary || {},
+					s = Number(t.open_job_cards) || 0,
+					i = Number(t.overdue_promised) || 0,
+					l = Number(t.total_in_workshop) || s;
+				return (0, r.jsxs)(_.Rd, {
+					children: [
+						(0, r.jsx)(_.$7, {
+							onNavigate: (e) => a(e.view, e.params),
+							metrics: [
+								{
+									key: "open",
+									label: "Open jobs",
+									value: s,
+									hint: "Active WIP",
+									href: { view: "job-cards", params: { filter: "active" } },
+								},
+								{
+									key: "overdue",
+									label: "Overdue",
+									value: i,
+									progress: s ? Math.min(100, (i / s) * 100) : 0,
+									hint: "Past promised time",
+									href: { view: "job-cards", params: { filter: "overdue" } },
+								},
+								{
+									key: "in_shop",
+									label: "In workshop",
+									value: l,
+									hint: "All open workshop jobs",
+									href: { view: "job-cards", params: { filter: "active" } },
+								},
+								{
+									key: "on_track",
+									label: "On track",
+									value: Math.max(0, s - i),
+									progress: s ? Math.min(100, ((s - i) / s) * 100) : 0,
+									hint: "Active jobs",
+									href: { view: "job-cards", params: { filter: "active" } },
+								},
+							],
+						}),
+						(0, r.jsxs)("div", {
+							className: "grid gap-3 lg:grid-cols-2",
+							children: [
+								(0, r.jsx)(_.hK, {
+									title: "Status mix",
+									data: (0, _.ul)(t, "by_status"),
+									onSliceClick: (e) => {
+										e && a("job-cards", { status: e });
+									},
+								}),
+								(0, r.jsx)(_.gf, {
+									title: "Age buckets",
+									data: (0, _.ul)(t, "by_age_bucket"),
+									onBarClick: () => a("job-cards", { filter: "active" }),
+								}),
+							],
+						}),
+					],
+				});
+			}
+			function N({ data: e }) {
+				switch (e.section_id) {
+					case "workshop":
+						return (0, r.jsx)(k, { data: e });
+					case "executive":
+						return (0, r.jsx)(g, { data: e });
+					case "finance":
+						return (0, r.jsx)(j, { data: e });
+					case "parts":
+						return (0, r.jsx)(w, { data: e });
+					default:
+						return (0, r.jsx)(y, { data: e });
+				}
+			}
+			var C = t(49876);
+			let S = "dms.api.reports";
+			async function A() {
+				let e = await (0, C.AT)(`/api/method/${S}.list_reports`, {
+					method: "POST",
+					body: JSON.stringify({}),
+				});
+				return Array.isArray(e)
+					? {
+							sections: [
+								{
+									id: "all",
+									title: "Reports",
+									description: "All reports",
+									reports: e,
+								},
+							],
+							reports: e,
+					  }
+					: e;
+			}
+			async function q(e, a) {
+				return (0, C.AT)(`/api/method/${S}.get_report`, {
+					method: "POST",
+					body: JSON.stringify({ report_id: e, filters: a || {} }),
+				});
+			}
+			async function I(e, a) {
+				return (0, C.AT)(`/api/method/${S}.get_section_dashboard`, {
+					method: "POST",
+					body: JSON.stringify({ section_id: e, filters: a || {} }),
+				});
+			}
+			var R = t(52335),
+				L = t(45171),
+				O = t(5240),
+				D = t(36020),
+				E = t(84437),
+				P = t(43600),
+				J = t(6296),
+				F = t(91958),
+				M = t(47339),
+				B = t(48368),
+				V = t(66609),
+				$ = t(91337);
+			let T = [
+					{ value: "custom", label: "Custom range" },
+					{ value: "daily", label: "Daily" },
+					{ value: "weekly", label: "Weekly" },
+					{ value: "monthly", label: "Monthly" },
+					{ value: "quarterly", label: "Quarterly" },
+					{ value: "yearly", label: "Yearly" },
+				],
+				K = [
+					"Customer Paid",
+					"Warranty",
+					"Internal",
+					"PDI",
+					"Campaign/Recall",
+					"Insurance",
+					"Goodwill",
+					"Fleet Contract",
+				];
+			function W(e) {
+				return e.toISOString().split("T")[0];
+			}
+			function Y(e) {
+				let a,
+					t = new Date();
+				if ((t.setHours(12, 0, 0, 0), "daily" === e)) {
+					let e = W(t);
+					return { from: e, to: e };
+				}
+				if ("weekly" === e) {
+					let e = new Date(t),
+						a = (e.getDay() + 6) % 7;
+					e.setDate(e.getDate() - a);
+					let r = new Date(e);
+					return r.setDate(e.getDate() + 6), { from: W(e), to: W(r) };
+				}
+				if ("monthly" === e) {
+					let e = new Date(t.getFullYear(), t.getMonth(), 1),
+						a = new Date(t.getFullYear(), t.getMonth() + 1, 0);
+					return { from: W(e), to: W(a) };
+				}
+				if ("quarterly" === e) {
+					let e = Math.floor(t.getMonth() / 3),
+						a = new Date(t.getFullYear(), 3 * e, 1),
+						r = new Date(t.getFullYear(), 3 * e + 3, 0);
+					return { from: W(a), to: W(r) };
+				}
+				return "yearly" === e
+					? {
+							from: W(new Date(t.getFullYear(), 0, 1)),
+							to: W(new Date(t.getFullYear(), 11, 31)),
+					  }
+					: { from: ((a = new Date()).setDate(a.getDate() - 30), W(a)), to: W(t) };
+			}
+			function Z() {
+				let { viewParams: e, navigate: a } = (0, b.c)(),
+					[t, f] = (0, s.useState)([]),
+					[x, y] = (0, s.useState)(!0),
+					g = e.get("section") || "",
+					j = e.get("report") || "dashboard",
+					[w, k] = (0, s.useState)("monthly"),
+					[C, S] = (0, s.useState)(() => Y("monthly").from),
+					[W, Z] = (0, s.useState)(() => Y("monthly").to),
+					[G, U] = (0, s.useState)(""),
+					[z, Q] = (0, s.useState)(""),
+					[X, H] = (0, s.useState)(""),
+					[ee, ea] = (0, s.useState)(""),
+					[et, er] = (0, s.useState)(""),
+					[es, ei] = (0, s.useState)(""),
+					[el, en] = (0, s.useState)(""),
+					[eo, ec] = (0, s.useState)(""),
+					[ed, eu] = (0, s.useState)(""),
+					[ep, em] = (0, s.useState)(!1),
+					[ev, eh] = (0, s.useState)(null),
+					[eb, e_] = (0, s.useState)(null),
+					[ef, ex] = (0, s.useState)(!1),
+					[ey, eg] = (0, s.useState)(null),
+					[ej, ew] = (0, s.useState)(""),
+					[ek, eN] = (0, s.useState)(""),
+					[eC, eS] = (0, s.useState)(""),
+					[eA, eq] = (0, s.useState)(""),
+					[eI, eR] = (0, s.useState)(""),
+					[eL, eO] = (0, s.useState)(!1),
+					[eD, eE] = (0, s.useState)(""),
+					[eP, eJ] = (0, s.useState)(""),
+					[eF, eM] = (0, s.useState)(""),
+					[eB, eV] = (0, s.useState)(""),
+					{ data: e$, isLoading: eT } = (0, D.Rr)(eD),
+					{ data: eK, isLoading: eW } = (0, D.Yj)(eP),
+					{ data: eY, isLoading: eZ } = (0, D.Uj)(eF, ej || void 0),
+					{ data: eG, isLoading: eU } = (0, D.qp)(),
+					{ data: ez, isLoading: eQ } = (0, D.jm)(),
+					{ data: eX, isLoading: eH } = (0, D.iR)(eo),
+					e0 = (0, s.useMemo)(() => t.find((e) => e.id === g) || null, [t, g]),
+					e1 = "spare_parts_stock" === j;
+				(0, D.Tr)(e$, eT, ej, (e) => ew(e.name), { search: eD, enabled: e1 });
+				let e3 = (e) => {
+						if ((k(e), "custom" === e)) return;
+						let a = Y(e);
+						S(a.from), Z(a.to);
+					},
+					e5 = "monthly" !== w;
+				(0, s.useEffect)(() => {
+					A()
+						.then((e) => f(e.sections || []))
+						.catch(() => V.o.error("Failed to load reports"))
+						.finally(() => y(!1));
+				}, []),
+					(0, s.useEffect)(() => {
+						if (!x && t.length) {
+							if (!g)
+								return void a("reports", {
+									section: t[0].id,
+									report: "dashboard",
+								});
+							t.some((e) => e.id === g) ||
+								a("reports", { section: t[0].id, report: "dashboard" });
+						}
+					}, [x, g, t, a]);
+				let e9 = eB.trim(),
+					{ data: e4 = [], isLoading: e7 } = (0, i.Ay)(
+						e1 ? ["report-spare-parts", e9, eC || null, ej || null] : null,
+						() => (0, O.OK)(e9 || void 0, eC || void 0, ej || void 0),
+						{ dedupingInterval: 3e3 }
+					),
+					e2 = X.trim(),
+					{ data: e8 = [], isLoading: e6 } = (0, i.Ay)(
+						g && !e1 ? ["report-filter-vins", e2] : null,
+						() => (0, O.bf)(void 0, e2 || void 0),
+						{ dedupingInterval: 3e3 }
+					),
+					ae = (0, s.useCallback)(
+						() =>
+							e1
+								? {
+										company: ej || void 0,
+										warehouse: eC || void 0,
+										spare_part: eA || void 0,
+										below_minimum_only: +!!eL,
+										include_zero_stock: 1,
+								  }
+								: {
+										from_date: C,
+										to_date: W,
+										...(w && "custom" !== w ? { period: w } : {}),
+										...(ek ? { branch: ek } : {}),
+										...(ee ? { service_advisor: ee } : {}),
+										...(et ? { technician: et } : {}),
+										...(es
+											? {
+													vehicle_model: es,
+													vehicle_model_label: el || void 0,
+											  }
+											: {}),
+										...(ed ? { job_card_type: ed } : {}),
+										...(G ? { vin_no: G } : {}),
+								  },
+						[e1, ej, eC, eA, eL, C, W, w, ek, ee, et, es, el, ed, G]
+					),
+					aa = (0, s.useCallback)(async () => {
+						if (g) {
+							em(!0);
+							try {
+								if ("dashboard" === j) e_(await I(g, ae())), eh(null);
+								else {
+									if (e1 && (!ej || !eC)) {
+										V.o.error("Select company and warehouse, then refresh."),
+											eh(null);
+										return;
+									}
+									eh(await q(j, ae())), e_(null);
+								}
+							} catch (e) {
+								V.o.error(
+									e instanceof Error ? e.message : "Failed to load report"
+								),
+									eh(null),
+									e_(null);
+							} finally {
+								em(!1);
+							}
+						}
+					}, [g, j, ae, e1, ej, eC]);
+				(0, s.useEffect)(() => {
+					!x && g && aa();
+				}, [x, g, j]);
+				let at = (e) => {
+					ev
+						? "csv" === e
+							? (0, R.hn)(ev)
+							: "excel" === e
+							? (0, R.Oq)(ev)
+							: (eg((0, R.M7)(ev)), ex(!0))
+						: V.o.error("Open a report tab first, then export.");
+				};
+				return x || !g
+					? (0, r.jsxs)("div", {
+							className: "space-y-3 p-1",
+							children: [
+								(0, r.jsx)(d.E, { className: "h-8 w-48" }),
+								(0, r.jsx)(d.E, { className: "h-10 w-full" }),
+								(0, r.jsx)("div", {
+									className: "grid gap-2 sm:grid-cols-4",
+									children: Array.from({ length: 4 }).map((e, a) =>
+										(0, r.jsx)(d.E, { className: "h-24 rounded-lg" }, a)
+									),
+								}),
+							],
+					  })
+					: (0, r.jsxs)("div", {
+							className: "space-y-3",
+							children: [
+								(0, r.jsx)(L.$, {
+									open: ef,
+									onOpenChange: (e) => {
+										ex(e), e || eg(null);
+									},
+									title: ev?.title || "Report",
+									html: ey,
+								}),
+								(0, r.jsxs)("div", {
+									className: "flex flex-wrap items-center justify-end gap-1.5",
+									children: [
+										(0, r.jsxs)(n.$, {
+											type: "button",
+											variant: "outline",
+											size: "sm",
+											className: _.he,
+											onClick: () => void aa(),
+											disabled: ep,
+											children: [
+												ep
+													? (0, r.jsx)(J.A, {
+															className: "h-3.5 w-3.5 animate-spin",
+													  })
+													: (0, r.jsx)(F.A, {
+															className: "h-3.5 w-3.5",
+													  }),
+												"Refresh",
+											],
+										}),
+										(0, r.jsxs)(n.$, {
+											type: "button",
+											variant: "outline",
+											size: "sm",
+											className: _.he,
+											onClick: () => at("excel"),
+											disabled: !ev,
+											children: [
+												(0, r.jsx)(M.A, { className: "h-3.5 w-3.5" }),
+												"Excel",
+											],
+										}),
+										(0, r.jsxs)(n.$, {
+											type: "button",
+											variant: "outline",
+											size: "sm",
+											className: _.he,
+											onClick: () => at("pdf"),
+											disabled: !ev,
+											children: [
+												(0, r.jsx)(B.A, { className: "h-3.5 w-3.5" }),
+												"PDF",
+											],
+										}),
+										(0, r.jsx)(n.$, {
+											type: "button",
+											variant: "outline",
+											size: "sm",
+											className: _.he,
+											onClick: () => at("csv"),
+											disabled: !ev,
+											children: "CSV",
+										}),
+									],
+								}),
+								(0, r.jsx)(u.tU, {
+									value: j,
+									onValueChange: (e) => {
+										g && a("reports", { section: g, report: e });
+									},
+									children: (0, r.jsx)("div", {
+										className: "overflow-x-auto pb-0.5",
+										children: (0, r.jsxs)(u.j7, {
+											className:
+												"h-11 w-max max-w-none justify-start gap-1 rounded-xl bg-muted/50 p-1.5",
+											children: [
+												(0, r.jsx)(u.Xi, {
+													value: "dashboard",
+													className: (0, $.cn)(
+														"font-serif-display h-8 rounded-lg border border-transparent px-3.5 text-[14px] font-normal tracking-wide",
+														"text-muted-foreground transition-colors",
+														"data-[state=active]:border-dms-gold/60 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+														"data-[state=active]:font-normal"
+													),
+													children: "Overview",
+												}),
+												(e0?.reports || []).map((e) =>
+													(0, r.jsx)(
+														u.Xi,
+														{
+															value: e.id,
+															className: (0, $.cn)(
+																"font-serif-display h-8 rounded-lg border border-transparent px-3.5 text-[14px] font-normal tracking-wide",
+																"text-muted-foreground transition-colors",
+																"data-[state=active]:border-dms-gold/60 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+																"data-[state=active]:font-normal"
+															),
+															children: e.title,
+														},
+														e.id
+													)
+												),
+											],
+										}),
+									}),
+								}),
+								(0, r.jsx)(l.Zp, {
+									className: "border-border/80 shadow-none",
+									children: (0, r.jsxs)(l.Wu, {
+										className: "space-y-3 pt-4",
+										children: [
+											(0, r.jsx)("div", {
+												className:
+													"grid gap-2.5 md:grid-cols-2 xl:grid-cols-4",
+												children: e1
+													? (0, r.jsxs)(r.Fragment, {
+															children: [
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(P.g, {
+																			className: "text-xs",
+																			children: "Company",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: (
+																				e$ || []
+																			).map((e) => ({
+																				value: e.name,
+																				label:
+																					e.company_name ||
+																					e.name,
+																			})),
+																			value: ej,
+																			onValueChange: (e) => {
+																				ew(e), eS("");
+																			},
+																			onSearchChange: eE,
+																			placeholder:
+																				"Select company",
+																			isLoading: eT,
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(P.g, {
+																			className: "text-xs",
+																			children: "Warehouse",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: (
+																				eY || []
+																			).map((e) => ({
+																				value: e.name,
+																				label:
+																					e.warehouse_name ||
+																					e.name,
+																			})),
+																			value: eC,
+																			onValueChange: eS,
+																			onSearchChange: eM,
+																			placeholder:
+																				"Select warehouse",
+																			isLoading: eZ,
+																			disabled: !ej,
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "Spare part",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: e4.map(O.lE),
+																			value: eA,
+																			valueLabel: eI,
+																			onValueChange: (e) => {
+																				eq(e);
+																				let a = e4.find(
+																					(a) =>
+																						a.name ===
+																						e
+																				);
+																				eR(
+																					a
+																						? (0,
+																						  O.lE)(a)
+																								.label
+																						: ""
+																				);
+																			},
+																			onSearchChange: eV,
+																			placeholder:
+																				"All parts",
+																			isLoading: e7,
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className:
+																		"flex items-end gap-2 pb-1.5",
+																	children: [
+																		(0, r.jsx)(E.S, {
+																			id: "below-min",
+																			checked: eL,
+																			onCheckedChange: (e) =>
+																				eO(!0 === e),
+																		}),
+																		(0, r.jsx)(c.J, {
+																			htmlFor: "below-min",
+																			className:
+																				"cursor-pointer text-xs font-normal",
+																			children:
+																				"Below minimum only",
+																		}),
+																	],
+																}),
+															],
+													  })
+													: (0, r.jsxs)(r.Fragment, {
+															children: [
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "Period",
+																		}),
+																		(0, r.jsxs)(p.l6, {
+																			value: w,
+																			onValueChange: e3,
+																			children: [
+																				(0, r.jsx)(p.bq, {
+																					className:
+																						"h-9",
+																					children: (0,
+																					r.jsx)(p.yv, {
+																						placeholder:
+																							"Period",
+																					}),
+																				}),
+																				(0, r.jsx)(p.gC, {
+																					children:
+																						T.map(
+																							(e) =>
+																								(0,
+																								r.jsx)(
+																									p.eb,
+																									{
+																										value: e.value,
+																										children:
+																											e.label,
+																									},
+																									e.value
+																								)
+																						),
+																				}),
+																			],
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "From",
+																		}),
+																		(0, r.jsx)(o.p, {
+																			type: "date",
+																			className: "h-9",
+																			value: C,
+																			disabled:
+																				"custom" !== w,
+																			onChange: (e) => {
+																				k("custom"),
+																					S(
+																						e.target
+																							.value
+																					);
+																			},
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "To",
+																		}),
+																		(0, r.jsx)(o.p, {
+																			type: "date",
+																			className: "h-9",
+																			value: W,
+																			disabled:
+																				"custom" !== w,
+																			onChange: (e) => {
+																				k("custom"),
+																					Z(
+																						e.target
+																							.value
+																					);
+																			},
+																		}),
+																	],
+																}),
+																(0, r.jsx)("div", {
+																	className: "flex items-end",
+																	children: (0, r.jsx)(v.r, {
+																		onClear: () =>
+																			e3("monthly"),
+																		disabled: !e5,
+																	}),
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "Branch",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: (
+																				eK || []
+																			).map((e) => ({
+																				value: e.name,
+																				label:
+																					e.branch ||
+																					e.name,
+																			})),
+																			value: ek,
+																			onValueChange: eN,
+																			onSearchChange: eJ,
+																			placeholder:
+																				"All branches",
+																			isLoading: eW,
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "Advisor",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: (
+																				eG || []
+																			).map((e) => ({
+																				value: e.name,
+																				label:
+																					e.full_name ||
+																					e.name,
+																			})),
+																			value: ee,
+																			onValueChange: ea,
+																			placeholder:
+																				"All advisors",
+																			isLoading: eU,
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "Technician",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: (
+																				ez || []
+																			).map((e) => ({
+																				value: e.name,
+																				label:
+																					e.full_name ||
+																					e.name,
+																			})),
+																			value: et,
+																			onValueChange: er,
+																			placeholder:
+																				"All technicians",
+																			isLoading: eQ,
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "Model",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: (
+																				eX || []
+																			).map((e) => ({
+																				value: e.name,
+																				label:
+																					e.model_name ||
+																					e.name,
+																				description:
+																					e.brand_label ||
+																					e.brand,
+																			})),
+																			value: es,
+																			valueLabel: el,
+																			onValueChange: (e) => {
+																				ei(e);
+																				let a = (
+																					eX || []
+																				).find(
+																					(a) =>
+																						a.name ===
+																						e
+																				);
+																				en(
+																					a?.model_name ||
+																						a?.name ||
+																						""
+																				);
+																			},
+																			onSearchChange: ec,
+																			placeholder:
+																				"All models",
+																			isLoading: eH,
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className: "space-y-1",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "Job type",
+																		}),
+																		(0, r.jsxs)(p.l6, {
+																			value: ed || "__all__",
+																			onValueChange: (e) =>
+																				eu(
+																					"__all__" === e
+																						? ""
+																						: e
+																				),
+																			children: [
+																				(0, r.jsx)(p.bq, {
+																					className:
+																						"h-9",
+																					children: (0,
+																					r.jsx)(p.yv, {
+																						placeholder:
+																							"All types",
+																					}),
+																				}),
+																				(0, r.jsxs)(p.gC, {
+																					children: [
+																						(0, r.jsx)(
+																							p.eb,
+																							{
+																								value: "__all__",
+																								children:
+																									"All types",
+																							}
+																						),
+																						K.map(
+																							(e) =>
+																								(0,
+																								r.jsx)(
+																									p.eb,
+																									{
+																										value: e,
+																										children:
+																											e,
+																									},
+																									e
+																								)
+																						),
+																					],
+																				}),
+																			],
+																		}),
+																	],
+																}),
+																(0, r.jsxs)("div", {
+																	className:
+																		"space-y-1 md:col-span-2",
+																	children: [
+																		(0, r.jsx)(c.J, {
+																			className: "text-xs",
+																			children: "VIN",
+																		}),
+																		(0, r.jsx)(m.Zi, {
+																			options: e8.map(
+																				(e) => {
+																					let a;
+																					return {
+																						value: e.name,
+																						label:
+																							e.vin_number ||
+																							e.name,
+																						description:
+																							((a =
+																								e.plate_number
+																									? ` \xb7 ${e.plate_number}`
+																									: ""),
+																							e.model_name
+																								? `${e.model_name}${a}`
+																								: e.plate_number ||
+																								  e.name),
+																					};
+																				}
+																			),
+																			value: G,
+																			valueLabel: z,
+																			onValueChange: (e) => {
+																				U(e);
+																				let a = e8.find(
+																					(a) =>
+																						a.name ===
+																						e
+																				);
+																				Q(
+																					a?.vin_number ||
+																						a?.name ||
+																						""
+																				);
+																			},
+																			onSearchChange: H,
+																			placeholder:
+																				"Optional filter…",
+																			isLoading: e6,
+																		}),
+																	],
+																}),
+															],
+													  }),
+											}),
+											ep
+												? (0, r.jsx)("div", {
+														className: "flex justify-center py-12",
+														children: (0, r.jsx)(J.A, {
+															className:
+																"h-7 w-7 animate-spin text-dms-gold",
+														}),
+												  })
+												: "dashboard" === j && eb
+												? (0, r.jsx)(N, { data: eb })
+												: ev
+												? (0, r.jsx)(h.R, { data: ev })
+												: (0, r.jsx)("p", {
+														className:
+															"py-10 text-center text-sm text-muted-foreground",
+														children:
+															"Adjust filters and click Refresh.",
+												  }),
+										],
+									}),
+								}),
+							],
+					  });
+			}
+		},
+		43600: (e, a, t) => {
+			t.d(a, { g: () => l });
+			var r = t(95155),
+				s = t(79792),
+				i = t(91337);
+			function l({ children: e, required: a = !0, className: t, ...n }) {
+				return (0, r.jsxs)(s.J, {
+					className: (0, i.cn)(t),
+					...n,
+					children: [
+						e,
+						a
+							? (0, r.jsx)("span", {
+									className: "ml-0.5 text-destructive",
+									children: "*",
+							  })
+							: null,
+					],
+				});
+			}
+		},
+		47279: (e, a, t) => {
+			t.d(a, { C1: () => w, bL: () => g });
+			var r = t(12115),
+				s = t(47527),
+				i = t(68599),
+				l = t(70379),
+				n = t(98979),
+				o = t(83417),
+				c = t(63509),
+				d = t(83935),
+				u = t(99354),
+				p = t(95155),
+				m = "Checkbox",
+				[v, h] = (0, i.A)(m),
+				[b, _] = v(m);
+			function f(e) {
+				let {
+						__scopeCheckbox: a,
+						checked: t,
+						children: s,
+						defaultChecked: i,
+						disabled: l,
+						form: o,
+						name: c,
+						onCheckedChange: d,
+						required: u,
+						value: v = "on",
+						internal_do_not_use_render: h,
+					} = e,
+					[_, f] = (0, n.i)({ prop: t, defaultProp: i ?? !1, onChange: d, caller: m }),
+					[x, y] = r.useState(null),
+					[g, j] = r.useState(null),
+					w = r.useRef(!1),
+					k = !x || !!o || !!x.closest("form"),
+					N = {
+						checked: _,
+						disabled: l,
+						setChecked: f,
+						control: x,
+						setControl: y,
+						name: c,
+						form: o,
+						value: v,
+						hasConsumerStoppedPropagationRef: w,
+						required: u,
+						defaultChecked: !C(i) && i,
+						isFormControl: k,
+						bubbleInput: g,
+						setBubbleInput: j,
+					};
+				return (0, p.jsx)(b, {
+					scope: a,
+					...N,
+					children: "function" == typeof h ? h(N) : s,
+				});
+			}
+			var x = "CheckboxTrigger",
+				y = r.forwardRef(({ __scopeCheckbox: e, onKeyDown: a, onClick: t, ...i }, n) => {
+					let {
+							control: o,
+							value: c,
+							disabled: d,
+							checked: m,
+							required: v,
+							setControl: h,
+							setChecked: b,
+							hasConsumerStoppedPropagationRef: f,
+							isFormControl: y,
+							bubbleInput: g,
+						} = _(x, e),
+						j = (0, s.s)(n, h),
+						w = r.useRef(m);
+					return (
+						r.useEffect(() => {
+							let e = o?.form;
+							if (e) {
+								let a = () => b(w.current);
+								return (
+									e.addEventListener("reset", a),
+									() => e.removeEventListener("reset", a)
+								);
+							}
+						}, [o, b]),
+						(0, p.jsx)(u.sG.button, {
+							type: "button",
+							role: "checkbox",
+							"aria-checked": C(m) ? "mixed" : m,
+							"aria-required": v,
+							"data-state": S(m),
+							"data-disabled": d ? "" : void 0,
+							disabled: d,
+							value: c,
+							...i,
+							ref: j,
+							onKeyDown: (0, l.mK)(a, (e) => {
+								"Enter" === e.key && e.preventDefault();
+							}),
+							onClick: (0, l.mK)(t, (e) => {
+								b((e) => !!C(e) || !e),
+									g &&
+										y &&
+										((f.current = e.isPropagationStopped()),
+										f.current || e.stopPropagation());
+							}),
+						})
+					);
+				});
+			y.displayName = x;
+			var g = r.forwardRef((e, a) => {
+				let {
+					__scopeCheckbox: t,
+					name: r,
+					checked: s,
+					defaultChecked: i,
+					required: l,
+					disabled: n,
+					value: o,
+					onCheckedChange: c,
+					form: d,
+					...u
+				} = e;
+				return (0, p.jsx)(f, {
+					__scopeCheckbox: t,
+					checked: s,
+					defaultChecked: i,
+					disabled: n,
+					required: l,
+					onCheckedChange: c,
+					name: r,
+					form: d,
+					value: o,
+					internal_do_not_use_render: ({ isFormControl: e }) =>
+						(0, p.jsxs)(p.Fragment, {
+							children: [
+								(0, p.jsx)(y, { ...u, ref: a, __scopeCheckbox: t }),
+								e && (0, p.jsx)(N, { __scopeCheckbox: t }),
+							],
+						}),
+				});
+			});
+			g.displayName = m;
+			var j = "CheckboxIndicator",
+				w = r.forwardRef((e, a) => {
+					let { __scopeCheckbox: t, forceMount: r, ...s } = e,
+						i = _(j, t);
+					return (0, p.jsx)(d.C, {
+						present: r || C(i.checked) || !0 === i.checked,
+						children: (0, p.jsx)(u.sG.span, {
+							"data-state": S(i.checked),
+							"data-disabled": i.disabled ? "" : void 0,
+							...s,
+							ref: a,
+							style: { pointerEvents: "none", ...e.style },
+						}),
+					});
+				});
+			w.displayName = j;
+			var k = "CheckboxBubbleInput",
+				N = r.forwardRef(({ __scopeCheckbox: e, ...a }, t) => {
+					let {
+							control: i,
+							hasConsumerStoppedPropagationRef: l,
+							checked: n,
+							defaultChecked: d,
+							required: m,
+							disabled: v,
+							name: h,
+							value: b,
+							form: f,
+							bubbleInput: x,
+							setBubbleInput: y,
+						} = _(k, e),
+						g = (0, s.s)(t, y),
+						j = (0, o.Z)(n),
+						w = (0, c.X)(i);
+					r.useEffect(() => {
+						if (!x) return;
+						let e = Object.getOwnPropertyDescriptor(
+								window.HTMLInputElement.prototype,
+								"checked"
+							).set,
+							a = !l.current;
+						if (j !== n && e) {
+							let t = new Event("click", { bubbles: a });
+							(x.indeterminate = C(n)), e.call(x, !C(n) && n), x.dispatchEvent(t);
+						}
+					}, [x, j, n, l]);
+					let N = r.useRef(!C(n) && n);
+					return (0, p.jsx)(u.sG.input, {
+						type: "checkbox",
+						"aria-hidden": !0,
+						defaultChecked: d ?? N.current,
+						required: m,
+						disabled: v,
+						name: h,
+						value: b,
+						form: f,
+						...a,
+						tabIndex: -1,
+						ref: g,
+						style: {
+							...a.style,
+							...w,
+							position: "absolute",
+							pointerEvents: "none",
+							opacity: 0,
+							margin: 0,
+							transform: "translateX(-100%)",
+						},
+					});
+				});
+			function C(e) {
+				return "indeterminate" === e;
+			}
+			function S(e) {
+				return C(e) ? "indeterminate" : e ? "checked" : "unchecked";
+			}
+			N.displayName = k;
+		},
+		84437: (e, a, t) => {
+			t.d(a, { S: () => n });
+			var r = t(95155);
+			t(12115);
+			var s = t(47279),
+				i = t(94514),
+				l = t(91337);
+			function n({ className: e, ...a }) {
+				return (0, r.jsx)(s.bL, {
+					"data-slot": "checkbox",
+					className: (0, l.cn)(
+						"peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+						e
+					),
+					...a,
+					children: (0, r.jsx)(s.C1, {
+						"data-slot": "checkbox-indicator",
+						className: "flex items-center justify-center text-current transition-none",
+						children: (0, r.jsx)(i.A, { className: "size-3.5" }),
+					}),
+				});
+			}
+		},
+	},
+]);

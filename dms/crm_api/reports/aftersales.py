@@ -7,7 +7,6 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, getdate, nowdate
 
-from dms.crm_api.reports.kpis import compute_appendix_b_kpis
 from dms.crm_api.reports.common import (
 	ACCOUNT,
 	ACTIVITY,
@@ -24,6 +23,7 @@ from dms.crm_api.reports.common import (
 	parse_crm_filters,
 	result,
 )
+from dms.crm_api.reports.kpis import compute_appendix_b_kpis
 
 FOLLOW_UP = "Customer Follow Up"
 SERVICE_APPOINTMENT = "Service Appointment"
@@ -79,14 +79,10 @@ def get_crm_aftersales_dashboard(filters=None):
 		summary["reminders"] = frappe.db.count(REMINDER, {"creation": creation_between(f)})
 
 	if dt_exists(DEFERRED):
-		summary["deferred_open"] = frappe.db.count(
-			DEFERRED, {"status": ["in", ["Open", "Follow-Up"]]}
-		)
+		summary["deferred_open"] = frappe.db.count(DEFERRED, {"status": ["in", ["Open", "Follow-Up"]]})
 
 	if dt_exists(CASE):
-		summary["open_cases"] = frappe.db.count(
-			CASE, {"status": ["not in", ["Resolved", "Closed"]]}
-		)
+		summary["open_cases"] = frappe.db.count(CASE, {"status": ["not in", ["Resolved", "Closed"]]})
 
 	scores = []
 	if dt_exists(FOLLOW_UP):
@@ -211,9 +207,7 @@ def _service_due_report(filters=None):
 		{
 			"total": len(rows),
 			"due": sum(1 for r in rows if (r["classification"] or "") in ("Due", "Upcoming")),
-			"overdue": sum(
-				1 for r in rows if (r["classification"] or "") in ("Overdue", "Severely Overdue")
-			),
+			"overdue": sum(1 for r in rows if (r["classification"] or "") in ("Overdue", "Severely Overdue")),
 			"lapsed": sum(1 for r in rows if (r["classification"] or "") == "Lapsed"),
 			"by_classification": group_count(rows, "classification"),
 		},
@@ -379,9 +373,7 @@ def _appointment_capacity_report(filters=None):
 		_branch_filter(f, meta, filt)
 		if dt == ACTIVITY and meta.has_field("activity_type"):
 			filt["activity_type"] = ["in", ["Appointment", "Meeting", "Service Appointment"]]
-		for r in frappe.get_all(
-			dt, filters=filt, fields=fields, order_by="creation desc", limit=ROW_LIMIT
-		):
+		for r in frappe.get_all(dt, filters=filt, fields=fields, order_by="creation desc", limit=ROW_LIMIT):
 			status = r.get("status") or ""
 			mins = cint(r.get("slot_duration_minutes") or 0)
 			if not mins and r.get("estimated_duration_hours"):
@@ -394,9 +386,7 @@ def _appointment_capacity_report(filters=None):
 					"status": status,
 					"slot_minutes": mins,
 					"agent": r.get("booking_agent") or r.get("assigned_to"),
-					"date": str(
-						r.get("appointment_date_time") or r.get("due_datetime") or r.creation
-					)[:16],
+					"date": str(r.get("appointment_date_time") or r.get("due_datetime") or r.creation)[:16],
 					"no_show_reason": r.get("no_show_reason") or r.get("disposition"),
 					"_drill": {
 						"view": "service-appointment-detail"
@@ -637,9 +627,8 @@ def _service_retention_cohort_report(filters=None):
 			"total_cohorts": len(rows),
 			"vehicles": retention.get("denominator") or sum(r["total"] for r in rows),
 			"retained": retention.get("numerator") or sum(r["retained"] for r in rows),
-			"avg_retention_pct": retention.get("value") or (
-				round(sum(r["retention_pct"] for r in rows) / len(rows), 1) if rows else 0
-			),
+			"avg_retention_pct": retention.get("value")
+			or (round(sum(r["retention_pct"] for r in rows) / len(rows), 1) if rows else 0),
 			"service_retention_pct": retention.get("value") or 0,
 		},
 		[
@@ -705,9 +694,7 @@ def _lapsed_recovery_report(filters=None):
 				reminder_by_due.setdefault(rem.service_due, []).append(rem)
 		for r in lapsed:
 			rems = reminder_by_due.get(r.name) or []
-			recovered = (r.get("classification") or "") == "Recovered" or bool(
-				r.get("service_appointment")
-			)
+			recovered = (r.get("classification") or "") == "Recovered" or bool(r.get("service_appointment"))
 			rows.append(
 				{
 					"name": r.name,
@@ -1015,9 +1002,7 @@ def _complaint_aging_report(filters=None):
 				"resolution_target",
 			],
 		)
-		for r in frappe.get_all(
-			CASE, filters=filt, fields=fields, order_by="creation asc", limit=ROW_LIMIT
-		):
+		for r in frappe.get_all(CASE, filters=filt, fields=fields, order_by="creation asc", limit=ROW_LIMIT):
 			opened = getdate(r.get("opened_on") or r.creation)
 			days = date_diff(today, opened) if opened else 0
 			breached = bool(
@@ -1104,9 +1089,7 @@ def _repeat_complaint_report(filters=None):
 				"branch",
 			],
 		)
-		cases = frappe.get_all(
-			CASE, filters=filt, fields=fields, order_by="creation desc", limit=ROW_LIMIT
-		)
+		cases = frappe.get_all(CASE, filters=filt, fields=fields, order_by="creation desc", limit=ROW_LIMIT)
 		by_customer: dict[str, list] = {}
 		for c in cases:
 			if c.get("customer"):
@@ -1204,9 +1187,7 @@ def _next_service_at_delivery_report(filters=None):
 			if customers:
 				batches.append({"customer": ["in", customers]})
 			for bf in batches:
-				for sd in frappe.get_all(
-					SERVICE_DUE, filters=bf, fields=sd_fields, limit=ROW_LIMIT
-				):
+				for sd in frappe.get_all(SERVICE_DUE, filters=bf, fields=sd_fields, limit=ROW_LIMIT):
 					if sd.name in seen_sd:
 						continue
 					seen_sd.add(sd.name)
@@ -1331,9 +1312,7 @@ def _fleet_maintenance_report(filters=None):
 				"status",
 			],
 		)
-		sd_rows = frappe.get_all(
-			SERVICE_DUE, filters=filt or None, fields=fields, limit=ROW_LIMIT
-		)
+		sd_rows = frappe.get_all(SERVICE_DUE, filters=filt or None, fields=fields, limit=ROW_LIMIT)
 		if not filt.get("is_fleet") and fleet_customers:
 			extra = frappe.get_all(
 				SERVICE_DUE,

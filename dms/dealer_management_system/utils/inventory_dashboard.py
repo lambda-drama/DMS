@@ -15,7 +15,6 @@ from dms.dealer_management_system.utils.stock_operations import (
 )
 from dms.utils.spare_part_auto_create import AUTO_SPARE_PART_FIELD
 
-
 DEFAULT_LOW_STOCK_QTY = 5
 
 
@@ -138,7 +137,9 @@ def _warehouse_scope(company: str | None, warehouse: str | None) -> list[str]:
 	if warehouse:
 		allowed = get_inventory_dashboard_warehouse_names(company)
 		if allowed and warehouse not in allowed:
-			frappe.throw(_("Warehouse {0} is not configured for DMS inventory.").format(frappe.bold(warehouse)))
+			frappe.throw(
+				_("Warehouse {0} is not configured for DMS inventory.").format(frappe.bold(warehouse))
+			)
 		return [warehouse]
 	return get_inventory_dashboard_warehouse_names(company)
 

@@ -1,6 +1,5 @@
 import frappe
 
-
 CHECKLIST = (
 	("Commercial", "Final price confirmed", 1),
 	("Commercial", "Invoice prepared / linked", 1),

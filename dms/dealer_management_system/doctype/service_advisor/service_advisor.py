@@ -26,4 +26,3 @@ class ServiceAdvisor(Document):
 			s, e = get_time(start), get_time(end)
 			if s and e and (e.hour, e.minute, e.second) <= (s.hour, s.minute, s.second):
 				frappe.throw(_("Custom lunch end must be after custom lunch start."))
-

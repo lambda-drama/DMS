@@ -12,7 +12,6 @@ import json
 import frappe
 from frappe.utils import cint, flt, now_datetime
 
-
 DEFAULT_WEIGHTS = {
 	"engagement": 25,
 	"readiness": 30,
@@ -36,7 +35,9 @@ def _settings():
 
 def _weights(settings) -> dict[str, int]:
 	return {
-		"engagement": cint(getattr(settings, "score_weight_engagement", None) or DEFAULT_WEIGHTS["engagement"]),
+		"engagement": cint(
+			getattr(settings, "score_weight_engagement", None) or DEFAULT_WEIGHTS["engagement"]
+		),
 		"readiness": cint(getattr(settings, "score_weight_readiness", None) or DEFAULT_WEIGHTS["readiness"]),
 		"fit": cint(getattr(settings, "score_weight_fit", None) or DEFAULT_WEIGHTS["fit"]),
 		"relationship": cint(

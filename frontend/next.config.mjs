@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 
-const isDev = process.env.NODE_ENV !== 'production'
+const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig = {
-  ...(isDev ? {} : { output: 'export' }),
+  ...(isDev ? {} : { output: "export" }),
 
-  basePath: '/dms',
+  basePath: "/dms",
 
-  assetPrefix: isDev ? '' : '/assets/dms/frontend',
+  assetPrefix: isDev ? "" : "/assets/dms/frontend",
 
   typescript: {
     ignoreBuildErrors: true,
@@ -19,24 +19,24 @@ const nextConfig = {
   ...(isDev
     ? {
         async rewrites() {
-          const frappeUrl = process.env.FRAPPE_URL || 'http://localhost:8000'
+          const frappeUrl = process.env.FRAPPE_URL || "http://localhost:8000";
           return [
             {
-              source: '/api/:path*',
+              source: "/api/:path*",
               destination: `${frappeUrl}/api/:path*`,
             },
             {
-              source: '/files/:path*',
+              source: "/files/:path*",
               destination: `${frappeUrl}/files/:path*`,
             },
             {
-              source: '/assets/dms/:path*',
+              source: "/assets/dms/:path*",
               destination: `${frappeUrl}/assets/dms/:path*`,
             },
-          ]
+          ];
         },
       }
     : {}),
-}
+};
 
-export default nextConfig
+export default nextConfig;

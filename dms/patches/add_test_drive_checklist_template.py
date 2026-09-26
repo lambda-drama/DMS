@@ -1,6 +1,5 @@
 import frappe
 
-
 CHECKLIST = (
 	("Identity & Consent", "Driver licence / ID verified", 1),
 	("Identity & Consent", "Customer consent captured", 1),

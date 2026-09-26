@@ -307,12 +307,18 @@ def _read_inventory_rows(file_path: str) -> list[InventoryRow]:
 
 		qty = _number(raw[header_map["qty"]] if len(raw) > header_map["qty"] else None)
 		location = _text(raw[header_map["location"]] if len(raw) > header_map["location"] else None)
-		category = _text(raw[header_map["category"]] if len(raw) > header_map["category"] else None) or "Other"
+		category = (
+			_text(raw[header_map["category"]] if len(raw) > header_map["category"] else None) or "Other"
+		)
 		unit_price_exw_etb = _number(
-			raw[header_map["unit_price_exw_etb"]] if "unit_price_exw_etb" in header_map and len(raw) > header_map["unit_price_exw_etb"] else None
+			raw[header_map["unit_price_exw_etb"]]
+			if "unit_price_exw_etb" in header_map and len(raw) > header_map["unit_price_exw_etb"]
+			else None
 		)
 		landed_cost = _number(
-			raw[header_map["total_unit_price_with_tt"]] if "total_unit_price_with_tt" in header_map and len(raw) > header_map["total_unit_price_with_tt"] else None
+			raw[header_map["total_unit_price_with_tt"]]
+			if "total_unit_price_with_tt" in header_map and len(raw) > header_map["total_unit_price_with_tt"]
+			else None
 		)
 		retail_price = _number(
 			raw[header_map["retail_price"]] if len(raw) > header_map["retail_price"] else None
@@ -366,7 +372,9 @@ def _ensure_item_group(category: str) -> tuple[str, bool]:
 	if frappe.db.exists("Item Group", category):
 		return category, False
 
-	parent_group = (frappe.db.get_single_value("DMS Settings", "default_item_group") or "All Item Groups").strip()
+	parent_group = (
+		frappe.db.get_single_value("DMS Settings", "default_item_group") or "All Item Groups"
+	).strip()
 	if not frappe.db.exists("Item Group", parent_group):
 		frappe.throw(_("Parent Item Group {0} was not found.").format(frappe.bold(parent_group)))
 

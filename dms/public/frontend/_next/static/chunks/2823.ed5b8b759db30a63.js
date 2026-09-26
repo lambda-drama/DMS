@@ -1,1 +1,394 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[2823],{12651:(e,r,a)=>{a.d(r,{A:()=>s});let s=(0,a(90425).A)("circle-check",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"m9 12 2 2 4-4",key:"dzmm74"}]])},13545:(e,r,a)=>{a.d(r,{A:()=>s});let s=(0,a(90425).A)("circle-alert",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["line",{x1:"12",x2:"12",y1:"8",y2:"12",key:"1pkeuh"}],["line",{x1:"12",x2:"12.01",y1:"16",y2:"16",key:"4dfq90"}]])},23511:(e,r,a)=>{a.d(r,{E:()=>n});var s=a(95155),t=a(91337);function n({className:e,...r}){return(0,s.jsx)("div",{"data-slot":"skeleton",className:(0,t.cn)("bg-accent animate-pulse rounded-md",e),...r})}},38291:(e,r,a)=>{a.d(r,{E:()=>c});var s=a(95155);a(12115);var t=a(42442),n=a(18460),d=a(91337);let l=(0,n.F)("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",{variants:{variant:{default:"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",secondary:"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",destructive:"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",outline:"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground"}},defaultVariants:{variant:"default"}});function c({className:e,variant:r,asChild:a=!1,...n}){let i=a?t.DX:"span";return(0,s.jsx)(i,{"data-slot":"badge",className:(0,d.cn)(l({variant:r}),e),...n})}},55125:(e,r,a)=>{a.r(r),a.d(r,{default:()=>v});var s=a(95155),t=a(12115),n=a(44855),d=a(32144),l=a(55833),c=a(38291),i=a(4474),o=a(79984),m=a(39658),u=a(23511),h=a(44462),x=a(93108),f=a(6296),p=a(51914);function v(){let{navigate:e}=(0,l.c)(),[r,a]=(0,t.useState)(""),[v,g]=(0,t.useState)("all"),{data:b,isLoading:j,mutate:y}=(0,n.Ay)(["crm-referrals",r,v],()=>(0,d.Pn)({search:r||void 0,status:v,limit:50})),{error:N,success:_,showError:w,showSuccess:k,clear:S}=(0,x.B)(),[R,C]=(0,t.useState)(!1),[A,E]=(0,t.useState)({referrer_customer:"",referred_name:"",source_channel:"In Person"}),W=async()=>{if(S(),!A.referrer_customer||!A.referred_name.trim())return void w("Referrer and prospect name are required.");C(!0);try{let r=await (0,d.uo)({referrer_customer:A.referrer_customer,referred_name:A.referred_name.trim(),source_channel:A.source_channel,status:"Open"});E(e=>({...e,referred_name:""})),await y(),k(`Referral ${r.name} created.`),e("crm-referral-detail",{id:String(r.name)})}catch(e){w(e,"Failed to create referral")}finally{C(!1)}};return(0,s.jsxs)("div",{className:"space-y-4",children:[(0,s.jsx)(x.y,{error:N,success:_,onDismiss:S}),(b?.advocates||[]).length>0?(0,s.jsxs)(o.Zp,{className:"border-border/70 shadow-sm",children:[(0,s.jsx)(o.aR,{children:(0,s.jsx)(o.ZB,{className:"text-base",children:"Top advocates"})}),(0,s.jsx)(o.Wu,{className:"flex flex-wrap gap-2",children:(b?.advocates||[]).map(e=>(0,s.jsxs)(c.E,{variant:"secondary",children:[String(e.referrer_name||e.referrer_customer)," \xb7 ",Number(e.converted||0),"/",Number(e.cnt||0)," converted"]},String(e.referrer_customer)))})]}):null,(0,s.jsxs)(o.Zp,{className:"border-border/70 shadow-sm",children:[(0,s.jsx)(o.aR,{children:(0,s.jsx)(o.ZB,{className:"text-base",children:"New referral"})}),(0,s.jsxs)(o.Wu,{className:"grid gap-3 sm:grid-cols-2",children:[(0,s.jsx)(h.L,{value:A.referrer_customer,onValueChange:e=>E(r=>({...r,referrer_customer:e||""}))}),(0,s.jsx)(m.p,{placeholder:"Referred prospect name *",value:A.referred_name,onChange:e=>E(r=>({...r,referred_name:e.target.value}))}),(0,s.jsxs)(i.$,{onClick:()=>void W(),disabled:R,children:[R?(0,s.jsx)(f.A,{className:"mr-2 h-4 w-4 animate-spin"}):(0,s.jsx)(p.A,{className:"mr-2 h-4 w-4"}),"Create referral"]})]})]}),(0,s.jsxs)(o.Zp,{className:"border-border/70 shadow-sm",children:[(0,s.jsx)(o.aR,{className:"pb-3",children:(0,s.jsxs)("div",{className:"flex flex-col gap-3 sm:flex-row",children:[(0,s.jsx)(m.p,{placeholder:"Search referrals…",value:r,onChange:e=>a(e.target.value)}),(0,s.jsxs)("select",{className:"h-9 rounded-md border border-input bg-background px-3 text-sm",value:v,onChange:e=>g(e.target.value),children:[(0,s.jsx)("option",{value:"all",children:"All"}),(0,s.jsx)("option",{value:"Open",children:"Open"}),(0,s.jsx)("option",{value:"Won",children:"Won"}),(0,s.jsx)("option",{value:"Delivered",children:"Delivered"}),(0,s.jsx)("option",{value:"Rewarded",children:"Rewarded"})]})]})}),(0,s.jsx)(o.Wu,{children:j?(0,s.jsx)(u.E,{className:"h-24"}):(0,s.jsx)("div",{className:"dms-table-panel",children:(0,s.jsxs)("table",{className:"w-full text-sm",children:[(0,s.jsx)("thead",{children:(0,s.jsxs)("tr",{className:"border-b text-left text-xs text-muted-foreground",children:[(0,s.jsx)("th",{className:"pb-2 font-medium",children:"Prospect"}),(0,s.jsx)("th",{className:"pb-2 font-medium",children:"Referrer"}),(0,s.jsx)("th",{className:"pb-2 font-medium",children:"Reward"}),(0,s.jsx)("th",{className:"pb-2 font-medium",children:"Status"})]})}),(0,s.jsx)("tbody",{children:0===(b?.data||[]).length?(0,s.jsx)("tr",{children:(0,s.jsx)("td",{colSpan:4,className:"py-10 text-center text-muted-foreground",children:"No referrals yet."})}):(b?.data||[]).map(r=>(0,s.jsxs)("tr",{className:"cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40",onClick:()=>e("crm-referral-detail",{id:String(r.name)}),children:[(0,s.jsx)("td",{className:"py-3 font-medium",children:String(r.referred_name)}),(0,s.jsx)("td",{className:"py-3 text-muted-foreground",children:String(r.referrer_name||r.referrer_customer)}),(0,s.jsxs)("td",{className:"py-3 text-muted-foreground",children:[Number(r.reward_points||0),r.reward_paid?" ✓":""]}),(0,s.jsx)("td",{className:"py-3",children:(0,s.jsx)(c.E,{variant:"secondary",children:String(r.status)})})]},String(r.name)))})]})})})]})]})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[2823],
+	{
+		12651: (e, r, a) => {
+			a.d(r, { A: () => s });
+			let s = (0, a(90425).A)("circle-check", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }],
+			]);
+		},
+		13545: (e, r, a) => {
+			a.d(r, { A: () => s });
+			let s = (0, a(90425).A)("circle-alert", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+				["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }],
+			]);
+		},
+		23511: (e, r, a) => {
+			a.d(r, { E: () => n });
+			var s = a(95155),
+				t = a(91337);
+			function n({ className: e, ...r }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "skeleton",
+					className: (0, t.cn)("bg-accent animate-pulse rounded-md", e),
+					...r,
+				});
+			}
+		},
+		38291: (e, r, a) => {
+			a.d(r, { E: () => c });
+			var s = a(95155);
+			a(12115);
+			var t = a(42442),
+				n = a(18460),
+				d = a(91337);
+			let l = (0, n.F)(
+				"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+				{
+					variants: {
+						variant: {
+							default:
+								"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+							secondary:
+								"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+							destructive:
+								"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+							outline:
+								"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+						},
+					},
+					defaultVariants: { variant: "default" },
+				}
+			);
+			function c({ className: e, variant: r, asChild: a = !1, ...n }) {
+				let i = a ? t.DX : "span";
+				return (0, s.jsx)(i, {
+					"data-slot": "badge",
+					className: (0, d.cn)(l({ variant: r }), e),
+					...n,
+				});
+			}
+		},
+		55125: (e, r, a) => {
+			a.r(r), a.d(r, { default: () => v });
+			var s = a(95155),
+				t = a(12115),
+				n = a(44855),
+				d = a(32144),
+				l = a(55833),
+				c = a(38291),
+				i = a(4474),
+				o = a(79984),
+				m = a(39658),
+				u = a(23511),
+				h = a(44462),
+				x = a(93108),
+				f = a(6296),
+				p = a(51914);
+			function v() {
+				let { navigate: e } = (0, l.c)(),
+					[r, a] = (0, t.useState)(""),
+					[v, g] = (0, t.useState)("all"),
+					{
+						data: b,
+						isLoading: j,
+						mutate: y,
+					} = (0, n.Ay)(["crm-referrals", r, v], () =>
+						(0, d.Pn)({ search: r || void 0, status: v, limit: 50 })
+					),
+					{ error: N, success: _, showError: w, showSuccess: k, clear: S } = (0, x.B)(),
+					[R, C] = (0, t.useState)(!1),
+					[A, E] = (0, t.useState)({
+						referrer_customer: "",
+						referred_name: "",
+						source_channel: "In Person",
+					}),
+					W = async () => {
+						if ((S(), !A.referrer_customer || !A.referred_name.trim()))
+							return void w("Referrer and prospect name are required.");
+						C(!0);
+						try {
+							let r = await (0, d.uo)({
+								referrer_customer: A.referrer_customer,
+								referred_name: A.referred_name.trim(),
+								source_channel: A.source_channel,
+								status: "Open",
+							});
+							E((e) => ({ ...e, referred_name: "" })),
+								await y(),
+								k(`Referral ${r.name} created.`),
+								e("crm-referral-detail", { id: String(r.name) });
+						} catch (e) {
+							w(e, "Failed to create referral");
+						} finally {
+							C(!1);
+						}
+					};
+				return (0, s.jsxs)("div", {
+					className: "space-y-4",
+					children: [
+						(0, s.jsx)(x.y, { error: N, success: _, onDismiss: S }),
+						(b?.advocates || []).length > 0
+							? (0, s.jsxs)(o.Zp, {
+									className: "border-border/70 shadow-sm",
+									children: [
+										(0, s.jsx)(o.aR, {
+											children: (0, s.jsx)(o.ZB, {
+												className: "text-base",
+												children: "Top advocates",
+											}),
+										}),
+										(0, s.jsx)(o.Wu, {
+											className: "flex flex-wrap gap-2",
+											children: (b?.advocates || []).map((e) =>
+												(0, s.jsxs)(
+													c.E,
+													{
+														variant: "secondary",
+														children: [
+															String(
+																e.referrer_name ||
+																	e.referrer_customer
+															),
+															" \xb7 ",
+															Number(e.converted || 0),
+															"/",
+															Number(e.cnt || 0),
+															" converted",
+														],
+													},
+													String(e.referrer_customer)
+												)
+											),
+										}),
+									],
+							  })
+							: null,
+						(0, s.jsxs)(o.Zp, {
+							className: "border-border/70 shadow-sm",
+							children: [
+								(0, s.jsx)(o.aR, {
+									children: (0, s.jsx)(o.ZB, {
+										className: "text-base",
+										children: "New referral",
+									}),
+								}),
+								(0, s.jsxs)(o.Wu, {
+									className: "grid gap-3 sm:grid-cols-2",
+									children: [
+										(0, s.jsx)(h.L, {
+											value: A.referrer_customer,
+											onValueChange: (e) =>
+												E((r) => ({ ...r, referrer_customer: e || "" })),
+										}),
+										(0, s.jsx)(m.p, {
+											placeholder: "Referred prospect name *",
+											value: A.referred_name,
+											onChange: (e) =>
+												E((r) => ({
+													...r,
+													referred_name: e.target.value,
+												})),
+										}),
+										(0, s.jsxs)(i.$, {
+											onClick: () => void W(),
+											disabled: R,
+											children: [
+												R
+													? (0, s.jsx)(f.A, {
+															className: "mr-2 h-4 w-4 animate-spin",
+													  })
+													: (0, s.jsx)(p.A, {
+															className: "mr-2 h-4 w-4",
+													  }),
+												"Create referral",
+											],
+										}),
+									],
+								}),
+							],
+						}),
+						(0, s.jsxs)(o.Zp, {
+							className: "border-border/70 shadow-sm",
+							children: [
+								(0, s.jsx)(o.aR, {
+									className: "pb-3",
+									children: (0, s.jsxs)("div", {
+										className: "flex flex-col gap-3 sm:flex-row",
+										children: [
+											(0, s.jsx)(m.p, {
+												placeholder: "Search referrals…",
+												value: r,
+												onChange: (e) => a(e.target.value),
+											}),
+											(0, s.jsxs)("select", {
+												className:
+													"h-9 rounded-md border border-input bg-background px-3 text-sm",
+												value: v,
+												onChange: (e) => g(e.target.value),
+												children: [
+													(0, s.jsx)("option", {
+														value: "all",
+														children: "All",
+													}),
+													(0, s.jsx)("option", {
+														value: "Open",
+														children: "Open",
+													}),
+													(0, s.jsx)("option", {
+														value: "Won",
+														children: "Won",
+													}),
+													(0, s.jsx)("option", {
+														value: "Delivered",
+														children: "Delivered",
+													}),
+													(0, s.jsx)("option", {
+														value: "Rewarded",
+														children: "Rewarded",
+													}),
+												],
+											}),
+										],
+									}),
+								}),
+								(0, s.jsx)(o.Wu, {
+									children: j
+										? (0, s.jsx)(u.E, { className: "h-24" })
+										: (0, s.jsx)("div", {
+												className: "dms-table-panel",
+												children: (0, s.jsxs)("table", {
+													className: "w-full text-sm",
+													children: [
+														(0, s.jsx)("thead", {
+															children: (0, s.jsxs)("tr", {
+																className:
+																	"border-b text-left text-xs text-muted-foreground",
+																children: [
+																	(0, s.jsx)("th", {
+																		className:
+																			"pb-2 font-medium",
+																		children: "Prospect",
+																	}),
+																	(0, s.jsx)("th", {
+																		className:
+																			"pb-2 font-medium",
+																		children: "Referrer",
+																	}),
+																	(0, s.jsx)("th", {
+																		className:
+																			"pb-2 font-medium",
+																		children: "Reward",
+																	}),
+																	(0, s.jsx)("th", {
+																		className:
+																			"pb-2 font-medium",
+																		children: "Status",
+																	}),
+																],
+															}),
+														}),
+														(0, s.jsx)("tbody", {
+															children:
+																0 === (b?.data || []).length
+																	? (0, s.jsx)("tr", {
+																			children: (0, s.jsx)(
+																				"td",
+																				{
+																					colSpan: 4,
+																					className:
+																						"py-10 text-center text-muted-foreground",
+																					children:
+																						"No referrals yet.",
+																				}
+																			),
+																	  })
+																	: (b?.data || []).map((r) =>
+																			(0, s.jsxs)(
+																				"tr",
+																				{
+																					className:
+																						"cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40",
+																					onClick: () =>
+																						e(
+																							"crm-referral-detail",
+																							{
+																								id: String(
+																									r.name
+																								),
+																							}
+																						),
+																					children: [
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"py-3 font-medium",
+																								children:
+																									String(
+																										r.referred_name
+																									),
+																							}
+																						),
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"py-3 text-muted-foreground",
+																								children:
+																									String(
+																										r.referrer_name ||
+																											r.referrer_customer
+																									),
+																							}
+																						),
+																						(0,
+																						s.jsxs)(
+																							"td",
+																							{
+																								className:
+																									"py-3 text-muted-foreground",
+																								children:
+																									[
+																										Number(
+																											r.reward_points ||
+																												0
+																										),
+																										r.reward_paid
+																											? " ✓"
+																											: "",
+																									],
+																							}
+																						),
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"py-3",
+																								children:
+																									(0,
+																									s.jsx)(
+																										c.E,
+																										{
+																											variant:
+																												"secondary",
+																											children:
+																												String(
+																													r.status
+																												),
+																										}
+																									),
+																							}
+																						),
+																					],
+																				},
+																				String(r.name)
+																			)
+																	  ),
+														}),
+													],
+												}),
+										  }),
+								}),
+							],
+						}),
+					],
+				});
+			}
+		},
+	},
+]);

@@ -5,6 +5,7 @@
 import { apiRequest } from './apiClient';
 import type {
   CustomerAdvancesSummary,
+  InvoiceAdvanceReconcileResult,
   PaymentEntryDetail,
   PaymentEntryListItem,
   PaginatedResponse,
@@ -185,6 +186,30 @@ export async function reconcilePayments(
     {
       method: 'POST',
       body: JSON.stringify({ customer, company, invoice_keys: invoiceKeys, payment_keys: paymentKeys }),
+    }
+  );
+}
+
+/**
+ * Apply a customer's advances / downpayments to one just-created invoice — the
+ * invoice screens' optional *reconcile immediately* step. The invoice must be
+ * submitted. Pass `paymentKeys` to allocate specific receipts, or omit them to
+ * allocate every open advance. Returns the balance before / after.
+ */
+export async function reconcileInvoiceAdvances(
+  salesInvoice: string,
+  company?: string,
+  paymentKeys?: string[]
+): Promise<InvoiceAdvanceReconcileResult> {
+  return apiRequest<InvoiceAdvanceReconcileResult>(
+    `/api/method/${RECON_API}.reconcile_invoice_advances`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        sales_invoice: salesInvoice,
+        company: company || null,
+        payment_keys: paymentKeys?.length ? paymentKeys : null,
+      }),
     }
   );
 }

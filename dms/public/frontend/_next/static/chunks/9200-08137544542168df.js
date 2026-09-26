@@ -1,1 +1,728 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[9200],{12651:(e,t,s)=>{s.d(t,{A:()=>a});let a=(0,s(90425).A)("circle-check",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"m9 12 2 2 4-4",key:"dzmm74"}]])},13545:(e,t,s)=>{s.d(t,{A:()=>a});let a=(0,s(90425).A)("circle-alert",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["line",{x1:"12",x2:"12",y1:"8",y2:"12",key:"1pkeuh"}],["line",{x1:"12",x2:"12.01",y1:"16",y2:"16",key:"4dfq90"}]])},23511:(e,t,s)=>{s.d(t,{E:()=>l});var a=s(95155),r=s(91337);function l({className:e,...t}){return(0,a.jsx)("div",{"data-slot":"skeleton",className:(0,r.cn)("bg-accent animate-pulse rounded-md",e),...t})}},39540:(e,t,s)=>{s.d(t,{T:()=>l});var a=s(95155);s(12115);var r=s(91337);function l({className:e,...t}){return(0,a.jsx)("textarea",{"data-slot":"textarea",className:(0,r.cn)("border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",e),...t})}},42074:(e,t,s)=>{s.d(t,{h:()=>i});var a=s(95155),r=s(12115),l=s(47650),n=s(91337);function i({children:e,className:t,align:s="end"}){let[d,c]=(0,r.useState)(!1);(0,r.useEffect)(()=>(c(!0),()=>c(!1)),[]);let o=(0,a.jsx)("div",{role:"toolbar","aria-label":"Form actions",className:(0,n.cn)("fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90","pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3","lg:left-64",t),children:(0,a.jsx)("div",{className:(0,n.cn)("mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6","between"===s?"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3":"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"),children:e})});return d?(0,l.createPortal)(o,document.body):null}},52959:(e,t,s)=>{s.d(t,{_:()=>i});var a=s(95155),r=s(4474),l=s(51914),n=s(91337);function i({onClick:e,label:t="Add",className:s,disabled:d}){return(0,a.jsx)("div",{className:(0,n.cn)("pt-1",s),children:(0,a.jsxs)(r.$,{type:"button",onClick:e,disabled:d,children:[(0,a.jsx)(l.A,{className:"h-4 w-4 mr-1"}),t]})})}},68459:(e,t,s)=>{s.d(t,{A:()=>a});let a=(0,s(90425).A)("trash-2",[["path",{d:"M10 11v6",key:"nco0om"}],["path",{d:"M14 11v6",key:"outv1u"}],["path",{d:"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6",key:"miytrc"}],["path",{d:"M3 6h18",key:"d0wm0j"}],["path",{d:"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2",key:"e791ji"}]])},69200:(e,t,s)=>{s.r(t),s.d(t,{default:()=>j});var a=s(95155),r=s(12115),l=s(44855),n=s(32144),i=s(55833),d=s(4474),c=s(52959),o=s(79984),m=s(39658),u=s(39540),x=s(23511),h=s(42074),p=s(10086),g=s(93108),b=s(80723),v=s(68459),f=s(6296);function y(){return{model:"",specification:"",quantity:1,unit_estimate:"",notes:""}}function j(){let{navigate:e,viewParams:t}=(0,i.c)(),s=t.get("id")||"",{data:j}=(0,l.Ay)("crm-tender-form-options",n.fQ),{data:_,isLoading:N,mutate:k}=(0,l.Ay)(s?["crm-tender",s]:null,()=>(0,n.Dn)(s)),[w,C]=(0,r.useState)(!1),{error:S,success:q,showError:A,showSuccess:T,clear:z}=(0,g.B)(),[E,M]=(0,r.useState)({title:"",status:"",tender_category:"",issuing_body:"",bid_deadline:"",estimated_value:"",financing_method:"",bid_version:"",technical_requirements:"",commercial_requirements:"",delivery_schedule_notes:"",aftersales_commitments:"",notes:"",opportunity:"",framework_agreement:""}),[Z,B]=(0,r.useState)([y()]);(0,r.useEffect)(()=>{if(!_)return;M({title:String(_.title||""),status:String(_.status||""),tender_category:String(_.tender_category||""),issuing_body:String(_.issuing_body||""),bid_deadline:String(_.bid_deadline||"").slice(0,16),estimated_value:null!=_.estimated_value?String(_.estimated_value):"",financing_method:String(_.financing_method||""),bid_version:String(_.bid_version||""),technical_requirements:String(_.technical_requirements||""),commercial_requirements:String(_.commercial_requirements||""),delivery_schedule_notes:String(_.delivery_schedule_notes||""),aftersales_commitments:String(_.aftersales_commitments||""),notes:String(_.notes||""),opportunity:String(_.opportunity||""),framework_agreement:String(_.framework_agreement||"")});let e=(Array.isArray(_.requirements)?_.requirements:[]).map(e=>({model:String(e.model||""),specification:String(e.specification||""),quantity:Number(e.quantity||1),unit_estimate:null!=e.unit_estimate?String(e.unit_estimate):"",notes:String(e.notes||"")}));B(e.length?e:[y()])},[_]);let V=e=>(e||[]).map(e=>({value:e,label:e})),$=(e,t)=>M(s=>({...s,[e]:t})),D=async()=>{if(s){z(),C(!0);try{await (0,n.s)(s,{...E,title:E.title.trim(),bid_deadline:E.bid_deadline||null,estimated_value:E.estimated_value?Number(E.estimated_value):null,requirements:Z.filter(e=>e.model||e.specification)}),await k(),T("Tender saved.")}catch(e){A(e,"Failed to save tender")}finally{C(!1)}}};return s?N||!_?(0,a.jsx)(x.E,{className:"h-48"}):(0,a.jsxs)("div",{className:"dms-form-page space-y-4",children:[(0,a.jsx)(g.y,{error:S,success:q,onDismiss:z}),(0,a.jsxs)("div",{className:"flex flex-wrap items-center justify-between gap-2",children:[(0,a.jsxs)(d.$,{variant:"ghost",size:"sm",onClick:()=>e("crm-tenders"),children:[(0,a.jsx)(b.A,{className:"mr-2 h-4 w-4"}),"Tenders"]}),_.account?(0,a.jsx)(d.$,{variant:"outline",size:"sm",onClick:()=>e("crm-account-detail",{id:String(_.account)}),children:"Open account"}):null]}),(0,a.jsxs)(o.Zp,{className:"border-border/70 shadow-sm",children:[(0,a.jsx)(o.aR,{children:(0,a.jsx)(o.ZB,{className:"text-base",children:"Tender details"})}),(0,a.jsxs)(o.Wu,{className:"grid gap-4 sm:grid-cols-2",children:[(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Title"}),(0,a.jsx)(m.p,{value:E.title,onChange:e=>$("title",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Customer"}),(0,a.jsx)("p",{className:"text-sm font-medium",children:String(_.customer_name||_.customer)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Status"}),(0,a.jsx)(p.Zi,{options:V(j?.statuses),value:E.status,onValueChange:e=>$("status",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Category"}),(0,a.jsx)(p.Zi,{options:V(j?.categories),value:E.tender_category,onValueChange:e=>$("tender_category",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Issuing body"}),(0,a.jsx)(m.p,{value:E.issuing_body,onChange:e=>$("issuing_body",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Bid deadline"}),(0,a.jsx)(m.p,{type:"datetime-local",value:E.bid_deadline,onChange:e=>$("bid_deadline",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Estimated value"}),(0,a.jsx)(m.p,{type:"number",value:E.estimated_value,onChange:e=>$("estimated_value",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Financing / LC"}),(0,a.jsx)(p.Zi,{options:V(j?.financing_methods),value:E.financing_method,onValueChange:e=>$("financing_method",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Bid version"}),(0,a.jsx)(m.p,{value:E.bid_version,onChange:e=>$("bid_version",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Linked opportunity"}),(0,a.jsx)(m.p,{value:E.opportunity,onChange:e=>$("opportunity",e.target.value),placeholder:"CRM-OPP-…"})]}),(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Technical requirements"}),(0,a.jsx)(u.T,{rows:3,value:E.technical_requirements,onChange:e=>$("technical_requirements",e.target.value)})]}),(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Commercial requirements"}),(0,a.jsx)(u.T,{rows:3,value:E.commercial_requirements,onChange:e=>$("commercial_requirements",e.target.value)})]}),(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Delivery schedule"}),(0,a.jsx)(u.T,{rows:2,value:E.delivery_schedule_notes,onChange:e=>$("delivery_schedule_notes",e.target.value)})]}),(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Aftersales commitments"}),(0,a.jsx)(u.T,{rows:2,value:E.aftersales_commitments,onChange:e=>$("aftersales_commitments",e.target.value)})]})]})]}),(0,a.jsxs)(o.Zp,{className:"border-border/70 shadow-sm",children:[(0,a.jsx)(o.aR,{children:(0,a.jsx)(o.ZB,{className:"text-base",children:"Quantity by model"})}),(0,a.jsxs)(o.Wu,{className:"space-y-3",children:[Z.map((e,t)=>(0,a.jsxs)("div",{className:"grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6",children:[(0,a.jsx)(m.p,{className:"sm:col-span-2",placeholder:"Model",value:e.model,onChange:e=>B(s=>{let a=[...s];return a[t]={...a[t],model:e.target.value},a})}),(0,a.jsx)(m.p,{className:"sm:col-span-2",placeholder:"Specification",value:e.specification,onChange:e=>B(s=>{let a=[...s];return a[t]={...a[t],specification:e.target.value},a})}),(0,a.jsx)(m.p,{type:"number",placeholder:"Qty",value:e.quantity,onChange:e=>B(s=>{let a=[...s];return a[t]={...a[t],quantity:Number(e.target.value||1)},a})}),(0,a.jsx)(d.$,{variant:"ghost",size:"icon",onClick:()=>B(e=>{let s=e.filter((e,s)=>s!==t);return s.length?s:[y()]}),children:(0,a.jsx)(v.A,{className:"h-4 w-4"})})]},t)),(0,a.jsx)(c._,{onClick:()=>B(e=>[...e,y()]),label:"Add line"})]})]}),(0,a.jsx)(h.h,{children:(0,a.jsxs)(d.$,{onClick:()=>void D(),disabled:w,children:[w?(0,a.jsx)(f.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Save tender"]})})]}):(0,a.jsx)(o.Zp,{children:(0,a.jsx)(o.Wu,{className:"py-10 text-center text-muted-foreground",children:"No tender selected."})})}},80723:(e,t,s)=>{s.d(t,{A:()=>a});let a=(0,s(90425).A)("arrow-left",[["path",{d:"m12 19-7-7 7-7",key:"1l729n"}],["path",{d:"M19 12H5",key:"x3x0zl"}]])},93108:(e,t,s)=>{s.d(t,{B:()=>o,y:()=>m});var a=s(95155),r=s(12115),l=s(66609),n=s(13545),i=s(12651),d=s(33210),c=s(91337);function o(){let[e,t]=(0,r.useState)(""),[s,a]=(0,r.useState)(""),n=(0,r.useCallback)((e,s="Something went wrong.")=>{let r=(e instanceof Error?e.message:"string"==typeof e?e:"").replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]*>/g,"").trim()||s;return a(""),t(r),l.o.error(r,{duration:8e3}),"u">typeof document&&document.querySelector("main")?.scrollTo({top:0,behavior:"smooth"}),r},[]);return{error:e,success:s,showError:n,showSuccess:(0,r.useCallback)(e=>{t(""),a(e),l.o.success(e)},[]),clear:(0,r.useCallback)(()=>{t(""),a("")},[])}}function m({error:e,success:t,onDismiss:s,className:r}){if(!e&&!t)return null;let l=!!e;return(0,a.jsx)("div",{className:(0,c.cn)("sticky top-0 z-40 -mx-1 px-1 pt-1",r),children:(0,a.jsxs)("div",{role:l?"alert":"status","aria-live":l?"assertive":"polite",className:(0,c.cn)("flex items-start gap-2 rounded-xl border p-3 text-sm shadow-sm backdrop-blur",l?"border-destructive/40 bg-destructive/10 text-destructive":"border-emerald-500/40 bg-emerald-500/10 text-emerald-700"),children:[l?(0,a.jsx)(n.A,{className:"mt-0.5 h-4 w-4 shrink-0"}):(0,a.jsx)(i.A,{className:"mt-0.5 h-4 w-4 shrink-0"}),(0,a.jsx)("p",{className:"flex-1 whitespace-pre-wrap break-words",children:e||t}),s?(0,a.jsx)("button",{type:"button",onClick:s,"aria-label":"Dismiss message",className:"rounded p-0.5 opacity-70 transition-opacity hover:opacity-100",children:(0,a.jsx)(d.A,{className:"h-4 w-4"})}):null]})})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[9200],
+	{
+		12651: (e, t, s) => {
+			s.d(t, { A: () => a });
+			let a = (0, s(90425).A)("circle-check", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }],
+			]);
+		},
+		13545: (e, t, s) => {
+			s.d(t, { A: () => a });
+			let a = (0, s(90425).A)("circle-alert", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+				["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }],
+			]);
+		},
+		23511: (e, t, s) => {
+			s.d(t, { E: () => l });
+			var a = s(95155),
+				r = s(91337);
+			function l({ className: e, ...t }) {
+				return (0, a.jsx)("div", {
+					"data-slot": "skeleton",
+					className: (0, r.cn)("bg-accent animate-pulse rounded-md", e),
+					...t,
+				});
+			}
+		},
+		39540: (e, t, s) => {
+			s.d(t, { T: () => l });
+			var a = s(95155);
+			s(12115);
+			var r = s(91337);
+			function l({ className: e, ...t }) {
+				return (0, a.jsx)("textarea", {
+					"data-slot": "textarea",
+					className: (0, r.cn)(
+						"border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+						e
+					),
+					...t,
+				});
+			}
+		},
+		42074: (e, t, s) => {
+			s.d(t, { h: () => i });
+			var a = s(95155),
+				r = s(12115),
+				l = s(47650),
+				n = s(91337);
+			function i({ children: e, className: t, align: s = "end" }) {
+				let [d, c] = (0, r.useState)(!1);
+				(0, r.useEffect)(() => (c(!0), () => c(!1)), []);
+				let o = (0, a.jsx)("div", {
+					role: "toolbar",
+					"aria-label": "Form actions",
+					className: (0, n.cn)(
+						"fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
+						"pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3",
+						"lg:left-64",
+						t
+					),
+					children: (0, a.jsx)("div", {
+						className: (0, n.cn)(
+							"mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6",
+							"between" === s
+								? "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3"
+								: "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"
+						),
+						children: e,
+					}),
+				});
+				return d ? (0, l.createPortal)(o, document.body) : null;
+			}
+		},
+		52959: (e, t, s) => {
+			s.d(t, { _: () => i });
+			var a = s(95155),
+				r = s(4474),
+				l = s(51914),
+				n = s(91337);
+			function i({ onClick: e, label: t = "Add", className: s, disabled: d }) {
+				return (0, a.jsx)("div", {
+					className: (0, n.cn)("pt-1", s),
+					children: (0, a.jsxs)(r.$, {
+						type: "button",
+						onClick: e,
+						disabled: d,
+						children: [(0, a.jsx)(l.A, { className: "h-4 w-4 mr-1" }), t],
+					}),
+				});
+			}
+		},
+		68459: (e, t, s) => {
+			s.d(t, { A: () => a });
+			let a = (0, s(90425).A)("trash-2", [
+				["path", { d: "M10 11v6", key: "nco0om" }],
+				["path", { d: "M14 11v6", key: "outv1u" }],
+				["path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6", key: "miytrc" }],
+				["path", { d: "M3 6h18", key: "d0wm0j" }],
+				["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", key: "e791ji" }],
+			]);
+		},
+		69200: (e, t, s) => {
+			s.r(t), s.d(t, { default: () => j });
+			var a = s(95155),
+				r = s(12115),
+				l = s(44855),
+				n = s(32144),
+				i = s(55833),
+				d = s(4474),
+				c = s(52959),
+				o = s(79984),
+				m = s(39658),
+				u = s(39540),
+				x = s(23511),
+				h = s(42074),
+				p = s(10086),
+				g = s(93108),
+				b = s(80723),
+				v = s(68459),
+				f = s(6296);
+			function y() {
+				return { model: "", specification: "", quantity: 1, unit_estimate: "", notes: "" };
+			}
+			function j() {
+				let { navigate: e, viewParams: t } = (0, i.c)(),
+					s = t.get("id") || "",
+					{ data: j } = (0, l.Ay)("crm-tender-form-options", n.fQ),
+					{
+						data: _,
+						isLoading: N,
+						mutate: k,
+					} = (0, l.Ay)(s ? ["crm-tender", s] : null, () => (0, n.Dn)(s)),
+					[w, C] = (0, r.useState)(!1),
+					{ error: S, success: q, showError: A, showSuccess: T, clear: z } = (0, g.B)(),
+					[E, M] = (0, r.useState)({
+						title: "",
+						status: "",
+						tender_category: "",
+						issuing_body: "",
+						bid_deadline: "",
+						estimated_value: "",
+						financing_method: "",
+						bid_version: "",
+						technical_requirements: "",
+						commercial_requirements: "",
+						delivery_schedule_notes: "",
+						aftersales_commitments: "",
+						notes: "",
+						opportunity: "",
+						framework_agreement: "",
+					}),
+					[Z, B] = (0, r.useState)([y()]);
+				(0, r.useEffect)(() => {
+					if (!_) return;
+					M({
+						title: String(_.title || ""),
+						status: String(_.status || ""),
+						tender_category: String(_.tender_category || ""),
+						issuing_body: String(_.issuing_body || ""),
+						bid_deadline: String(_.bid_deadline || "").slice(0, 16),
+						estimated_value:
+							null != _.estimated_value ? String(_.estimated_value) : "",
+						financing_method: String(_.financing_method || ""),
+						bid_version: String(_.bid_version || ""),
+						technical_requirements: String(_.technical_requirements || ""),
+						commercial_requirements: String(_.commercial_requirements || ""),
+						delivery_schedule_notes: String(_.delivery_schedule_notes || ""),
+						aftersales_commitments: String(_.aftersales_commitments || ""),
+						notes: String(_.notes || ""),
+						opportunity: String(_.opportunity || ""),
+						framework_agreement: String(_.framework_agreement || ""),
+					});
+					let e = (Array.isArray(_.requirements) ? _.requirements : []).map((e) => ({
+						model: String(e.model || ""),
+						specification: String(e.specification || ""),
+						quantity: Number(e.quantity || 1),
+						unit_estimate: null != e.unit_estimate ? String(e.unit_estimate) : "",
+						notes: String(e.notes || ""),
+					}));
+					B(e.length ? e : [y()]);
+				}, [_]);
+				let V = (e) => (e || []).map((e) => ({ value: e, label: e })),
+					$ = (e, t) => M((s) => ({ ...s, [e]: t })),
+					D = async () => {
+						if (s) {
+							z(), C(!0);
+							try {
+								await (0, n.s)(s, {
+									...E,
+									title: E.title.trim(),
+									bid_deadline: E.bid_deadline || null,
+									estimated_value: E.estimated_value
+										? Number(E.estimated_value)
+										: null,
+									requirements: Z.filter((e) => e.model || e.specification),
+								}),
+									await k(),
+									T("Tender saved.");
+							} catch (e) {
+								A(e, "Failed to save tender");
+							} finally {
+								C(!1);
+							}
+						}
+					};
+				return s
+					? N || !_
+						? (0, a.jsx)(x.E, { className: "h-48" })
+						: (0, a.jsxs)("div", {
+								className: "dms-form-page space-y-4",
+								children: [
+									(0, a.jsx)(g.y, { error: S, success: q, onDismiss: z }),
+									(0, a.jsxs)("div", {
+										className:
+											"flex flex-wrap items-center justify-between gap-2",
+										children: [
+											(0, a.jsxs)(d.$, {
+												variant: "ghost",
+												size: "sm",
+												onClick: () => e("crm-tenders"),
+												children: [
+													(0, a.jsx)(b.A, { className: "mr-2 h-4 w-4" }),
+													"Tenders",
+												],
+											}),
+											_.account
+												? (0, a.jsx)(d.$, {
+														variant: "outline",
+														size: "sm",
+														onClick: () =>
+															e("crm-account-detail", {
+																id: String(_.account),
+															}),
+														children: "Open account",
+												  })
+												: null,
+										],
+									}),
+									(0, a.jsxs)(o.Zp, {
+										className: "border-border/70 shadow-sm",
+										children: [
+											(0, a.jsx)(o.aR, {
+												children: (0, a.jsx)(o.ZB, {
+													className: "text-base",
+													children: "Tender details",
+												}),
+											}),
+											(0, a.jsxs)(o.Wu, {
+												className: "grid gap-4 sm:grid-cols-2",
+												children: [
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Title",
+															}),
+															(0, a.jsx)(m.p, {
+																value: E.title,
+																onChange: (e) =>
+																	$("title", e.target.value),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Customer",
+															}),
+															(0, a.jsx)("p", {
+																className: "text-sm font-medium",
+																children: String(
+																	_.customer_name || _.customer
+																),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Status",
+															}),
+															(0, a.jsx)(p.Zi, {
+																options: V(j?.statuses),
+																value: E.status,
+																onValueChange: (e) =>
+																	$("status", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Category",
+															}),
+															(0, a.jsx)(p.Zi, {
+																options: V(j?.categories),
+																value: E.tender_category,
+																onValueChange: (e) =>
+																	$("tender_category", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Issuing body",
+															}),
+															(0, a.jsx)(m.p, {
+																value: E.issuing_body,
+																onChange: (e) =>
+																	$(
+																		"issuing_body",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Bid deadline",
+															}),
+															(0, a.jsx)(m.p, {
+																type: "datetime-local",
+																value: E.bid_deadline,
+																onChange: (e) =>
+																	$(
+																		"bid_deadline",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Estimated value",
+															}),
+															(0, a.jsx)(m.p, {
+																type: "number",
+																value: E.estimated_value,
+																onChange: (e) =>
+																	$(
+																		"estimated_value",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Financing / LC",
+															}),
+															(0, a.jsx)(p.Zi, {
+																options: V(j?.financing_methods),
+																value: E.financing_method,
+																onValueChange: (e) =>
+																	$("financing_method", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Bid version",
+															}),
+															(0, a.jsx)(m.p, {
+																value: E.bid_version,
+																onChange: (e) =>
+																	$(
+																		"bid_version",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Linked opportunity",
+															}),
+															(0, a.jsx)(m.p, {
+																value: E.opportunity,
+																onChange: (e) =>
+																	$(
+																		"opportunity",
+																		e.target.value
+																	),
+																placeholder: "CRM-OPP-…",
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Technical requirements",
+															}),
+															(0, a.jsx)(u.T, {
+																rows: 3,
+																value: E.technical_requirements,
+																onChange: (e) =>
+																	$(
+																		"technical_requirements",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children:
+																	"Commercial requirements",
+															}),
+															(0, a.jsx)(u.T, {
+																rows: 3,
+																value: E.commercial_requirements,
+																onChange: (e) =>
+																	$(
+																		"commercial_requirements",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Delivery schedule",
+															}),
+															(0, a.jsx)(u.T, {
+																rows: 2,
+																value: E.delivery_schedule_notes,
+																onChange: (e) =>
+																	$(
+																		"delivery_schedule_notes",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Aftersales commitments",
+															}),
+															(0, a.jsx)(u.T, {
+																rows: 2,
+																value: E.aftersales_commitments,
+																onChange: (e) =>
+																	$(
+																		"aftersales_commitments",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+												],
+											}),
+										],
+									}),
+									(0, a.jsxs)(o.Zp, {
+										className: "border-border/70 shadow-sm",
+										children: [
+											(0, a.jsx)(o.aR, {
+												children: (0, a.jsx)(o.ZB, {
+													className: "text-base",
+													children: "Quantity by model",
+												}),
+											}),
+											(0, a.jsxs)(o.Wu, {
+												className: "space-y-3",
+												children: [
+													Z.map((e, t) =>
+														(0, a.jsxs)(
+															"div",
+															{
+																className:
+																	"grid gap-2 rounded-lg border border-border/60 p-3 sm:grid-cols-6",
+																children: [
+																	(0, a.jsx)(m.p, {
+																		className: "sm:col-span-2",
+																		placeholder: "Model",
+																		value: e.model,
+																		onChange: (e) =>
+																			B((s) => {
+																				let a = [...s];
+																				return (
+																					(a[t] = {
+																						...a[t],
+																						model: e
+																							.target
+																							.value,
+																					}),
+																					a
+																				);
+																			}),
+																	}),
+																	(0, a.jsx)(m.p, {
+																		className: "sm:col-span-2",
+																		placeholder:
+																			"Specification",
+																		value: e.specification,
+																		onChange: (e) =>
+																			B((s) => {
+																				let a = [...s];
+																				return (
+																					(a[t] = {
+																						...a[t],
+																						specification:
+																							e
+																								.target
+																								.value,
+																					}),
+																					a
+																				);
+																			}),
+																	}),
+																	(0, a.jsx)(m.p, {
+																		type: "number",
+																		placeholder: "Qty",
+																		value: e.quantity,
+																		onChange: (e) =>
+																			B((s) => {
+																				let a = [...s];
+																				return (
+																					(a[t] = {
+																						...a[t],
+																						quantity:
+																							Number(
+																								e
+																									.target
+																									.value ||
+																									1
+																							),
+																					}),
+																					a
+																				);
+																			}),
+																	}),
+																	(0, a.jsx)(d.$, {
+																		variant: "ghost",
+																		size: "icon",
+																		onClick: () =>
+																			B((e) => {
+																				let s = e.filter(
+																					(e, s) =>
+																						s !== t
+																				);
+																				return s.length
+																					? s
+																					: [y()];
+																			}),
+																		children: (0, a.jsx)(v.A, {
+																			className: "h-4 w-4",
+																		}),
+																	}),
+																],
+															},
+															t
+														)
+													),
+													(0, a.jsx)(c._, {
+														onClick: () => B((e) => [...e, y()]),
+														label: "Add line",
+													}),
+												],
+											}),
+										],
+									}),
+									(0, a.jsx)(h.h, {
+										children: (0, a.jsxs)(d.$, {
+											onClick: () => void D(),
+											disabled: w,
+											children: [
+												w
+													? (0, a.jsx)(f.A, {
+															className: "mr-2 h-4 w-4 animate-spin",
+													  })
+													: null,
+												"Save tender",
+											],
+										}),
+									}),
+								],
+						  })
+					: (0, a.jsx)(o.Zp, {
+							children: (0, a.jsx)(o.Wu, {
+								className: "py-10 text-center text-muted-foreground",
+								children: "No tender selected.",
+							}),
+					  });
+			}
+		},
+		80723: (e, t, s) => {
+			s.d(t, { A: () => a });
+			let a = (0, s(90425).A)("arrow-left", [
+				["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
+				["path", { d: "M19 12H5", key: "x3x0zl" }],
+			]);
+		},
+		93108: (e, t, s) => {
+			s.d(t, { B: () => o, y: () => m });
+			var a = s(95155),
+				r = s(12115),
+				l = s(66609),
+				n = s(13545),
+				i = s(12651),
+				d = s(33210),
+				c = s(91337);
+			function o() {
+				let [e, t] = (0, r.useState)(""),
+					[s, a] = (0, r.useState)(""),
+					n = (0, r.useCallback)((e, s = "Something went wrong.") => {
+						let r =
+							(e instanceof Error ? e.message : "string" == typeof e ? e : "")
+								.replace(/<br\s*\/?>/gi, "\n")
+								.replace(/<[^>]*>/g, "")
+								.trim() || s;
+						return (
+							a(""),
+							t(r),
+							l.o.error(r, { duration: 8e3 }),
+							"u" > typeof document &&
+								document
+									.querySelector("main")
+									?.scrollTo({ top: 0, behavior: "smooth" }),
+							r
+						);
+					}, []);
+				return {
+					error: e,
+					success: s,
+					showError: n,
+					showSuccess: (0, r.useCallback)((e) => {
+						t(""), a(e), l.o.success(e);
+					}, []),
+					clear: (0, r.useCallback)(() => {
+						t(""), a("");
+					}, []),
+				};
+			}
+			function m({ error: e, success: t, onDismiss: s, className: r }) {
+				if (!e && !t) return null;
+				let l = !!e;
+				return (0, a.jsx)("div", {
+					className: (0, c.cn)("sticky top-0 z-40 -mx-1 px-1 pt-1", r),
+					children: (0, a.jsxs)("div", {
+						role: l ? "alert" : "status",
+						"aria-live": l ? "assertive" : "polite",
+						className: (0, c.cn)(
+							"flex items-start gap-2 rounded-xl border p-3 text-sm shadow-sm backdrop-blur",
+							l
+								? "border-destructive/40 bg-destructive/10 text-destructive"
+								: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700"
+						),
+						children: [
+							l
+								? (0, a.jsx)(n.A, { className: "mt-0.5 h-4 w-4 shrink-0" })
+								: (0, a.jsx)(i.A, { className: "mt-0.5 h-4 w-4 shrink-0" }),
+							(0, a.jsx)("p", {
+								className: "flex-1 whitespace-pre-wrap break-words",
+								children: e || t,
+							}),
+							s
+								? (0, a.jsx)("button", {
+										type: "button",
+										onClick: s,
+										"aria-label": "Dismiss message",
+										className:
+											"rounded p-0.5 opacity-70 transition-opacity hover:opacity-100",
+										children: (0, a.jsx)(d.A, { className: "h-4 w-4" }),
+								  })
+								: null,
+						],
+					}),
+				});
+			}
+		},
+	},
+]);

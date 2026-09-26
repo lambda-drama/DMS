@@ -178,10 +178,7 @@ def _follow_up_completion_by_advisor(f) -> dict[str, float]:
 		done = bool(r.follow_up_completed_date) or (r.contact_status or "") == "Reached"
 		if done:
 			bucket["done"] += 1
-	return {
-		k: round(100.0 * v["done"] / v["total"], 1) if v["total"] else 0.0
-		for k, v in stats.items()
-	}
+	return {k: round(100.0 * v["done"] / v["total"], 1) if v["total"] else 0.0 for k, v in stats.items()}
 
 
 def _complaint_counts_by_advisor(f) -> dict[str, int]:
@@ -554,9 +551,7 @@ def get_estimate_conversion_report(filters=None):
 
 	rows.sort(key=lambda r: r["conversion_pct"], reverse=True)
 
-	conversion_pct = (
-		round(100.0 * (approved + partial) / submitted, 1) if submitted else 0.0
-	)
+	conversion_pct = round(100.0 * (approved + partial) / submitted, 1) if submitted else 0.0
 
 	return _result(
 		"estimate_conversion",
@@ -722,9 +717,7 @@ def get_lost_sales_report(filters=None):
 				}
 			)
 		for part in parts:
-			value = flt(part.total_amount) or (
-				flt(part.unit_price) * flt(part.quantity_requested or 1)
-			)
+			value = flt(part.total_amount) or (flt(part.unit_price) * flt(part.quantity_requested or 1))
 			total_lost += value
 			rows.append(
 				{

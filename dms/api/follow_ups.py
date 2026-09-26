@@ -30,10 +30,9 @@ def _enrich_follow_up_row(row: dict) -> dict:
 	due = row.get("follow_up_due_date")
 	if due:
 		try:
-			row["is_overdue"] = (
-				(row.get("contact_status") or "").strip() == "Pending"
-				and getdate(due) < getdate(today())
-			)
+			row["is_overdue"] = (row.get("contact_status") or "").strip() == "Pending" and getdate(
+				due
+			) < getdate(today())
 		except Exception:
 			row["is_overdue"] = False
 	else:

@@ -1,1 +1,524 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[6629],{16629:(e,s,a)=>{a.r(s),a.d(s,{default:()=>L});var l=a(95155),t=a(81672),r=a(12115),i=a(31521),n=a(36020),c=a(6296),d=a(66609),o=a(90901),m=a(74350),x=a(4474),u=a(39658),h=a(79792),v=a(65588);function j({open:e,onOpenChange:s,onCreated:a}){let{mutate:t}=(0,o.iX)(),[i,n]=(0,r.useState)(!1),[p,g]=(0,r.useState)(""),[f,N]=(0,r.useState)(""),[b,y]=(0,r.useState)(""),[w,C]=(0,r.useState)("");async function k(e){if(e.preventDefault(),!p.trim()||!f.trim()||!b.trim()||!w.trim())return void d.o.error("First name, last name, phone, and email are required");n(!0);try{let e=await (0,v._)("Service Advisor",{first_name:p.trim(),last_name:f.trim(),phone:b.trim(),email:w.trim()});await t(e=>"service-advisors"===e||"service-advisors-list"===e||Array.isArray(e)&&"service-advisors-list"===e[0],void 0,{revalidate:!0}),d.o.success(`Service advisor ${e.label||e.name} created`),a?.(e.name,e.label),s(!1)}catch(e){d.o.error(e instanceof Error?e.message:"Failed to create service advisor")}finally{n(!1)}}return(0,r.useEffect)(()=>{e&&(g(""),N(""),y(""),C(""))},[e]),(0,l.jsx)(m.lG,{open:e,onOpenChange:s,children:(0,l.jsx)(m.Cf,{className:"sm:max-w-md",children:(0,l.jsxs)("form",{onSubmit:k,children:[(0,l.jsxs)(m.c7,{children:[(0,l.jsx)(m.L3,{children:"New service advisor"}),(0,l.jsx)(m.rr,{children:"Add a service advisor to assign on appointments and job cards."})]}),(0,l.jsxs)("div",{className:"grid gap-3 py-4",children:[(0,l.jsxs)("div",{className:"grid grid-cols-2 gap-2",children:[(0,l.jsxs)("div",{className:"space-y-1",children:[(0,l.jsx)(h.J,{children:"First name *"}),(0,l.jsx)(u.p,{value:p,onChange:e=>g(e.target.value),autoFocus:!0})]}),(0,l.jsxs)("div",{className:"space-y-1",children:[(0,l.jsx)(h.J,{children:"Last name *"}),(0,l.jsx)(u.p,{value:f,onChange:e=>N(e.target.value)})]})]}),(0,l.jsxs)("div",{className:"space-y-1",children:[(0,l.jsx)(h.J,{children:"Phone *"}),(0,l.jsx)(u.p,{type:"tel",value:b,onChange:e=>y(e.target.value)})]}),(0,l.jsxs)("div",{className:"space-y-1",children:[(0,l.jsx)(h.J,{children:"Email *"}),(0,l.jsx)(u.p,{type:"email",value:w,onChange:e=>C(e.target.value)})]})]}),(0,l.jsxs)(m.Es,{children:[(0,l.jsx)(x.$,{type:"button",variant:"outline",onClick:()=>s(!1),children:"Cancel"}),(0,l.jsxs)(x.$,{type:"submit",disabled:i,children:[i?(0,l.jsx)(c.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Create"]})]})]})})})}var p=a(98883),g=a(33745),f=a(79984),N=a(26518),b=a(38291),y=a(95885),w=a(7810),C=a(61878),k=a(94338),A=a(85118),_=a(92289);let S=[{value:"all",label:"All statuses"},{value:"Active",label:"Active"},{value:"On Leave",label:"On Leave"},{value:"Inactive",label:"Inactive"}];function L(){let[e,s]=(0,i.P)("service-advisors","search",""),[a,d]=(0,i.P)("service-advisors","status","Active"),[o,m]=(0,r.useState)(!1),[h,v]=(0,r.useState)(null),{data:b,isLoading:y,error:A}=(0,n.yz)(e,a),{data:_,isLoading:L}=(0,n.W8)(h),Q=(0,r.useMemo)(()=>{if(!b)return[];let s=e.trim().toLowerCase();return s?b.filter(e=>e.full_name?.toLowerCase().includes(s)||e.name?.toLowerCase().includes(s)||e.phone?.toLowerCase().includes(s)||e.email?.toLowerCase().includes(s)):b},[b,e]),F=b?.filter(e=>"Active"===e.status).length??0;return(0,l.jsxs)("div",{className:"min-w-0 space-y-4 sm:space-y-6",children:[(0,l.jsxs)("div",{className:"flex items-center justify-between gap-3",children:[(0,l.jsxs)("div",{className:"min-w-0",children:[(0,l.jsx)("h1",{className:"dms-stat-value text-xl tracking-tight",children:"Service Advisors"}),(0,l.jsx)("p",{className:"mt-1 hidden text-muted-foreground sm:block",children:"Manage advisors assigned to appointments and job cards"})]}),(0,l.jsx)(g.l,{module:"service-advisors",label:"New advisor",onClick:()=>m(!0)})]}),(0,l.jsx)(f.Zp,{className:"dms-kpi-card",children:(0,l.jsx)(f.Wu,{className:"px-3.5 py-3",children:(0,l.jsxs)("div",{className:"flex items-center gap-3",children:[(0,l.jsx)("div",{className:"rounded-full bg-primary/10 p-1.5",children:(0,l.jsx)(w.A,{className:"h-3.5 w-3.5 text-primary"})}),(0,l.jsxs)("div",{children:[(0,l.jsx)("p",{className:"dms-stat-value text-xl",children:b?.length??0}),(0,l.jsxs)("p",{className:"text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground",children:[F," active","all"!==a?` \xb7 filter: ${a}`:""]})]})]})})}),(0,l.jsx)(f.Zp,{className:"dms-toolbar-card",children:(0,l.jsxs)(f.Wu,{className:"space-y-3 px-3.5 py-3",children:[(0,l.jsxs)("div",{className:"flex flex-col gap-3 sm:flex-row sm:items-center",children:[(0,l.jsxs)("div",{className:"relative flex-1",children:[(0,l.jsx)(C.A,{className:"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"}),(0,l.jsx)(u.p,{placeholder:"Search by name, phone, or email...",className:"pl-9",value:e,onChange:e=>s(e.target.value)})]}),(0,l.jsxs)(N.l6,{value:a,onValueChange:d,children:[(0,l.jsx)(N.bq,{className:"w-full sm:w-44",children:(0,l.jsx)(N.yv,{})}),(0,l.jsx)(N.gC,{children:S.map(e=>(0,l.jsx)(N.eb,{value:e.value,children:e.label},e.value))})]})]}),y&&(0,l.jsx)("div",{className:"flex justify-center py-12",children:(0,l.jsx)(c.A,{className:"h-8 w-8 animate-spin text-muted-foreground"})}),A&&(0,l.jsx)("p",{className:"text-center text-sm text-destructive py-8",children:"Failed to load service advisors"}),!y&&!A&&0===Q.length&&(0,l.jsxs)("div",{className:"text-center py-12 text-muted-foreground",children:[(0,l.jsx)(k.A,{className:"h-12 w-12 mx-auto mb-3 opacity-40"}),(0,l.jsx)("p",{children:"No service advisors found"}),(0,l.jsx)(x.$,{variant:"link",className:"mt-2",onClick:()=>m(!0),children:"Create your first advisor"})]}),!y&&Q.length>0&&(0,l.jsx)("div",{className:"grid gap-3 sm:grid-cols-2 lg:grid-cols-3",children:Q.map(e=>(0,l.jsx)(E,{advisor:e,onSelect:()=>v(e.name)},e.name))})]})}),(0,l.jsx)(j,{open:o,onOpenChange:m,onCreated:()=>m(!1)}),(0,l.jsxs)(p.BN,{open:!!h,onOpenChange:e=>!e&&v(null),title:_?.full_name||h||"Service Advisor",description:h||void 0,children:[L&&(0,l.jsx)("div",{className:"flex justify-center py-8",children:(0,l.jsx)(c.A,{className:"h-6 w-6 animate-spin text-muted-foreground"})}),_&&!L&&(0,l.jsxs)(l.Fragment,{children:[(0,l.jsxs)(p.JH,{title:"Contact",children:[(0,l.jsx)(p.Qb,{label:"Phone",value:_.phone}),(0,l.jsx)(p.Qb,{label:"Email",value:_.email})]}),(0,l.jsxs)(p.JH,{title:"Employment",children:[(0,l.jsx)(p.Qb,{label:"Status",value:_.status}),(0,l.jsx)(p.Qb,{label:"Advisor code",value:_.advisor_code}),(0,l.jsx)(p.Qb,{label:"Workshop",value:_.workshop}),(0,l.jsx)(p.Qb,{label:"Working schedule",value:_.work_shift}),(0,l.jsx)(p.Qb,{label:"Date of joining",value:_.date_of_joining?(0,t.Yq)(_.date_of_joining):void 0})]})]})]})]})}function E({advisor:e,onSelect:s}){let a=e.full_name?.split(" ").map(e=>e[0]).join("").slice(0,2).toUpperCase()||"?";return(0,l.jsx)(f.Zp,{className:"cursor-pointer transition-shadow hover:shadow-md",onClick:s,children:(0,l.jsx)(f.Wu,{className:"p-5",children:(0,l.jsxs)("div",{className:"flex items-start gap-4",children:[(0,l.jsx)(y.eu,{className:"h-11 w-11",children:(0,l.jsx)(y.q5,{className:"bg-primary/10 text-primary font-semibold text-sm",children:a})}),(0,l.jsxs)("div",{className:"flex-1 min-w-0",children:[(0,l.jsxs)("div",{className:"flex items-center justify-between gap-2",children:[(0,l.jsx)("h3",{className:"font-semibold truncate",children:e.full_name}),(0,l.jsx)(b.E,{variant:"outline",className:`shrink-0 ${function(e){switch(e){case"Active":return"bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300";case"On Leave":return"bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300";default:return"bg-muted text-muted-foreground"}}(e.status)} border-0`,children:e.status||"—"})]}),(0,l.jsx)("p",{className:"text-xs text-muted-foreground",children:e.name}),(0,l.jsxs)("div",{className:"mt-3 space-y-1 text-sm text-muted-foreground",children:[e.phone&&(0,l.jsxs)("span",{className:"flex items-center gap-1.5",children:[(0,l.jsx)(A.A,{className:"h-3.5 w-3.5"}),e.phone]}),e.email&&(0,l.jsxs)("span",{className:"flex items-center gap-1.5 truncate",children:[(0,l.jsx)(_.A,{className:"h-3.5 w-3.5 shrink-0"}),e.email]})]}),e.work_shift&&(0,l.jsxs)("p",{className:"mt-2 text-xs text-muted-foreground",children:["Schedule: ",e.work_shift]})]})]})})})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[6629],
+	{
+		16629: (e, s, a) => {
+			a.r(s), a.d(s, { default: () => L });
+			var l = a(95155),
+				t = a(81672),
+				r = a(12115),
+				i = a(31521),
+				n = a(36020),
+				c = a(6296),
+				d = a(66609),
+				o = a(90901),
+				m = a(74350),
+				x = a(4474),
+				u = a(39658),
+				h = a(79792),
+				v = a(65588);
+			function j({ open: e, onOpenChange: s, onCreated: a }) {
+				let { mutate: t } = (0, o.iX)(),
+					[i, n] = (0, r.useState)(!1),
+					[p, g] = (0, r.useState)(""),
+					[f, N] = (0, r.useState)(""),
+					[b, y] = (0, r.useState)(""),
+					[w, C] = (0, r.useState)("");
+				async function k(e) {
+					if ((e.preventDefault(), !p.trim() || !f.trim() || !b.trim() || !w.trim()))
+						return void d.o.error(
+							"First name, last name, phone, and email are required"
+						);
+					n(!0);
+					try {
+						let e = await (0, v._)("Service Advisor", {
+							first_name: p.trim(),
+							last_name: f.trim(),
+							phone: b.trim(),
+							email: w.trim(),
+						});
+						await t(
+							(e) =>
+								"service-advisors" === e ||
+								"service-advisors-list" === e ||
+								(Array.isArray(e) && "service-advisors-list" === e[0]),
+							void 0,
+							{ revalidate: !0 }
+						),
+							d.o.success(`Service advisor ${e.label || e.name} created`),
+							a?.(e.name, e.label),
+							s(!1);
+					} catch (e) {
+						d.o.error(
+							e instanceof Error ? e.message : "Failed to create service advisor"
+						);
+					} finally {
+						n(!1);
+					}
+				}
+				return (
+					(0, r.useEffect)(() => {
+						e && (g(""), N(""), y(""), C(""));
+					}, [e]),
+					(0, l.jsx)(m.lG, {
+						open: e,
+						onOpenChange: s,
+						children: (0, l.jsx)(m.Cf, {
+							className: "sm:max-w-md",
+							children: (0, l.jsxs)("form", {
+								onSubmit: k,
+								children: [
+									(0, l.jsxs)(m.c7, {
+										children: [
+											(0, l.jsx)(m.L3, { children: "New service advisor" }),
+											(0, l.jsx)(m.rr, {
+												children:
+													"Add a service advisor to assign on appointments and job cards.",
+											}),
+										],
+									}),
+									(0, l.jsxs)("div", {
+										className: "grid gap-3 py-4",
+										children: [
+											(0, l.jsxs)("div", {
+												className: "grid grid-cols-2 gap-2",
+												children: [
+													(0, l.jsxs)("div", {
+														className: "space-y-1",
+														children: [
+															(0, l.jsx)(h.J, {
+																children: "First name *",
+															}),
+															(0, l.jsx)(u.p, {
+																value: p,
+																onChange: (e) => g(e.target.value),
+																autoFocus: !0,
+															}),
+														],
+													}),
+													(0, l.jsxs)("div", {
+														className: "space-y-1",
+														children: [
+															(0, l.jsx)(h.J, {
+																children: "Last name *",
+															}),
+															(0, l.jsx)(u.p, {
+																value: f,
+																onChange: (e) => N(e.target.value),
+															}),
+														],
+													}),
+												],
+											}),
+											(0, l.jsxs)("div", {
+												className: "space-y-1",
+												children: [
+													(0, l.jsx)(h.J, { children: "Phone *" }),
+													(0, l.jsx)(u.p, {
+														type: "tel",
+														value: b,
+														onChange: (e) => y(e.target.value),
+													}),
+												],
+											}),
+											(0, l.jsxs)("div", {
+												className: "space-y-1",
+												children: [
+													(0, l.jsx)(h.J, { children: "Email *" }),
+													(0, l.jsx)(u.p, {
+														type: "email",
+														value: w,
+														onChange: (e) => C(e.target.value),
+													}),
+												],
+											}),
+										],
+									}),
+									(0, l.jsxs)(m.Es, {
+										children: [
+											(0, l.jsx)(x.$, {
+												type: "button",
+												variant: "outline",
+												onClick: () => s(!1),
+												children: "Cancel",
+											}),
+											(0, l.jsxs)(x.$, {
+												type: "submit",
+												disabled: i,
+												children: [
+													i
+														? (0, l.jsx)(c.A, {
+																className:
+																	"mr-2 h-4 w-4 animate-spin",
+														  })
+														: null,
+													"Create",
+												],
+											}),
+										],
+									}),
+								],
+							}),
+						}),
+					})
+				);
+			}
+			var p = a(98883),
+				g = a(33745),
+				f = a(79984),
+				N = a(26518),
+				b = a(38291),
+				y = a(95885),
+				w = a(7810),
+				C = a(61878),
+				k = a(94338),
+				A = a(85118),
+				_ = a(92289);
+			let S = [
+				{ value: "all", label: "All statuses" },
+				{ value: "Active", label: "Active" },
+				{ value: "On Leave", label: "On Leave" },
+				{ value: "Inactive", label: "Inactive" },
+			];
+			function L() {
+				let [e, s] = (0, i.P)("service-advisors", "search", ""),
+					[a, d] = (0, i.P)("service-advisors", "status", "Active"),
+					[o, m] = (0, r.useState)(!1),
+					[h, v] = (0, r.useState)(null),
+					{ data: b, isLoading: y, error: A } = (0, n.yz)(e, a),
+					{ data: _, isLoading: L } = (0, n.W8)(h),
+					Q = (0, r.useMemo)(() => {
+						if (!b) return [];
+						let s = e.trim().toLowerCase();
+						return s
+							? b.filter(
+									(e) =>
+										e.full_name?.toLowerCase().includes(s) ||
+										e.name?.toLowerCase().includes(s) ||
+										e.phone?.toLowerCase().includes(s) ||
+										e.email?.toLowerCase().includes(s)
+							  )
+							: b;
+					}, [b, e]),
+					F = b?.filter((e) => "Active" === e.status).length ?? 0;
+				return (0, l.jsxs)("div", {
+					className: "min-w-0 space-y-4 sm:space-y-6",
+					children: [
+						(0, l.jsxs)("div", {
+							className: "flex items-center justify-between gap-3",
+							children: [
+								(0, l.jsxs)("div", {
+									className: "min-w-0",
+									children: [
+										(0, l.jsx)("h1", {
+											className: "dms-stat-value text-xl tracking-tight",
+											children: "Service Advisors",
+										}),
+										(0, l.jsx)("p", {
+											className:
+												"mt-1 hidden text-muted-foreground sm:block",
+											children:
+												"Manage advisors assigned to appointments and job cards",
+										}),
+									],
+								}),
+								(0, l.jsx)(g.l, {
+									module: "service-advisors",
+									label: "New advisor",
+									onClick: () => m(!0),
+								}),
+							],
+						}),
+						(0, l.jsx)(f.Zp, {
+							className: "dms-kpi-card",
+							children: (0, l.jsx)(f.Wu, {
+								className: "px-3.5 py-3",
+								children: (0, l.jsxs)("div", {
+									className: "flex items-center gap-3",
+									children: [
+										(0, l.jsx)("div", {
+											className: "rounded-full bg-primary/10 p-1.5",
+											children: (0, l.jsx)(w.A, {
+												className: "h-3.5 w-3.5 text-primary",
+											}),
+										}),
+										(0, l.jsxs)("div", {
+											children: [
+												(0, l.jsx)("p", {
+													className: "dms-stat-value text-xl",
+													children: b?.length ?? 0,
+												}),
+												(0, l.jsxs)("p", {
+													className:
+														"text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground",
+													children: [
+														F,
+														" active",
+														"all" !== a ? ` \xb7 filter: ${a}` : "",
+													],
+												}),
+											],
+										}),
+									],
+								}),
+							}),
+						}),
+						(0, l.jsx)(f.Zp, {
+							className: "dms-toolbar-card",
+							children: (0, l.jsxs)(f.Wu, {
+								className: "space-y-3 px-3.5 py-3",
+								children: [
+									(0, l.jsxs)("div", {
+										className:
+											"flex flex-col gap-3 sm:flex-row sm:items-center",
+										children: [
+											(0, l.jsxs)("div", {
+												className: "relative flex-1",
+												children: [
+													(0, l.jsx)(C.A, {
+														className:
+															"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+													}),
+													(0, l.jsx)(u.p, {
+														placeholder:
+															"Search by name, phone, or email...",
+														className: "pl-9",
+														value: e,
+														onChange: (e) => s(e.target.value),
+													}),
+												],
+											}),
+											(0, l.jsxs)(N.l6, {
+												value: a,
+												onValueChange: d,
+												children: [
+													(0, l.jsx)(N.bq, {
+														className: "w-full sm:w-44",
+														children: (0, l.jsx)(N.yv, {}),
+													}),
+													(0, l.jsx)(N.gC, {
+														children: S.map((e) =>
+															(0, l.jsx)(
+																N.eb,
+																{
+																	value: e.value,
+																	children: e.label,
+																},
+																e.value
+															)
+														),
+													}),
+												],
+											}),
+										],
+									}),
+									y &&
+										(0, l.jsx)("div", {
+											className: "flex justify-center py-12",
+											children: (0, l.jsx)(c.A, {
+												className:
+													"h-8 w-8 animate-spin text-muted-foreground",
+											}),
+										}),
+									A &&
+										(0, l.jsx)("p", {
+											className: "text-center text-sm text-destructive py-8",
+											children: "Failed to load service advisors",
+										}),
+									!y &&
+										!A &&
+										0 === Q.length &&
+										(0, l.jsxs)("div", {
+											className: "text-center py-12 text-muted-foreground",
+											children: [
+												(0, l.jsx)(k.A, {
+													className: "h-12 w-12 mx-auto mb-3 opacity-40",
+												}),
+												(0, l.jsx)("p", {
+													children: "No service advisors found",
+												}),
+												(0, l.jsx)(x.$, {
+													variant: "link",
+													className: "mt-2",
+													onClick: () => m(!0),
+													children: "Create your first advisor",
+												}),
+											],
+										}),
+									!y &&
+										Q.length > 0 &&
+										(0, l.jsx)("div", {
+											className: "grid gap-3 sm:grid-cols-2 lg:grid-cols-3",
+											children: Q.map((e) =>
+												(0, l.jsx)(
+													E,
+													{ advisor: e, onSelect: () => v(e.name) },
+													e.name
+												)
+											),
+										}),
+								],
+							}),
+						}),
+						(0, l.jsx)(j, { open: o, onOpenChange: m, onCreated: () => m(!1) }),
+						(0, l.jsxs)(p.BN, {
+							open: !!h,
+							onOpenChange: (e) => !e && v(null),
+							title: _?.full_name || h || "Service Advisor",
+							description: h || void 0,
+							children: [
+								L &&
+									(0, l.jsx)("div", {
+										className: "flex justify-center py-8",
+										children: (0, l.jsx)(c.A, {
+											className:
+												"h-6 w-6 animate-spin text-muted-foreground",
+										}),
+									}),
+								_ &&
+									!L &&
+									(0, l.jsxs)(l.Fragment, {
+										children: [
+											(0, l.jsxs)(p.JH, {
+												title: "Contact",
+												children: [
+													(0, l.jsx)(p.Qb, {
+														label: "Phone",
+														value: _.phone,
+													}),
+													(0, l.jsx)(p.Qb, {
+														label: "Email",
+														value: _.email,
+													}),
+												],
+											}),
+											(0, l.jsxs)(p.JH, {
+												title: "Employment",
+												children: [
+													(0, l.jsx)(p.Qb, {
+														label: "Status",
+														value: _.status,
+													}),
+													(0, l.jsx)(p.Qb, {
+														label: "Advisor code",
+														value: _.advisor_code,
+													}),
+													(0, l.jsx)(p.Qb, {
+														label: "Workshop",
+														value: _.workshop,
+													}),
+													(0, l.jsx)(p.Qb, {
+														label: "Working schedule",
+														value: _.work_shift,
+													}),
+													(0, l.jsx)(p.Qb, {
+														label: "Date of joining",
+														value: _.date_of_joining
+															? (0, t.Yq)(_.date_of_joining)
+															: void 0,
+													}),
+												],
+											}),
+										],
+									}),
+							],
+						}),
+					],
+				});
+			}
+			function E({ advisor: e, onSelect: s }) {
+				let a =
+					e.full_name
+						?.split(" ")
+						.map((e) => e[0])
+						.join("")
+						.slice(0, 2)
+						.toUpperCase() || "?";
+				return (0, l.jsx)(f.Zp, {
+					className: "cursor-pointer transition-shadow hover:shadow-md",
+					onClick: s,
+					children: (0, l.jsx)(f.Wu, {
+						className: "p-5",
+						children: (0, l.jsxs)("div", {
+							className: "flex items-start gap-4",
+							children: [
+								(0, l.jsx)(y.eu, {
+									className: "h-11 w-11",
+									children: (0, l.jsx)(y.q5, {
+										className:
+											"bg-primary/10 text-primary font-semibold text-sm",
+										children: a,
+									}),
+								}),
+								(0, l.jsxs)("div", {
+									className: "flex-1 min-w-0",
+									children: [
+										(0, l.jsxs)("div", {
+											className: "flex items-center justify-between gap-2",
+											children: [
+												(0, l.jsx)("h3", {
+													className: "font-semibold truncate",
+													children: e.full_name,
+												}),
+												(0, l.jsx)(b.E, {
+													variant: "outline",
+													className: `shrink-0 ${(function (e) {
+														switch (e) {
+															case "Active":
+																return "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300";
+															case "On Leave":
+																return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300";
+															default:
+																return "bg-muted text-muted-foreground";
+														}
+													})(e.status)} border-0`,
+													children: e.status || "—",
+												}),
+											],
+										}),
+										(0, l.jsx)("p", {
+											className: "text-xs text-muted-foreground",
+											children: e.name,
+										}),
+										(0, l.jsxs)("div", {
+											className:
+												"mt-3 space-y-1 text-sm text-muted-foreground",
+											children: [
+												e.phone &&
+													(0, l.jsxs)("span", {
+														className: "flex items-center gap-1.5",
+														children: [
+															(0, l.jsx)(A.A, {
+																className: "h-3.5 w-3.5",
+															}),
+															e.phone,
+														],
+													}),
+												e.email &&
+													(0, l.jsxs)("span", {
+														className:
+															"flex items-center gap-1.5 truncate",
+														children: [
+															(0, l.jsx)(_.A, {
+																className: "h-3.5 w-3.5 shrink-0",
+															}),
+															e.email,
+														],
+													}),
+											],
+										}),
+										e.work_shift &&
+											(0, l.jsxs)("p", {
+												className: "mt-2 text-xs text-muted-foreground",
+												children: ["Schedule: ", e.work_shift],
+											}),
+									],
+								}),
+							],
+						}),
+					}),
+				});
+			}
+		},
+	},
+]);

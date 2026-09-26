@@ -240,9 +240,7 @@ def create_parts_return_from_parts_request(name: str, submit: int | bool = 1):
 		qty = max(0, issued - returned)
 		if qty <= 0:
 			continue
-		items.append(
-			{"job_card_part_row": row.job_card_part_row, "quantity_returned": qty}
-		)
+		items.append({"job_card_part_row": row.job_card_part_row, "quantity_returned": qty})
 
 	if not items:
 		frappe.throw(_("No issued quantities remaining to return on this parts request."))

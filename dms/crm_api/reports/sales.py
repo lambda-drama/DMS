@@ -401,7 +401,9 @@ def _lead_contact_rate(filters=None):
 		},
 		columns,
 		rows,
-		help_text=_("Appendix B: Leads contacted / leads assigned × 100. Contacted excludes Contact Attempted."),
+		help_text=_(
+			"Appendix B: Leads contacted / leads assigned × 100. Contacted excludes Contact Attempted."
+		),
 		definitions={"lead_contact_rate_pct": "Contacted / Assigned × 100"},
 	)
 
@@ -872,10 +874,7 @@ def _test_drive_conversion(filters=None):
 			d.get("opportunity")
 		)
 		outcome = (d.get("outcome") or "").strip()
-		is_converted = bool(
-			opp_status == "Won"
-			or (opp and (opp.get("stage") or "") == "Won")
-		)
+		is_converted = bool(opp_status == "Won" or (opp and (opp.get("stage") or "") == "Won"))
 		if is_converted:
 			converted += 1
 		row = {
@@ -912,9 +911,7 @@ def _test_drive_conversion(filters=None):
 
 def _quotation_conversion(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _(
-		"Appendix B: Quotation conversion = Won opportunities / quotations issued × 100."
-	)
+	help_text = _("Appendix B: Quotation conversion = Won opportunities / quotations issued × 100.")
 	columns = [
 		col("name", "Quotation"),
 		col("customer", "Customer"),
@@ -1052,7 +1049,9 @@ def _lost_opportunity(filters=None):
 		col("competitor", "Competitor"),
 	]
 	if not dt_exists(OPP):
-		return empty_result("crm_lost_opportunity", _("Lost Opportunity Analysis"), f, columns, help_text=help_text)
+		return empty_result(
+			"crm_lost_opportunity", _("Lost Opportunity Analysis"), f, columns, help_text=help_text
+		)
 
 	fields = _meta_fields(
 		OPP,
@@ -1135,7 +1134,9 @@ def _discount_approval(filters=None):
 		col("customer", "Customer"),
 	]
 	if not dt_exists(APPROVAL):
-		return empty_result("crm_discount_approval", _("Discount & Approval"), f, columns, help_text=help_text)
+		return empty_result(
+			"crm_discount_approval", _("Discount & Approval"), f, columns, help_text=help_text
+		)
 
 	meta = frappe.get_meta(APPROVAL)
 	fields = _meta_fields(

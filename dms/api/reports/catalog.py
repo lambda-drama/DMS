@@ -21,7 +21,9 @@ def _report_catalog():
 				{
 					"id": "aftersales_profitability",
 					"title": _("Profitability"),
-					"description": _("Sales, inventory cost and gross profit by job, customer, model and branch."),
+					"description": _(
+						"Sales, inventory cost and gross profit by job, customer, model and branch."
+					),
 				},
 				{
 					"id": "revenue_trend",
@@ -46,13 +48,37 @@ def _report_catalog():
 			"description": _("Live operations"),
 			"icon": "wrench",
 			"reports": [
-				{"id": "daily_wip", "title": _("Work in Progress"), "description": _("Open jobs with promise alerts, parts and payment status.")},
-				{"id": "job_card_status", "title": _("Job Card Status"), "description": _("Status ownership and age in current status.")},
-				{"id": "vehicle_turnaround", "title": _("Turnaround Time"), "description": _("Stage elapsed time from arrival to delivery.")},
+				{
+					"id": "daily_wip",
+					"title": _("Work in Progress"),
+					"description": _("Open jobs with promise alerts, parts and payment status."),
+				},
+				{
+					"id": "job_card_status",
+					"title": _("Job Card Status"),
+					"description": _("Status ownership and age in current status."),
+				},
+				{
+					"id": "vehicle_turnaround",
+					"title": _("Turnaround Time"),
+					"description": _("Stage elapsed time from arrival to delivery."),
+				},
 				{"id": "aging", "title": _("Aging"), "description": _("Days open in workshop.")},
-				{"id": "bay_utilization", "title": _("Bay Utilization"), "description": _("Occupied, idle and blocked bays.")},
-				{"id": "repair_delay", "title": _("Repair Delay"), "description": _("Jobs past promised completion.")},
-				{"id": "repeat_repair", "title": _("Comebacks"), "description": _("Repeat repairs and comeback cost.")},
+				{
+					"id": "bay_utilization",
+					"title": _("Bay Utilization"),
+					"description": _("Occupied, idle and blocked bays."),
+				},
+				{
+					"id": "repair_delay",
+					"title": _("Repair Delay"),
+					"description": _("Jobs past promised completion."),
+				},
+				{
+					"id": "repeat_repair",
+					"title": _("Comebacks"),
+					"description": _("Repeat repairs and comeback cost."),
+				},
 			],
 		},
 		{
@@ -64,9 +90,7 @@ def _report_catalog():
 				{
 					"id": "service_advisor_performance",
 					"title": _("Advisor Performance"),
-					"description": _(
-						"Vehicles, estimates, sales, CSAT, comebacks and follow-up."
-					),
+					"description": _("Vehicles, estimates, sales, CSAT, comebacks and follow-up."),
 				},
 				{
 					"id": "estimate_conversion",
@@ -86,9 +110,7 @@ def _report_catalog():
 				{
 					"id": "customer_follow_up",
 					"title": _("Customer Follow-Up"),
-					"description": _(
-						"Delivered vehicles, contact result, CSAT and next service."
-					),
+					"description": _("Delivered vehicles, contact result, CSAT and next service."),
 				},
 				{
 					"id": "appointment_conversion",
@@ -103,8 +125,16 @@ def _report_catalog():
 			"description": _("Productivity"),
 			"icon": "hard-hat",
 			"reports": [
-				{"id": "technician_productivity", "title": _("Productivity"), "description": _("Hours, efficiency, comebacks and sales.")},
-				{"id": "technician_time_analysis", "title": _("Time Analysis"), "description": _("Clock and pause detail per time log.")},
+				{
+					"id": "technician_productivity",
+					"title": _("Productivity"),
+					"description": _("Hours, efficiency, comebacks and sales."),
+				},
+				{
+					"id": "technician_time_analysis",
+					"title": _("Time Analysis"),
+					"description": _("Clock and pause detail per time log."),
+				},
 			],
 		},
 		{
@@ -113,10 +143,27 @@ def _report_catalog():
 			"description": _("Stock and issues"),
 			"icon": "package",
 			"reports": [
-				{"id": "spare_parts_stock", "title": _("Stock Availability"), "description": _("On-hand by warehouse."), "filter_type": "stock"},
-				{"id": "parts_issued_per_job", "title": _("Parts Issued"), "description": _("Requested vs issued.")},
-				{"id": "material_request_status", "title": _("Material Requests"), "description": _("Request status.")},
-				{"id": "parts_fill_rate", "title": _("Fill Rate"), "description": _("Requested vs issued vs backorder.")},
+				{
+					"id": "spare_parts_stock",
+					"title": _("Stock Availability"),
+					"description": _("On-hand by warehouse."),
+					"filter_type": "stock",
+				},
+				{
+					"id": "parts_issued_per_job",
+					"title": _("Parts Issued"),
+					"description": _("Requested vs issued."),
+				},
+				{
+					"id": "material_request_status",
+					"title": _("Material Requests"),
+					"description": _("Request status."),
+				},
+				{
+					"id": "parts_fill_rate",
+					"title": _("Fill Rate"),
+					"description": _("Requested vs issued vs backorder."),
+				},
 			],
 		},
 		{
@@ -134,7 +181,11 @@ def _report_catalog():
 			"description": _("Pass / fail"),
 			"icon": "clipboard-check",
 			"reports": [
-				{"id": "qc_failure", "title": _("QC Pass / Fail"), "description": _("Fail rate and reasons.")},
+				{
+					"id": "qc_failure",
+					"title": _("QC Pass / Fail"),
+					"description": _("Fail rate and reasons."),
+				},
 			],
 		},
 		{
@@ -143,9 +194,21 @@ def _report_catalog():
 			"description": _("Follow-up"),
 			"icon": "users",
 			"reports": [
-				{"id": "customer_follow_up", "title": _("Follow-Up"), "description": _("Delivered vehicles, contact result, CSAT and next service.")},
-				{"id": "customer_satisfaction", "title": _("Satisfaction"), "description": _("Ratings and complaints.")},
-				{"id": "customer_retention", "title": _("Retention"), "description": _("Returning customers.")},
+				{
+					"id": "customer_follow_up",
+					"title": _("Follow-Up"),
+					"description": _("Delivered vehicles, contact result, CSAT and next service."),
+				},
+				{
+					"id": "customer_satisfaction",
+					"title": _("Satisfaction"),
+					"description": _("Ratings and complaints."),
+				},
+				{
+					"id": "customer_retention",
+					"title": _("Retention"),
+					"description": _("Returning customers."),
+				},
 			],
 		},
 		{
@@ -154,9 +217,21 @@ def _report_catalog():
 			"description": _("Billing"),
 			"icon": "banknote",
 			"reports": [
-				{"id": "invoice_register", "title": _("Invoice Register"), "description": _("Tax, discount and outstanding.")},
-				{"id": "unbilled_job_cards", "title": _("Unbilled Jobs"), "description": _("Completed without invoice.")},
-				{"id": "service_revenue", "title": _("Service Revenue"), "description": _("Labour and parts revenue.")},
+				{
+					"id": "invoice_register",
+					"title": _("Invoice Register"),
+					"description": _("Tax, discount and outstanding."),
+				},
+				{
+					"id": "unbilled_job_cards",
+					"title": _("Unbilled Jobs"),
+					"description": _("Completed without invoice."),
+				},
+				{
+					"id": "service_revenue",
+					"title": _("Service Revenue"),
+					"description": _("Labour and parts revenue."),
+				},
 			],
 		},
 		{
@@ -165,9 +240,12 @@ def _report_catalog():
 			"description": _("Audit"),
 			"icon": "scroll-text",
 			"reports": [
-				{"id": "user_audit_trail", "title": _("Audit Trail"), "description": _("User activity on documents.")},
+				{
+					"id": "user_audit_trail",
+					"title": _("Audit Trail"),
+					"description": _("User activity on documents."),
+				},
 				{"id": "odometer_exception", "title": _("Odometer"), "description": _("Mileage exceptions.")},
 			],
 		},
 	]
-

@@ -62,11 +62,7 @@ def _ensure_workspaces():
 	)
 	_ensure_workspace_doc("Dealer Management", "Dealer Management System", "tool")
 	_ensure_workspace_doc("DMS CRM", "Customer Relationship Management", "users")
-	missing = [
-		name
-		for name in ("Dealer Management", "DMS CRM")
-		if not frappe.db.exists("Workspace", name)
-	]
+	missing = [name for name in ("Dealer Management", "DMS CRM") if not frappe.db.exists("Workspace", name)]
 	if missing:
 		frappe.throw(f"Missing DMS workspaces: {', '.join(missing)}")
 

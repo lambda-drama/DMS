@@ -192,6 +192,7 @@ def get_customer_follow_up_report(filters=None):
 		rows,
 	)
 
+
 def get_customer_satisfaction_report(filters=None):
 	f = _parse_filters(filters)
 	if not frappe.db.exists("DocType", "Customer Follow Up"):
@@ -243,7 +244,9 @@ def get_customer_satisfaction_report(filters=None):
 	for row in follow_ups:
 		score = None
 		if meta.has_field("customer_rating_score"):
-			raw_score = row.get("customer_rating_score") if isinstance(row, dict) else row.customer_rating_score
+			raw_score = (
+				row.get("customer_rating_score") if isinstance(row, dict) else row.customer_rating_score
+			)
 			score = _rating_stars(raw_score)
 		if score is None:
 			raw = row.get("customer_rating") if isinstance(row, dict) else row.customer_rating
@@ -263,9 +266,7 @@ def get_customer_satisfaction_report(filters=None):
 	avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else 0
 	complaints = sum(1 for r in follow_ups if r.customer_complaint)
 	resolved = sum(
-		1
-		for r in follow_ups
-		if str(r.issue_resolved or "").strip().lower() in ("yes", "1", "true")
+		1 for r in follow_ups if str(r.issue_resolved or "").strip().lower() in ("yes", "1", "true")
 	)
 
 	vin_sql, vin_params = _vin_sql_clause(f, "COALESCE(cf.vehicle_vin, jc.vehicle_vin)")
@@ -330,6 +331,7 @@ def get_customer_satisfaction_report(filters=None):
 		"rows": follow_ups,
 	}
 
+
 def get_customer_retention_report(filters=None):
 	f = _parse_filters(filters)
 	vin_sql, vin_params = _vin_sql_clause(f, "vehicle_vin")
@@ -366,10 +368,13 @@ def get_customer_retention_report(filters=None):
 	first_from_appointment = frappe.db.count(
 		"Service Appointment",
 		{
-			"appointment_date_time": ["between", [
-				datetime.datetime.combine(f["from_date"], datetime.time.min),
-				datetime.datetime.combine(f["to_date"], datetime.time.max),
-			]],
+			"appointment_date_time": [
+				"between",
+				[
+					datetime.datetime.combine(f["from_date"], datetime.time.min),
+					datetime.datetime.combine(f["to_date"], datetime.time.max),
+				],
+			],
 			"status": ["in", ["Completed", "In Workshop", "Ready for Pickup"]],
 		},
 	)
@@ -381,9 +386,9 @@ def get_customer_retention_report(filters=None):
 		"summary": {
 			"unique_customers": int(unique_customers or 0),
 			"returning_customers": len(repeat_customers),
-			"retention_rate_pct": round(
-				(len(repeat_customers) / int(unique_customers)) * 100, 1
-			) if unique_customers else 0,
+			"retention_rate_pct": round((len(repeat_customers) / int(unique_customers)) * 100, 1)
+			if unique_customers
+			else 0,
 			"completed_appointments": first_from_appointment,
 		},
 		"columns": [

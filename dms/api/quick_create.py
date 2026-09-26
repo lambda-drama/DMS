@@ -174,10 +174,7 @@ def _quick_create_color(values):
 		frappe.throw(_("Color DocType is not available on this site."))
 
 	meta = frappe.get_meta("Color")
-	title = (
-		(values.get("color_name") or values.get("title") or values.get("color") or "")
-		.strip()
-	)
+	title = (values.get("color_name") or values.get("title") or values.get("color") or "").strip()
 	if not title:
 		frappe.throw(_("Color name is required"))
 
@@ -190,11 +187,7 @@ def _quick_create_color(values):
 
 	has_label_field = any(meta.has_field(f) for f in ("color", "color_name", "colour_name"))
 	desc_field = meta.get_field("description")
-	if (
-		not has_label_field
-		and desc_field
-		and desc_field.fieldtype in ("Data", "Small Text", "Text")
-	):
+	if not has_label_field and desc_field and desc_field.fieldtype in ("Data", "Small Text", "Text"):
 		doc["description"] = title
 
 	# Prompt autoname requires `name` before insert.

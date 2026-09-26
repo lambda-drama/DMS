@@ -3,14 +3,13 @@
 
 """Draft Sales Invoice from DMS Job Card (requires ERPNext)."""
 
-import frappe
-from frappe import _
-from frappe.utils import cint, flt, getdate, strip_html, today
-
-from frappe.model.naming import make_autoname
 from datetime import datetime
 
-from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
+import frappe
+from frappe import _
+from frappe.model.naming import make_autoname
+from frappe.utils import cint, flt, getdate, strip_html, today
+
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	labour_row_hours,
 	part_issue_qty,
@@ -35,11 +34,10 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
 )
+from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
-WARRANTY_APPLICATION_TYPES = frozenset(
-	{"All Invoice", "Labour", "Spare Part", "Discount"}
-)
+WARRANTY_APPLICATION_TYPES = frozenset({"All Invoice", "Labour", "Spare Part", "Discount"})
 
 
 def normalize_exclude_rows(exclude_rows) -> set[str]:
@@ -200,11 +198,7 @@ def normalize_qty_overrides(qty_overrides) -> dict[str, float]:
 			return {}
 	if isinstance(qty_overrides, dict):
 		items = qty_overrides.items()
-	elif (
-		isinstance(qty_overrides, (list, tuple))
-		and qty_overrides
-		and isinstance(qty_overrides[0], dict)
-	):
+	elif isinstance(qty_overrides, (list, tuple)) and qty_overrides and isinstance(qty_overrides[0], dict):
 		items = (
 			(
 				row.get("source_row") or row.get("name") or row.get("row_name"),
@@ -244,11 +238,7 @@ def validate_part_row_adjustments(
 	if not excluded and not overrides:
 		return set(), {}
 
-	known = {
-		name
-		for part in (parts or [])
-		if (name := (_part_attr(part, "name") or "").strip())
-	}
+	known = {name for part in (parts or []) if (name := (_part_attr(part, "name") or "").strip())}
 	unknown = (excluded | set(overrides)) - known
 	if unknown:
 		frappe.throw(
@@ -337,9 +327,7 @@ def _line_discount_rates(base_rate: float, qty: float, row) -> tuple[float, floa
 	return full, line_effective_rate(full, qty, mode, value), mode
 
 
-def _line_invoice_discount(
-	price_list_rate: float, net_rate: float, discount_mode: str = ""
-) -> dict:
+def _line_invoice_discount(price_list_rate: float, net_rate: float, discount_mode: str = "") -> dict:
 	"""Sales Invoice Item price + discount fields.
 
 	The full price goes on ``price_list_rate`` and the difference to ``rate`` is
@@ -533,9 +521,7 @@ def apply_job_card_part_adjustments(jc, exclude_rows=None, qty_overrides=None) -
 		if not row_name:
 			continue
 		rows_by_name[row_name] = row
-		plan = plan_part_row_adjustment(
-			row, excluded=row_name in excluded, qty=overrides.get(row_name)
-		)
+		plan = plan_part_row_adjustment(row, excluded=row_name in excluded, qty=overrides.get(row_name))
 		if not plan:
 			continue
 		plan["label"] = (
@@ -575,9 +561,7 @@ def apply_job_card_part_adjustments(jc, exclude_rows=None, qty_overrides=None) -
 			jc.remove(row)
 			summary["removed"].append({"row": plan["row"], "item_code": plan["item_code"]})
 			notes.append(
-				_("Part {0}: removed from this job card while raising the invoice.").format(
-					plan["label"]
-				)
+				_("Part {0}: removed from this job card while raising the invoice.").format(plan["label"])
 			)
 			continue
 
@@ -607,9 +591,9 @@ def apply_job_card_part_adjustments(jc, exclude_rows=None, qty_overrides=None) -
 					"to": plan["to"],
 				}
 			)
-			note = _(
-				"Part {0}: billable qty reduced from {1} to {2} while raising the invoice."
-			).format(plan["label"], plan["from"], plan["to"])
+			note = _("Part {0}: billable qty reduced from {1} to {2} while raising the invoice.").format(
+				plan["label"], plan["from"], plan["to"]
+			)
 
 		row.notes = _append_job_card_note(_part_attr(row, "notes"), note)
 		notes.append(note)
@@ -632,9 +616,7 @@ def normalize_warranty_application_type(value) -> str:
 
 def add_full_warranty_item_on_invoice() -> bool:
 	"""DMS Settings: bill warranty-covered lines at full rate with 100% line discount."""
-	return cint(
-		frappe.db.get_single_value("DMS Settings", "add_full_warranty_item_on_invoice")
-	)
+	return cint(frappe.db.get_single_value("DMS Settings", "add_full_warranty_item_on_invoice"))
 
 
 def is_line_warranty_covered(line_type: str, warranty_application_type: str) -> bool:
@@ -693,9 +675,7 @@ def resolve_invoice_line_pricing(
 	}
 
 
-def _si_item_pricing_fields(
-	pricing: dict, *, price_list_rate=None, discount_mode: str = ""
-) -> dict:
+def _si_item_pricing_fields(pricing: dict, *, price_list_rate=None, discount_mode: str = "") -> dict:
 	"""Selling fields for a Sales Invoice Item.
 
 	Warranty is not stored as a 0 net rate: a site Server Script rejects rate=0.
@@ -926,9 +906,7 @@ def _clear_sales_invoice_taxes(si, prevent_reapply: bool = True) -> None:
 
 def get_dms_default_taxes_and_charges_template(company: str | None = None) -> str:
 	"""Sales Taxes and Charges Template from DMS Settings."""
-	name = (
-		frappe.db.get_single_value("DMS Settings", "default_taxes_and_charges_template") or ""
-	).strip()
+	name = (frappe.db.get_single_value("DMS Settings", "default_taxes_and_charges_template") or "").strip()
 	if not name:
 		frappe.throw(
 			_("Set Default Taxes and Charges Template on DMS Settings before including taxes."),
@@ -952,9 +930,9 @@ def get_dms_default_taxes_and_charges_template(company: str | None = None) -> st
 		tmpl_company = frappe.db.get_value("Sales Taxes and Charges Template", name, "company")
 		if tmpl_company and tmpl_company != company:
 			frappe.throw(
-				_(
-					"DMS default Taxes and Charges Template {0} belongs to company {1}, not {2}."
-				).format(frappe.bold(name), frappe.bold(tmpl_company), frappe.bold(company)),
+				_("DMS default Taxes and Charges Template {0} belongs to company {1}, not {2}.").format(
+					frappe.bold(name), frappe.bold(tmpl_company), frappe.bold(company)
+				),
 				title=_("Taxes and Charges"),
 			)
 	return name
@@ -1104,9 +1082,7 @@ def _readonly_tax_withholding_for_preview(si) -> tuple[str, str | None]:
 	else:
 		customer = (getattr(si, "customer", None) or "").strip()
 		if customer and frappe.db.exists("Customer", customer):
-			group = (
-				frappe.db.get_value("Customer", customer, "tax_withholding_group") or ""
-			).strip()
+			group = (frappe.db.get_value("Customer", customer, "tax_withholding_group") or "").strip()
 
 	group = group or _tax_withholding_group_for_category(category, posting_date)
 
@@ -1231,6 +1207,29 @@ def _apply_sales_invoice_tax_choice(si, apply_taxes: bool, apply_tax_withholding
 	_apply_tax_withholding_choice(si, apply_tax_withholding)
 
 
+def _blank_tax_preview(company=None, customer=None, currency=None) -> dict:
+	"""Empty tax-preview payload — the shape callers get when nothing can be computed."""
+	company = (company or "").strip() or None
+	return {
+		"company": company,
+		"customer": (customer or "").strip() or None,
+		"currency": (currency or "").strip()
+		or (frappe.get_cached_value("Company", company, "default_currency") if company else None),
+		"net_total": 0.0,
+		"total_taxes_and_charges": 0.0,
+		"grand_total": 0.0,
+		"rounded_total": 0.0,
+		"rounding_adjustment": 0.0,
+		"vat_amount": 0.0,
+		"withholding_amount": 0.0,
+		"tax_rows": [],
+		"tax_template": None,
+		"withholding_category": None,
+		"withholding_group": None,
+		"message": None,
+	}
+
+
 def build_invoice_tax_preview(
 	company: str | None = None,
 	customer: str | None = None,
@@ -1284,6 +1283,9 @@ def build_invoice_tax_preview(
 	si.set_posting_time = 1
 	si.update_stock = 0
 	si.ignore_pricing_rule = 1
+	# Same flag every saved DMS invoice carries, so the previewed totals (grand
+	# total, no rounding) match the document that creating the invoice stores.
+	disable_sales_invoice_round_off(si)
 
 	for row in lines or []:
 		qty = flt(row.get("qty"))
@@ -1352,9 +1354,7 @@ def build_invoice_tax_preview(
 			"rounded_total": flt(si.rounded_total),
 			"rounding_adjustment": flt(si.rounding_adjustment),
 			"vat_amount": flt(sum(row["tax_amount"] for row in tax_rows if not row["is_withholding"])),
-			"withholding_amount": flt(
-				sum(row["tax_amount"] for row in tax_rows if row["is_withholding"])
-			),
+			"withholding_amount": flt(sum(row["tax_amount"] for row in tax_rows if row["is_withholding"])),
 			"tax_rows": tax_rows,
 		}
 	)
@@ -1427,6 +1427,179 @@ def _apply_sales_order_tax_choice(so, apply_taxes: bool) -> None:
 	else:
 		_clear_sales_order_taxes(so)
 		_guard_sales_order_tax_choice(so, False)
+
+
+SALES_ORDER_WITHHOLDING_FLAG = "custom_apply_tax_withholding"
+SALES_ORDER_WITHHOLDING_CATEGORY = "custom_tax_withholding_category"
+SALES_ORDER_WITHHOLDING_GROUP = "custom_tax_withholding_group"
+
+
+def ensure_sales_order_tax_withholding_fields() -> None:
+	"""Ensure Sales Order carries the order-level tax-withholding (TCS) choice.
+
+	ERPNext only withholds tax on invoices — ``apply_tds`` / ``tax_withholding_group``
+	live on Sales Invoice — so the order keeps the *intent* plus the DMS Settings
+	category, and the invoice conversion / preview apply the deduction.
+
+	Created on ``bench migrate``; the lazy fallback below skips silently when the
+	user may not manage Custom Fields, so order screens stay read-only for them.
+	"""
+	if custom_field_exists("Sales Order", SALES_ORDER_WITHHOLDING_FLAG):
+		return
+
+	ensure_custom_fields(
+		{
+			"Sales Order": [
+				{
+					"fieldname": SALES_ORDER_WITHHOLDING_FLAG,
+					"label": "Include Tax Withholding (TCS) On Invoice",
+					"fieldtype": "Check",
+					"insert_after": "taxes_and_charges",
+					"print_hide": 1,
+				},
+				{
+					"fieldname": SALES_ORDER_WITHHOLDING_CATEGORY,
+					"label": "Tax Withholding Category",
+					"fieldtype": "Link",
+					"options": "Tax Withholding Category",
+					"insert_after": SALES_ORDER_WITHHOLDING_FLAG,
+					"depends_on": f"eval:doc.{SALES_ORDER_WITHHOLDING_FLAG}",
+					"read_only": 1,
+				},
+				{
+					"fieldname": SALES_ORDER_WITHHOLDING_GROUP,
+					"label": "Tax Withholding Group",
+					"fieldtype": "Link",
+					"options": "Tax Withholding Group",
+					"insert_after": SALES_ORDER_WITHHOLDING_CATEGORY,
+					"depends_on": f"eval:doc.{SALES_ORDER_WITHHOLDING_CATEGORY}",
+					"read_only": 1,
+				},
+			]
+		},
+		update=True,
+	)
+
+
+def _clear_sales_order_tax_withholding(so) -> None:
+	"""Drop the order's tax-withholding intent (the order totals never withhold)."""
+	meta = frappe.get_meta("Sales Order")
+	if meta.has_field(SALES_ORDER_WITHHOLDING_FLAG):
+		so.set(SALES_ORDER_WITHHOLDING_FLAG, 0)
+	if meta.has_field(SALES_ORDER_WITHHOLDING_CATEGORY):
+		so.set(SALES_ORDER_WITHHOLDING_CATEGORY, None)
+	if meta.has_field(SALES_ORDER_WITHHOLDING_GROUP):
+		so.set(SALES_ORDER_WITHHOLDING_GROUP, None)
+
+
+def _apply_sales_order_tax_withholding_choice(so, apply_tax_withholding) -> None:
+	"""Record (or clear) the TCS choice on the Sales Order.
+
+	``apply_tax_withholding`` is tri-state: ``True`` stamps the DMS Settings
+	category / group on the order, ``False`` clears it, and ``None`` leaves whatever
+	the order already carries. Nothing is added to the order totals — the deduction
+	happens on the Sales Invoice, which the conversion applies.
+	"""
+	ensure_sales_order_tax_withholding_fields()
+	if not frappe.get_meta("Sales Order").has_field(SALES_ORDER_WITHHOLDING_FLAG):
+		return
+
+	if not apply_tax_withholding:
+		_clear_sales_order_tax_withholding(so)
+		return
+
+	# Read-only resolution: an order is a commitment, not a posting, so the customer
+	# record keeps its own settings (the invoice writes them when the group is unset).
+	category, group = _readonly_tax_withholding_for_preview(so)
+	so.set(SALES_ORDER_WITHHOLDING_FLAG, 1)
+	so.set(SALES_ORDER_WITHHOLDING_CATEGORY, category)
+	so.set(SALES_ORDER_WITHHOLDING_GROUP, group)
+
+
+def read_sales_order_tax_withholding(so) -> tuple[bool, str | None, str | None]:
+	"""Order-level TCS choice ``(ticked, category, group)`` — never creates fields."""
+	meta = frappe.get_meta("Sales Order")
+	if not meta.has_field(SALES_ORDER_WITHHOLDING_FLAG):
+		return False, None, None
+	return (
+		bool(cint(so.get(SALES_ORDER_WITHHOLDING_FLAG))),
+		(so.get(SALES_ORDER_WITHHOLDING_CATEGORY) or "").strip() or None,
+		(so.get(SALES_ORDER_WITHHOLDING_GROUP) or "").strip() or None,
+	)
+
+
+def build_order_tax_preview(
+	customer: str | None = None,
+	company: str | None = None,
+	labour_lines=None,
+	parts_lines=None,
+	warehouse: str | None = None,
+	currency: str | None = None,
+	delivery_date=None,
+	transaction_date=None,
+	remarks: str | None = None,
+	labour_discount=None,
+	parts_discount=None,
+	vehicle_vin: str | None = None,
+	apply_taxes: bool = False,
+	apply_tax_withholding: bool = False,
+) -> dict:
+	"""VAT the order carries plus the TCS its Sales Invoice will withhold.
+
+	Builds the Sales Order in memory (``dry_run``) so prices, discounts and the tax
+	template are exactly the ones the order will store, then reports the invoice-side
+	withholding the user only otherwise sees after converting to an invoice.
+	"""
+	try:
+		so = create_standalone_dms_sales_order(
+			customer=customer or "",
+			company=company or "",
+			labour_lines=labour_lines,
+			parts_lines=parts_lines,
+			warehouse=warehouse,
+			currency=currency,
+			delivery_date=delivery_date,
+			transaction_date=transaction_date,
+			remarks=remarks,
+			labour_discount=labour_discount,
+			parts_discount=parts_discount,
+			vehicle_vin=vehicle_vin,
+			apply_taxes=apply_taxes,
+			apply_tax_withholding=apply_tax_withholding,
+			dry_run=True,
+		)
+	except Exception as exc:
+		# The screen calls this on every change: report the reason inline instead of
+		# throwing (the same validation still blocks the save itself).
+		from frappe.utils.messages import clear_messages
+
+		clear_messages()
+		empty = _blank_tax_preview(company, customer, currency)
+		empty["message"] = str(exc) or _("Could not preview taxes for this order.")
+		return empty
+
+	preview = build_invoice_tax_preview(
+		company=company or so.company,
+		customer=customer or so.customer,
+		currency=currency or so.currency,
+		posting_date=transaction_date or so.transaction_date,
+		apply_taxes=apply_taxes,
+		apply_tax_withholding=apply_tax_withholding,
+		lines=[
+			{
+				"item_code": row.item_code,
+				"qty": flt(row.qty),
+				"rate": flt(row.rate),
+				"description": row.description,
+			}
+			for row in so.get("items") or []
+		],
+	)
+	# Withholding rows are invoice-only, so keep the order's own totals visible too.
+	preview["order_net_total"] = flt(so.net_total)
+	preview["order_total_taxes_and_charges"] = flt(so.total_taxes_and_charges)
+	preview["order_grand_total"] = flt(so.grand_total)
+	return preview
 
 
 def _resolve_part_warehouse(part, jc) -> str | None:
@@ -1614,9 +1787,7 @@ def _set_job_card_payment_status(job_card_name: str, status: str) -> None:
 		return
 	if current == status:
 		return
-	frappe.db.set_value(
-		"DMS Job Card", job_card_name, "payment_status", status, update_modified=False
-	)
+	frappe.db.set_value("DMS Job Card", job_card_name, "payment_status", status, update_modified=False)
 
 
 def sync_job_card_payment_status_from_invoice(
@@ -1673,14 +1844,10 @@ def _sync_job_card_warranty_for_invoice(
 	jc = frappe.get_doc("DMS Job Card", job_card_name)
 	changed = False
 	if warranty_application_type is not None:
-		jc.warranty_application_type = normalize_warranty_application_type(
-			warranty_application_type
-		) or None
+		jc.warranty_application_type = normalize_warranty_application_type(warranty_application_type) or None
 		changed = True
 
-	wt = normalize_warranty_application_type(
-		warranty_application_type or jc.warranty_application_type
-	)
+	wt = normalize_warranty_application_type(warranty_application_type or jc.warranty_application_type)
 
 	if labour_discount is not None or parts_discount is not None:
 		if wt != "Discount":
@@ -1703,9 +1870,7 @@ def _sync_job_card_warranty_for_invoice(
 			jc.discount_amount = flt(discount_amount)
 			changed = True
 		elif flt(discount_amount) > 0:
-			frappe.throw(
-				_("Discount amount is only used when Warranty Application Type is Discount.")
-			)
+			frappe.throw(_("Discount amount is only used when Warranty Application Type is Discount."))
 
 	if changed:
 		jc.calculate_costing_and_totals()
@@ -1731,9 +1896,7 @@ def build_invoice_preview_from_job_card(
 
 	jc = frappe.get_doc("DMS Job Card", job_card_name)
 	warranty_type = normalize_warranty_application_type(
-		warranty_application_type
-		if warranty_application_type is not None
-		else jc.warranty_application_type
+		warranty_application_type if warranty_application_type is not None else jc.warranty_application_type
 	)
 	lump_discount = flt(discount_amount) if discount_amount is not None else None
 	labour_disc = (
@@ -1751,9 +1914,7 @@ def build_invoice_preview_from_job_card(
 	excluded, qty_edits = validate_part_row_adjustments(
 		jc.get("parts") or [], exclude_rows=exclude_rows, qty_overrides=qty_overrides
 	)
-	lines = _build_preview_lines(
-		jc, warranty_type, overrides, exclude_rows=excluded, qty_overrides=qty_edits
-	)
+	lines = _build_preview_lines(jc, warranty_type, overrides, exclude_rows=excluded, qty_overrides=qty_edits)
 
 	if not lines:
 		frappe.throw(
@@ -1781,19 +1942,13 @@ def build_invoice_preview_from_job_card(
 				parts_total, parts_disc
 			)
 		else:
-			discount = (
-				lump_discount
-				if lump_discount is not None
-				else flt(jc.discount_amount)
-			)
+			discount = lump_discount if lump_discount is not None else flt(jc.discount_amount)
 			if discount > 0:
 				_distribute_discount_on_preview_lines(lines, discount)
 
 	customer_name = jc.customer
 	if jc.customer:
-		customer_name = (
-			frappe.db.get_value("Customer", jc.customer, "customer_name") or jc.customer
-		)
+		customer_name = frappe.db.get_value("Customer", jc.customer, "customer_name") or jc.customer
 
 	return {
 		"job_card": jc.name,
@@ -1810,18 +1965,12 @@ def build_invoice_preview_from_job_card(
 		"discount_amount": discount,
 		"labour_discount": labour_disc,
 		"parts_discount": parts_disc,
-		"estimated_total": invoice_estimated_total(
-			labour_total, parts_total, warranty_type, discount
-		),
+		"estimated_total": invoice_estimated_total(labour_total, parts_total, warranty_type, discount),
 		"currency": _currency_from_job_card(jc),
 		"existing_invoice": get_active_job_card_invoice(jc.name),
 		"add_full_warranty_item_on_invoice": add_full_warranty_item_on_invoice(),
 		# Job Card remark (shown / prefilled in the create-invoice dialog).
-		"remark": (
-			(jc.get("remark") or "")
-			if frappe.get_meta("DMS Job Card").has_field("remark")
-			else ""
-		),
+		"remark": ((jc.get("remark") or "") if frappe.get_meta("DMS Job Card").has_field("remark") else ""),
 	}
 
 
@@ -1997,14 +2146,14 @@ def _generate_invoice_no(company):
 	company_abbr = frappe.db.get_value("Company", company, "abbr")
 	if not company_abbr:
 		frappe.throw(_("Company abbreviation not found for {0}").format(company))
- 
+
 	current_year = datetime.now().year
- 
+
 	if company == "CITYWALK FOOTWEAR PVT LTD":
 		base_name = make_autoname(f"{company_abbr}-JW-.###")
 	else:
 		base_name = make_autoname(f"{company_abbr}-.####")
- 
+
 	return f"{base_name}-{current_year}"
 
 
@@ -2071,9 +2220,7 @@ def _append_preview_line(
 	max_qty: float | None = None,
 	full_rate: float | None = None,
 ) -> None:
-	pricing = resolve_invoice_line_pricing(
-		line_type, base_rate, qty, warranty_application_type
-	)
+	pricing = resolve_invoice_line_pricing(line_type, base_rate, qty, warranty_application_type)
 	if not pricing["include"]:
 		return
 
@@ -2102,7 +2249,9 @@ def _append_preview_line(
 
 
 def _build_preview_lines(
-	jc, warranty_application_type: str, rate_overrides: dict[str, float] | None = None,
+	jc,
+	warranty_application_type: str,
+	rate_overrides: dict[str, float] | None = None,
 	exclude_rows: set[str] | None = None,
 	qty_overrides: dict[str, float] | None = None,
 ) -> list[dict]:
@@ -2114,9 +2263,7 @@ def _build_preview_lines(
 
 	if has_labour:
 		if not frappe.db.exists("DocType", "Vehicle Service Item"):
-			frappe.throw(
-				_("DocType Vehicle Service Item is missing. Cannot bill labour breakdown lines.")
-			)
+			frappe.throw(_("DocType Vehicle Service Item is missing. Cannot bill labour breakdown lines."))
 		for row in jc.labour:
 			if not row.vehicle_service_item:
 				continue
@@ -2151,13 +2298,9 @@ def _build_preview_lines(
 		for ji in jc.get("job_items") or []:
 			if not ji.labor_operation:
 				continue
-			base_rate = flt(
-				frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0
-			)
+			base_rate = flt(frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0)
 			base_rate = _line_base_rate(base_rate, ji.name, overrides)
-			item_name = (
-				frappe.db.get_value("Item", ji.labor_operation, "item_name") or ji.labor_operation
-			)
+			item_name = frappe.db.get_value("Item", ji.labor_operation, "item_name") or ji.labor_operation
 			issue = strip_html(getattr(ji, "complaint_description", None) or "").strip()
 			_append_preview_line(
 				lines,
@@ -2171,9 +2314,7 @@ def _build_preview_lines(
 				issue=issue,
 			)
 
-	never_requested_rows = never_requested_part_row_names(
-		jc.get("parts") or [], job_card=jc.name
-	)
+	never_requested_rows = never_requested_part_row_names(jc.get("parts") or [], job_card=jc.name)
 
 	for part in jc.get("parts") or []:
 		if not part.item_code:
@@ -2436,9 +2577,7 @@ def sync_sales_invoice_rates_to_job_card(si) -> dict:
 def _group_discount_total_amount(group_total: float, discount: dict | None) -> float:
 	if not discount:
 		return 0.0
-	return compute_group_discount_amount(
-		group_total, discount.get("type"), discount.get("value")
-	)
+	return compute_group_discount_amount(group_total, discount.get("type"), discount.get("value"))
 
 
 def _job_card_invoice_item_code_sets(jc) -> tuple[set[str], set[str]]:
@@ -2466,9 +2605,7 @@ def _job_card_invoice_item_code_sets(jc) -> tuple[set[str], set[str]]:
 	return labour_codes, parts_codes
 
 
-def _apply_group_discount_on_preview_lines(
-	lines: list[dict], discount: dict | None
-) -> None:
+def _apply_group_discount_on_preview_lines(lines: list[dict], discount: dict | None) -> None:
 	if not discount:
 		return
 	billable = [ln for ln in lines if flt(ln.get("amount")) > 0]
@@ -2480,9 +2617,7 @@ def _apply_group_discount_on_preview_lines(
 		return
 	if discount["type"] == "amount" and flt(discount["value"]) > group_total:
 		frappe.throw(
-			_("Discount amount cannot exceed group total ({0}).").format(
-				frappe.bold(round(group_total, 2))
-			)
+			_("Discount amount cannot exceed group total ({0}).").format(frappe.bold(round(group_total, 2)))
 		)
 	_distribute_discount_on_preview_lines(billable, total_disc)
 
@@ -2696,7 +2831,11 @@ def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -
 
 
 def append_si_items(
-	si, jc, warranty_application_type: str = "", rate_overrides=None, exclude_rows=None,
+	si,
+	jc,
+	warranty_application_type: str = "",
+	rate_overrides=None,
+	exclude_rows=None,
 	qty_overrides=None,
 ):
 	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items; warranty-aware rates."""
@@ -2739,9 +2878,7 @@ def append_si_items(
 	has_labour = bool(jc.get("labour"))
 	if has_labour:
 		if not frappe.db.exists("DocType", "Vehicle Service Item"):
-			frappe.throw(
-				_("DocType Vehicle Service Item is missing. Cannot bill labour breakdown lines.")
-			)
+			frappe.throw(_("DocType Vehicle Service Item is missing. Cannot bill labour breakdown lines."))
 		for row in jc.labour:
 			if not row.vehicle_service_item:
 				continue
@@ -2765,9 +2902,7 @@ def append_si_items(
 			base_rate = _line_base_rate(base_rate, row.name, overrides)
 			full_rate, net_rate, discount_mode = _line_discount_rates(base_rate, qty, row)
 
-			pricing = resolve_invoice_line_pricing(
-				"Labour", net_rate, qty, warranty_application_type
-			)
+			pricing = resolve_invoice_line_pricing("Labour", net_rate, qty, warranty_application_type)
 			if not pricing["include"]:
 				continue
 
@@ -2785,20 +2920,14 @@ def append_si_items(
 			if not ji.labor_operation:
 				continue
 
-			base_rate = flt(
-				frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0
-			)
+			base_rate = flt(frappe.db.get_value("Item", ji.labor_operation, "standard_rate") or 0)
 			base_rate = _line_base_rate(base_rate, ji.name, overrides)
-			pricing = resolve_invoice_line_pricing(
-				"Labour", base_rate, 1, warranty_application_type
-			)
+			pricing = resolve_invoice_line_pricing("Labour", base_rate, 1, warranty_application_type)
 			if not pricing["include"]:
 				continue
 
 			child = _append_priced_item(ji.labor_operation, 1, pricing)
-			item_name = (
-				frappe.db.get_value("Item", ji.labor_operation, "item_name") or ji.labor_operation
-			)
+			item_name = frappe.db.get_value("Item", ji.labor_operation, "item_name") or ji.labor_operation
 			child.description = (item_name or "")[:4096]
 
 	for part in jc.get("parts") or []:
@@ -2824,9 +2953,7 @@ def append_si_items(
 		base_rate = _line_base_rate(base_rate, part.name, overrides)
 		full_rate, net_rate, discount_mode = _line_discount_rates(base_rate, qty, part)
 
-		pricing = resolve_invoice_line_pricing(
-			"Parts", net_rate, qty, warranty_application_type
-		)
+		pricing = resolve_invoice_line_pricing("Parts", net_rate, qty, warranty_application_type)
 		if not pricing["include"]:
 			continue
 
@@ -2854,6 +2981,17 @@ def disable_sales_invoice_round_off(si) -> None:
 	"""Always disable rounded total on DMS-created Sales Invoices."""
 	if frappe.get_meta("Sales Invoice").has_field("disable_rounded_total"):
 		si.disable_rounded_total = 1
+
+
+def disable_sales_order_round_off(so) -> None:
+	"""Always disable rounded total on DMS-created Sales Orders.
+
+	Rounding is display-only on an order (nothing posts from it), and the invoice
+	that follows never rounds either — so the order must show the exact figure the
+	customer is charged instead of a whole-unit approximation of it.
+	"""
+	if frappe.get_meta("Sales Order").has_field("disable_rounded_total"):
+		so.disable_rounded_total = 1
 
 
 def mark_sales_invoice_as_missing_dms(si) -> None:
@@ -2995,9 +3133,7 @@ def _apply_standalone_stock_warehouse(si_row, erp_item: str, warehouse: str, com
 		frappe.throw(_("Warehouse {0} not found.").format(frappe.bold(wh)))
 	if frappe.db.get_value("Warehouse", wh, "company") != company:
 		frappe.throw(
-			_("Warehouse {0} must belong to company {1}.").format(
-				frappe.bold(wh), frappe.bold(company)
-			)
+			_("Warehouse {0} must belong to company {1}.").format(frappe.bold(wh), frappe.bold(company))
 		)
 
 	si_row.warehouse = wh
@@ -3109,7 +3245,9 @@ def create_standalone_dms_sales_invoice(
 	except Exception:
 		vehicle_suffix = ""
 	if vehicle_suffix:
-		invoice_remarks = f"{invoice_remarks}\n{vehicle_suffix}".strip() if invoice_remarks else vehicle_suffix
+		invoice_remarks = (
+			f"{invoice_remarks}\n{vehicle_suffix}".strip() if invoice_remarks else vehicle_suffix
+		)
 	if invoice_remarks:
 		si.remarks = invoice_remarks
 
@@ -3171,17 +3309,9 @@ def create_standalone_dms_sales_invoice(
 		parts_group_total += amount
 
 	if labour_disc and labour_disc["type"] == "amount" and flt(labour_disc["value"]) > labour_group_total:
-		frappe.throw(
-			_("Labour discount amount cannot exceed labour total ({0}).").format(
-				labour_group_total
-			)
-		)
+		frappe.throw(_("Labour discount amount cannot exceed labour total ({0}).").format(labour_group_total))
 	if parts_disc and parts_disc["type"] == "amount" and flt(parts_disc["value"]) > parts_group_total:
-		frappe.throw(
-			_("Parts discount amount cannot exceed parts total ({0}).").format(
-				parts_group_total
-			)
-		)
+		frappe.throw(_("Parts discount amount cannot exceed parts total ({0}).").format(parts_group_total))
 
 	use_dms_discount_field = _sales_invoice_item_has_dms_discount_field()
 	# Parallel to si.items: base/list rate, net rate, line discount total, optional %
@@ -3191,24 +3321,20 @@ def create_standalone_dms_sales_invoice(
 		qty, base_rate, line_amount, missing_vsi = _standalone_labour_line_amount(row)
 		if missing_vsi:
 			frappe.throw(
-				_(
-					"Vehicle Service Item {0}: link to an ERP Item before invoicing."
-				).format(frappe.bold(missing_vsi))
+				_("Vehicle Service Item {0}: link to an ERP Item before invoicing.").format(
+					frappe.bold(missing_vsi)
+				)
 			)
 		if qty <= 0:
 			continue
 		vsi = (row.get("vehicle_service_item") or "").strip()
 		item_code = resolve_vehicle_service_item_to_item_code(vsi)
-		line_discount = _standalone_line_discount_amount(
-			line_amount, labour_group_total, labour_disc
-		)
+		line_discount = _standalone_line_discount_amount(line_amount, labour_group_total, labour_disc)
 		final_rate = _standalone_discounted_unit_rate(
 			qty, base_rate, line_amount, labour_group_total, labour_disc
 		)
 		disc_pct = (
-			flt(labour_disc["value"])
-			if labour_disc and labour_disc.get("type") == "percentage"
-			else 0.0
+			flt(labour_disc["value"]) if labour_disc and labour_disc.get("type") == "percentage" else 0.0
 		)
 		line_pricing.append(
 			{
@@ -3244,20 +3370,12 @@ def create_standalone_dms_sales_invoice(
 			continue
 		erp_item = spare_part_erp_item_code(spare_part)
 		if not erp_item:
-			frappe.throw(
-				_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part))
-			)
-		line_discount = _standalone_line_discount_amount(
-			line_amount, parts_group_total, parts_disc
-		)
+			frappe.throw(_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part)))
+		line_discount = _standalone_line_discount_amount(line_amount, parts_group_total, parts_disc)
 		final_rate = _standalone_discounted_unit_rate(
 			qty, base_rate, line_amount, parts_group_total, parts_disc
 		)
-		disc_pct = (
-			flt(parts_disc["value"])
-			if parts_disc and parts_disc.get("type") == "percentage"
-			else 0.0
-		)
+		disc_pct = flt(parts_disc["value"]) if parts_disc and parts_disc.get("type") == "percentage" else 0.0
 		line_pricing.append(
 			{
 				"base_rate": base_rate,
@@ -3445,9 +3563,7 @@ def _apply_standalone_stock_warehouse_so(so_row, erp_item: str, warehouse: str, 
 		frappe.throw(_("Warehouse {0} not found.").format(frappe.bold(wh)))
 	if frappe.db.get_value("Warehouse", wh, "company") != company:
 		frappe.throw(
-			_("Warehouse {0} must belong to company {1}.").format(
-				frappe.bold(wh), frappe.bold(company)
-			)
+			_("Warehouse {0} must belong to company {1}.").format(frappe.bold(wh), frappe.bold(company))
 		)
 
 	so_row.warehouse = wh
@@ -3469,13 +3585,21 @@ def create_standalone_dms_sales_order(
 	existing_name: str | None = None,
 	vehicle_vin: str | None = None,
 	apply_taxes: bool | None = None,
-) -> str:
+	apply_tax_withholding: bool | None = None,
+	dry_run: bool = False,
+) -> "str | frappe.model.document.Document":
 	"""Create or update a Sales Order for DMS proforma (labour and/or spare parts).
 
 	``apply_taxes`` is tri-state: ``True`` applies the Default Taxes and Charges
 	Template from DMS Settings, ``False`` keeps the order without taxes, and
 	``None`` (callers that predate the order VAT toggle, e.g. proformas) leaves
 	ERPNext's own default tax handling untouched.
+
+	``apply_tax_withholding`` follows the same tri-state and only records the
+	invoice-side TCS intent on the order (see ``_apply_sales_order_tax_withholding_choice``).
+
+	``dry_run`` returns the populated (unsaved) document instead of a name, so the
+	order screen can preview taxes without touching the database.
 	"""
 	_ensure_erpnext()
 
@@ -3498,7 +3622,9 @@ def create_standalone_dms_sales_order(
 
 	# Discounts reduce line rates — allowed without Edit Price. Only direct
 	# unit-price/rate edits (no discounts) require Edit Price permission.
-	if not labour_discount and not parts_discount:
+	# A dry run is a totals preview, not a save — the permission gate stays on the
+	# real save / insert path so the preview never fails on the operator's rights.
+	if not labour_discount and not parts_discount and not dry_run:
 		from dms.dealer_management_system.utils.price_permissions import (
 			assert_price_allowed_if_changed,
 		)
@@ -3531,7 +3657,7 @@ def create_standalone_dms_sales_order(
 			needs_stock_warehouse = True
 			break
 
-	if needs_stock_warehouse and not warehouse:
+	if needs_stock_warehouse and not warehouse and not dry_run:
 		frappe.throw(
 			_("Select a warehouse for spare parts on this proforma."),
 			title=_("Warehouse required"),
@@ -3612,17 +3738,9 @@ def create_standalone_dms_sales_order(
 		parts_group_total += amount
 
 	if labour_disc and labour_disc["type"] == "amount" and flt(labour_disc["value"]) > labour_group_total:
-		frappe.throw(
-			_("Labour discount amount cannot exceed labour total ({0}).").format(
-				labour_group_total
-			)
-		)
+		frappe.throw(_("Labour discount amount cannot exceed labour total ({0}).").format(labour_group_total))
 	if parts_disc and parts_disc["type"] == "amount" and flt(parts_disc["value"]) > parts_group_total:
-		frappe.throw(
-			_("Parts discount amount cannot exceed parts total ({0}).").format(
-				parts_group_total
-			)
-		)
+		frappe.throw(_("Parts discount amount cannot exceed parts total ({0}).").format(parts_group_total))
 
 	item_final_rates: list[float] = []
 
@@ -3630,9 +3748,9 @@ def create_standalone_dms_sales_order(
 		qty, base_rate, line_amount, missing_vsi = _standalone_labour_line_amount(row)
 		if missing_vsi:
 			frappe.throw(
-				_(
-					"Vehicle Service Item {0}: link to an ERP Item before creating a proforma."
-				).format(frappe.bold(missing_vsi))
+				_("Vehicle Service Item {0}: link to an ERP Item before creating a proforma.").format(
+					frappe.bold(missing_vsi)
+				)
 			)
 		if qty <= 0:
 			continue
@@ -3660,9 +3778,7 @@ def create_standalone_dms_sales_order(
 			continue
 		erp_item = spare_part_erp_item_code(spare_part)
 		if not erp_item:
-			frappe.throw(
-				_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part))
-			)
+			frappe.throw(_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part)))
 		final_rate = _standalone_discounted_unit_rate(
 			qty, base_rate, line_amount, parts_group_total, parts_disc
 		)
@@ -3689,8 +3805,12 @@ def create_standalone_dms_sales_order(
 	# not send a choice keep ERPNext's default behaviour (company tax template).
 	if apply_taxes is not None:
 		_apply_sales_order_tax_choice(so, bool(apply_taxes))
+	if apply_tax_withholding is not None:
+		_apply_sales_order_tax_withholding_choice(so, bool(apply_tax_withholding))
 	_apply_dms_settings_dimensions_to_sales_order(so, company)
 	apply_company_letter_head(so, company)
+	# Orders show the exact figure — the invoice that follows never rounds either.
+	disable_sales_order_round_off(so)
 
 	for idx, item_row in enumerate(so.get("items") or []):
 		if idx < len(item_final_rates):
@@ -3701,6 +3821,10 @@ def create_standalone_dms_sales_order(
 			item_row.discount_amount = 0
 
 	so.run_method("calculate_taxes_and_totals")
+	if dry_run:
+		# Preview only — the caller reads totals / tax rows; nothing is written.
+		return so
+
 	if existing_name:
 		so.save()
 	else:
@@ -3728,6 +3852,7 @@ def update_standalone_dms_sales_order(
 	parts_discount=None,
 	vehicle_vin: str | None = None,
 	apply_taxes: bool | None = None,
+	apply_tax_withholding: bool | None = None,
 ) -> str:
 	"""Update a draft DMS proforma Sales Order (same payload as create)."""
 	return create_standalone_dms_sales_order(
@@ -3746,4 +3871,5 @@ def update_standalone_dms_sales_order(
 		existing_name=name,
 		vehicle_vin=vehicle_vin,
 		apply_taxes=apply_taxes,
+		apply_tax_withholding=apply_tax_withholding,
 	)

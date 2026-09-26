@@ -6,7 +6,6 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, add_to_date, cint, flt, getdate, now_datetime, today
 
-
 # Referral is only created after a positive experience score (see record_experience_score).
 JOURNEY_STEPS = (
 	{
@@ -67,9 +66,7 @@ def spawn_post_delivery_journey(opportunity_name):
 			continue
 		due = add_to_date(now_datetime(), days=step["days"])
 		if step["key"] == "first_service" and opp.get("allocated_vin"):
-			service_due = frappe.db.get_value(
-				"VIN No", opp.allocated_vin, "next_service_due_date"
-			)
+			service_due = frappe.db.get_value("VIN No", opp.allocated_vin, "next_service_due_date")
 			if service_due:
 				due = f"{service_due} 09:00:00"
 		activity = _create_journey_activity(opp, step, due)
@@ -166,9 +163,7 @@ def record_experience_score(opportunity, score, notes=None):
 	if score < 1 or score > 5:
 		frappe.throw(_("Satisfaction score must be between 1 and 5."))
 
-	if opp.delivery_readiness and frappe.db.exists(
-		"DMS CRM Delivery Readiness", opp.delivery_readiness
-	):
+	if opp.delivery_readiness and frappe.db.exists("DMS CRM Delivery Readiness", opp.delivery_readiness):
 		frappe.db.set_value(
 			"DMS CRM Delivery Readiness",
 			opp.delivery_readiness,
@@ -192,8 +187,7 @@ def record_experience_score(opportunity, score, notes=None):
 			exp,
 			{
 				"status": "Completed",
-				"outcome_notes": notes
-				or f"Experience score recorded: {score}/5",
+				"outcome_notes": notes or f"Experience score recorded: {score}/5",
 			},
 		)
 
@@ -340,9 +334,7 @@ def _anniversary_and_trade_in_checks():
 		else:
 			age_years = max(1, int((getdate(today()) - delivery).days / 365) or 1)
 			mileage = flt(vin.current_odometer)
-			subject = (
-				f"Ownership anniversary ({age_years}y) / upgrade-trade-in for {vin.name}"
-			)
+			subject = f"Ownership anniversary ({age_years}y) / upgrade-trade-in for {vin.name}"
 
 		if frappe.db.exists(
 			"DMS CRM Activity",

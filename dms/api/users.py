@@ -127,11 +127,7 @@ def _clean_role_profiles(profiles, keep: set[str] | None = None) -> list[str]:
 		if not profile or profile in seen:
 			continue
 		if profile not in allowed and profile not in keep:
-			frappe.throw(
-				_("Role Profile {0} is not on DMS CRM User Settings.").format(
-					frappe.bold(profile)
-				)
-			)
+			frappe.throw(_("Role Profile {0} is not on DMS CRM User Settings.").format(frappe.bold(profile)))
 		if not frappe.db.exists("Role Profile", profile):
 			frappe.throw(_("Role Profile {0} does not exist.").format(frappe.bold(profile)))
 		seen.add(profile)
@@ -205,7 +201,17 @@ def get_users_bootstrap():
 	whitelist = {row.user for row in (settings.get("users") or []) if row.user}
 	whitelist -= set(PROTECTED_USERS)
 
-	fields = ["name", "email", "full_name", "first_name", "last_name", "enabled", "user_type", "last_login", "creation"]
+	fields = [
+		"name",
+		"email",
+		"full_name",
+		"first_name",
+		"last_name",
+		"enabled",
+		"user_type",
+		"last_login",
+		"creation",
+	]
 	if force_password_field_ready():
 		fields.append(FORCE_PASSWORD_FIELD)
 
@@ -262,7 +268,9 @@ def get_users_bootstrap():
 				"role_profiles": profile_map.get(d.name, []),
 				"whitelisted": d.name in whitelist,
 				"protected": _is_user_protected(d.name, set(roles)),
-				"must_change_password": bool(d.get(FORCE_PASSWORD_FIELD)) if force_password_field_ready() else False,
+				"must_change_password": bool(d.get(FORCE_PASSWORD_FIELD))
+				if force_password_field_ready()
+				else False,
 			}
 		)
 
@@ -459,4 +467,3 @@ def get_password_status():
 		"user": user,
 		"must_change_password": password_change_required(user),
 	}
-

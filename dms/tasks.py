@@ -33,6 +33,7 @@ def _crm_daily():
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), "CRM daily_pipeline_snapshot")
 
+
 def send_service_due_reminders():
 	"""Send periodic service reminders based on Vehicle Model interval-month rules."""
 	if not _is_service_reminder_enabled():
@@ -82,7 +83,9 @@ def send_service_due_reminders():
 
 		channel_sent = False
 		if customer.get("email_id"):
-			channel_sent = _send_email_reminder(customer["email_id"], subject, message, vin.name) or channel_sent
+			channel_sent = (
+				_send_email_reminder(customer["email_id"], subject, message, vin.name) or channel_sent
+			)
 		if customer.get("mobile_no"):
 			channel_sent = _send_whatsapp_reminder(customer["mobile_no"], message, vin.name) or channel_sent
 
@@ -255,7 +258,9 @@ def _reminder_already_sent(vin_name, marker):
 
 
 def _mark_reminder_sent(vin_name, marker, customer_name, due_date):
-	content = f"{marker} Service reminder sent to {customer_name or 'customer'} for due date {getdate(due_date)}."
+	content = (
+		f"{marker} Service reminder sent to {customer_name or 'customer'} for due date {getdate(due_date)}."
+	)
 	comment = frappe.get_doc(
 		{
 			"doctype": "Comment",
@@ -272,4 +277,3 @@ def _to_date(value):
 	if not value:
 		return None
 	return getdate(value)
-

@@ -99,9 +99,7 @@ def get_cases(status=None, priority=None, category=None, search=None, limit=50, 
 	)
 	summary = {}
 	for p in ("Critical", "High", "Medium", "Low"):
-		summary[p] = frappe.db.count(
-			DOCTYPE, {"priority": p, "status": ["not in", ["Closed", "Resolved"]]}
-		)
+		summary[p] = frappe.db.count(DOCTYPE, {"priority": p, "status": ["not in", ["Closed", "Resolved"]]})
 	summary["breached"] = frappe.db.count(
 		DOCTYPE, {"sla_breached": 1, "status": ["not in", ["Closed", "Resolved"]]}
 	)

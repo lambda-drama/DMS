@@ -1,1 +1,640 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[8580],{7425:(e,t,a)=>{a.d(t,{P:()=>h});var r=a(95155),s=a(12115),n=a(42869),i=a(6296),l=a(85118),o=a(92289),d=a(55243),c=a(66609),m=a(90901),u=a(4474),p=a(39658),x=a(79792),g=a(91337),f=a(5240);let b={mobile_no:"",email_id:""};function h({customer:e,customerName:t,fallback:a,onChange:v,disabled:_=!1,className:j}){let{mutate:y}=(0,m.iX)(),[w,k]=(0,s.useState)(b),[N,z]=(0,s.useState)(b),[A,E]=(0,s.useState)(!1),[S,C]=(0,s.useState)(!1),L=a?.mobile_no||"",M=a?.email_id||"",P=(0,s.useRef)(v);(0,s.useEffect)(()=>{P.current=v}),(0,s.useEffect)(()=>{if(!e){k(b),z(b);return}let t=!1;return E(!0),f.t4(e).then(e=>{if(t)return;let a={mobile_no:e.mobile_no||"",email_id:e.email_id||""};k(a),z(a)}).catch(()=>{if(t)return;let e={mobile_no:L,email_id:M};k(e),z(e)}).finally(()=>{t||E(!1)}),()=>{t=!0}},[e,L,M]),(0,s.useEffect)(()=>{P.current?.(w)},[w]);let F=w.mobile_no!==N.mobile_no||w.email_id!==N.email_id,V=_||A;async function $(){if(e){C(!0);try{let t=await f.KU(e,{mobile_no:w.mobile_no.trim(),email_id:w.email_id.trim()}),a={mobile_no:t.mobile_no||"",email_id:t.email_id||""};k(a),z(a),c.o.success("Customer phone and email updated"),await y(e=>Array.isArray(e)&&("customers"===e[0]||"customers-paginated"===e[0])||"customers"===e||"customers-paginated"===e,void 0,{revalidate:!0})}catch(e){c.o.error(e instanceof Error?e.message:"Could not update customer phone and email")}finally{C(!1)}}}return e?(0,r.jsxs)("div",{className:(0,g.cn)("rounded-lg border bg-muted/30 p-4 space-y-4",j),children:[(0,r.jsxs)("div",{className:"flex items-center justify-between gap-2",children:[(0,r.jsxs)("p",{className:"flex items-center gap-2 text-sm font-medium",children:[(0,r.jsx)(n.A,{className:"h-4 w-4 text-muted-foreground"}),t||e]}),A?(0,r.jsx)(i.A,{className:"h-4 w-4 animate-spin text-muted-foreground"}):null]}),(0,r.jsx)("p",{className:"text-xs text-muted-foreground",children:"Phone and email come from the customer record. Fill them in if they are missing, then press Save to update this customer."}),(0,r.jsxs)("div",{className:"grid gap-4 sm:grid-cols-2",children:[(0,r.jsxs)("div",{className:"space-y-2",children:[(0,r.jsx)(x.J,{htmlFor:"customer_contact_mobile",children:"Phone"}),(0,r.jsxs)("div",{className:"relative",children:[(0,r.jsx)(l.A,{className:"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"}),(0,r.jsx)(p.p,{id:"customer_contact_mobile",className:"pl-9",type:"tel",placeholder:"Mobile number",value:w.mobile_no,onChange:e=>k(t=>({...t,mobile_no:e.target.value})),disabled:V})]})]}),(0,r.jsxs)("div",{className:"space-y-2",children:[(0,r.jsx)(x.J,{htmlFor:"customer_contact_email",children:"Email"}),(0,r.jsxs)("div",{className:"relative",children:[(0,r.jsx)(o.A,{className:"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"}),(0,r.jsx)(p.p,{id:"customer_contact_email",className:"pl-9",type:"email",placeholder:"Email address",value:w.email_id,onChange:e=>k(t=>({...t,email_id:e.target.value})),disabled:V})]})]})]}),(0,r.jsx)("div",{className:"flex items-center justify-end gap-2",children:(0,r.jsxs)(u.$,{type:"button",size:"sm",variant:"outline",onClick:()=>void $(),disabled:V||S||!F,children:[S?(0,r.jsx)(i.A,{className:"mr-2 h-3.5 w-3.5 animate-spin"}):(0,r.jsx)(d.A,{className:"mr-2 h-3.5 w-3.5"}),"Save"]})})]}):null}},26518:(e,t,a)=>{a.d(t,{bq:()=>m,eb:()=>p,gC:()=>u,l6:()=>d,yv:()=>c});var r=a(95155);a(12115);var s=a(40287),n=a(66088),i=a(94514),l=a(9921),o=a(91337);function d({...e}){return(0,r.jsx)(s.bL,{"data-slot":"select",...e})}function c({...e}){return(0,r.jsx)(s.WT,{"data-slot":"select-value",...e})}function m({className:e,size:t="default",children:a,...i}){return(0,r.jsxs)(s.l9,{"data-slot":"select-trigger","data-size":t,className:(0,o.cn)("border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-full border bg-transparent px-4 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",e),...i,children:[a,(0,r.jsx)(s.In,{asChild:!0,children:(0,r.jsx)(n.A,{className:"size-4 opacity-50"})})]})}function u({className:e,children:t,position:a="popper",...n}){return(0,r.jsx)(s.ZL,{children:(0,r.jsxs)(s.UC,{"data-slot":"select-content",className:(0,o.cn)("bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md","popper"===a&&"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",e),position:a,...n,children:[(0,r.jsx)(x,{}),(0,r.jsx)(s.LM,{className:(0,o.cn)("p-1","popper"===a&&"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"),children:t}),(0,r.jsx)(g,{})]})})}function p({className:e,children:t,...a}){return(0,r.jsxs)(s.q7,{"data-slot":"select-item",className:(0,o.cn)("focus:bg-dms-green-light focus:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",e),...a,children:[(0,r.jsx)("span",{className:"absolute right-2 flex size-3.5 items-center justify-center",children:(0,r.jsx)(s.VF,{children:(0,r.jsx)(i.A,{className:"size-4"})})}),(0,r.jsx)(s.p4,{children:t})]})}function x({className:e,...t}){return(0,r.jsx)(s.PP,{"data-slot":"select-scroll-up-button",className:(0,o.cn)("flex cursor-default items-center justify-center py-1",e),...t,children:(0,r.jsx)(l.A,{className:"size-4"})})}function g({className:e,...t}){return(0,r.jsx)(s.wn,{"data-slot":"select-scroll-down-button",className:(0,o.cn)("flex cursor-default items-center justify-center py-1",e),...t,children:(0,r.jsx)(n.A,{className:"size-4"})})}},29158:(e,t,a)=>{a.d(t,{X5:()=>r,c6:()=>i,d9:()=>n,hq:()=>s});let r=["Engine","Transmission","Brake","Steering","Suspension","Electrical","AC","Body","Infotainment","Warning Light","Noise","Vibration","Leak","Smell","Performance","Charging/PHEV","Other"],s=["1 - Low","2 - Minor","3 - Moderate","4 - High","5 - Safety Critical"],n="Other",i="3 - Moderate"},38291:(e,t,a)=>{a.d(t,{E:()=>o});var r=a(95155);a(12115);var s=a(42442),n=a(18460),i=a(91337);let l=(0,n.F)("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",{variants:{variant:{default:"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",secondary:"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",destructive:"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",outline:"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground"}},defaultVariants:{variant:"default"}});function o({className:e,variant:t,asChild:a=!1,...n}){let d=a?s.DX:"span";return(0,r.jsx)(d,{"data-slot":"badge",className:(0,i.cn)(l({variant:t}),e),...n})}},42074:(e,t,a)=>{a.d(t,{h:()=>l});var r=a(95155),s=a(12115),n=a(47650),i=a(91337);function l({children:e,className:t,align:a="end"}){let[o,d]=(0,s.useState)(!1);(0,s.useEffect)(()=>(d(!0),()=>d(!1)),[]);let c=(0,r.jsx)("div",{role:"toolbar","aria-label":"Form actions",className:(0,i.cn)("fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90","pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3","lg:left-64",t),children:(0,r.jsx)("div",{className:(0,i.cn)("mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6","between"===a?"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3":"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"),children:e})});return o?(0,n.createPortal)(c,document.body):null}},44416:(e,t,a)=>{a.d(t,{i:()=>r});function r(e){if(!e)return"";let t=String(e);if("u">typeof document){let e=document.createElement("div");return e.innerHTML=t,(e.textContent||e.innerText||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()}return t.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()}},52959:(e,t,a)=>{a.d(t,{_:()=>l});var r=a(95155),s=a(4474),n=a(51914),i=a(91337);function l({onClick:e,label:t="Add",className:a,disabled:o}){return(0,r.jsx)("div",{className:(0,i.cn)("pt-1",a),children:(0,r.jsxs)(s.$,{type:"button",onClick:e,disabled:o,children:[(0,r.jsx)(n.A,{className:"h-4 w-4 mr-1"}),t]})})}},54828:(e,t,a)=>{function r(e){return e?.default_customer?{name:e.default_customer,customer_name:e.customer_name||e.default_customer,mobile_no:e.mobile_no||void 0}:null}function s(e,t,a){let r=e?.map(e=>({value:e.name,label:e.customer_name,description:e.mobile_no||void 0}))||[];return t&&a&&!r.some(e=>e.value===t)?[{value:a.name,label:a.customer_name,description:a.mobile_no},...r]:r}function n(e,t,a){if(!e){let e=r(a);return e?{customer:e.name,meta:e}:{customer:"",meta:null}}let s=t?.find(t=>t.name===e);return s?{customer:s.name,meta:{name:s.name,customer_name:s.customer_name,mobile_no:s.mobile_no}}:{customer:e,meta:{name:e,customer_name:e}}}a.d(t,{Gd:()=>r,R:()=>n,b0:()=>s})},58979:(e,t,a)=>{a.d(t,{x:()=>o});var r=a(95155),s=a(439),n=a(66669),i=a(80367),l=a(38291);function o({summary:e,className:t=""}){if(!e)return null;let a=e.warranty_active,d=a?s.A:"Expired by Mileage"===e.warranty_status?n.A:i.A;return(0,r.jsxs)("div",{className:`rounded-lg border p-4 space-y-2 ${a?"border-green-200 bg-green-50/80 dark:border-green-900 dark:bg-green-950/30":"border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/30"} ${t}`,children:[(0,r.jsxs)("div",{className:"flex flex-wrap items-center gap-2",children:[(0,r.jsx)(d,{className:`h-5 w-5 shrink-0 ${a?"text-green-700 dark:text-green-400":"text-amber-700 dark:text-amber-400"}`}),(0,r.jsxs)("span",{className:"font-medium text-sm",children:["Vehicle warranty: ",a?"Active":"Inactive"]}),(0,r.jsx)(l.E,{variant:e.warranty_active?"default":"Expired by Mileage"===e.warranty_status?"destructive":"secondary",children:e.warranty_status})]}),e.warranty_reason&&(0,r.jsx)("p",{className:"text-sm text-muted-foreground",children:e.warranty_reason}),(0,r.jsxs)("div",{className:"flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground",children:[e.sale_date&&(0,r.jsxs)("span",{children:["Sale date: ",e.sale_date]}),e.warranty_end_date&&(0,r.jsxs)("span",{children:["Ends: ",e.warranty_end_date]}),null!=e.warranty_km_limit&&e.warranty_km_limit>0&&(0,r.jsxs)("span",{children:["Limit: ",e.warranty_km_limit.toLocaleString()," km"]}),null!=e.current_odometer&&(0,r.jsxs)("span",{children:["Odometer: ",e.current_odometer.toLocaleString()," km"]}),a&&null!=e.days_remaining&&(0,r.jsxs)("span",{children:[e.days_remaining," days left"]}),a&&null!=e.km_remaining&&null!=e.warranty_km_limit&&(0,r.jsxs)("span",{children:[e.km_remaining.toLocaleString()," km left"]})]})]})}},61991:(e,t,a)=>{a.d(t,{w:()=>i});var r=a(95155);a(12115);var s=a(89803),n=a(91337);function i({className:e,orientation:t="horizontal",decorative:a=!0,...l}){return(0,r.jsx)(s.b,{"data-slot":"separator",decorative:a,orientation:t,className:(0,n.cn)("bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",e),...l})}},84437:(e,t,a)=>{a.d(t,{S:()=>l});var r=a(95155);a(12115);var s=a(47279),n=a(94514),i=a(91337);function l({className:e,...t}){return(0,r.jsx)(s.bL,{"data-slot":"checkbox",className:(0,i.cn)("peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",e),...t,children:(0,r.jsx)(s.C1,{"data-slot":"checkbox-indicator",className:"flex items-center justify-center text-current transition-none",children:(0,r.jsx)(n.A,{className:"size-3.5"})})})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[8580],
+	{
+		7425: (e, t, a) => {
+			a.d(t, { P: () => h });
+			var r = a(95155),
+				s = a(12115),
+				n = a(42869),
+				i = a(6296),
+				l = a(85118),
+				o = a(92289),
+				d = a(55243),
+				c = a(66609),
+				m = a(90901),
+				u = a(4474),
+				p = a(39658),
+				x = a(79792),
+				g = a(91337),
+				f = a(5240);
+			let b = { mobile_no: "", email_id: "" };
+			function h({
+				customer: e,
+				customerName: t,
+				fallback: a,
+				onChange: v,
+				disabled: _ = !1,
+				className: j,
+			}) {
+				let { mutate: y } = (0, m.iX)(),
+					[w, k] = (0, s.useState)(b),
+					[N, z] = (0, s.useState)(b),
+					[A, E] = (0, s.useState)(!1),
+					[S, C] = (0, s.useState)(!1),
+					L = a?.mobile_no || "",
+					M = a?.email_id || "",
+					P = (0, s.useRef)(v);
+				(0, s.useEffect)(() => {
+					P.current = v;
+				}),
+					(0, s.useEffect)(() => {
+						if (!e) {
+							k(b), z(b);
+							return;
+						}
+						let t = !1;
+						return (
+							E(!0),
+							f
+								.t4(e)
+								.then((e) => {
+									if (t) return;
+									let a = {
+										mobile_no: e.mobile_no || "",
+										email_id: e.email_id || "",
+									};
+									k(a), z(a);
+								})
+								.catch(() => {
+									if (t) return;
+									let e = { mobile_no: L, email_id: M };
+									k(e), z(e);
+								})
+								.finally(() => {
+									t || E(!1);
+								}),
+							() => {
+								t = !0;
+							}
+						);
+					}, [e, L, M]),
+					(0, s.useEffect)(() => {
+						P.current?.(w);
+					}, [w]);
+				let F = w.mobile_no !== N.mobile_no || w.email_id !== N.email_id,
+					V = _ || A;
+				async function $() {
+					if (e) {
+						C(!0);
+						try {
+							let t = await f.KU(e, {
+									mobile_no: w.mobile_no.trim(),
+									email_id: w.email_id.trim(),
+								}),
+								a = { mobile_no: t.mobile_no || "", email_id: t.email_id || "" };
+							k(a),
+								z(a),
+								c.o.success("Customer phone and email updated"),
+								await y(
+									(e) =>
+										(Array.isArray(e) &&
+											("customers" === e[0] ||
+												"customers-paginated" === e[0])) ||
+										"customers" === e ||
+										"customers-paginated" === e,
+									void 0,
+									{ revalidate: !0 }
+								);
+						} catch (e) {
+							c.o.error(
+								e instanceof Error
+									? e.message
+									: "Could not update customer phone and email"
+							);
+						} finally {
+							C(!1);
+						}
+					}
+				}
+				return e
+					? (0, r.jsxs)("div", {
+							className: (0, g.cn)("rounded-lg border bg-muted/30 p-4 space-y-4", j),
+							children: [
+								(0, r.jsxs)("div", {
+									className: "flex items-center justify-between gap-2",
+									children: [
+										(0, r.jsxs)("p", {
+											className:
+												"flex items-center gap-2 text-sm font-medium",
+											children: [
+												(0, r.jsx)(n.A, {
+													className: "h-4 w-4 text-muted-foreground",
+												}),
+												t || e,
+											],
+										}),
+										A
+											? (0, r.jsx)(i.A, {
+													className:
+														"h-4 w-4 animate-spin text-muted-foreground",
+											  })
+											: null,
+									],
+								}),
+								(0, r.jsx)("p", {
+									className: "text-xs text-muted-foreground",
+									children:
+										"Phone and email come from the customer record. Fill them in if they are missing, then press Save to update this customer.",
+								}),
+								(0, r.jsxs)("div", {
+									className: "grid gap-4 sm:grid-cols-2",
+									children: [
+										(0, r.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, r.jsx)(x.J, {
+													htmlFor: "customer_contact_mobile",
+													children: "Phone",
+												}),
+												(0, r.jsxs)("div", {
+													className: "relative",
+													children: [
+														(0, r.jsx)(l.A, {
+															className:
+																"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+														}),
+														(0, r.jsx)(p.p, {
+															id: "customer_contact_mobile",
+															className: "pl-9",
+															type: "tel",
+															placeholder: "Mobile number",
+															value: w.mobile_no,
+															onChange: (e) =>
+																k((t) => ({
+																	...t,
+																	mobile_no: e.target.value,
+																})),
+															disabled: V,
+														}),
+													],
+												}),
+											],
+										}),
+										(0, r.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, r.jsx)(x.J, {
+													htmlFor: "customer_contact_email",
+													children: "Email",
+												}),
+												(0, r.jsxs)("div", {
+													className: "relative",
+													children: [
+														(0, r.jsx)(o.A, {
+															className:
+																"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+														}),
+														(0, r.jsx)(p.p, {
+															id: "customer_contact_email",
+															className: "pl-9",
+															type: "email",
+															placeholder: "Email address",
+															value: w.email_id,
+															onChange: (e) =>
+																k((t) => ({
+																	...t,
+																	email_id: e.target.value,
+																})),
+															disabled: V,
+														}),
+													],
+												}),
+											],
+										}),
+									],
+								}),
+								(0, r.jsx)("div", {
+									className: "flex items-center justify-end gap-2",
+									children: (0, r.jsxs)(u.$, {
+										type: "button",
+										size: "sm",
+										variant: "outline",
+										onClick: () => void $(),
+										disabled: V || S || !F,
+										children: [
+											S
+												? (0, r.jsx)(i.A, {
+														className: "mr-2 h-3.5 w-3.5 animate-spin",
+												  })
+												: (0, r.jsx)(d.A, {
+														className: "mr-2 h-3.5 w-3.5",
+												  }),
+											"Save",
+										],
+									}),
+								}),
+							],
+					  })
+					: null;
+			}
+		},
+		26518: (e, t, a) => {
+			a.d(t, { bq: () => m, eb: () => p, gC: () => u, l6: () => d, yv: () => c });
+			var r = a(95155);
+			a(12115);
+			var s = a(40287),
+				n = a(66088),
+				i = a(94514),
+				l = a(9921),
+				o = a(91337);
+			function d({ ...e }) {
+				return (0, r.jsx)(s.bL, { "data-slot": "select", ...e });
+			}
+			function c({ ...e }) {
+				return (0, r.jsx)(s.WT, { "data-slot": "select-value", ...e });
+			}
+			function m({ className: e, size: t = "default", children: a, ...i }) {
+				return (0, r.jsxs)(s.l9, {
+					"data-slot": "select-trigger",
+					"data-size": t,
+					className: (0, o.cn)(
+						"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-full border bg-transparent px-4 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+						e
+					),
+					...i,
+					children: [
+						a,
+						(0, r.jsx)(s.In, {
+							asChild: !0,
+							children: (0, r.jsx)(n.A, { className: "size-4 opacity-50" }),
+						}),
+					],
+				});
+			}
+			function u({ className: e, children: t, position: a = "popper", ...n }) {
+				return (0, r.jsx)(s.ZL, {
+					children: (0, r.jsxs)(s.UC, {
+						"data-slot": "select-content",
+						className: (0, o.cn)(
+							"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+							"popper" === a &&
+								"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+							e
+						),
+						position: a,
+						...n,
+						children: [
+							(0, r.jsx)(x, {}),
+							(0, r.jsx)(s.LM, {
+								className: (0, o.cn)(
+									"p-1",
+									"popper" === a &&
+										"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
+								),
+								children: t,
+							}),
+							(0, r.jsx)(g, {}),
+						],
+					}),
+				});
+			}
+			function p({ className: e, children: t, ...a }) {
+				return (0, r.jsxs)(s.q7, {
+					"data-slot": "select-item",
+					className: (0, o.cn)(
+						"focus:bg-dms-green-light focus:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+						e
+					),
+					...a,
+					children: [
+						(0, r.jsx)("span", {
+							className:
+								"absolute right-2 flex size-3.5 items-center justify-center",
+							children: (0, r.jsx)(s.VF, {
+								children: (0, r.jsx)(i.A, { className: "size-4" }),
+							}),
+						}),
+						(0, r.jsx)(s.p4, { children: t }),
+					],
+				});
+			}
+			function x({ className: e, ...t }) {
+				return (0, r.jsx)(s.PP, {
+					"data-slot": "select-scroll-up-button",
+					className: (0, o.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...t,
+					children: (0, r.jsx)(l.A, { className: "size-4" }),
+				});
+			}
+			function g({ className: e, ...t }) {
+				return (0, r.jsx)(s.wn, {
+					"data-slot": "select-scroll-down-button",
+					className: (0, o.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...t,
+					children: (0, r.jsx)(n.A, { className: "size-4" }),
+				});
+			}
+		},
+		29158: (e, t, a) => {
+			a.d(t, { X5: () => r, c6: () => i, d9: () => n, hq: () => s });
+			let r = [
+					"Engine",
+					"Transmission",
+					"Brake",
+					"Steering",
+					"Suspension",
+					"Electrical",
+					"AC",
+					"Body",
+					"Infotainment",
+					"Warning Light",
+					"Noise",
+					"Vibration",
+					"Leak",
+					"Smell",
+					"Performance",
+					"Charging/PHEV",
+					"Other",
+				],
+				s = ["1 - Low", "2 - Minor", "3 - Moderate", "4 - High", "5 - Safety Critical"],
+				n = "Other",
+				i = "3 - Moderate";
+		},
+		38291: (e, t, a) => {
+			a.d(t, { E: () => o });
+			var r = a(95155);
+			a(12115);
+			var s = a(42442),
+				n = a(18460),
+				i = a(91337);
+			let l = (0, n.F)(
+				"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+				{
+					variants: {
+						variant: {
+							default:
+								"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+							secondary:
+								"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+							destructive:
+								"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+							outline:
+								"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+						},
+					},
+					defaultVariants: { variant: "default" },
+				}
+			);
+			function o({ className: e, variant: t, asChild: a = !1, ...n }) {
+				let d = a ? s.DX : "span";
+				return (0, r.jsx)(d, {
+					"data-slot": "badge",
+					className: (0, i.cn)(l({ variant: t }), e),
+					...n,
+				});
+			}
+		},
+		42074: (e, t, a) => {
+			a.d(t, { h: () => l });
+			var r = a(95155),
+				s = a(12115),
+				n = a(47650),
+				i = a(91337);
+			function l({ children: e, className: t, align: a = "end" }) {
+				let [o, d] = (0, s.useState)(!1);
+				(0, s.useEffect)(() => (d(!0), () => d(!1)), []);
+				let c = (0, r.jsx)("div", {
+					role: "toolbar",
+					"aria-label": "Form actions",
+					className: (0, i.cn)(
+						"fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
+						"pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3",
+						"lg:left-64",
+						t
+					),
+					children: (0, r.jsx)("div", {
+						className: (0, i.cn)(
+							"mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6",
+							"between" === a
+								? "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3"
+								: "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"
+						),
+						children: e,
+					}),
+				});
+				return o ? (0, n.createPortal)(c, document.body) : null;
+			}
+		},
+		44416: (e, t, a) => {
+			a.d(t, { i: () => r });
+			function r(e) {
+				if (!e) return "";
+				let t = String(e);
+				if ("u" > typeof document) {
+					let e = document.createElement("div");
+					return (
+						(e.innerHTML = t),
+						(e.textContent || e.innerText || "")
+							.replace(/<[^>]*>/g, " ")
+							.replace(/\s+/g, " ")
+							.trim()
+					);
+				}
+				return t
+					.replace(/<[^>]*>/g, " ")
+					.replace(/\s+/g, " ")
+					.trim();
+			}
+		},
+		52959: (e, t, a) => {
+			a.d(t, { _: () => l });
+			var r = a(95155),
+				s = a(4474),
+				n = a(51914),
+				i = a(91337);
+			function l({ onClick: e, label: t = "Add", className: a, disabled: o }) {
+				return (0, r.jsx)("div", {
+					className: (0, i.cn)("pt-1", a),
+					children: (0, r.jsxs)(s.$, {
+						type: "button",
+						onClick: e,
+						disabled: o,
+						children: [(0, r.jsx)(n.A, { className: "h-4 w-4 mr-1" }), t],
+					}),
+				});
+			}
+		},
+		54828: (e, t, a) => {
+			function r(e) {
+				return e?.default_customer
+					? {
+							name: e.default_customer,
+							customer_name: e.customer_name || e.default_customer,
+							mobile_no: e.mobile_no || void 0,
+					  }
+					: null;
+			}
+			function s(e, t, a) {
+				let r =
+					e?.map((e) => ({
+						value: e.name,
+						label: e.customer_name,
+						description: e.mobile_no || void 0,
+					})) || [];
+				return t && a && !r.some((e) => e.value === t)
+					? [{ value: a.name, label: a.customer_name, description: a.mobile_no }, ...r]
+					: r;
+			}
+			function n(e, t, a) {
+				if (!e) {
+					let e = r(a);
+					return e ? { customer: e.name, meta: e } : { customer: "", meta: null };
+				}
+				let s = t?.find((t) => t.name === e);
+				return s
+					? {
+							customer: s.name,
+							meta: {
+								name: s.name,
+								customer_name: s.customer_name,
+								mobile_no: s.mobile_no,
+							},
+					  }
+					: { customer: e, meta: { name: e, customer_name: e } };
+			}
+			a.d(t, { Gd: () => r, R: () => n, b0: () => s });
+		},
+		58979: (e, t, a) => {
+			a.d(t, { x: () => o });
+			var r = a(95155),
+				s = a(439),
+				n = a(66669),
+				i = a(80367),
+				l = a(38291);
+			function o({ summary: e, className: t = "" }) {
+				if (!e) return null;
+				let a = e.warranty_active,
+					d = a ? s.A : "Expired by Mileage" === e.warranty_status ? n.A : i.A;
+				return (0, r.jsxs)("div", {
+					className: `rounded-lg border p-4 space-y-2 ${
+						a
+							? "border-green-200 bg-green-50/80 dark:border-green-900 dark:bg-green-950/30"
+							: "border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/30"
+					} ${t}`,
+					children: [
+						(0, r.jsxs)("div", {
+							className: "flex flex-wrap items-center gap-2",
+							children: [
+								(0, r.jsx)(d, {
+									className: `h-5 w-5 shrink-0 ${
+										a
+											? "text-green-700 dark:text-green-400"
+											: "text-amber-700 dark:text-amber-400"
+									}`,
+								}),
+								(0, r.jsxs)("span", {
+									className: "font-medium text-sm",
+									children: ["Vehicle warranty: ", a ? "Active" : "Inactive"],
+								}),
+								(0, r.jsx)(l.E, {
+									variant: e.warranty_active
+										? "default"
+										: "Expired by Mileage" === e.warranty_status
+										? "destructive"
+										: "secondary",
+									children: e.warranty_status,
+								}),
+							],
+						}),
+						e.warranty_reason &&
+							(0, r.jsx)("p", {
+								className: "text-sm text-muted-foreground",
+								children: e.warranty_reason,
+							}),
+						(0, r.jsxs)("div", {
+							className:
+								"flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground",
+							children: [
+								e.sale_date &&
+									(0, r.jsxs)("span", {
+										children: ["Sale date: ", e.sale_date],
+									}),
+								e.warranty_end_date &&
+									(0, r.jsxs)("span", {
+										children: ["Ends: ", e.warranty_end_date],
+									}),
+								null != e.warranty_km_limit &&
+									e.warranty_km_limit > 0 &&
+									(0, r.jsxs)("span", {
+										children: [
+											"Limit: ",
+											e.warranty_km_limit.toLocaleString(),
+											" km",
+										],
+									}),
+								null != e.current_odometer &&
+									(0, r.jsxs)("span", {
+										children: [
+											"Odometer: ",
+											e.current_odometer.toLocaleString(),
+											" km",
+										],
+									}),
+								a &&
+									null != e.days_remaining &&
+									(0, r.jsxs)("span", {
+										children: [e.days_remaining, " days left"],
+									}),
+								a &&
+									null != e.km_remaining &&
+									null != e.warranty_km_limit &&
+									(0, r.jsxs)("span", {
+										children: [e.km_remaining.toLocaleString(), " km left"],
+									}),
+							],
+						}),
+					],
+				});
+			}
+		},
+		61991: (e, t, a) => {
+			a.d(t, { w: () => i });
+			var r = a(95155);
+			a(12115);
+			var s = a(89803),
+				n = a(91337);
+			function i({ className: e, orientation: t = "horizontal", decorative: a = !0, ...l }) {
+				return (0, r.jsx)(s.b, {
+					"data-slot": "separator",
+					decorative: a,
+					orientation: t,
+					className: (0, n.cn)(
+						"bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+						e
+					),
+					...l,
+				});
+			}
+		},
+		84437: (e, t, a) => {
+			a.d(t, { S: () => l });
+			var r = a(95155);
+			a(12115);
+			var s = a(47279),
+				n = a(94514),
+				i = a(91337);
+			function l({ className: e, ...t }) {
+				return (0, r.jsx)(s.bL, {
+					"data-slot": "checkbox",
+					className: (0, i.cn)(
+						"peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+						e
+					),
+					...t,
+					children: (0, r.jsx)(s.C1, {
+						"data-slot": "checkbox-indicator",
+						className: "flex items-center justify-center text-current transition-none",
+						children: (0, r.jsx)(n.A, { className: "size-3.5" }),
+					}),
+				});
+			}
+		},
+	},
+]);

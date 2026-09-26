@@ -1,1 +1,362 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[7880],{12651:(e,t,a)=>{a.d(t,{A:()=>n});let n=(0,a(90425).A)("circle-check",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"m9 12 2 2 4-4",key:"dzmm74"}]])},13545:(e,t,a)=>{a.d(t,{A:()=>n});let n=(0,a(90425).A)("circle-alert",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["line",{x1:"12",x2:"12",y1:"8",y2:"12",key:"1pkeuh"}],["line",{x1:"12",x2:"12.01",y1:"16",y2:"16",key:"4dfq90"}]])},39540:(e,t,a)=>{a.d(t,{T:()=>o});var n=a(95155);a(12115);var s=a(91337);function o({className:e,...t}){return(0,n.jsx)("textarea",{"data-slot":"textarea",className:(0,s.cn)("border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",e),...t})}},42074:(e,t,a)=>{a.d(t,{h:()=>r});var n=a(95155),s=a(12115),o=a(47650),i=a(91337);function r({children:e,className:t,align:a="end"}){let[l,c]=(0,s.useState)(!1);(0,s.useEffect)(()=>(c(!0),()=>c(!1)),[]);let m=(0,n.jsx)("div",{role:"toolbar","aria-label":"Form actions",className:(0,i.cn)("fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90","pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3","lg:left-64",t),children:(0,n.jsx)("div",{className:(0,i.cn)("mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6","between"===a?"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3":"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"),children:e})});return l?(0,o.createPortal)(m,document.body):null}},93602:(e,t,a)=>{a.r(t),a.d(t,{default:()=>b});var n=a(95155),s=a(12115),o=a(44855),i=a(32144),r=a(55833),l=a(44462),c=a(4474),m=a(79984),d=a(39658),p=a(39540),u=a(42074),x=a(10086),g=a(93108),h=a(6296);function b(){let{navigate:e,viewParams:t}=(0,r.c)(),a=t.get("customer")||"",b=t.get("opportunity")||"",{data:y}=(0,o.Ay)("crm-sales-appointment-form-options",i.AW),[f,v]=(0,s.useState)(""),{data:j}=(0,o.Ay)(["crm-appt-deals",f],()=>(0,i.wA)({search:f||void 0,status:"Open",limit:50})),[_,N]=(0,s.useState)(!1),{error:k,success:w,showError:S,clear:C}=(0,g.B)(),[A,Z]=(0,s.useState)({customer:a,opportunity:b,appointment_datetime:"",duration_minutes:"60",appointment_type:"Showroom Appointment",assigned_to:"",company:"",branch:"",agenda:""});(0,s.useEffect)(()=>{y&&Z(e=>({...e,company:e.company||String(y.default_company||y.companies?.[0]||""),appointment_type:e.appointment_type||String(y.appointment_types?.[0]||"Showroom Appointment")}))},[y]),(0,s.useEffect)(()=>{A.opportunity&&(0,i.Oe)(A.opportunity).then(e=>{Z(t=>({...t,customer:String(e.customer||t.customer),company:String(e.company||t.company),branch:String(e.branch||t.branch),assigned_to:String(e.opportunity_owner||t.assigned_to)}))}).catch(()=>void 0)},[A.opportunity]);let V=(e,t)=>Z(a=>({...a,[e]:t})),D=(y?.appointment_types||[]).map(e=>({value:e,label:e})),E=(y?.companies||[]).map(e=>({value:e,label:e})),B=(y?.branches||[]).map(e=>({value:e,label:e})),z=y?.users||[],T=(0,s.useMemo)(()=>(j?.data||[]).map(e=>({value:String(e.name),label:String(e.title||e.name),description:String(e.customer_name||e.customer||"")})),[j]),q=async()=>{if(C(),!A.customer)return void S("Select a customer.");if(!A.appointment_datetime)return void S("Appointment date and time are required.");N(!0);try{let t=await (0,i.Di)({customer:A.customer,opportunity:A.opportunity||null,appointment_datetime:A.appointment_datetime,duration_minutes:Number(A.duration_minutes||60),appointment_type:A.appointment_type,assigned_to:A.assigned_to||null,company:A.company||null,branch:A.branch||null,agenda:A.agenda||null});b?e("crm-opportunity-detail",{id:b}):a?e("crm-customer-detail",{id:a}):e("crm-sales-appointment-detail",{id:String(t.name)})}catch(e){S(e,"Failed to book appointment")}finally{N(!1)}};return(0,n.jsxs)("div",{className:"dms-form-page space-y-4",children:[(0,n.jsx)(g.y,{error:k,success:w,onDismiss:C}),(0,n.jsxs)(m.Zp,{className:"border-border/70 shadow-sm",children:[(0,n.jsx)(m.aR,{children:(0,n.jsx)(m.ZB,{className:"text-base",children:"New sales appointment"})}),(0,n.jsxs)(m.Wu,{className:"grid gap-4 sm:grid-cols-2",children:[(0,n.jsxs)("div",{className:"space-y-2 sm:col-span-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Customer *"}),(0,n.jsx)(l.L,{value:A.customer,onValueChange:e=>V("customer",e)})]}),(0,n.jsxs)("div",{className:"space-y-2 sm:col-span-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Deal (optional)"}),(0,n.jsx)(x.Zi,{options:T,value:A.opportunity,onValueChange:e=>V("opportunity",e),onSearchChange:v,placeholder:"Link a deal to move it to Appointment Scheduled…"})]}),(0,n.jsxs)("div",{className:"space-y-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Date & time *"}),(0,n.jsx)(d.p,{type:"datetime-local",value:A.appointment_datetime,onChange:e=>V("appointment_datetime",e.target.value)})]}),(0,n.jsxs)("div",{className:"space-y-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Duration (min)"}),(0,n.jsx)(d.p,{type:"number",min:15,value:A.duration_minutes,onChange:e=>V("duration_minutes",e.target.value)})]}),(0,n.jsxs)("div",{className:"space-y-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Type"}),(0,n.jsx)(x.Zi,{options:D,value:A.appointment_type,onValueChange:e=>V("appointment_type",e)})]}),(0,n.jsxs)("div",{className:"space-y-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Assigned to"}),(0,n.jsx)(x.Zi,{options:z,value:A.assigned_to,onValueChange:e=>V("assigned_to",e),placeholder:"Salesperson…"})]}),(0,n.jsxs)("div",{className:"space-y-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Company"}),(0,n.jsx)(x.Zi,{options:E,value:A.company,onValueChange:e=>V("company",e)})]}),(0,n.jsxs)("div",{className:"space-y-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Branch"}),(0,n.jsx)(x.Zi,{options:B,value:A.branch,onValueChange:e=>V("branch",e)})]}),(0,n.jsxs)("div",{className:"space-y-2 sm:col-span-2",children:[(0,n.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Agenda"}),(0,n.jsx)(p.T,{rows:3,value:A.agenda,onChange:e=>V("agenda",e.target.value),placeholder:"Showroom visit, vehicle viewing, finance discussion…"})]})]})]}),(0,n.jsxs)(u.h,{children:[(0,n.jsx)(c.$,{variant:"outline",onClick:()=>e("crm-sales-appointments"),disabled:_,children:"Cancel"}),(0,n.jsxs)(c.$,{onClick:q,disabled:_,children:[_?(0,n.jsx)(h.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Book appointment"]})]})]})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[7880],
+	{
+		12651: (e, t, a) => {
+			a.d(t, { A: () => n });
+			let n = (0, a(90425).A)("circle-check", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }],
+			]);
+		},
+		13545: (e, t, a) => {
+			a.d(t, { A: () => n });
+			let n = (0, a(90425).A)("circle-alert", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+				["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }],
+			]);
+		},
+		39540: (e, t, a) => {
+			a.d(t, { T: () => o });
+			var n = a(95155);
+			a(12115);
+			var s = a(91337);
+			function o({ className: e, ...t }) {
+				return (0, n.jsx)("textarea", {
+					"data-slot": "textarea",
+					className: (0, s.cn)(
+						"border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+						e
+					),
+					...t,
+				});
+			}
+		},
+		42074: (e, t, a) => {
+			a.d(t, { h: () => r });
+			var n = a(95155),
+				s = a(12115),
+				o = a(47650),
+				i = a(91337);
+			function r({ children: e, className: t, align: a = "end" }) {
+				let [l, c] = (0, s.useState)(!1);
+				(0, s.useEffect)(() => (c(!0), () => c(!1)), []);
+				let m = (0, n.jsx)("div", {
+					role: "toolbar",
+					"aria-label": "Form actions",
+					className: (0, i.cn)(
+						"fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
+						"pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3",
+						"lg:left-64",
+						t
+					),
+					children: (0, n.jsx)("div", {
+						className: (0, i.cn)(
+							"mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6",
+							"between" === a
+								? "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3"
+								: "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"
+						),
+						children: e,
+					}),
+				});
+				return l ? (0, o.createPortal)(m, document.body) : null;
+			}
+		},
+		93602: (e, t, a) => {
+			a.r(t), a.d(t, { default: () => b });
+			var n = a(95155),
+				s = a(12115),
+				o = a(44855),
+				i = a(32144),
+				r = a(55833),
+				l = a(44462),
+				c = a(4474),
+				m = a(79984),
+				d = a(39658),
+				p = a(39540),
+				u = a(42074),
+				x = a(10086),
+				g = a(93108),
+				h = a(6296);
+			function b() {
+				let { navigate: e, viewParams: t } = (0, r.c)(),
+					a = t.get("customer") || "",
+					b = t.get("opportunity") || "",
+					{ data: y } = (0, o.Ay)("crm-sales-appointment-form-options", i.AW),
+					[f, v] = (0, s.useState)(""),
+					{ data: j } = (0, o.Ay)(["crm-appt-deals", f], () =>
+						(0, i.wA)({ search: f || void 0, status: "Open", limit: 50 })
+					),
+					[_, N] = (0, s.useState)(!1),
+					{ error: k, success: w, showError: S, clear: C } = (0, g.B)(),
+					[A, Z] = (0, s.useState)({
+						customer: a,
+						opportunity: b,
+						appointment_datetime: "",
+						duration_minutes: "60",
+						appointment_type: "Showroom Appointment",
+						assigned_to: "",
+						company: "",
+						branch: "",
+						agenda: "",
+					});
+				(0, s.useEffect)(() => {
+					y &&
+						Z((e) => ({
+							...e,
+							company:
+								e.company || String(y.default_company || y.companies?.[0] || ""),
+							appointment_type:
+								e.appointment_type ||
+								String(y.appointment_types?.[0] || "Showroom Appointment"),
+						}));
+				}, [y]),
+					(0, s.useEffect)(() => {
+						A.opportunity &&
+							(0, i.Oe)(A.opportunity)
+								.then((e) => {
+									Z((t) => ({
+										...t,
+										customer: String(e.customer || t.customer),
+										company: String(e.company || t.company),
+										branch: String(e.branch || t.branch),
+										assigned_to: String(e.opportunity_owner || t.assigned_to),
+									}));
+								})
+								.catch(() => void 0);
+					}, [A.opportunity]);
+				let V = (e, t) => Z((a) => ({ ...a, [e]: t })),
+					D = (y?.appointment_types || []).map((e) => ({ value: e, label: e })),
+					E = (y?.companies || []).map((e) => ({ value: e, label: e })),
+					B = (y?.branches || []).map((e) => ({ value: e, label: e })),
+					z = y?.users || [],
+					T = (0, s.useMemo)(
+						() =>
+							(j?.data || []).map((e) => ({
+								value: String(e.name),
+								label: String(e.title || e.name),
+								description: String(e.customer_name || e.customer || ""),
+							})),
+						[j]
+					),
+					q = async () => {
+						if ((C(), !A.customer)) return void S("Select a customer.");
+						if (!A.appointment_datetime)
+							return void S("Appointment date and time are required.");
+						N(!0);
+						try {
+							let t = await (0, i.Di)({
+								customer: A.customer,
+								opportunity: A.opportunity || null,
+								appointment_datetime: A.appointment_datetime,
+								duration_minutes: Number(A.duration_minutes || 60),
+								appointment_type: A.appointment_type,
+								assigned_to: A.assigned_to || null,
+								company: A.company || null,
+								branch: A.branch || null,
+								agenda: A.agenda || null,
+							});
+							b
+								? e("crm-opportunity-detail", { id: b })
+								: a
+								? e("crm-customer-detail", { id: a })
+								: e("crm-sales-appointment-detail", { id: String(t.name) });
+						} catch (e) {
+							S(e, "Failed to book appointment");
+						} finally {
+							N(!1);
+						}
+					};
+				return (0, n.jsxs)("div", {
+					className: "dms-form-page space-y-4",
+					children: [
+						(0, n.jsx)(g.y, { error: k, success: w, onDismiss: C }),
+						(0, n.jsxs)(m.Zp, {
+							className: "border-border/70 shadow-sm",
+							children: [
+								(0, n.jsx)(m.aR, {
+									children: (0, n.jsx)(m.ZB, {
+										className: "text-base",
+										children: "New sales appointment",
+									}),
+								}),
+								(0, n.jsxs)(m.Wu, {
+									className: "grid gap-4 sm:grid-cols-2",
+									children: [
+										(0, n.jsxs)("div", {
+											className: "space-y-2 sm:col-span-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Customer *",
+												}),
+												(0, n.jsx)(l.L, {
+													value: A.customer,
+													onValueChange: (e) => V("customer", e),
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2 sm:col-span-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Deal (optional)",
+												}),
+												(0, n.jsx)(x.Zi, {
+													options: T,
+													value: A.opportunity,
+													onValueChange: (e) => V("opportunity", e),
+													onSearchChange: v,
+													placeholder:
+														"Link a deal to move it to Appointment Scheduled…",
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Date & time *",
+												}),
+												(0, n.jsx)(d.p, {
+													type: "datetime-local",
+													value: A.appointment_datetime,
+													onChange: (e) =>
+														V("appointment_datetime", e.target.value),
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Duration (min)",
+												}),
+												(0, n.jsx)(d.p, {
+													type: "number",
+													min: 15,
+													value: A.duration_minutes,
+													onChange: (e) =>
+														V("duration_minutes", e.target.value),
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Type",
+												}),
+												(0, n.jsx)(x.Zi, {
+													options: D,
+													value: A.appointment_type,
+													onValueChange: (e) => V("appointment_type", e),
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Assigned to",
+												}),
+												(0, n.jsx)(x.Zi, {
+													options: z,
+													value: A.assigned_to,
+													onValueChange: (e) => V("assigned_to", e),
+													placeholder: "Salesperson…",
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Company",
+												}),
+												(0, n.jsx)(x.Zi, {
+													options: E,
+													value: A.company,
+													onValueChange: (e) => V("company", e),
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Branch",
+												}),
+												(0, n.jsx)(x.Zi, {
+													options: B,
+													value: A.branch,
+													onValueChange: (e) => V("branch", e),
+												}),
+											],
+										}),
+										(0, n.jsxs)("div", {
+											className: "space-y-2 sm:col-span-2",
+											children: [
+												(0, n.jsx)("label", {
+													className:
+														"block text-xs font-medium text-muted-foreground",
+													children: "Agenda",
+												}),
+												(0, n.jsx)(p.T, {
+													rows: 3,
+													value: A.agenda,
+													onChange: (e) => V("agenda", e.target.value),
+													placeholder:
+														"Showroom visit, vehicle viewing, finance discussion…",
+												}),
+											],
+										}),
+									],
+								}),
+							],
+						}),
+						(0, n.jsxs)(u.h, {
+							children: [
+								(0, n.jsx)(c.$, {
+									variant: "outline",
+									onClick: () => e("crm-sales-appointments"),
+									disabled: _,
+									children: "Cancel",
+								}),
+								(0, n.jsxs)(c.$, {
+									onClick: q,
+									disabled: _,
+									children: [
+										_
+											? (0, n.jsx)(h.A, {
+													className: "mr-2 h-4 w-4 animate-spin",
+											  })
+											: null,
+										"Book appointment",
+									],
+								}),
+							],
+						}),
+					],
+				});
+			}
+		},
+	},
+]);

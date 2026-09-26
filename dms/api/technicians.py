@@ -2,12 +2,14 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, get_datetime, getdate, today
 
-IN_PROGRESS_STATUSES = frozenset({
-	"Repair In Progress",
-	"Road Test In Progress",
-	"QC In Progress",
-	"Rework",
-})
+IN_PROGRESS_STATUSES = frozenset(
+	{
+		"Repair In Progress",
+		"Road Test In Progress",
+		"QC In Progress",
+		"Rework",
+	}
+)
 
 TERMINAL_STATUSES = frozenset({"Cancelled", "Delivered", "Completed", "Draft"})
 
@@ -104,11 +106,7 @@ def get_technician_jobs_for_date(technician, posting_date):
 
 def find_schedule_overlaps(jobs):
 	"""Return pairs of job cards with overlapping scheduled times."""
-	scheduled = [
-		j
-		for j in jobs
-		if j.get("schedule_start_time") and j.get("schedule_end_time")
-	]
+	scheduled = [j for j in jobs if j.get("schedule_start_time") and j.get("schedule_end_time")]
 	overlaps = []
 	for i, job_a in enumerate(scheduled):
 		start_a = _as_datetime(job_a.schedule_start_time)
@@ -328,15 +326,27 @@ def get_technicians(status=None, skill_level=None, search=None, limit=50):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "first_name", "last_name", "full_name",
-			"status", "skill_level", "labor_rate_group",
-			"personal_phone", "branch",
-			"work_shift", "weekly_off_days",
-			"current_assigned_bay", "current_job_card",
-			"today_scheduled_jobs", "attendance_today",
-			"clock_in_time", "clock_out_time",
-			"efficiency_rating", "total_jobs_completed",
-			"total_labor_hours", "profile_photo",
+			"name",
+			"first_name",
+			"last_name",
+			"full_name",
+			"status",
+			"skill_level",
+			"labor_rate_group",
+			"personal_phone",
+			"branch",
+			"work_shift",
+			"weekly_off_days",
+			"current_assigned_bay",
+			"current_job_card",
+			"today_scheduled_jobs",
+			"attendance_today",
+			"clock_in_time",
+			"clock_out_time",
+			"efficiency_rating",
+			"total_jobs_completed",
+			"total_labor_hours",
+			"profile_photo",
 			"years_of_experience",
 		],
 		limit=int(limit),
@@ -435,8 +445,12 @@ def get_technician_availability_for_date(technician, posting_date):
 		"Technician",
 		technician,
 		[
-			"name", "full_name", "attendance_today", "status",
-			"work_shift", "branch",
+			"name",
+			"full_name",
+			"attendance_today",
+			"status",
+			"work_shift",
+			"branch",
 		],
 		as_dict=True,
 	)
@@ -471,6 +485,7 @@ def get_technician_availability_calendar(technician, start_date=None, view="week
 	start_date = getdate(start_date or today())
 	if view == "month":
 		from frappe.utils import get_first_day
+
 		start_date = get_first_day(start_date)
 
 	days = _calendar_day_range(start_date, view)
@@ -516,12 +531,21 @@ def get_all_technicians_availability(date=None):
 		"Technician",
 		filters={"status": "Active"},
 		fields=[
-			"name", "full_name", "skill_level", "personal_phone",
-			"work_shift", "current_assigned_bay", "current_job_card",
-			"today_scheduled_jobs", "attendance_today",
-			"clock_in_time", "clock_out_time",
-			"profile_photo", "branch",
-			"efficiency_rating", "total_jobs_completed",
+			"name",
+			"full_name",
+			"skill_level",
+			"personal_phone",
+			"work_shift",
+			"current_assigned_bay",
+			"current_job_card",
+			"today_scheduled_jobs",
+			"attendance_today",
+			"clock_in_time",
+			"clock_out_time",
+			"profile_photo",
+			"branch",
+			"efficiency_rating",
+			"total_jobs_completed",
 		],
 		order_by="full_name asc",
 	)

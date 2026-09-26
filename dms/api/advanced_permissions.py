@@ -51,9 +51,7 @@ EXTRA_USED_DOCTYPES = (
 
 PROTECTED_ROLES = frozenset({"Administrator", "System Manager"})
 PROTECTED_USERS = frozenset({"Administrator", "Guest"})
-RESERVED_ROLE_NAMES = frozenset(
-	{"Administrator", "Guest", "All", "Desk User", "System Manager"}
-)
+RESERVED_ROLE_NAMES = frozenset({"Administrator", "Guest", "All", "Desk User", "System Manager"})
 
 PERM_RIGHTS = (
 	"select",
@@ -364,9 +362,7 @@ def create_role_profile(data=None):
 			continue
 		if role not in crm_roles:
 			frappe.throw(
-				_("Role {0} is not in the Roles list on DMS CRM User Settings.").format(
-					frappe.bold(role)
-				)
+				_("Role {0} is not in the Roles list on DMS CRM User Settings.").format(frappe.bold(role))
 			)
 		if not frappe.db.exists("Role", role):
 			frappe.throw(_("Role {0} does not exist.").format(frappe.bold(role)))
@@ -395,9 +391,7 @@ def _assert_display_role_profile(name: str):
 		frappe.throw(_("Role Profile {0} does not exist.").format(frappe.bold(name)))
 	allowed = set(_display_role_profiles(_get_settings()))
 	if name not in allowed:
-		frappe.throw(
-			_("Role Profile {0} is not on DMS CRM User Settings.").format(frappe.bold(name))
-		)
+		frappe.throw(_("Role Profile {0} is not on DMS CRM User Settings.").format(frappe.bold(name)))
 
 
 def _role_profile_payload(name: str) -> dict:

@@ -22,6 +22,8 @@ class DMSCRMLoyaltySettings(Document):
 						"service_discount_pct": {"Bronze": 0, "Silver": 5, "Gold": 10, "Platinum": 15}[tier],
 						"priority_booking": 1 if tier in ("Gold", "Platinum") else 0,
 						"event_access": 1 if tier == "Platinum" else 0,
-						"referral_bonus_points": {"Bronze": 50, "Silver": 75, "Gold": 100, "Platinum": 150}[tier],
+						"referral_bonus_points": {"Bronze": 50, "Silver": 75, "Gold": 100, "Platinum": 150}[
+							tier
+						],
 					},
 				)

@@ -1,1 +1,512 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[7311],{12651:(e,s,t)=>{t.d(s,{A:()=>r});let r=(0,t(90425).A)("circle-check",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"m9 12 2 2 4-4",key:"dzmm74"}]])},13545:(e,s,t)=>{t.d(s,{A:()=>r});let r=(0,t(90425).A)("circle-alert",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["line",{x1:"12",x2:"12",y1:"8",y2:"12",key:"1pkeuh"}],["line",{x1:"12",x2:"12.01",y1:"16",y2:"16",key:"4dfq90"}]])},21975:(e,s,t)=>{t.d(s,{A:()=>r});let r=(0,t(90425).A)("upload",[["path",{d:"M12 3v12",key:"1x0j5s"}],["path",{d:"m17 8-5-5-5 5",key:"7q97r8"}],["path",{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",key:"ih7n3h"}]])},37311:(e,s,t)=>{t.r(s),t.d(s,{default:()=>w});var r=t(95155),a=t(12115),l=t(47339),d=t(6296),i=t(21975),n=t(12651),c=t(13545),o=t(79984),h=t(4474),p=t(39658),x=t(79792),m=t(66609),u=t(49876);let f="dms.api.frt_import";async function j(e){await (0,u.bd)();let s=window.csrf_token,t=new FormData;t.append("file",e),t.append("is_private","0"),t.append("folder","Home/Attachments"),s&&t.append("csrf_token",s);let r=window.location.origin,a=await fetch(`${r}/api/method/upload_file`,{method:"POST",headers:s?{"X-Frappe-CSRF-Token":s}:{},body:t,credentials:"include"}),l=await a.json().catch(()=>({}));if(!a.ok||l?.exc)throw Error(l?.message||"Upload failed");let d=l.message||l,i=d?.file_url||d?.file_name;if(!i)throw Error("Upload did not return a file URL");return i}async function g(e,s="JETOUR"){return(0,u.AT)(`/api/method/${f}.import_frt_sheet`,{method:"POST",body:JSON.stringify({file_url:e,brand:s})})}async function y(e){return(0,u.AT)(`/api/method/${f}.get_frt_import_status`,{method:"POST",body:JSON.stringify({job_id:e})})}async function k(e,s="JETOUR"){let t=await g(e,s);if(null!=t.sheets_processed||t.details)return t;if(!t.job_id)throw Error("Import did not start");return v(t.job_id)}async function v(e,s=36e5){let t=Date.now();for(;Date.now()-t<s;){let s=await y(e);if("finished"===s.status&&s.result)return s.result;if("failed"===s.status)throw Error(s.error||"Import failed");await new Promise(e=>setTimeout(e,2500))}throw Error("Import is still running in the background. Check Error Log if it does not finish.")}function w(){let e=(0,a.useRef)(null),[s,t]=(0,a.useState)("JETOUR"),[u,f]=(0,a.useState)(""),[g,y]=(0,a.useState)(!1),[v,w]=(0,a.useState)(null),N=async()=>{let t=e.current?.files?.[0];if(!t)return void m.o.error("Choose an Excel workbook first");y(!0),w(null);try{let e=await j(t);m.o.info("FRT import started in the background…");let r=await k(e,s.trim()||"JETOUR");w(r),m.o.success(`Imported ${r.sheets_processed} model sheet(s): ${r.services_created} new services, ${r.services_updated} updated`),r.errors?.length&&m.o.error(`${r.errors.length} sheet(s) failed: ${r.errors.map(e=>e.sheet).join(", ")}`)}catch(e){m.o.error(e instanceof Error?e.message:"Import failed")}finally{y(!1)}};return(0,r.jsxs)("div",{className:"mx-auto max-w-3xl space-y-6",children:[(0,r.jsxs)("div",{children:[(0,r.jsx)("h1",{className:"text-2xl font-bold tracking-tight",children:"Settings"}),(0,r.jsx)("p",{className:"text-sm text-muted-foreground",children:"DMS configuration and data tools"})]}),(0,r.jsxs)(o.Zp,{children:[(0,r.jsxs)(o.aR,{children:[(0,r.jsxs)(o.ZB,{className:"flex items-center gap-2",children:[(0,r.jsx)(l.A,{className:"h-5 w-5"}),"Import FRT labour sheet"]}),(0,r.jsxs)(o.BT,{children:["Upload the FRT Excel workbook. Each model tab (e.g. X50-JX50 → model X50, code JX50) creates one Vehicle Model, then service rows on that tab become Vehicle Service Items. To import service packages, use ",(0,r.jsx)("strong",{children:"DMS Settings"})," in ERPNext Desk → Imports → Import Service Packages."]})]}),(0,r.jsxs)(o.Wu,{className:"space-y-4",children:[(0,r.jsxs)("div",{className:"space-y-2",children:[(0,r.jsx)(x.J,{htmlFor:"frt-brand",children:"Brand"}),(0,r.jsx)(p.p,{id:"frt-brand",value:s,onChange:e=>t(e.target.value),placeholder:"JETOUR"})]}),(0,r.jsxs)("div",{className:"space-y-2",children:[(0,r.jsx)(x.J,{htmlFor:"frt-file",children:"Excel workbook (.xls / .xlsx)"}),(0,r.jsx)(p.p,{id:"frt-file",ref:e,type:"file",accept:".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",onChange:e=>f(e.target.files?.[0]?.name||"")}),u?(0,r.jsxs)("p",{className:"text-xs text-muted-foreground",children:["Selected: ",u]}):null]}),(0,r.jsx)(h.$,{type:"button",onClick:N,disabled:g,children:g?(0,r.jsxs)(r.Fragment,{children:[(0,r.jsx)(d.A,{className:"mr-2 h-4 w-4 animate-spin"}),"Importing in background…"]}):(0,r.jsxs)(r.Fragment,{children:[(0,r.jsx)(i.A,{className:"mr-2 h-4 w-4"}),"Import FRT sheet"]})})]})]}),v?(0,r.jsxs)(o.Zp,{children:[(0,r.jsx)(o.aR,{children:(0,r.jsxs)(o.ZB,{className:"flex items-center gap-2 text-lg",children:[(0,r.jsx)(n.A,{className:"h-5 w-5 text-green-600"}),"Import summary"]})}),(0,r.jsxs)(o.Wu,{className:"space-y-4 text-sm",children:[(0,r.jsxs)("div",{className:"grid gap-2 sm:grid-cols-2",children:[(0,r.jsxs)("p",{children:["Sheets processed: ",(0,r.jsx)("strong",{children:v.sheets_processed})]}),(0,r.jsxs)("p",{children:["Services created: ",(0,r.jsx)("strong",{children:v.services_created})]}),(0,r.jsxs)("p",{children:["Services updated: ",(0,r.jsx)("strong",{children:v.services_updated})]}),(0,r.jsxs)("p",{children:["Rows skipped: ",(0,r.jsx)("strong",{children:v.services_skipped})]})]}),v.details?.length?(0,r.jsx)("div",{className:"rounded-lg border overflow-hidden",children:(0,r.jsxs)("table",{className:"w-full text-xs",children:[(0,r.jsx)("thead",{className:"bg-muted/50",children:(0,r.jsxs)("tr",{children:[(0,r.jsx)("th",{className:"px-3 py-2 text-left",children:"Sheet"}),(0,r.jsx)("th",{className:"px-3 py-2 text-left",children:"Model"}),(0,r.jsx)("th",{className:"px-3 py-2 text-right",children:"Created"}),(0,r.jsx)("th",{className:"px-3 py-2 text-right",children:"Updated"})]})}),(0,r.jsx)("tbody",{children:v.details.map(e=>(0,r.jsxs)("tr",{className:"border-t",children:[(0,r.jsx)("td",{className:"px-3 py-2",children:e.sheet}),(0,r.jsxs)("td",{className:"px-3 py-2",children:[e.model_name," (",e.model_code,")"]}),(0,r.jsx)("td",{className:"px-3 py-2 text-right",children:e.services_created}),(0,r.jsx)("td",{className:"px-3 py-2 text-right",children:e.services_updated})]},e.sheet))})]})}):null,v.errors?.length?(0,r.jsxs)("div",{className:"space-y-2",children:[(0,r.jsxs)("p",{className:"flex items-center gap-2 font-medium text-destructive",children:[(0,r.jsx)(c.A,{className:"h-4 w-4"}),"Sheet errors"]}),(0,r.jsx)("ul",{className:"list-disc space-y-1 pl-5 text-destructive",children:v.errors.map(e=>(0,r.jsxs)("li",{children:[e.sheet,": ",e.error]},`${e.sheet}-${e.error}`))})]}):null]})]}):null]})}},47339:(e,s,t)=>{t.d(s,{A:()=>r});let r=(0,t(90425).A)("file-spreadsheet",[["path",{d:"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",key:"1oefj6"}],["path",{d:"M14 2v5a1 1 0 0 0 1 1h5",key:"wfsgrz"}],["path",{d:"M8 13h2",key:"yr2amv"}],["path",{d:"M14 13h2",key:"un5t4a"}],["path",{d:"M8 17h2",key:"2yhykz"}],["path",{d:"M14 17h2",key:"10kma7"}]])},79984:(e,s,t)=>{t.d(s,{BT:()=>n,Wu:()=>c,ZB:()=>i,Zp:()=>l,aR:()=>d});var r=t(95155);t(12115);var a=t(91337);function l({className:e,...s}){return(0,r.jsx)("div",{"data-slot":"card",className:(0,a.cn)("bg-card text-card-foreground flex flex-col gap-2 rounded-[1.15rem] border py-3 shadow-[0_4px_20px_rgba(15,61,94,0.05)]",e),...s})}function d({className:e,...s}){return(0,r.jsx)("div",{"data-slot":"card-header",className:(0,a.cn)("@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-3",e),...s})}function i({className:e,...s}){return(0,r.jsx)("div",{"data-slot":"card-title",className:(0,a.cn)("leading-none font-serif-display font-semibold tracking-tight",e),...s})}function n({className:e,...s}){return(0,r.jsx)("div",{"data-slot":"card-description",className:(0,a.cn)("text-muted-foreground text-sm",e),...s})}function c({className:e,...s}){return(0,r.jsx)("div",{"data-slot":"card-content",className:(0,a.cn)("px-4",e),...s})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[7311],
+	{
+		12651: (e, s, t) => {
+			t.d(s, { A: () => r });
+			let r = (0, t(90425).A)("circle-check", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }],
+			]);
+		},
+		13545: (e, s, t) => {
+			t.d(s, { A: () => r });
+			let r = (0, t(90425).A)("circle-alert", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+				["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }],
+			]);
+		},
+		21975: (e, s, t) => {
+			t.d(s, { A: () => r });
+			let r = (0, t(90425).A)("upload", [
+				["path", { d: "M12 3v12", key: "1x0j5s" }],
+				["path", { d: "m17 8-5-5-5 5", key: "7q97r8" }],
+				["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
+			]);
+		},
+		37311: (e, s, t) => {
+			t.r(s), t.d(s, { default: () => w });
+			var r = t(95155),
+				a = t(12115),
+				l = t(47339),
+				d = t(6296),
+				i = t(21975),
+				n = t(12651),
+				c = t(13545),
+				o = t(79984),
+				h = t(4474),
+				p = t(39658),
+				x = t(79792),
+				m = t(66609),
+				u = t(49876);
+			let f = "dms.api.frt_import";
+			async function j(e) {
+				await (0, u.bd)();
+				let s = window.csrf_token,
+					t = new FormData();
+				t.append("file", e),
+					t.append("is_private", "0"),
+					t.append("folder", "Home/Attachments"),
+					s && t.append("csrf_token", s);
+				let r = window.location.origin,
+					a = await fetch(`${r}/api/method/upload_file`, {
+						method: "POST",
+						headers: s ? { "X-Frappe-CSRF-Token": s } : {},
+						body: t,
+						credentials: "include",
+					}),
+					l = await a.json().catch(() => ({}));
+				if (!a.ok || l?.exc) throw Error(l?.message || "Upload failed");
+				let d = l.message || l,
+					i = d?.file_url || d?.file_name;
+				if (!i) throw Error("Upload did not return a file URL");
+				return i;
+			}
+			async function g(e, s = "JETOUR") {
+				return (0, u.AT)(`/api/method/${f}.import_frt_sheet`, {
+					method: "POST",
+					body: JSON.stringify({ file_url: e, brand: s }),
+				});
+			}
+			async function y(e) {
+				return (0, u.AT)(`/api/method/${f}.get_frt_import_status`, {
+					method: "POST",
+					body: JSON.stringify({ job_id: e }),
+				});
+			}
+			async function k(e, s = "JETOUR") {
+				let t = await g(e, s);
+				if (null != t.sheets_processed || t.details) return t;
+				if (!t.job_id) throw Error("Import did not start");
+				return v(t.job_id);
+			}
+			async function v(e, s = 36e5) {
+				let t = Date.now();
+				for (; Date.now() - t < s; ) {
+					let s = await y(e);
+					if ("finished" === s.status && s.result) return s.result;
+					if ("failed" === s.status) throw Error(s.error || "Import failed");
+					await new Promise((e) => setTimeout(e, 2500));
+				}
+				throw Error(
+					"Import is still running in the background. Check Error Log if it does not finish."
+				);
+			}
+			function w() {
+				let e = (0, a.useRef)(null),
+					[s, t] = (0, a.useState)("JETOUR"),
+					[u, f] = (0, a.useState)(""),
+					[g, y] = (0, a.useState)(!1),
+					[v, w] = (0, a.useState)(null),
+					N = async () => {
+						let t = e.current?.files?.[0];
+						if (!t) return void m.o.error("Choose an Excel workbook first");
+						y(!0), w(null);
+						try {
+							let e = await j(t);
+							m.o.info("FRT import started in the background…");
+							let r = await k(e, s.trim() || "JETOUR");
+							w(r),
+								m.o.success(
+									`Imported ${r.sheets_processed} model sheet(s): ${r.services_created} new services, ${r.services_updated} updated`
+								),
+								r.errors?.length &&
+									m.o.error(
+										`${r.errors.length} sheet(s) failed: ${r.errors
+											.map((e) => e.sheet)
+											.join(", ")}`
+									);
+						} catch (e) {
+							m.o.error(e instanceof Error ? e.message : "Import failed");
+						} finally {
+							y(!1);
+						}
+					};
+				return (0, r.jsxs)("div", {
+					className: "mx-auto max-w-3xl space-y-6",
+					children: [
+						(0, r.jsxs)("div", {
+							children: [
+								(0, r.jsx)("h1", {
+									className: "text-2xl font-bold tracking-tight",
+									children: "Settings",
+								}),
+								(0, r.jsx)("p", {
+									className: "text-sm text-muted-foreground",
+									children: "DMS configuration and data tools",
+								}),
+							],
+						}),
+						(0, r.jsxs)(o.Zp, {
+							children: [
+								(0, r.jsxs)(o.aR, {
+									children: [
+										(0, r.jsxs)(o.ZB, {
+											className: "flex items-center gap-2",
+											children: [
+												(0, r.jsx)(l.A, { className: "h-5 w-5" }),
+												"Import FRT labour sheet",
+											],
+										}),
+										(0, r.jsxs)(o.BT, {
+											children: [
+												"Upload the FRT Excel workbook. Each model tab (e.g. X50-JX50 → model X50, code JX50) creates one Vehicle Model, then service rows on that tab become Vehicle Service Items. To import service packages, use ",
+												(0, r.jsx)("strong", { children: "DMS Settings" }),
+												" in ERPNext Desk → Imports → Import Service Packages.",
+											],
+										}),
+									],
+								}),
+								(0, r.jsxs)(o.Wu, {
+									className: "space-y-4",
+									children: [
+										(0, r.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, r.jsx)(x.J, {
+													htmlFor: "frt-brand",
+													children: "Brand",
+												}),
+												(0, r.jsx)(p.p, {
+													id: "frt-brand",
+													value: s,
+													onChange: (e) => t(e.target.value),
+													placeholder: "JETOUR",
+												}),
+											],
+										}),
+										(0, r.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, r.jsx)(x.J, {
+													htmlFor: "frt-file",
+													children: "Excel workbook (.xls / .xlsx)",
+												}),
+												(0, r.jsx)(p.p, {
+													id: "frt-file",
+													ref: e,
+													type: "file",
+													accept: ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+													onChange: (e) =>
+														f(e.target.files?.[0]?.name || ""),
+												}),
+												u
+													? (0, r.jsxs)("p", {
+															className:
+																"text-xs text-muted-foreground",
+															children: ["Selected: ", u],
+													  })
+													: null,
+											],
+										}),
+										(0, r.jsx)(h.$, {
+											type: "button",
+											onClick: N,
+											disabled: g,
+											children: g
+												? (0, r.jsxs)(r.Fragment, {
+														children: [
+															(0, r.jsx)(d.A, {
+																className:
+																	"mr-2 h-4 w-4 animate-spin",
+															}),
+															"Importing in background…",
+														],
+												  })
+												: (0, r.jsxs)(r.Fragment, {
+														children: [
+															(0, r.jsx)(i.A, {
+																className: "mr-2 h-4 w-4",
+															}),
+															"Import FRT sheet",
+														],
+												  }),
+										}),
+									],
+								}),
+							],
+						}),
+						v
+							? (0, r.jsxs)(o.Zp, {
+									children: [
+										(0, r.jsx)(o.aR, {
+											children: (0, r.jsxs)(o.ZB, {
+												className: "flex items-center gap-2 text-lg",
+												children: [
+													(0, r.jsx)(n.A, {
+														className: "h-5 w-5 text-green-600",
+													}),
+													"Import summary",
+												],
+											}),
+										}),
+										(0, r.jsxs)(o.Wu, {
+											className: "space-y-4 text-sm",
+											children: [
+												(0, r.jsxs)("div", {
+													className: "grid gap-2 sm:grid-cols-2",
+													children: [
+														(0, r.jsxs)("p", {
+															children: [
+																"Sheets processed: ",
+																(0, r.jsx)("strong", {
+																	children: v.sheets_processed,
+																}),
+															],
+														}),
+														(0, r.jsxs)("p", {
+															children: [
+																"Services created: ",
+																(0, r.jsx)("strong", {
+																	children: v.services_created,
+																}),
+															],
+														}),
+														(0, r.jsxs)("p", {
+															children: [
+																"Services updated: ",
+																(0, r.jsx)("strong", {
+																	children: v.services_updated,
+																}),
+															],
+														}),
+														(0, r.jsxs)("p", {
+															children: [
+																"Rows skipped: ",
+																(0, r.jsx)("strong", {
+																	children: v.services_skipped,
+																}),
+															],
+														}),
+													],
+												}),
+												v.details?.length
+													? (0, r.jsx)("div", {
+															className:
+																"rounded-lg border overflow-hidden",
+															children: (0, r.jsxs)("table", {
+																className: "w-full text-xs",
+																children: [
+																	(0, r.jsx)("thead", {
+																		className: "bg-muted/50",
+																		children: (0, r.jsxs)(
+																			"tr",
+																			{
+																				children: [
+																					(0, r.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left",
+																							children:
+																								"Sheet",
+																						}
+																					),
+																					(0, r.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left",
+																							children:
+																								"Model",
+																						}
+																					),
+																					(0, r.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-right",
+																							children:
+																								"Created",
+																						}
+																					),
+																					(0, r.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-right",
+																							children:
+																								"Updated",
+																						}
+																					),
+																				],
+																			}
+																		),
+																	}),
+																	(0, r.jsx)("tbody", {
+																		children: v.details.map(
+																			(e) =>
+																				(0, r.jsxs)(
+																					"tr",
+																					{
+																						className:
+																							"border-t",
+																						children: [
+																							(0,
+																							r.jsx)(
+																								"td",
+																								{
+																									className:
+																										"px-3 py-2",
+																									children:
+																										e.sheet,
+																								}
+																							),
+																							(0,
+																							r.jsxs)(
+																								"td",
+																								{
+																									className:
+																										"px-3 py-2",
+																									children:
+																										[
+																											e.model_name,
+																											" (",
+																											e.model_code,
+																											")",
+																										],
+																								}
+																							),
+																							(0,
+																							r.jsx)(
+																								"td",
+																								{
+																									className:
+																										"px-3 py-2 text-right",
+																									children:
+																										e.services_created,
+																								}
+																							),
+																							(0,
+																							r.jsx)(
+																								"td",
+																								{
+																									className:
+																										"px-3 py-2 text-right",
+																									children:
+																										e.services_updated,
+																								}
+																							),
+																						],
+																					},
+																					e.sheet
+																				)
+																		),
+																	}),
+																],
+															}),
+													  })
+													: null,
+												v.errors?.length
+													? (0, r.jsxs)("div", {
+															className: "space-y-2",
+															children: [
+																(0, r.jsxs)("p", {
+																	className:
+																		"flex items-center gap-2 font-medium text-destructive",
+																	children: [
+																		(0, r.jsx)(c.A, {
+																			className: "h-4 w-4",
+																		}),
+																		"Sheet errors",
+																	],
+																}),
+																(0, r.jsx)("ul", {
+																	className:
+																		"list-disc space-y-1 pl-5 text-destructive",
+																	children: v.errors.map((e) =>
+																		(0, r.jsxs)(
+																			"li",
+																			{
+																				children: [
+																					e.sheet,
+																					": ",
+																					e.error,
+																				],
+																			},
+																			`${e.sheet}-${e.error}`
+																		)
+																	),
+																}),
+															],
+													  })
+													: null,
+											],
+										}),
+									],
+							  })
+							: null,
+					],
+				});
+			}
+		},
+		47339: (e, s, t) => {
+			t.d(s, { A: () => r });
+			let r = (0, t(90425).A)("file-spreadsheet", [
+				[
+					"path",
+					{
+						d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
+						key: "1oefj6",
+					},
+				],
+				["path", { d: "M14 2v5a1 1 0 0 0 1 1h5", key: "wfsgrz" }],
+				["path", { d: "M8 13h2", key: "yr2amv" }],
+				["path", { d: "M14 13h2", key: "un5t4a" }],
+				["path", { d: "M8 17h2", key: "2yhykz" }],
+				["path", { d: "M14 17h2", key: "10kma7" }],
+			]);
+		},
+		79984: (e, s, t) => {
+			t.d(s, { BT: () => n, Wu: () => c, ZB: () => i, Zp: () => l, aR: () => d });
+			var r = t(95155);
+			t(12115);
+			var a = t(91337);
+			function l({ className: e, ...s }) {
+				return (0, r.jsx)("div", {
+					"data-slot": "card",
+					className: (0, a.cn)(
+						"bg-card text-card-foreground flex flex-col gap-2 rounded-[1.15rem] border py-3 shadow-[0_4px_20px_rgba(15,61,94,0.05)]",
+						e
+					),
+					...s,
+				});
+			}
+			function d({ className: e, ...s }) {
+				return (0, r.jsx)("div", {
+					"data-slot": "card-header",
+					className: (0, a.cn)(
+						"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-3",
+						e
+					),
+					...s,
+				});
+			}
+			function i({ className: e, ...s }) {
+				return (0, r.jsx)("div", {
+					"data-slot": "card-title",
+					className: (0, a.cn)(
+						"leading-none font-serif-display font-semibold tracking-tight",
+						e
+					),
+					...s,
+				});
+			}
+			function n({ className: e, ...s }) {
+				return (0, r.jsx)("div", {
+					"data-slot": "card-description",
+					className: (0, a.cn)("text-muted-foreground text-sm", e),
+					...s,
+				});
+			}
+			function c({ className: e, ...s }) {
+				return (0, r.jsx)("div", {
+					"data-slot": "card-content",
+					className: (0, a.cn)("px-4", e),
+					...s,
+				});
+			}
+		},
+	},
+]);

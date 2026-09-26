@@ -33,8 +33,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSWRConfig } from 'swr';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
 import { InvoiceTaxBreakdown } from '@/components/invoices/invoice-tax-breakdown';
+import {
+  AdvanceReconcileBox,
+  describeAdvanceReconcile,
+} from '@/components/invoices/advance-reconcile-box';
 import {
   buildGroupDiscountPayload,
   groupDiscountAmount,
@@ -42,7 +47,11 @@ import {
   type InvoiceDiscountMode,
 } from '@/lib/invoice-discount';
 import * as invoicesSvc from '@/services/invoices';
+import * as paymentSvc from '@/services/paymentEntries';
 import type { InvoicePreview, WarrantyApplicationType } from '@/types/dms';
+
+/** SWR key prefix of the shared advance box — invalidated after an advance is applied. */
+const ADVANCES_KEY = 'customer-advances';
 
 const WARRANTY_OPTIONS: { value: string; label: string }[] = [
   { value: 'none', label: 'None (bill full amounts)' },
@@ -106,12 +115,14 @@ export function CreateInvoiceDialog({
   const [applyTaxes, setApplyTaxes] = useState(false);
   const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
   const [remark, setRemark] = useState('');
+  const [reconcileAdvances, setReconcileAdvances] = useState(false);
   const [taxPreview, setTaxPreview] = useState<invoicesSvc.InvoiceTaxPreview | null>(null);
   const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, number>>({});
   const [excludedRows, setExcludedRows] = useState<string[]>([]);
   const [editedQty, setEditedQty] = useState<Record<string, number>>({});
   const skipWarrantyRefetch = useRef(true);
+  const { mutate } = useSWRConfig();
 
   const applyDiscountsFromPreview = useCallback((data: InvoicePreview) => {
     if (data.labour_discount) {
@@ -194,6 +205,8 @@ export function CreateInvoiceDialog({
     setPostingDate(todayLocalDate());
     setSubmitInvoice(true);
     setApplyTaxes(false);
+    setApplyTaxWithholding(false);
+    setReconcileAdvances(false);
     setRemark('');
 
     invoicesSvc
@@ -394,11 +407,41 @@ export function CreateInvoiceDialog({
         // Always send (even when empty) so clearing the field clears it on the job card.
         remarks: remark,
       });
-      toast.success(
-        submitInvoice
-          ? 'Sales invoice created and submitted'
-          : 'Sales invoice created as draft'
-      );
+      const createdMessage = submitInvoice
+        ? 'Sales invoice created and submitted'
+        : 'Sales invoice created as draft';
+
+      if (reconcileAdvances && submitInvoice) {
+        // Optional second step: settle the customer's advance against the new
+        // invoice and report the balance left to collect.
+        try {
+          const reconciled = await paymentSvc.reconcileInvoiceAdvances(
+            invoiceName,
+            preview.company
+          );
+          void mutate(
+            (key) => Array.isArray(key) && key[0] === ADVANCES_KEY,
+            undefined,
+            { revalidate: true }
+          ).catch(() => undefined);
+          toast.success(createdMessage, { description: describeAdvanceReconcile(reconciled) });
+        } catch (reconcileError) {
+          toast.error(`Invoice ${invoiceName} created`, {
+            description:
+              reconcileError instanceof Error
+                ? `The advance could not be applied: ${reconcileError.message}`
+                : 'The advance could not be applied — reconcile it from the Reconciliation Hub.',
+          });
+        }
+      } else if (reconcileAdvances) {
+        toast.warning('Sales invoice created as draft', {
+          description:
+            'ERPNext settles advances only against submitted invoices — submit the invoice, then apply the advance.',
+        });
+      } else {
+        toast.success(createdMessage);
+      }
+
       onCreated(invoiceName);
       onOpenChange(false);
     } catch (err) {
@@ -821,6 +864,17 @@ export function CreateInvoiceDialog({
                 Submit invoice after creation
               </Label>
             </div>
+
+            <AdvanceReconcileBox
+              id="reconcile-advance"
+              customer={preview.customer}
+              company={preview.company}
+              currency={preview.currency}
+              enabled={open}
+              checked={reconcileAdvances}
+              onCheckedChange={setReconcileAdvances}
+              willSubmit={submitInvoice}
+            />
 
             <div className="space-y-1">
               <div className="flex items-center gap-2">

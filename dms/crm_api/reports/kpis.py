@@ -3,10 +3,9 @@
 
 from __future__ import annotations
 
+import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, getdate, time_diff_in_hours
-
-import frappe
 
 from dms.crm_api.reports.common import (
 	CAMPAIGN,
@@ -157,11 +156,7 @@ def _lead_response(f, rows=None):
 
 def _lead_contact_rate(f, rows=None):
 	valid = _valid_leads(rows if rows is not None else _lead_rows(f))
-	assigned = [
-		r
-		for r in valid
-		if r.get("assigned_on") or (r.get("status") or "") not in ("New", "")
-	]
+	assigned = [r for r in valid if r.get("assigned_on") or (r.get("status") or "") not in ("New", "")]
 	contacted = [r for r in valid if (r.get("status") or "") in CONTACTED_LEAD]
 	return _kpi(
 		"lead_contact_rate_pct",
@@ -176,11 +171,7 @@ def _lead_contact_rate(f, rows=None):
 def _qualification_rate(f, rows=None):
 	valid = _valid_leads(rows if rows is not None else _lead_rows(f))
 	contacted = [r for r in valid if (r.get("status") or "") in CONTACTED_LEAD]
-	qualified = [
-		r
-		for r in valid
-		if (r.get("status") or "") in QUALIFIED_LEAD or r.get("qualified_on")
-	]
+	qualified = [r for r in valid if (r.get("status") or "") in QUALIFIED_LEAD or r.get("qualified_on")]
 	return _kpi(
 		"qualification_rate_pct",
 		_("Qualification Rate"),
@@ -334,9 +325,7 @@ def _avg_sales_cycle(f):
 		lead_ids = [w.lead for w in won if w.get("lead")]
 		lead_created = {}
 		if lead_ids and dt_exists(LEAD):
-			for row in frappe.get_all(
-				LEAD, filters={"name": ["in", lead_ids]}, fields=["name", "creation"]
-			):
+			for row in frappe.get_all(LEAD, filters={"name": ["in", lead_ids]}, fields=["name", "creation"]):
 				lead_created[row.name] = row.creation
 		for w in won:
 			start = lead_created.get(w.get("lead")) or w.creation
@@ -507,12 +496,9 @@ def _lapsed_recovery_rate(f):
 			)
 		for r in rows:
 			cls = r.get("classification") or ""
-			is_recovered = cls == "Recovered" or (
-				cls == "Lapsed" and r.get("service_appointment")
-			)
-			is_targeted = (
-				cls in ("Lapsed", "Recovered")
-				and (r.get("last_reminder_on") or r.name in reminded or is_recovered)
+			is_recovered = cls == "Recovered" or (cls == "Lapsed" and r.get("service_appointment"))
+			is_targeted = cls in ("Lapsed", "Recovered") and (
+				r.get("last_reminder_on") or r.name in reminded or is_recovered
 			)
 			if is_targeted:
 				targeted += 1

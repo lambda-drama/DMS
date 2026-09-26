@@ -3,7 +3,13 @@ import re
 import frappe
 from frappe import _
 from frappe.utils import cint, strip_html
-from dms.api.utils import get_dms_companies, get_dms_default_customer, get_dms_default_customer_group, get_vehicle_customer_groups
+
+from dms.api.utils import (
+	get_dms_companies,
+	get_dms_default_customer,
+	get_dms_default_customer_group,
+	get_vehicle_customer_groups,
+)
 from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 from dms.utils.customer_contact import changed_contact_values, sync_customer_contact
 
@@ -42,12 +48,15 @@ def get_dms_customer_defaults():
 	if not customer:
 		return {"default_customer": None, "customer_name": None, "mobile_no": None}
 
-	row = frappe.db.get_value(
-		"Customer",
-		customer,
-		["customer_name", "mobile_no"],
-		as_dict=True,
-	) or {}
+	row = (
+		frappe.db.get_value(
+			"Customer",
+			customer,
+			["customer_name", "mobile_no"],
+			as_dict=True,
+		)
+		or {}
+	)
 	return {
 		"default_customer": customer,
 		"customer_name": row.get("customer_name") or customer,
@@ -71,23 +80,32 @@ def get_customers(search=None, limit=50, offset=0):
 			"mobile_no": ["like", f"%{search}%"],
 		}
 
-	total = len(frappe.get_all(
-		"Customer",
-		filters=filters,
-		or_filters=or_filters if or_filters else None,
-		limit_page_length=0,
-		pluck="name",
-	))
+	total = len(
+		frappe.get_all(
+			"Customer",
+			filters=filters,
+			or_filters=or_filters if or_filters else None,
+			limit_page_length=0,
+			pluck="name",
+		)
+	)
 
 	customers = frappe.get_all(
 		"Customer",
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "customer_name", "mobile_no", "email_id",
-			"customer_type", "customer_group", "territory",
-			"tax_id", "website",
-			"creation", "modified",
+			"name",
+			"customer_name",
+			"mobile_no",
+			"email_id",
+			"customer_type",
+			"customer_group",
+			"territory",
+			"tax_id",
+			"website",
+			"creation",
+			"modified",
 		],
 		limit=int(limit),
 		limit_start=int(offset),
@@ -174,9 +192,19 @@ def get_vins(customer=None, search=None, limit=20):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "vin_number", "plate_number", "linked_item", "model", "model_name",
-			"model_year", "brand", "current_customer", "customer_name", "current_odometer",
-			"warranty_status", "warranty_end_date",
+			"name",
+			"vin_number",
+			"plate_number",
+			"linked_item",
+			"model",
+			"model_name",
+			"model_year",
+			"brand",
+			"current_customer",
+			"customer_name",
+			"current_odometer",
+			"warranty_status",
+			"warranty_end_date",
 		],
 		limit=int(limit),
 		order_by="name desc",
@@ -196,18 +224,18 @@ def get_vins(customer=None, search=None, limit=20):
 def debug_spare_part_stock(spare_part_name):
 	"""Debug endpoint to check stock calculation for a specific spare part."""
 	from dms.dealer_management_system.utils.stock_operations import (
-		get_workshop_warehouses,
 		get_default_dms_company,
-		resolve_spare_part_erp_item_code,
 		get_dms_item_stock_balance,
+		get_workshop_warehouses,
+		resolve_spare_part_erp_item_code,
 	)
-	
+
 	spare_part = frappe.get_doc("Spare Part", spare_part_name)
 	company = get_default_dms_company()
 	erp_item = resolve_spare_part_erp_item_code(spare_part_name)
-	
+
 	workshop_warehouses = get_workshop_warehouses(company)
-	
+
 	result = {
 		"spare_part": spare_part_name,
 		"erp_item": erp_item,
@@ -216,21 +244,22 @@ def debug_spare_part_stock(spare_part_name):
 		"stock_by_warehouse": {},
 		"total_stock": 0.0,
 	}
-	
+
 	if erp_item:
 		for wh_info in workshop_warehouses:
 			wh_name = wh_info.get("name")
 			if wh_name:
 				try:
 					from erpnext.stock.utils import get_stock_balance
+
 					qty = get_stock_balance(erp_item, wh_name)
 					result["stock_by_warehouse"][wh_name] = float(qty)
 					result["total_stock"] += float(qty)
 				except Exception as e:
 					result["stock_by_warehouse"][wh_name] = f"Error: {str(e)}"
-		
+
 		result["calculated_total"] = get_dms_item_stock_balance(erp_item, None, company)
-	
+
 	return result
 
 
@@ -352,8 +381,12 @@ def get_vehicle_service_types(search=None, limit=100):
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "service_type_name", "description",
-			"default_estimated_hours", "warranty_applicable", "requires_diagnostic",
+			"name",
+			"service_type_name",
+			"description",
+			"default_estimated_hours",
+			"warranty_applicable",
+			"requires_diagnostic",
 		],
 		limit=int(limit),
 		order_by="service_type_name asc",
@@ -460,11 +493,13 @@ def get_service_bays(search=None, limit=50):
 
 
 @frappe.whitelist()
-def get_spare_parts(search=None, limit=20, warehouse=None, company=None, vin=None, vehicle_model=None, vehicle_brand=None):
+def get_spare_parts(
+	search=None, limit=20, warehouse=None, company=None, vin=None, vehicle_model=None, vehicle_brand=None
+):
 	from dms.dealer_management_system.utils.stock_operations import (
 		attach_spare_part_stock_available,
-		resolve_spare_parts_vehicle_filter,
 		get_default_dms_company,
+		resolve_spare_parts_vehicle_filter,
 	)
 
 	_vehicle_model, _vehicle_brand, allowed_names = resolve_spare_parts_vehicle_filter(
@@ -525,7 +560,9 @@ def get_spare_parts(search=None, limit=20, warehouse=None, company=None, vin=Non
 
 	warehouse = (warehouse or "").strip() or None
 	company = (company or "").strip() or get_default_dms_company()
-	frappe.logger().info(f"get_spare_parts: Using company={company}, warehouse={warehouse} for {len(parts)} parts")
+	frappe.logger().info(
+		f"get_spare_parts: Using company={company}, warehouse={warehouse} for {len(parts)} parts"
+	)
 	attach_spare_part_stock_available(parts, warehouse, company)
 
 	return parts
@@ -784,6 +821,7 @@ def get_spare_part_price(spare_part=None):
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 		spare_part_default_selling_price,
 	)
+
 	return spare_part_default_selling_price(spare_part)
 
 
@@ -828,12 +866,16 @@ def get_vehicle_service_item_line_defaults(vehicle_service_item=None):
 	)
 
 	service_name = frappe.db.get_value("Vehicle Service Item", vsi, "service_item") or vsi
-	item_name = frappe.db.get_value("Vehicle Service Item", vsi, "custom_item_name") if frappe.get_meta(
-		"Vehicle Service Item"
-	).has_field("custom_item_name") else None
-	service_code = frappe.db.get_value("Vehicle Service Item", vsi, "custom_service_code") if frappe.get_meta(
-		"Vehicle Service Item"
-	).has_field("custom_service_code") else None
+	item_name = (
+		frappe.db.get_value("Vehicle Service Item", vsi, "custom_item_name")
+		if frappe.get_meta("Vehicle Service Item").has_field("custom_item_name")
+		else None
+	)
+	service_code = (
+		frappe.db.get_value("Vehicle Service Item", vsi, "custom_service_code")
+		if frappe.get_meta("Vehicle Service Item").has_field("custom_service_code")
+		else None
+	)
 
 	return {
 		"rate_per_hour": vehicle_service_item_labour_rate(vsi),

@@ -14,8 +14,7 @@ from frappe.tests import UnitTestCase
 from dms.api.job_cards import _apply_job_card_type_change
 
 JOB_CARD_TYPE_OPTIONS = (
-	"\nCustomer Paid\nWarranty\nInternal\nPDI\n"
-	"Campaign/Recall\nInsurance\nGoodwill\nFleet Contract"
+	"\nCustomer Paid\nWarranty\nInternal\nPDI\nCampaign/Recall\nInsurance\nGoodwill\nFleet Contract"
 )
 
 
@@ -24,9 +23,7 @@ class JobCardTypeError(Exception):
 
 
 def _fake_get_meta(doctype):
-	return SimpleNamespace(
-		get_field=lambda field: SimpleNamespace(options=JOB_CARD_TYPE_OPTIONS)
-	)
+	return SimpleNamespace(get_field=lambda field: SimpleNamespace(options=JOB_CARD_TYPE_OPTIONS))
 
 
 def _fake_throw(message, *args, **kwargs):

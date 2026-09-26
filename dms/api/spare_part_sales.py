@@ -7,11 +7,11 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
+from dms.api.utils import apply_date_range, get_dms_default_customer, resolve_dms_customer
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
 )
-from dms.api.utils import apply_date_range, get_dms_default_customer, resolve_dms_customer
 from dms.dealer_management_system.utils.stock_operations import (
 	get_default_dms_company,
 	get_dms_allowed_warehouses,
@@ -38,8 +38,7 @@ def _stock_available(spare_part: str, warehouse: str | None) -> float:
 @frappe.whitelist()
 def get_spare_part_sales_defaults(company=None):
 	if not (
-		frappe.has_permission("Sales Invoice", "create")
-		or frappe.has_permission("Sales Order", "create")
+		frappe.has_permission("Sales Invoice", "create") or frappe.has_permission("Sales Order", "create")
 	):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 	defaults = get_purchase_receipt_defaults(company)
@@ -94,10 +93,7 @@ def search_spare_parts_for_sale(
 	in_stock_only=0,
 ):
 	"""Spare parts with optional warehouse stock for counter sales."""
-	if not (
-		frappe.has_permission("Sales Invoice", "read")
-		or frappe.has_permission("Sales Order", "read")
-	):
+	if not (frappe.has_permission("Sales Invoice", "read") or frappe.has_permission("Sales Order", "read")):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 	warehouse = (warehouse or "").strip()
@@ -121,7 +117,15 @@ def search_spare_parts_for_sale(
 		"Spare Part",
 		filters=sp_filters or None,
 		or_filters=or_filters if or_filters else None,
-		fields=["name", "item_name", "item_code", "part_category", "oem_part_number", "selling_price", "bin_location"],
+		fields=[
+			"name",
+			"item_name",
+			"item_code",
+			"part_category",
+			"oem_part_number",
+			"selling_price",
+			"bin_location",
+		],
 		limit=int(limit),
 		order_by="item_name asc",
 	)
@@ -215,6 +219,7 @@ def _ensure_spare_part_proforma(so) -> None:
 			frappe.throw(_("Document {0} is not a spare part proforma.").format(frappe.bold(so.name)))
 		return
 	# Without custom flag or remarks, skip strict check (legacy sites)
+
 
 def _validate_spare_part_lines(
 	data,
@@ -422,9 +427,7 @@ def get_spare_part_proforma(name):
 
 		vsi_name = None
 		if not sp_name and vsi_item_field:
-			vsi_name = frappe.db.get_value(
-				"Vehicle Service Item", {vsi_item_field: row.item_code}, "name"
-			)
+			vsi_name = frappe.db.get_value("Vehicle Service Item", {vsi_item_field: row.item_code}, "name")
 
 		line = {
 			"item_code": row.item_code,
@@ -456,8 +459,7 @@ def get_spare_part_proforma(name):
 			vsi_label = row.item_name or vsi_name
 			if vsi_meta and vsi_meta.has_field("custom_item_name"):
 				vsi_label = (
-					frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_item_name")
-					or vsi_label
+					frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_item_name") or vsi_label
 				)
 			labour.append(
 				{
@@ -808,6 +810,7 @@ def convert_proforma_to_sales_invoice(name, data=None):
 					)
 
 	from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
+
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		_apply_dms_selling_price_list_to_sales_invoice,
 		_apply_dms_settings_dimensions_to_sales_invoice,

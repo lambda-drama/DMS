@@ -1,7 +1,9 @@
 app_name = "dms"
 app_title = "DMS"
 app_publisher = "Mania"
-app_description = "Aftersales Service, Vehicle Inspection, Job Card, Quality Control, Warranty, Parts & Customer Management"
+app_description = (
+	"Aftersales Service, Vehicle Inspection, Job Card, Quality Control, Warranty, Parts & Customer Management"
+)
 app_email = "maniajrmania@gmail.com"
 app_license = "mit"
 
@@ -27,103 +29,87 @@ website_route_rules = [
 ]
 
 fixtures = [
-    {
-        "doctype": "Custom Field",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    #Service item
-                    "Vehicle Service Item-custom_item_name",
-                    "Vehicle Service Item-custom_erpnext_item",
-                    
-                    "Vehicle Service Item-custom_rate",
-                    "Vehicle Service Item-custom_section_break_bk5jc",
-                    "Vehicle Service Item-custom_description",
-                    "Vehicle Service Item-custom_section_break_j9tgd",
-                    "Item Group-custom_is_vehicle",
-                    "Customer Group-custom_is_vehicle_customer",
-                    "Warehouse-custom_is_dms_warehouse",
-                    "Sales Invoice-custom_dms_job_card",
-                    "Sales Invoice Item-custom_dms_discount",
-                     "Vehicle Service Item-custom_sub_code",
-                    "Vehicle Service Item-custom_cat_code",
-                    "Vehicle Service Item-custom_frt",
-                    "Vehicle Service Item-custom_category",
-                    "Vehicle Service Item-custom_column_break_cgzhn",
-                    "Vehicle Service Item-custom_vehicle_model",
-                    "Item Group-custom_auto_generate_spare_parts",
-                    "Purchase Receipt-custom_sparepart_receipt",
-                    "Supplier-custom_spare_parts_supplier_",
-                    "Stock Reconciliation-custom_sparepart_stock",
-                    "Stock Entry-custom_sparepart_stock",
-                    "Sales Invoice-custom_spare_parts",
-                    "Sales Order-custom_spare_parts_proforma",
-                    "Material Request-custom_section_break_n2iag",
-                    "Material Request-custom__sparepart_stock",
-                    "Vehicle Service Item-custom_estimated_timehours",
-                    "Vehicle Service Item-custom_service_code",
-                    "Sales Invoice-custom_missing_dms",
-                    "Quotation Item-custom_serial_no",
-                    "Vehicle Service Item-custom_active",
-                    
-                    "Payment Entry-custom_is_dms",
-                    "Payment Entry-custom_dms_job_card",
-                    "Payment Entry-custom_dms_service_estimate",
-                    "Payment Entry-custom_dms_remarks"
-                    
-                ]
-            ]
-        ]
-    },
-
-    {
-        "doctype": "Role",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    "Dealer Manager",
-                    "Spare Parts Manager",
-                    "DMS CRM User",
-                    "DMS CRM Manager",
-                ],
-            ]
-        ]
-    },
-
-    # {
-    #     "doctype": "Vehicle Service Type"
-    # },
-
-    {
-        "doctype": "QC Checklist Template"
-    },
-
-    # {
-    #     "doctype": "QC Checklist Item Master"
-    # },
-    # {
-    #     "doctype": "Road Test Template"
-    # },
-    
-    {
-        "doctype": "Bay Type"
-    },
-    {
-        "doctype":"Working Time"
-    },
-    # {
-    #    "doctype": "Delivery Checklist Template"
-    # },
-    {
-        "doctype": "Print Format",
-        "filters": [
-            ["name", "in", ["Vehicle Inspection - Terms", "Service Estimate - Terms"]]
-        ]
-    }
+	{
+		"doctype": "Custom Field",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					# Service item
+					"Vehicle Service Item-custom_item_name",
+					"Vehicle Service Item-custom_erpnext_item",
+					"Vehicle Service Item-custom_rate",
+					"Vehicle Service Item-custom_section_break_bk5jc",
+					"Vehicle Service Item-custom_description",
+					"Vehicle Service Item-custom_section_break_j9tgd",
+					"Item Group-custom_is_vehicle",
+					"Customer Group-custom_is_vehicle_customer",
+					"Warehouse-custom_is_dms_warehouse",
+					"Sales Invoice-custom_dms_job_card",
+					"Sales Invoice Item-custom_dms_discount",
+					"Vehicle Service Item-custom_sub_code",
+					"Vehicle Service Item-custom_cat_code",
+					"Vehicle Service Item-custom_frt",
+					"Vehicle Service Item-custom_category",
+					"Vehicle Service Item-custom_column_break_cgzhn",
+					"Vehicle Service Item-custom_vehicle_model",
+					"Item Group-custom_auto_generate_spare_parts",
+					"Purchase Receipt-custom_sparepart_receipt",
+					"Supplier-custom_spare_parts_supplier_",
+					"Stock Reconciliation-custom_sparepart_stock",
+					"Stock Entry-custom_sparepart_stock",
+					"Sales Invoice-custom_spare_parts",
+					"Sales Order-custom_spare_parts_proforma",
+					"Material Request-custom_section_break_n2iag",
+					"Material Request-custom__sparepart_stock",
+					"Vehicle Service Item-custom_estimated_timehours",
+					"Vehicle Service Item-custom_service_code",
+					"Sales Invoice-custom_missing_dms",
+					"Quotation Item-custom_serial_no",
+					"Vehicle Service Item-custom_active",
+					"Payment Entry-custom_is_dms",
+					"Payment Entry-custom_dms_job_card",
+					"Payment Entry-custom_dms_service_estimate",
+					"Payment Entry-custom_dms_remarks",
+				],
+			]
+		],
+	},
+	{
+		"doctype": "Role",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Dealer Manager",
+					"Spare Parts Manager",
+					"DMS CRM User",
+					"DMS CRM Manager",
+				],
+			]
+		],
+	},
+	# {
+	#     "doctype": "Vehicle Service Type"
+	# },
+	{"doctype": "QC Checklist Template"},
+	# {
+	#     "doctype": "QC Checklist Item Master"
+	# },
+	# {
+	#     "doctype": "Road Test Template"
+	# },
+	{"doctype": "Bay Type"},
+	{"doctype": "Working Time"},
+	# {
+	#    "doctype": "Delivery Checklist Template"
+	# },
+	{
+		"doctype": "Print Format",
+		"filters": [["name", "in", ["Vehicle Inspection - Terms", "Service Estimate - Terms"]]],
+	},
 ]
 
 # Includes in <head>
@@ -404,4 +390,3 @@ scheduler_events = {
 from dms.crm_hooks import apply_crm_hooks  # noqa: E402
 
 apply_crm_hooks(globals())
-

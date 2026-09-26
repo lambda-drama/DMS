@@ -55,17 +55,13 @@ class TestValidatePartRowAdjustments(UnitTestCase):
 
 	def test_reducing_requested_part_is_allowed(self):
 		parts = [_part("row-1", requested=4)]
-		excluded, overrides = validate_part_row_adjustments(
-			parts, qty_overrides={"row-1": 2}
-		)
+		excluded, overrides = validate_part_row_adjustments(parts, qty_overrides={"row-1": 2})
 		self.assertEqual(excluded, set())
 		self.assertEqual(overrides, {"row-1": 2.0})
 
 	def test_zero_qty_is_treated_as_removed(self):
 		parts = [_part("row-1", requested=4)]
-		excluded, overrides = validate_part_row_adjustments(
-			parts, qty_overrides={"row-1": 0}
-		)
+		excluded, overrides = validate_part_row_adjustments(parts, qty_overrides={"row-1": 0})
 		self.assertEqual(excluded, {"row-1"})
 		self.assertEqual(overrides, {})
 
@@ -100,9 +96,7 @@ class TestPartBillableQty(UnitTestCase):
 			part_billable_qty(row, {"row-1": 4})
 
 	def test_override_for_other_row_is_ignored(self):
-		self.assertEqual(
-			part_billable_qty(_part("row-1", requested=4), {"row-2": 1}), 4
-		)
+		self.assertEqual(part_billable_qty(_part("row-1", requested=4), {"row-2": 1}), 4)
 
 
 class TestPlanPartRowAdjustment(UnitTestCase):

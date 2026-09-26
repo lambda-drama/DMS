@@ -153,9 +153,7 @@ class DMSCRMTestDrive(Document):
 	def _load_template_checklist(self):
 		if self.checklist or not self.checklist_template:
 			return
-		template = frappe.get_cached_doc(
-			"DMS CRM Test Drive Checklist Template", self.checklist_template
-		)
+		template = frappe.get_cached_doc("DMS CRM Test Drive Checklist Template", self.checklist_template)
 		if not template.is_active:
 			frappe.throw("The selected test-drive checklist template is inactive.")
 		for row in template.checklist_items:
@@ -222,11 +220,7 @@ class DMSCRMTestDrive(Document):
 			self.completed_on = now_datetime()
 
 	def _create_follow_up_activity(self):
-		activity_type = (
-			"Quotation Follow-up"
-			if self.outcome == "Quotation Requested"
-			else "Test Drive"
-		)
+		activity_type = "Quotation Follow-up" if self.outcome == "Quotation Requested" else "Test Drive"
 		activity = frappe.get_doc(
 			{
 				"doctype": "DMS CRM Activity",

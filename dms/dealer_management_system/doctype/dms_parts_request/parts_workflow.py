@@ -8,7 +8,6 @@ from frappe import _
 from frappe.utils import cint, flt, now_datetime, today
 
 from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
-
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
@@ -104,9 +103,7 @@ def add_part_line_to_job_card(
 	jc.check_permission("write")
 
 	if jc.status not in _ADD_PART_ALLOWED_STATUSES:
-		frappe.throw(
-			_("Cannot add parts when job card status is {0}.").format(jc.status or _("Unknown"))
-		)
+		frappe.throw(_("Cannot add parts when job card status is {0}.").format(jc.status or _("Unknown")))
 
 	if not frappe.db.exists("Spare Part", item_code):
 		frappe.throw(_("Spare Part {0} does not exist.").format(item_code))
@@ -195,9 +192,7 @@ def remove_part_line_from_job_card(job_card, part_row):
 	jc.check_permission("write")
 
 	if jc.status not in _ADD_PART_ALLOWED_STATUSES:
-		frappe.throw(
-			_("Cannot remove parts when job card status is {0}.").format(jc.status or _("Unknown"))
-		)
+		frappe.throw(_("Cannot remove parts when job card status is {0}.").format(jc.status or _("Unknown")))
 
 	if jc.invoice:
 		frappe.throw(_("Cannot remove parts after an invoice has been created."))
@@ -275,9 +270,10 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 			continue
 		for row in jc.parts or []:
 			if row.name == row_name:
-				if "unit_price" in payload and abs(
-					flt(row.unit_price or 0) - flt(payload.get("unit_price"))
-				) >= 0.01:
+				if (
+					"unit_price" in payload
+					and abs(flt(row.unit_price or 0) - flt(payload.get("unit_price"))) >= 0.01
+				):
 					actual_changes = True
 					break
 		if actual_changes:
@@ -290,9 +286,10 @@ def update_job_card_line_pricing(job_card: str, parts=None, labour=None):
 				continue
 			for row in jc.labour or []:
 				if row.name == row_name:
-					if "rate_per_hour" in payload and abs(
-						flt(row.rate_per_hour or 0) - flt(payload.get("rate_per_hour"))
-					) >= 0.01:
+					if (
+						"rate_per_hour" in payload
+						and abs(flt(row.rate_per_hour or 0) - flt(payload.get("rate_per_hour"))) >= 0.01
+					):
 						actual_changes = True
 						break
 			if actual_changes:
@@ -756,7 +753,12 @@ def cancel_parts_request(name: str):
 			frappe.db.set_value(
 				"Job Card Part Item",
 				row.job_card_part_row,
-				{"line_status": "Requested", "parts_request": "", "is_backordered": 0, "backorder_quantity": 0},
+				{
+					"line_status": "Requested",
+					"parts_request": "",
+					"is_backordered": 0,
+					"backorder_quantity": 0,
+				},
 				update_modified=False,
 			)
 
@@ -790,9 +792,7 @@ def _restored_status_for_cancelled_request(name: str, stock_entry: str | None) -
 
 	line_statuses = [
 		(status or "").strip()
-		for status in frappe.get_all(
-			"DMS Parts Request Item", filters={"parent": name}, pluck="line_status"
-		)
+		for status in frappe.get_all("DMS Parts Request Item", filters={"parent": name}, pluck="line_status")
 	]
 	issued = [status for status in line_statuses if status in _ISSUED_LINE_STATUSES]
 	if not issued:

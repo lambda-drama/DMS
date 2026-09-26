@@ -1,25 +1,37 @@
 // Copyright (c) 2026, Mania and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on('VIN No', {
+frappe.ui.form.on("VIN No", {
 	refresh: function (frm) {
 		if (frm.doc.linked_serial) {
-			frm.add_custom_button(__('Open Serial No'), function () {
-				frappe.set_route('Form', 'Serial No', frm.doc.linked_serial);
-			}, __('ERPNext'));
+			frm.add_custom_button(
+				__("Open Serial No"),
+				function () {
+					frappe.set_route("Form", "Serial No", frm.doc.linked_serial);
+				},
+				__("ERPNext")
+			);
 		}
 
 		apply_vehicle_item_filter(frm);
 
 		if (frm.doc.linked_item) {
-			frm.add_custom_button(__('Open Vehicle Model (Item)'), function () {
-				frappe.set_route('Form', 'Item', frm.doc.linked_item);
-			}, __('Reference'));
+			frm.add_custom_button(
+				__("Open Vehicle Model (Item)"),
+				function () {
+					frappe.set_route("Form", "Item", frm.doc.linked_item);
+				},
+				__("Reference")
+			);
 		}
 
-		frm.add_custom_button(__('Service History'), function () {
-			frappe.set_route('List', 'Job Card', { vehicle_vin: frm.doc.name });
-		}, __('View'));
+		frm.add_custom_button(
+			__("Service History"),
+			function () {
+				frappe.set_route("List", "Job Card", { vehicle_vin: frm.doc.name });
+			},
+			__("View")
+		);
 
 		// Do not recalculate warranty_status on refresh — that dirties the form
 		// ("Not Saved") and overwrites Inactive set from the DMS UI.
@@ -42,7 +54,7 @@ frappe.ui.form.on('VIN No', {
 
 		if (frm.doc.current_odometer && frm.doc.service_interval_km) {
 			frm.set_value(
-				'next_service_due_km',
+				"next_service_due_km",
 				frm.doc.current_odometer + frm.doc.service_interval_km
 			);
 		}
@@ -50,7 +62,7 @@ frappe.ui.form.on('VIN No', {
 
 	delivery_date: function (frm) {
 		if (frm.doc.delivery_date && !frm.doc.warranty_start_date) {
-			frm.set_value('warranty_start_date', frm.doc.delivery_date);
+			frm.set_value("warranty_start_date", frm.doc.delivery_date);
 		}
 		calculate_warranty_status(frm);
 	},
@@ -58,9 +70,9 @@ frappe.ui.form.on('VIN No', {
 	vin_number: function (frm) {
 		if (frm.doc.vin_number && frm.doc.vin_number.length !== 17) {
 			frappe.msgprint({
-				title: __('Invalid VIN'),
-				message: __('Standard VIN should be 17 characters. Please verify.'),
-				indicator: 'orange',
+				title: __("Invalid VIN"),
+				message: __("Standard VIN should be 17 characters. Please verify."),
+				indicator: "orange",
 			});
 		}
 	},
@@ -68,7 +80,7 @@ frappe.ui.form.on('VIN No', {
 
 function calculate_warranty_status(frm) {
 	// Preserve manual / registration statuses set from Desk or DMS UI
-	const preserve = ['Void', 'Pending Verification'];
+	const preserve = ["Void", "Pending Verification"];
 	if (preserve.includes(frm.doc.warranty_status)) {
 		return;
 	}
@@ -76,33 +88,32 @@ function calculate_warranty_status(frm) {
 	const today = frappe.datetime.get_today();
 	const has_started = !!(frm.doc.delivery_date || frm.doc.warranty_start_date);
 
-	let next = 'Inactive';
+	let next = "Inactive";
 	if (has_started) {
-		const expired_time =
-			frm.doc.warranty_end_date && frm.doc.warranty_end_date < today;
+		const expired_time = frm.doc.warranty_end_date && frm.doc.warranty_end_date < today;
 		const expired_mileage =
 			frm.doc.warranty_km_limit &&
 			frm.doc.current_odometer &&
 			frm.doc.current_odometer >= frm.doc.warranty_km_limit;
 
 		if (expired_time) {
-			next = 'Inactive';
+			next = "Inactive";
 		} else if (expired_mileage) {
-			next = 'Expired by Mileage';
+			next = "Expired by Mileage";
 		} else {
-			next = 'Active';
+			next = "Active";
 		}
 	}
 
 	if (frm.doc.warranty_status !== next) {
-		frm.set_value('warranty_status', next);
+		frm.set_value("warranty_status", next);
 	}
 }
 
 function apply_vehicle_item_filter(frm) {
 	frm.fields_dict.linked_item.get_query = function () {
 		return {
-			query: 'dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items',
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
 			filters: {},
 		};
 	};

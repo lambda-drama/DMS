@@ -27,8 +27,7 @@ def _apply(doc, payload):
 	allowed = {
 		df.fieldname
 		for df in frappe.get_meta(DOCTYPE).fields
-		if df.fieldtype not in ("Section Break", "Column Break", "Tab Break", "HTML")
-		and not df.read_only
+		if df.fieldtype not in ("Section Break", "Column Break", "Tab Break", "HTML") and not df.read_only
 	}
 	for key, value in (payload or {}).items():
 		if key in allowed and key != "status":

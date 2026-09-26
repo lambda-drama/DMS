@@ -13,18 +13,41 @@ from dms.api.utils import (
 )
 from dms.dealer_management_system.utils.document_links import enrich_appointment_row
 
-_TERMINAL_STATUSES = frozenset({
-	"Completed", "Cancelled", "No-Show",
-})
-_ARRIVED_STATUSES = frozenset({
-	"Arrived", "In Inspection", "In Workshop", "Ready for Pickup", "Completed",
-})
-_PRE_ARRIVAL_STATUSES = frozenset({
-	"Requested", "Scheduled", "Confirmed", "Booked", "Reminder Sent", "Rescheduled",
-})
-_REMINDER_STATUSES = frozenset({
-	"Requested", "Scheduled", "Confirmed", "Booked", "Rescheduled",
-})
+_TERMINAL_STATUSES = frozenset(
+	{
+		"Completed",
+		"Cancelled",
+		"No-Show",
+	}
+)
+_ARRIVED_STATUSES = frozenset(
+	{
+		"Arrived",
+		"In Inspection",
+		"In Workshop",
+		"Ready for Pickup",
+		"Completed",
+	}
+)
+_PRE_ARRIVAL_STATUSES = frozenset(
+	{
+		"Requested",
+		"Scheduled",
+		"Confirmed",
+		"Booked",
+		"Reminder Sent",
+		"Rescheduled",
+	}
+)
+_REMINDER_STATUSES = frozenset(
+	{
+		"Requested",
+		"Scheduled",
+		"Confirmed",
+		"Booked",
+		"Rescheduled",
+	}
+)
 
 
 def _license_plate_from_vin(vin_chassis) -> str | None:
@@ -155,28 +178,47 @@ def get_appointments(limit=50, offset=0, status=None, date=None, search=None):
 
 	filters = add_branch_filter(filters, doctype="Service Appointment")
 
-	total = len(frappe.get_all(
-		"Service Appointment",
-		filters=filters,
-		or_filters=or_filters if or_filters else None,
-		limit_page_length=0,
-		pluck="name",
-	))
+	total = len(
+		frappe.get_all(
+			"Service Appointment",
+			filters=filters,
+			or_filters=or_filters if or_filters else None,
+			limit_page_length=0,
+			pluck="name",
+		)
+	)
 
 	appointments = frappe.get_all(
 		"Service Appointment",
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "booking_source", "appointment_date_time", "company",
-			"promised_delivery_date_time", "estimated_duration_hours",
-			"priority", "customer", "customer_name", "primary_phone", "mobile_no",
-			"customer_email", "vehicle", "vin_chassis", "license_plate",
-			"current_odometer", "warranty_status",
-			"customer_complaint_summary", "preferred_advisor",
-			"vehicle_arrival_status", "status",
-			"assigned_service_advisor", "assigned_bay",
-			"docstatus", "creation", "modified",
+			"name",
+			"booking_source",
+			"appointment_date_time",
+			"company",
+			"promised_delivery_date_time",
+			"estimated_duration_hours",
+			"priority",
+			"customer",
+			"customer_name",
+			"primary_phone",
+			"mobile_no",
+			"customer_email",
+			"vehicle",
+			"vin_chassis",
+			"license_plate",
+			"current_odometer",
+			"warranty_status",
+			"customer_complaint_summary",
+			"preferred_advisor",
+			"vehicle_arrival_status",
+			"status",
+			"assigned_service_advisor",
+			"assigned_bay",
+			"docstatus",
+			"creation",
+			"modified",
 		],
 		limit=int(limit),
 		limit_start=int(offset),
@@ -197,11 +239,13 @@ def get_appointments(limit=50, offset=0, status=None, date=None, search=None):
 		)
 		by_parent = {}
 		for row in service_rows:
-			by_parent.setdefault(row.parent, []).append({
-				"service_type": row.service_type,
-				"estimated_hours": row.estimated_hours,
-				"is_urgent": row.is_urgent,
-			})
+			by_parent.setdefault(row.parent, []).append(
+				{
+					"service_type": row.service_type,
+					"estimated_hours": row.estimated_hours,
+					"is_urgent": row.is_urgent,
+				}
+			)
 		for apt in appointments:
 			apt["service_type_requested"] = by_parent.get(apt.name, [])
 			_enrich_appointment_display(apt)
@@ -226,6 +270,7 @@ def get_appointment(name):
 def create_appointment(data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
@@ -357,6 +402,7 @@ def create_appointment(data):
 def update_appointment(name, data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	doc = frappe.get_doc("Service Appointment", name)
@@ -501,7 +547,9 @@ def send_appointment_reminder(name):
 	phone = _resolve_appointment_phone(doc)
 	if not phone:
 		frappe.throw(
-			_("Add a phone number on the appointment (Mobile No) or on the customer record before sending a reminder")
+			_(
+				"Add a phone number on the appointment (Mobile No) or on the customer record before sending a reminder"
+			)
 		)
 
 	template_name = _get_appointment_whatsapp_template()

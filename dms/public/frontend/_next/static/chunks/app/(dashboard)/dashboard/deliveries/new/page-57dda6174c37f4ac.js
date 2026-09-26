@@ -1,1 +1,549 @@
-(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[7935],{6296:(e,r,t)=>{"use strict";t.d(r,{A:()=>s});let s=(0,t(90425).A)("loader-circle",[["path",{d:"M21 12a9 9 0 1 1-6.219-8.56",key:"13zald"}]])},15181:(e,r,t)=>{"use strict";function s(e){window.scrollTo(0,0),document.documentElement.scrollTop=0,document.body.scrollTop=0,e?.scrollTo(0,0),document.body.style.removeProperty("overflow"),document.body.style.removeProperty("padding-right"),document.body.style.removeProperty("margin-right"),document.body.removeAttribute("data-scroll-locked")}t.d(r,{i:()=>s})},33210:(e,r,t)=>{"use strict";t.d(r,{A:()=>s});let s=(0,t(90425).A)("x",[["path",{d:"M18 6 6 18",key:"1bl5f8"}],["path",{d:"m6 6 12 12",key:"d8bk6v"}]])},51749:(e,r,t)=>{Promise.resolve().then(t.bind(t,8972))},51914:(e,r,t)=>{"use strict";t.d(r,{A:()=>s});let s=(0,t(90425).A)("plus",[["path",{d:"M5 12h14",key:"1ays0h"}],["path",{d:"M12 5v14",key:"s699le"}]])},55833:(e,r,t)=>{"use strict";t.d(r,{NavigationProvider:()=>l,c:()=>d,g:()=>o});var s=t(95155),i=t(12115),a=t(15181);let c=["dashboard","appointments","appointment-detail","appointment-new","inspections","inspection-detail","inspection-new","service-estimates","estimate-detail","job-cards","job-card-detail","job-card-new","parts-requisitions","parts-requisition-detail","deliveries","delivery-new","invoices","invoice-new","orders","order-new","payment-entries","reconciliation-hub","follow-ups","follow-up-new","technicians","technician-detail","service-advisors","parts-advisors","spare-parts","vehicle-services","vehicle-models","service-packages","item-prices","job-card-terms","sales-invoice-tc","user-permissions","advanced-permissions","customers","vehicles","vehicle-new","reports","stock-entry","stock-reconciliation","material-request","pending-material-requests","purchase-receipt","spare-part-sales","proforma-invoices","proforma-invoice-new","inventory-dashboard","settings","crm-dashboard","crm-leads","crm-lead-new","crm-lead-detail","crm-opportunities","crm-opportunity-new","crm-opportunity-detail","crm-sales-appointments","crm-sales-appointment-new","crm-sales-appointment-detail","crm-contacts","crm-customers","crm-customer-new","crm-customer-detail","crm-vehicles","crm-vehicle-detail","crm-activities","crm-activity-new","crm-activity-detail","crm-approvals","crm-call-logs","crm-call-log-new","crm-call-log-detail","crm-call-center","crm-test-drives","crm-test-drive-detail","crm-delivery-readiness","crm-delivery-readiness-detail","crm-bookings","crm-quotations","crm-quotation-detail","crm-accounts","crm-account-new","crm-account-detail","crm-tenders","crm-tender-new","crm-tender-detail","crm-fleet-aftersales","crm-service-retention","crm-calendar","crm-cases","crm-case-new","crm-case-detail","crm-campaigns","crm-campaign-new","crm-campaign-detail","crm-segment-new","crm-segment-detail","crm-loyalty","crm-referrals","crm-referral-detail","crm-reports","crm-staff-audit"],n={dashboard:"dashboard",appointments:"appointments","appointment-detail":"appointments","appointment-new":"appointments",inspections:"inspections","inspection-detail":"inspections","inspection-new":"inspections","service-estimates":"service-estimates","estimate-detail":"service-estimates","job-cards":"job-cards","job-card-detail":"job-cards","job-card-new":"job-cards","parts-requisitions":"parts-requisitions","parts-requisition-detail":"parts-requisitions",deliveries:"deliveries","delivery-new":"deliveries",invoices:"invoices","invoice-new":"invoices",orders:"orders","order-new":"orders","payment-entries":"payment-entries","reconciliation-hub":"reconciliation-hub","follow-ups":"follow-ups","follow-up-new":"follow-ups",technicians:"technicians","technician-detail":"technicians","service-advisors":"service-advisors","parts-advisors":"parts-advisors","spare-parts":"spare-parts","vehicle-services":"vehicle-services","vehicle-models":"vehicle-models","service-packages":"service-packages","item-prices":"item-prices","job-card-terms":"job-card-terms","sales-invoice-tc":"sales-invoice-tc","user-permissions":"user-permissions","advanced-permissions":"advanced-permissions",customers:"customers",vehicles:"vehicles","vehicle-new":"vehicles",reports:"reports","stock-entry":"stock-entry","stock-reconciliation":"stock-reconciliation","material-request":"material-request","pending-material-requests":"pending-material-requests","purchase-receipt":"purchase-receipt","spare-part-sales":"spare-part-sales","proforma-invoices":"proforma-invoices","proforma-invoice-new":"proforma-invoices","inventory-dashboard":"inventory-dashboard",settings:"settings","crm-dashboard":"crm-dashboard","crm-leads":"crm-leads","crm-lead-new":"crm-leads","crm-lead-detail":"crm-leads","crm-opportunities":"crm-opportunities","crm-opportunity-new":"crm-opportunities","crm-opportunity-detail":"crm-opportunities","crm-sales-appointments":"crm-sales-appointments","crm-sales-appointment-new":"crm-sales-appointments","crm-sales-appointment-detail":"crm-sales-appointments","crm-contacts":"crm-contacts","crm-customers":"crm-customers","crm-customer-new":"crm-customers","crm-customer-detail":"crm-customers","crm-vehicles":"crm-vehicles","crm-vehicle-detail":"crm-vehicles","crm-activities":"crm-activities","crm-activity-new":"crm-activities","crm-activity-detail":"crm-activities","crm-approvals":"crm-approvals","crm-call-logs":"crm-call-logs","crm-call-log-new":"crm-call-logs","crm-call-log-detail":"crm-call-logs","crm-call-center":"crm-call-center","crm-test-drives":"crm-test-drives","crm-test-drive-detail":"crm-test-drives","crm-delivery-readiness":"crm-delivery-readiness","crm-delivery-readiness-detail":"crm-delivery-readiness","crm-bookings":"crm-bookings","crm-quotations":"crm-quotations","crm-quotation-detail":"crm-quotations","crm-accounts":"crm-accounts","crm-account-new":"crm-accounts","crm-account-detail":"crm-accounts","crm-tenders":"crm-tenders","crm-tender-new":"crm-tenders","crm-tender-detail":"crm-tenders","crm-fleet-aftersales":"crm-fleet-aftersales","crm-service-retention":"crm-service-retention","crm-calendar":"crm-calendar","crm-cases":"crm-cases","crm-case-new":"crm-cases","crm-case-detail":"crm-cases","crm-campaigns":"crm-campaigns","crm-campaign-new":"crm-campaigns","crm-campaign-detail":"crm-campaigns","crm-segment-new":"crm-campaigns","crm-segment-detail":"crm-campaigns","crm-loyalty":"crm-loyalty","crm-referrals":"crm-referrals","crm-referral-detail":"crm-referrals","crm-reports":"crm-reports","crm-staff-audit":"crm-staff-audit"};function o(e){return e.startsWith("crm-")}let m=(0,i.createContext)({activeView:"dashboard",viewParams:new URLSearchParams,navigate:()=>{},viewGroup:"dashboard"});function l({children:e}){let[r,t]=(0,i.useState)("dashboard"),[o,d]=(0,i.useState)(new URLSearchParams),p=(0,i.useCallback)((e,r)=>{let s=r&&Object.keys(r).length>0?r:void 0,i=`#${e}`;s&&(i+=`?${new URLSearchParams(s).toString()}`),t(e),d(new URLSearchParams(s||{})),window.location.hash=i,(0,a.i)(),requestAnimationFrame(()=>(0,a.i)())},[]);return(0,i.useEffect)(()=>{let e=()=>{let e,r,s,i,{view:a,params:n}=(s=((r=(e=window.location.hash.replace("#","").trim()).indexOf("?"))>=0?e.slice(0,r):e).trim().toLowerCase(),i=r>=0?e.slice(r):"",{view:c.includes(s)?s:"",params:new URLSearchParams(i)});t(a||"dashboard"),d(n)};return e(),window.addEventListener("hashchange",e),()=>window.removeEventListener("hashchange",e)},[]),(0,s.jsx)(m.Provider,{value:{activeView:r,viewParams:o,navigate:p,viewGroup:n[r]||"dashboard"},children:e})}function d(){return(0,i.useContext)(m)}},56563:(e,r,t)=>{"use strict";t.d(r,{A:()=>s});let s=(0,t(90425).A)("chevrons-up-down",[["path",{d:"m7 15 5 5 5-5",key:"1hf1tw"}],["path",{d:"m7 9 5-5 5 5",key:"sgt6xg"}]])},79792:(e,r,t)=>{"use strict";t.d(r,{J:()=>c});var s=t(95155);t(12115);var i=t(91760),a=t(91337);function c({className:e,...r}){return(0,s.jsx)(i.b,{"data-slot":"label",className:(0,a.cn)("flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",e),...r})}},83935:(e,r,t)=>{"use strict";t.d(r,{C:()=>c});var s=t(12115),i=t(47527),a=t(66294),c=e=>{var r;let t,c,{present:o,children:m}=e,l=function(e){var r,t;let[i,c]=s.useState(),o=s.useRef(null),m=s.useRef(e),l=s.useRef("none"),[d,p]=(r=e?"mounted":"unmounted",t={mounted:{UNMOUNT:"unmounted",ANIMATION_OUT:"unmountSuspended"},unmountSuspended:{MOUNT:"mounted",ANIMATION_END:"unmounted"},unmounted:{MOUNT:"mounted"}},s.useReducer((e,r)=>t[e][r]??e,r));return s.useEffect(()=>{let e=n(o.current);l.current="mounted"===d?e:"none"},[d]),(0,a.N)(()=>{let r=o.current,t=m.current;if(t!==e){let s=l.current,i=n(r);e?p("MOUNT"):"none"===i||r?.display==="none"?p("UNMOUNT"):t&&s!==i?p("ANIMATION_OUT"):p("UNMOUNT"),m.current=e}},[e,p]),(0,a.N)(()=>{if(i){let e,r=i.ownerDocument.defaultView??window,t=t=>{let s=n(o.current).includes(CSS.escape(t.animationName));if(t.target===i&&s&&(p("ANIMATION_END"),!m.current)){let t=i.style.animationFillMode;i.style.animationFillMode="forwards",e=r.setTimeout(()=>{"forwards"===i.style.animationFillMode&&(i.style.animationFillMode=t)})}},s=e=>{e.target===i&&(l.current=n(o.current))};return i.addEventListener("animationstart",s),i.addEventListener("animationcancel",t),i.addEventListener("animationend",t),()=>{r.clearTimeout(e),i.removeEventListener("animationstart",s),i.removeEventListener("animationcancel",t),i.removeEventListener("animationend",t)}}p("ANIMATION_END")},[i,p]),{isPresent:["mounted","unmountSuspended"].includes(d),ref:s.useCallback(e=>{o.current=e?getComputedStyle(e):null,c(e)},[])}}(o),d="function"==typeof m?m({present:l.isPresent}):s.Children.only(m),p=(0,i.s)(l.ref,(r=d,(c=(t=Object.getOwnPropertyDescriptor(r.props,"ref")?.get)&&"isReactWarning"in t&&t.isReactWarning)?r.ref:(c=(t=Object.getOwnPropertyDescriptor(r,"ref")?.get)&&"isReactWarning"in t&&t.isReactWarning)?r.props.ref:r.props.ref||r.ref));return"function"==typeof m||l.isPresent?s.cloneElement(d,{ref:p}):null};function n(e){return e?.animationName||"none"}c.displayName="Presence"},91760:(e,r,t)=>{"use strict";t.d(r,{b:()=>o});var s=t(12115);t(47650);var i=t(42442),a=t(95155),c=["a","button","div","form","h2","h3","img","input","label","li","nav","ol","p","select","span","svg","ul"].reduce((e,r)=>{let t=(0,i.TL)(`Primitive.${r}`),c=s.forwardRef((e,s)=>{let{asChild:i,...c}=e;return"u">typeof window&&(window[Symbol.for("radix-ui")]=!0),(0,a.jsx)(i?t:r,{...c,ref:s})});return c.displayName=`Primitive.${r}`,{...e,[r]:c}},{}),n=s.forwardRef((e,r)=>(0,a.jsx)(c.label,{...e,ref:r,onMouseDown:r=>{r.target.closest("button, input, select, textarea")||(e.onMouseDown?.(r),!r.defaultPrevented&&r.detail>1&&r.preventDefault())}}));n.displayName="Label";var o=n},94514:(e,r,t)=>{"use strict";t.d(r,{A:()=>s});let s=(0,t(90425).A)("check",[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]])}},e=>{e.O(0,[5139,878,8409,4855,454,6609,410,7605,2680,6020,2372,5079,8972,8441,3794,7358],()=>e(e.s=51749)),_N_E=e.O()}]);
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[7935],
+	{
+		6296: (e, r, t) => {
+			"use strict";
+			t.d(r, { A: () => s });
+			let s = (0, t(90425).A)("loader-circle", [
+				["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }],
+			]);
+		},
+		15181: (e, r, t) => {
+			"use strict";
+			function s(e) {
+				window.scrollTo(0, 0),
+					(document.documentElement.scrollTop = 0),
+					(document.body.scrollTop = 0),
+					e?.scrollTo(0, 0),
+					document.body.style.removeProperty("overflow"),
+					document.body.style.removeProperty("padding-right"),
+					document.body.style.removeProperty("margin-right"),
+					document.body.removeAttribute("data-scroll-locked");
+			}
+			t.d(r, { i: () => s });
+		},
+		33210: (e, r, t) => {
+			"use strict";
+			t.d(r, { A: () => s });
+			let s = (0, t(90425).A)("x", [
+				["path", { d: "M18 6 6 18", key: "1bl5f8" }],
+				["path", { d: "m6 6 12 12", key: "d8bk6v" }],
+			]);
+		},
+		51749: (e, r, t) => {
+			Promise.resolve().then(t.bind(t, 8972));
+		},
+		51914: (e, r, t) => {
+			"use strict";
+			t.d(r, { A: () => s });
+			let s = (0, t(90425).A)("plus", [
+				["path", { d: "M5 12h14", key: "1ays0h" }],
+				["path", { d: "M12 5v14", key: "s699le" }],
+			]);
+		},
+		55833: (e, r, t) => {
+			"use strict";
+			t.d(r, { NavigationProvider: () => l, c: () => d, g: () => o });
+			var s = t(95155),
+				i = t(12115),
+				a = t(15181);
+			let c = [
+					"dashboard",
+					"appointments",
+					"appointment-detail",
+					"appointment-new",
+					"inspections",
+					"inspection-detail",
+					"inspection-new",
+					"service-estimates",
+					"estimate-detail",
+					"job-cards",
+					"job-card-detail",
+					"job-card-new",
+					"parts-requisitions",
+					"parts-requisition-detail",
+					"deliveries",
+					"delivery-new",
+					"invoices",
+					"invoice-new",
+					"orders",
+					"order-new",
+					"payment-entries",
+					"reconciliation-hub",
+					"follow-ups",
+					"follow-up-new",
+					"technicians",
+					"technician-detail",
+					"service-advisors",
+					"parts-advisors",
+					"spare-parts",
+					"vehicle-services",
+					"vehicle-models",
+					"service-packages",
+					"item-prices",
+					"job-card-terms",
+					"sales-invoice-tc",
+					"user-permissions",
+					"advanced-permissions",
+					"customers",
+					"vehicles",
+					"vehicle-new",
+					"reports",
+					"stock-entry",
+					"stock-reconciliation",
+					"material-request",
+					"pending-material-requests",
+					"purchase-receipt",
+					"spare-part-sales",
+					"proforma-invoices",
+					"proforma-invoice-new",
+					"inventory-dashboard",
+					"settings",
+					"crm-dashboard",
+					"crm-leads",
+					"crm-lead-new",
+					"crm-lead-detail",
+					"crm-opportunities",
+					"crm-opportunity-new",
+					"crm-opportunity-detail",
+					"crm-sales-appointments",
+					"crm-sales-appointment-new",
+					"crm-sales-appointment-detail",
+					"crm-contacts",
+					"crm-customers",
+					"crm-customer-new",
+					"crm-customer-detail",
+					"crm-vehicles",
+					"crm-vehicle-detail",
+					"crm-activities",
+					"crm-activity-new",
+					"crm-activity-detail",
+					"crm-approvals",
+					"crm-call-logs",
+					"crm-call-log-new",
+					"crm-call-log-detail",
+					"crm-call-center",
+					"crm-test-drives",
+					"crm-test-drive-detail",
+					"crm-delivery-readiness",
+					"crm-delivery-readiness-detail",
+					"crm-bookings",
+					"crm-quotations",
+					"crm-quotation-detail",
+					"crm-accounts",
+					"crm-account-new",
+					"crm-account-detail",
+					"crm-tenders",
+					"crm-tender-new",
+					"crm-tender-detail",
+					"crm-fleet-aftersales",
+					"crm-service-retention",
+					"crm-calendar",
+					"crm-cases",
+					"crm-case-new",
+					"crm-case-detail",
+					"crm-campaigns",
+					"crm-campaign-new",
+					"crm-campaign-detail",
+					"crm-segment-new",
+					"crm-segment-detail",
+					"crm-loyalty",
+					"crm-referrals",
+					"crm-referral-detail",
+					"crm-reports",
+					"crm-staff-audit",
+				],
+				n = {
+					dashboard: "dashboard",
+					appointments: "appointments",
+					"appointment-detail": "appointments",
+					"appointment-new": "appointments",
+					inspections: "inspections",
+					"inspection-detail": "inspections",
+					"inspection-new": "inspections",
+					"service-estimates": "service-estimates",
+					"estimate-detail": "service-estimates",
+					"job-cards": "job-cards",
+					"job-card-detail": "job-cards",
+					"job-card-new": "job-cards",
+					"parts-requisitions": "parts-requisitions",
+					"parts-requisition-detail": "parts-requisitions",
+					deliveries: "deliveries",
+					"delivery-new": "deliveries",
+					invoices: "invoices",
+					"invoice-new": "invoices",
+					orders: "orders",
+					"order-new": "orders",
+					"payment-entries": "payment-entries",
+					"reconciliation-hub": "reconciliation-hub",
+					"follow-ups": "follow-ups",
+					"follow-up-new": "follow-ups",
+					technicians: "technicians",
+					"technician-detail": "technicians",
+					"service-advisors": "service-advisors",
+					"parts-advisors": "parts-advisors",
+					"spare-parts": "spare-parts",
+					"vehicle-services": "vehicle-services",
+					"vehicle-models": "vehicle-models",
+					"service-packages": "service-packages",
+					"item-prices": "item-prices",
+					"job-card-terms": "job-card-terms",
+					"sales-invoice-tc": "sales-invoice-tc",
+					"user-permissions": "user-permissions",
+					"advanced-permissions": "advanced-permissions",
+					customers: "customers",
+					vehicles: "vehicles",
+					"vehicle-new": "vehicles",
+					reports: "reports",
+					"stock-entry": "stock-entry",
+					"stock-reconciliation": "stock-reconciliation",
+					"material-request": "material-request",
+					"pending-material-requests": "pending-material-requests",
+					"purchase-receipt": "purchase-receipt",
+					"spare-part-sales": "spare-part-sales",
+					"proforma-invoices": "proforma-invoices",
+					"proforma-invoice-new": "proforma-invoices",
+					"inventory-dashboard": "inventory-dashboard",
+					settings: "settings",
+					"crm-dashboard": "crm-dashboard",
+					"crm-leads": "crm-leads",
+					"crm-lead-new": "crm-leads",
+					"crm-lead-detail": "crm-leads",
+					"crm-opportunities": "crm-opportunities",
+					"crm-opportunity-new": "crm-opportunities",
+					"crm-opportunity-detail": "crm-opportunities",
+					"crm-sales-appointments": "crm-sales-appointments",
+					"crm-sales-appointment-new": "crm-sales-appointments",
+					"crm-sales-appointment-detail": "crm-sales-appointments",
+					"crm-contacts": "crm-contacts",
+					"crm-customers": "crm-customers",
+					"crm-customer-new": "crm-customers",
+					"crm-customer-detail": "crm-customers",
+					"crm-vehicles": "crm-vehicles",
+					"crm-vehicle-detail": "crm-vehicles",
+					"crm-activities": "crm-activities",
+					"crm-activity-new": "crm-activities",
+					"crm-activity-detail": "crm-activities",
+					"crm-approvals": "crm-approvals",
+					"crm-call-logs": "crm-call-logs",
+					"crm-call-log-new": "crm-call-logs",
+					"crm-call-log-detail": "crm-call-logs",
+					"crm-call-center": "crm-call-center",
+					"crm-test-drives": "crm-test-drives",
+					"crm-test-drive-detail": "crm-test-drives",
+					"crm-delivery-readiness": "crm-delivery-readiness",
+					"crm-delivery-readiness-detail": "crm-delivery-readiness",
+					"crm-bookings": "crm-bookings",
+					"crm-quotations": "crm-quotations",
+					"crm-quotation-detail": "crm-quotations",
+					"crm-accounts": "crm-accounts",
+					"crm-account-new": "crm-accounts",
+					"crm-account-detail": "crm-accounts",
+					"crm-tenders": "crm-tenders",
+					"crm-tender-new": "crm-tenders",
+					"crm-tender-detail": "crm-tenders",
+					"crm-fleet-aftersales": "crm-fleet-aftersales",
+					"crm-service-retention": "crm-service-retention",
+					"crm-calendar": "crm-calendar",
+					"crm-cases": "crm-cases",
+					"crm-case-new": "crm-cases",
+					"crm-case-detail": "crm-cases",
+					"crm-campaigns": "crm-campaigns",
+					"crm-campaign-new": "crm-campaigns",
+					"crm-campaign-detail": "crm-campaigns",
+					"crm-segment-new": "crm-campaigns",
+					"crm-segment-detail": "crm-campaigns",
+					"crm-loyalty": "crm-loyalty",
+					"crm-referrals": "crm-referrals",
+					"crm-referral-detail": "crm-referrals",
+					"crm-reports": "crm-reports",
+					"crm-staff-audit": "crm-staff-audit",
+				};
+			function o(e) {
+				return e.startsWith("crm-");
+			}
+			let m = (0, i.createContext)({
+				activeView: "dashboard",
+				viewParams: new URLSearchParams(),
+				navigate: () => {},
+				viewGroup: "dashboard",
+			});
+			function l({ children: e }) {
+				let [r, t] = (0, i.useState)("dashboard"),
+					[o, d] = (0, i.useState)(new URLSearchParams()),
+					p = (0, i.useCallback)((e, r) => {
+						let s = r && Object.keys(r).length > 0 ? r : void 0,
+							i = `#${e}`;
+						s && (i += `?${new URLSearchParams(s).toString()}`),
+							t(e),
+							d(new URLSearchParams(s || {})),
+							(window.location.hash = i),
+							(0, a.i)(),
+							requestAnimationFrame(() => (0, a.i)());
+					}, []);
+				return (
+					(0, i.useEffect)(() => {
+						let e = () => {
+							let e,
+								r,
+								s,
+								i,
+								{ view: a, params: n } =
+									((s = (
+										(r = (e = window.location.hash
+											.replace("#", "")
+											.trim()).indexOf("?")) >= 0
+											? e.slice(0, r)
+											: e
+									)
+										.trim()
+										.toLowerCase()),
+									(i = r >= 0 ? e.slice(r) : ""),
+									{
+										view: c.includes(s) ? s : "",
+										params: new URLSearchParams(i),
+									});
+							t(a || "dashboard"), d(n);
+						};
+						return (
+							e(),
+							window.addEventListener("hashchange", e),
+							() => window.removeEventListener("hashchange", e)
+						);
+					}, []),
+					(0, s.jsx)(m.Provider, {
+						value: {
+							activeView: r,
+							viewParams: o,
+							navigate: p,
+							viewGroup: n[r] || "dashboard",
+						},
+						children: e,
+					})
+				);
+			}
+			function d() {
+				return (0, i.useContext)(m);
+			}
+		},
+		56563: (e, r, t) => {
+			"use strict";
+			t.d(r, { A: () => s });
+			let s = (0, t(90425).A)("chevrons-up-down", [
+				["path", { d: "m7 15 5 5 5-5", key: "1hf1tw" }],
+				["path", { d: "m7 9 5-5 5 5", key: "sgt6xg" }],
+			]);
+		},
+		79792: (e, r, t) => {
+			"use strict";
+			t.d(r, { J: () => c });
+			var s = t(95155);
+			t(12115);
+			var i = t(91760),
+				a = t(91337);
+			function c({ className: e, ...r }) {
+				return (0, s.jsx)(i.b, {
+					"data-slot": "label",
+					className: (0, a.cn)(
+						"flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+						e
+					),
+					...r,
+				});
+			}
+		},
+		83935: (e, r, t) => {
+			"use strict";
+			t.d(r, { C: () => c });
+			var s = t(12115),
+				i = t(47527),
+				a = t(66294),
+				c = (e) => {
+					var r;
+					let t,
+						c,
+						{ present: o, children: m } = e,
+						l = (function (e) {
+							var r, t;
+							let [i, c] = s.useState(),
+								o = s.useRef(null),
+								m = s.useRef(e),
+								l = s.useRef("none"),
+								[d, p] =
+									((r = e ? "mounted" : "unmounted"),
+									(t = {
+										mounted: {
+											UNMOUNT: "unmounted",
+											ANIMATION_OUT: "unmountSuspended",
+										},
+										unmountSuspended: {
+											MOUNT: "mounted",
+											ANIMATION_END: "unmounted",
+										},
+										unmounted: { MOUNT: "mounted" },
+									}),
+									s.useReducer((e, r) => t[e][r] ?? e, r));
+							return (
+								s.useEffect(() => {
+									let e = n(o.current);
+									l.current = "mounted" === d ? e : "none";
+								}, [d]),
+								(0, a.N)(() => {
+									let r = o.current,
+										t = m.current;
+									if (t !== e) {
+										let s = l.current,
+											i = n(r);
+										e
+											? p("MOUNT")
+											: "none" === i || r?.display === "none"
+											? p("UNMOUNT")
+											: t && s !== i
+											? p("ANIMATION_OUT")
+											: p("UNMOUNT"),
+											(m.current = e);
+									}
+								}, [e, p]),
+								(0, a.N)(() => {
+									if (i) {
+										let e,
+											r = i.ownerDocument.defaultView ?? window,
+											t = (t) => {
+												let s = n(o.current).includes(
+													CSS.escape(t.animationName)
+												);
+												if (
+													t.target === i &&
+													s &&
+													(p("ANIMATION_END"), !m.current)
+												) {
+													let t = i.style.animationFillMode;
+													(i.style.animationFillMode = "forwards"),
+														(e = r.setTimeout(() => {
+															"forwards" ===
+																i.style.animationFillMode &&
+																(i.style.animationFillMode = t);
+														}));
+												}
+											},
+											s = (e) => {
+												e.target === i && (l.current = n(o.current));
+											};
+										return (
+											i.addEventListener("animationstart", s),
+											i.addEventListener("animationcancel", t),
+											i.addEventListener("animationend", t),
+											() => {
+												r.clearTimeout(e),
+													i.removeEventListener("animationstart", s),
+													i.removeEventListener("animationcancel", t),
+													i.removeEventListener("animationend", t);
+											}
+										);
+									}
+									p("ANIMATION_END");
+								}, [i, p]),
+								{
+									isPresent: ["mounted", "unmountSuspended"].includes(d),
+									ref: s.useCallback((e) => {
+										(o.current = e ? getComputedStyle(e) : null), c(e);
+									}, []),
+								}
+							);
+						})(o),
+						d =
+							"function" == typeof m
+								? m({ present: l.isPresent })
+								: s.Children.only(m),
+						p = (0, i.s)(
+							l.ref,
+							((r = d),
+							(c =
+								(t = Object.getOwnPropertyDescriptor(r.props, "ref")?.get) &&
+								"isReactWarning" in t &&
+								t.isReactWarning)
+								? r.ref
+								: (c =
+										(t = Object.getOwnPropertyDescriptor(r, "ref")?.get) &&
+										"isReactWarning" in t &&
+										t.isReactWarning)
+								? r.props.ref
+								: r.props.ref || r.ref)
+						);
+					return "function" == typeof m || l.isPresent
+						? s.cloneElement(d, { ref: p })
+						: null;
+				};
+			function n(e) {
+				return e?.animationName || "none";
+			}
+			c.displayName = "Presence";
+		},
+		91760: (e, r, t) => {
+			"use strict";
+			t.d(r, { b: () => o });
+			var s = t(12115);
+			t(47650);
+			var i = t(42442),
+				a = t(95155),
+				c = [
+					"a",
+					"button",
+					"div",
+					"form",
+					"h2",
+					"h3",
+					"img",
+					"input",
+					"label",
+					"li",
+					"nav",
+					"ol",
+					"p",
+					"select",
+					"span",
+					"svg",
+					"ul",
+				].reduce((e, r) => {
+					let t = (0, i.TL)(`Primitive.${r}`),
+						c = s.forwardRef((e, s) => {
+							let { asChild: i, ...c } = e;
+							return (
+								"u" > typeof window && (window[Symbol.for("radix-ui")] = !0),
+								(0, a.jsx)(i ? t : r, { ...c, ref: s })
+							);
+						});
+					return (c.displayName = `Primitive.${r}`), { ...e, [r]: c };
+				}, {}),
+				n = s.forwardRef((e, r) =>
+					(0, a.jsx)(c.label, {
+						...e,
+						ref: r,
+						onMouseDown: (r) => {
+							r.target.closest("button, input, select, textarea") ||
+								(e.onMouseDown?.(r),
+								!r.defaultPrevented && r.detail > 1 && r.preventDefault());
+						},
+					})
+				);
+			n.displayName = "Label";
+			var o = n;
+		},
+		94514: (e, r, t) => {
+			"use strict";
+			t.d(r, { A: () => s });
+			let s = (0, t(90425).A)("check", [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]]);
+		},
+	},
+	(e) => {
+		e.O(
+			0,
+			[
+				5139, 878, 8409, 4855, 454, 6609, 410, 7605, 2680, 6020, 2372, 5079, 8972, 8441,
+				3794, 7358,
+			],
+			() => e((e.s = 51749))
+		),
+			(_N_E = e.O());
+	},
+]);

@@ -1,1 +1,1249 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[7250],{12651:(e,s,t)=>{t.d(s,{A:()=>a});let a=(0,t(90425).A)("circle-check",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"m9 12 2 2 4-4",key:"dzmm74"}]])},13545:(e,s,t)=>{t.d(s,{A:()=>a});let a=(0,t(90425).A)("circle-alert",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["line",{x1:"12",x2:"12",y1:"8",y2:"12",key:"1pkeuh"}],["line",{x1:"12",x2:"12.01",y1:"16",y2:"16",key:"4dfq90"}]])},23511:(e,s,t)=>{t.d(s,{E:()=>n});var a=t(95155),r=t(91337);function n({className:e,...s}){return(0,a.jsx)("div",{"data-slot":"skeleton",className:(0,r.cn)("bg-accent animate-pulse rounded-md",e),...s})}},38291:(e,s,t)=>{t.d(s,{E:()=>o});var a=t(95155);t(12115);var r=t(42442),n=t(18460),l=t(91337);let i=(0,n.F)("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",{variants:{variant:{default:"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",secondary:"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",destructive:"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",outline:"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground"}},defaultVariants:{variant:"default"}});function o({className:e,variant:s,asChild:t=!1,...n}){let c=t?r.DX:"span";return(0,a.jsx)(c,{"data-slot":"badge",className:(0,l.cn)(i({variant:s}),e),...n})}},39540:(e,s,t)=>{t.d(s,{T:()=>n});var a=t(95155);t(12115);var r=t(91337);function n({className:e,...s}){return(0,a.jsx)("textarea",{"data-slot":"textarea",className:(0,r.cn)("border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",e),...s})}},42074:(e,s,t)=>{t.d(s,{h:()=>i});var a=t(95155),r=t(12115),n=t(47650),l=t(91337);function i({children:e,className:s,align:t="end"}){let[o,c]=(0,r.useState)(!1);(0,r.useEffect)(()=>(c(!0),()=>c(!1)),[]);let d=(0,a.jsx)("div",{role:"toolbar","aria-label":"Form actions",className:(0,l.cn)("fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90","pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3","lg:left-64",s),children:(0,a.jsx)("div",{className:(0,l.cn)("mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6","between"===t?"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3":"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"),children:e})});return o?(0,n.createPortal)(d,document.body):null}},47250:(e,s,t)=>{t.r(s),t.d(s,{default:()=>b});var a=t(95155),r=t(12115),n=t(44855),l=t(32144),i=t(55833),o=t(38291),c=t(4474),d=t(79984),u=t(39658),m=t(39540),x=t(23511),p=t(42074),g=t(10086),_=t(93108),h=t(80723),v=t(6296);function b(){let e,{navigate:s,viewParams:t}=(0,i.c)(),b=t.get("id")||"",{data:f}=(0,n.Ay)("crm-case-form-options",l.jP),{data:j,isLoading:N,mutate:y}=(0,n.Ay)(b?["crm-case",b]:null,()=>(0,l.zK)(b)),[k,w]=(0,r.useState)(!1),[C,S]=(0,r.useState)(!1),{error:A,success:T,showError:Z,showSuccess:E,clear:R}=(0,_.B)(),[V,M]=(0,r.useState)({subject:"",category:"",priority:"",status:"",source:"",responsible_department:"",escalation_level:"",next_action:"",next_action_due:"",parked_in_nurture:!1,safety_impact:!1,accident_related:!1,legal_allegation:!1,public_media_risk:!1,vehicle_off_road:!1,vip_fleet:!1,reputational_risk:"None",customer_statement:"",requested_outcome:"",evidence_notes:"",findings:"",responsible_process:"",root_cause:"",corrective_action:"",preventive_action:"",action_taken:"",resolution_summary:"",goodwill_compensation:"",customer_accepted:!1,closure_code:"",post_resolution_satisfaction:"",lessons_learned:"",reopen_reason:""});(0,r.useEffect)(()=>{j&&M({subject:String(j.subject||""),category:String(j.category||""),priority:String(j.priority||""),status:String(j.status||""),source:String(j.source||""),responsible_department:String(j.responsible_department||""),escalation_level:String(j.escalation_level||"None"),next_action:String(j.next_action||""),next_action_due:function(e){if(!e)return"";let s=new Date(e);if(Number.isNaN(s.getTime()))return"";let t=e=>String(e).padStart(2,"0");return`${s.getFullYear()}-${t(s.getMonth()+1)}-${t(s.getDate())}T${t(s.getHours())}:${t(s.getMinutes())}`}(j.next_action_due),parked_in_nurture:!!j.parked_in_nurture,safety_impact:!!j.safety_impact,accident_related:!!j.accident_related,legal_allegation:!!j.legal_allegation,public_media_risk:!!j.public_media_risk,vehicle_off_road:!!j.vehicle_off_road,vip_fleet:!!j.vip_fleet,reputational_risk:String(j.reputational_risk||"None"),customer_statement:String(j.customer_statement||"").replace(/<[^>]+>/g,""),requested_outcome:String(j.requested_outcome||""),evidence_notes:String(j.evidence_notes||""),findings:String(j.findings||"").replace(/<[^>]+>/g,""),responsible_process:String(j.responsible_process||""),root_cause:String(j.root_cause||""),corrective_action:String(j.corrective_action||""),preventive_action:String(j.preventive_action||""),action_taken:String(j.action_taken||""),resolution_summary:String(j.resolution_summary||""),goodwill_compensation:null!=j.goodwill_compensation?String(j.goodwill_compensation):"",customer_accepted:!!j.customer_accepted,closure_code:String(j.closure_code||""),post_resolution_satisfaction:String(j.post_resolution_satisfaction||""),lessons_learned:String(j.lessons_learned||""),reopen_reason:String(j.reopen_reason||"")})},[j]);let P=e=>(e||[]).filter(Boolean).map(e=>({value:e,label:e})),B=(e=P(f?.statuses),j?.protected_escalation&&!j?.can_close_protected?e.filter(e=>"Closed"!==e.value):e),D=(e,s)=>M(t=>({...t,[e]:s})),q=async()=>{if(b){if(R(),"Closed"===V.status&&j?.protected_escalation&&!j?.can_close_protected)return void Z("This case is under protected escalation. Only a DMS CRM Manager can close it.");if("Resolved"!==V.status&&"Closed"!==V.status&&!V.parked_in_nurture&&(!V.next_action.trim()||!V.next_action_due))return void Z("Open cases need a next action and due date, or tick Park in nurture.");w(!0);try{await (0,l.Gm)(b,{...V,subject:V.subject.trim(),safety_impact:+!!V.safety_impact,accident_related:+!!V.accident_related,legal_allegation:+!!V.legal_allegation,public_media_risk:+!!V.public_media_risk,vehicle_off_road:+!!V.vehicle_off_road,vip_fleet:+!!V.vip_fleet,parked_in_nurture:+!!V.parked_in_nurture,customer_accepted:+!!V.customer_accepted,goodwill_compensation:V.goodwill_compensation?Number(V.goodwill_compensation):null}),await y(),E("Case saved.")}catch(e){Z(e,"Failed to save case")}finally{w(!1)}}},z=async()=>{if(b){R(),S(!0);try{await (0,l.DN)(b,"None"!==V.escalation_level?V.escalation_level:void 0),await y(),E("Case escalated.")}catch(e){Z(e,"Failed to escalate")}finally{S(!1)}}};return b?N||!j?(0,a.jsx)(x.E,{className:"h-48"}):(0,a.jsxs)("div",{className:"dms-form-page space-y-4",children:[(0,a.jsx)(_.y,{error:A,success:T,onDismiss:R}),(0,a.jsxs)("div",{className:"flex flex-wrap items-center justify-between gap-2",children:[(0,a.jsxs)(c.$,{variant:"ghost",size:"sm",onClick:()=>s("crm-cases"),children:[(0,a.jsx)(h.A,{className:"mr-2 h-4 w-4"}),"Cases"]}),(0,a.jsxs)("div",{className:"flex flex-wrap items-center gap-2",children:[j.protected_escalation?(0,a.jsx)(o.E,{variant:"destructive",children:"Protected escalation"}):null,j.sla_breached?(0,a.jsx)(o.E,{variant:"destructive",children:"SLA breached"}):null,j.safety_impact?(0,a.jsx)(o.E,{variant:"destructive",children:"Safety"}):null,(0,a.jsxs)(c.$,{variant:"outline",size:"sm",disabled:C,onClick:z,children:[C?(0,a.jsx)(v.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Escalate"]})]})]}),j.protected_escalation?(0,a.jsxs)("p",{className:"rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive",children:["Protected escalation is active (safety, accident, legal, or public-media risk). Escalation is locked to Executive.",j.can_close_protected?" You can close this case as a manager.":" Closure requires a DMS CRM Manager."]}):null,(0,a.jsxs)(d.Zp,{className:"border-border/70 shadow-sm",children:[(0,a.jsx)(d.aR,{children:(0,a.jsxs)(d.ZB,{className:"text-base",children:[String(j.name)," — identification"]})}),(0,a.jsxs)(d.Wu,{className:"grid gap-4 sm:grid-cols-2",children:[(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Subject"}),(0,a.jsx)(u.p,{value:V.subject,onChange:e=>D("subject",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Customer"}),(0,a.jsx)("p",{className:"text-sm font-medium",children:String(j.customer_name||j.customer||"—")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Owner"}),(0,a.jsx)("p",{className:"text-sm",children:String(j.owner_name||j.case_owner||"—")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Category"}),(0,a.jsx)(g.Zi,{options:P(f?.categories),value:V.category,onValueChange:e=>D("category",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Priority"}),(0,a.jsx)(g.Zi,{options:P(f?.priorities),value:V.priority,onValueChange:e=>D("priority",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Status"}),(0,a.jsx)(g.Zi,{options:B,value:V.status,onValueChange:e=>D("status",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Source"}),(0,a.jsx)(g.Zi,{options:P(f?.sources),value:V.source,onValueChange:e=>D("source",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Department"}),(0,a.jsx)(g.Zi,{options:P(f?.departments),value:V.responsible_department,onValueChange:e=>D("responsible_department",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Escalation level"}),(0,a.jsx)(g.Zi,{options:P(f?.escalation_levels),value:V.escalation_level,onValueChange:e=>D("escalation_level",e||"None")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Next action"}),(0,a.jsx)(u.p,{value:V.next_action,onChange:e=>D("next_action",e.target.value),placeholder:"What you will do next",disabled:V.parked_in_nurture||"Resolved"===V.status||"Closed"===V.status})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Next action due"}),(0,a.jsx)(u.p,{type:"datetime-local",value:V.next_action_due,onChange:e=>D("next_action_due",e.target.value),disabled:V.parked_in_nurture||"Resolved"===V.status||"Closed"===V.status})]}),(0,a.jsx)("div",{className:"flex items-end pb-1 sm:col-span-2",children:(0,a.jsxs)("label",{className:"flex items-center gap-2 text-sm",children:[(0,a.jsx)("input",{type:"checkbox",checked:V.parked_in_nurture,onChange:e=>D("parked_in_nurture",e.target.checked)}),"Park in nurture"]})}),(0,a.jsx)("div",{className:"flex flex-wrap gap-4 sm:col-span-2",children:[["safety_impact","Safety impact"],["accident_related","Accident related"],["legal_allegation","Legal allegation"],["public_media_risk","Public / media risk"],["vehicle_off_road","Vehicle off-road"],["vip_fleet","VIP / Fleet"],["customer_accepted","Customer accepted"]].map(([e,s])=>(0,a.jsxs)("label",{className:"flex items-center gap-2 text-sm",children:[(0,a.jsx)("input",{type:"checkbox",checked:!!V[e],onChange:s=>D(e,s.target.checked)}),s]},e))}),(0,a.jsxs)("div",{className:"space-y-2 sm:col-span-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Reputational risk"}),(0,a.jsx)(g.Zi,{options:[{value:"None",label:"None"},{value:"Low",label:"Low"},{value:"Medium",label:"Medium"},{value:"High",label:"High"}],value:V.reputational_risk,onValueChange:e=>D("reputational_risk",e||"None")})]})]})]}),(0,a.jsxs)(d.Zp,{className:"border-border/70 shadow-sm",children:[(0,a.jsx)(d.aR,{children:(0,a.jsx)(d.ZB,{className:"text-base",children:"SLA"})}),(0,a.jsxs)(d.Wu,{className:"grid gap-3 sm:grid-cols-2 text-sm",children:[(0,a.jsxs)("p",{children:[(0,a.jsx)("span",{className:"text-muted-foreground",children:"Opened: "}),j.opened_on?String(j.opened_on).slice(0,16).replace("T"," "):"—"]}),(0,a.jsxs)("p",{children:[(0,a.jsx)("span",{className:"text-muted-foreground",children:"Response deadline: "}),j.response_deadline?String(j.response_deadline).slice(0,16).replace("T"," "):"—",j.response_breached?(0,a.jsx)(o.E,{variant:"destructive",className:"ml-2",children:"Breached"}):null]}),(0,a.jsxs)("p",{children:[(0,a.jsx)("span",{className:"text-muted-foreground",children:"Resolution target: "}),j.resolution_target?String(j.resolution_target).slice(0,16).replace("T"," "):"—",j.resolution_breached?(0,a.jsx)(o.E,{variant:"destructive",className:"ml-2",children:"Breached"}):null]}),(0,a.jsxs)("p",{children:[(0,a.jsx)("span",{className:"text-muted-foreground",children:"Escalated on: "}),j.escalated_on?String(j.escalated_on).slice(0,16).replace("T"," "):"—"]})]})]}),(0,a.jsxs)(d.Zp,{className:"border-border/70 shadow-sm",children:[(0,a.jsx)(d.aR,{children:(0,a.jsx)(d.ZB,{className:"text-base",children:"Description & investigation"})}),(0,a.jsxs)(d.Wu,{className:"grid gap-4 sm:grid-cols-2",children:[(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Customer statement"}),(0,a.jsx)(m.T,{rows:3,value:V.customer_statement,onChange:e=>D("customer_statement",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Requested outcome"}),(0,a.jsx)(m.T,{rows:2,value:V.requested_outcome,onChange:e=>D("requested_outcome",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Evidence"}),(0,a.jsx)(m.T,{rows:2,value:V.evidence_notes,onChange:e=>D("evidence_notes",e.target.value)})]}),(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Findings"}),(0,a.jsx)(m.T,{rows:3,value:V.findings,onChange:e=>D("findings",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Responsible process"}),(0,a.jsx)(u.p,{value:V.responsible_process,onChange:e=>D("responsible_process",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Root cause"}),(0,a.jsx)(m.T,{rows:2,value:V.root_cause,onChange:e=>D("root_cause",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Corrective action"}),(0,a.jsx)(m.T,{rows:2,value:V.corrective_action,onChange:e=>D("corrective_action",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Preventive action"}),(0,a.jsx)(m.T,{rows:2,value:V.preventive_action,onChange:e=>D("preventive_action",e.target.value)})]})]})]}),(0,a.jsxs)(d.Zp,{className:"border-border/70 shadow-sm",children:[(0,a.jsx)(d.aR,{children:(0,a.jsx)(d.ZB,{className:"text-base",children:"Resolution & follow-up"})}),(0,a.jsxs)(d.Wu,{className:"grid gap-4 sm:grid-cols-2",children:[(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Action taken"}),(0,a.jsx)(m.T,{rows:2,value:V.action_taken,onChange:e=>D("action_taken",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Resolution summary"}),(0,a.jsx)(m.T,{rows:2,value:V.resolution_summary,onChange:e=>D("resolution_summary",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Goodwill / compensation"}),(0,a.jsx)(u.p,{type:"number",value:V.goodwill_compensation,onChange:e=>D("goodwill_compensation",e.target.value)})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Closure code"}),(0,a.jsx)(g.Zi,{options:P(f?.closure_codes),value:V.closure_code,onValueChange:e=>D("closure_code",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Post-resolution satisfaction"}),(0,a.jsx)(g.Zi,{options:P(f?.satisfaction),value:V.post_resolution_satisfaction,onValueChange:e=>D("post_resolution_satisfaction",e||"")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Reopen reason"}),(0,a.jsx)(m.T,{rows:2,value:V.reopen_reason,onChange:e=>D("reopen_reason",e.target.value)})]}),(0,a.jsxs)("div",{className:"sm:col-span-2 space-y-2",children:[(0,a.jsx)("label",{className:"block text-xs font-medium text-muted-foreground",children:"Lessons learned"}),(0,a.jsx)(m.T,{rows:2,value:V.lessons_learned,onChange:e=>D("lessons_learned",e.target.value)})]})]})]}),Array.isArray(j.activities)&&j.activities.length>0?(0,a.jsxs)(d.Zp,{className:"border-border/70 shadow-sm",children:[(0,a.jsx)(d.aR,{children:(0,a.jsx)(d.ZB,{className:"text-base",children:"Linked activities"})}),(0,a.jsx)(d.Wu,{className:"space-y-2 text-sm",children:j.activities.map(e=>(0,a.jsxs)("div",{className:"flex justify-between gap-2 border-b border-border/50 py-2 last:border-0",children:[(0,a.jsx)("span",{children:String(e.subject||e.name)}),(0,a.jsx)("span",{className:"text-muted-foreground",children:String(e.status||"")})]},String(e.name)))})]}):null,(0,a.jsxs)(p.h,{children:[(0,a.jsx)(c.$,{variant:"outline",onClick:()=>s("crm-cases"),children:"Cancel"}),(0,a.jsxs)(c.$,{onClick:()=>void q(),disabled:k,children:[k?(0,a.jsx)(v.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Save case"]})]})]}):(0,a.jsx)(d.Zp,{children:(0,a.jsx)(d.Wu,{className:"py-10 text-center text-muted-foreground",children:"No case selected."})})}},80723:(e,s,t)=>{t.d(s,{A:()=>a});let a=(0,t(90425).A)("arrow-left",[["path",{d:"m12 19-7-7 7-7",key:"1l729n"}],["path",{d:"M19 12H5",key:"x3x0zl"}]])},93108:(e,s,t)=>{t.d(s,{B:()=>d,y:()=>u});var a=t(95155),r=t(12115),n=t(66609),l=t(13545),i=t(12651),o=t(33210),c=t(91337);function d(){let[e,s]=(0,r.useState)(""),[t,a]=(0,r.useState)(""),l=(0,r.useCallback)((e,t="Something went wrong.")=>{let r=(e instanceof Error?e.message:"string"==typeof e?e:"").replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]*>/g,"").trim()||t;return a(""),s(r),n.o.error(r,{duration:8e3}),"u">typeof document&&document.querySelector("main")?.scrollTo({top:0,behavior:"smooth"}),r},[]);return{error:e,success:t,showError:l,showSuccess:(0,r.useCallback)(e=>{s(""),a(e),n.o.success(e)},[]),clear:(0,r.useCallback)(()=>{s(""),a("")},[])}}function u({error:e,success:s,onDismiss:t,className:r}){if(!e&&!s)return null;let n=!!e;return(0,a.jsx)("div",{className:(0,c.cn)("sticky top-0 z-40 -mx-1 px-1 pt-1",r),children:(0,a.jsxs)("div",{role:n?"alert":"status","aria-live":n?"assertive":"polite",className:(0,c.cn)("flex items-start gap-2 rounded-xl border p-3 text-sm shadow-sm backdrop-blur",n?"border-destructive/40 bg-destructive/10 text-destructive":"border-emerald-500/40 bg-emerald-500/10 text-emerald-700"),children:[n?(0,a.jsx)(l.A,{className:"mt-0.5 h-4 w-4 shrink-0"}):(0,a.jsx)(i.A,{className:"mt-0.5 h-4 w-4 shrink-0"}),(0,a.jsx)("p",{className:"flex-1 whitespace-pre-wrap break-words",children:e||s}),t?(0,a.jsx)("button",{type:"button",onClick:t,"aria-label":"Dismiss message",className:"rounded p-0.5 opacity-70 transition-opacity hover:opacity-100",children:(0,a.jsx)(o.A,{className:"h-4 w-4"})}):null]})})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[7250],
+	{
+		12651: (e, s, t) => {
+			t.d(s, { A: () => a });
+			let a = (0, t(90425).A)("circle-check", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }],
+			]);
+		},
+		13545: (e, s, t) => {
+			t.d(s, { A: () => a });
+			let a = (0, t(90425).A)("circle-alert", [
+				["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+				["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+				["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }],
+			]);
+		},
+		23511: (e, s, t) => {
+			t.d(s, { E: () => n });
+			var a = t(95155),
+				r = t(91337);
+			function n({ className: e, ...s }) {
+				return (0, a.jsx)("div", {
+					"data-slot": "skeleton",
+					className: (0, r.cn)("bg-accent animate-pulse rounded-md", e),
+					...s,
+				});
+			}
+		},
+		38291: (e, s, t) => {
+			t.d(s, { E: () => o });
+			var a = t(95155);
+			t(12115);
+			var r = t(42442),
+				n = t(18460),
+				l = t(91337);
+			let i = (0, n.F)(
+				"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+				{
+					variants: {
+						variant: {
+							default:
+								"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+							secondary:
+								"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+							destructive:
+								"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+							outline:
+								"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+						},
+					},
+					defaultVariants: { variant: "default" },
+				}
+			);
+			function o({ className: e, variant: s, asChild: t = !1, ...n }) {
+				let c = t ? r.DX : "span";
+				return (0, a.jsx)(c, {
+					"data-slot": "badge",
+					className: (0, l.cn)(i({ variant: s }), e),
+					...n,
+				});
+			}
+		},
+		39540: (e, s, t) => {
+			t.d(s, { T: () => n });
+			var a = t(95155);
+			t(12115);
+			var r = t(91337);
+			function n({ className: e, ...s }) {
+				return (0, a.jsx)("textarea", {
+					"data-slot": "textarea",
+					className: (0, r.cn)(
+						"border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+						e
+					),
+					...s,
+				});
+			}
+		},
+		42074: (e, s, t) => {
+			t.d(s, { h: () => i });
+			var a = t(95155),
+				r = t(12115),
+				n = t(47650),
+				l = t(91337);
+			function i({ children: e, className: s, align: t = "end" }) {
+				let [o, c] = (0, r.useState)(!1);
+				(0, r.useEffect)(() => (c(!0), () => c(!1)), []);
+				let d = (0, a.jsx)("div", {
+					role: "toolbar",
+					"aria-label": "Form actions",
+					className: (0, l.cn)(
+						"fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
+						"pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3",
+						"lg:left-64",
+						s
+					),
+					children: (0, a.jsx)("div", {
+						className: (0, l.cn)(
+							"mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6",
+							"between" === t
+								? "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3"
+								: "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"
+						),
+						children: e,
+					}),
+				});
+				return o ? (0, n.createPortal)(d, document.body) : null;
+			}
+		},
+		47250: (e, s, t) => {
+			t.r(s), t.d(s, { default: () => b });
+			var a = t(95155),
+				r = t(12115),
+				n = t(44855),
+				l = t(32144),
+				i = t(55833),
+				o = t(38291),
+				c = t(4474),
+				d = t(79984),
+				u = t(39658),
+				m = t(39540),
+				x = t(23511),
+				p = t(42074),
+				g = t(10086),
+				_ = t(93108),
+				h = t(80723),
+				v = t(6296);
+			function b() {
+				let e,
+					{ navigate: s, viewParams: t } = (0, i.c)(),
+					b = t.get("id") || "",
+					{ data: f } = (0, n.Ay)("crm-case-form-options", l.jP),
+					{
+						data: j,
+						isLoading: N,
+						mutate: y,
+					} = (0, n.Ay)(b ? ["crm-case", b] : null, () => (0, l.zK)(b)),
+					[k, w] = (0, r.useState)(!1),
+					[C, S] = (0, r.useState)(!1),
+					{ error: A, success: T, showError: Z, showSuccess: E, clear: R } = (0, _.B)(),
+					[V, M] = (0, r.useState)({
+						subject: "",
+						category: "",
+						priority: "",
+						status: "",
+						source: "",
+						responsible_department: "",
+						escalation_level: "",
+						next_action: "",
+						next_action_due: "",
+						parked_in_nurture: !1,
+						safety_impact: !1,
+						accident_related: !1,
+						legal_allegation: !1,
+						public_media_risk: !1,
+						vehicle_off_road: !1,
+						vip_fleet: !1,
+						reputational_risk: "None",
+						customer_statement: "",
+						requested_outcome: "",
+						evidence_notes: "",
+						findings: "",
+						responsible_process: "",
+						root_cause: "",
+						corrective_action: "",
+						preventive_action: "",
+						action_taken: "",
+						resolution_summary: "",
+						goodwill_compensation: "",
+						customer_accepted: !1,
+						closure_code: "",
+						post_resolution_satisfaction: "",
+						lessons_learned: "",
+						reopen_reason: "",
+					});
+				(0, r.useEffect)(() => {
+					j &&
+						M({
+							subject: String(j.subject || ""),
+							category: String(j.category || ""),
+							priority: String(j.priority || ""),
+							status: String(j.status || ""),
+							source: String(j.source || ""),
+							responsible_department: String(j.responsible_department || ""),
+							escalation_level: String(j.escalation_level || "None"),
+							next_action: String(j.next_action || ""),
+							next_action_due: (function (e) {
+								if (!e) return "";
+								let s = new Date(e);
+								if (Number.isNaN(s.getTime())) return "";
+								let t = (e) => String(e).padStart(2, "0");
+								return `${s.getFullYear()}-${t(s.getMonth() + 1)}-${t(
+									s.getDate()
+								)}T${t(s.getHours())}:${t(s.getMinutes())}`;
+							})(j.next_action_due),
+							parked_in_nurture: !!j.parked_in_nurture,
+							safety_impact: !!j.safety_impact,
+							accident_related: !!j.accident_related,
+							legal_allegation: !!j.legal_allegation,
+							public_media_risk: !!j.public_media_risk,
+							vehicle_off_road: !!j.vehicle_off_road,
+							vip_fleet: !!j.vip_fleet,
+							reputational_risk: String(j.reputational_risk || "None"),
+							customer_statement: String(j.customer_statement || "").replace(
+								/<[^>]+>/g,
+								""
+							),
+							requested_outcome: String(j.requested_outcome || ""),
+							evidence_notes: String(j.evidence_notes || ""),
+							findings: String(j.findings || "").replace(/<[^>]+>/g, ""),
+							responsible_process: String(j.responsible_process || ""),
+							root_cause: String(j.root_cause || ""),
+							corrective_action: String(j.corrective_action || ""),
+							preventive_action: String(j.preventive_action || ""),
+							action_taken: String(j.action_taken || ""),
+							resolution_summary: String(j.resolution_summary || ""),
+							goodwill_compensation:
+								null != j.goodwill_compensation
+									? String(j.goodwill_compensation)
+									: "",
+							customer_accepted: !!j.customer_accepted,
+							closure_code: String(j.closure_code || ""),
+							post_resolution_satisfaction: String(
+								j.post_resolution_satisfaction || ""
+							),
+							lessons_learned: String(j.lessons_learned || ""),
+							reopen_reason: String(j.reopen_reason || ""),
+						});
+				}, [j]);
+				let P = (e) => (e || []).filter(Boolean).map((e) => ({ value: e, label: e })),
+					B =
+						((e = P(f?.statuses)),
+						j?.protected_escalation && !j?.can_close_protected
+							? e.filter((e) => "Closed" !== e.value)
+							: e),
+					D = (e, s) => M((t) => ({ ...t, [e]: s })),
+					q = async () => {
+						if (b) {
+							if (
+								(R(),
+								"Closed" === V.status &&
+									j?.protected_escalation &&
+									!j?.can_close_protected)
+							)
+								return void Z(
+									"This case is under protected escalation. Only a DMS CRM Manager can close it."
+								);
+							if (
+								"Resolved" !== V.status &&
+								"Closed" !== V.status &&
+								!V.parked_in_nurture &&
+								(!V.next_action.trim() || !V.next_action_due)
+							)
+								return void Z(
+									"Open cases need a next action and due date, or tick Park in nurture."
+								);
+							w(!0);
+							try {
+								await (0, l.Gm)(b, {
+									...V,
+									subject: V.subject.trim(),
+									safety_impact: +!!V.safety_impact,
+									accident_related: +!!V.accident_related,
+									legal_allegation: +!!V.legal_allegation,
+									public_media_risk: +!!V.public_media_risk,
+									vehicle_off_road: +!!V.vehicle_off_road,
+									vip_fleet: +!!V.vip_fleet,
+									parked_in_nurture: +!!V.parked_in_nurture,
+									customer_accepted: +!!V.customer_accepted,
+									goodwill_compensation: V.goodwill_compensation
+										? Number(V.goodwill_compensation)
+										: null,
+								}),
+									await y(),
+									E("Case saved.");
+							} catch (e) {
+								Z(e, "Failed to save case");
+							} finally {
+								w(!1);
+							}
+						}
+					},
+					z = async () => {
+						if (b) {
+							R(), S(!0);
+							try {
+								await (0, l.DN)(
+									b,
+									"None" !== V.escalation_level ? V.escalation_level : void 0
+								),
+									await y(),
+									E("Case escalated.");
+							} catch (e) {
+								Z(e, "Failed to escalate");
+							} finally {
+								S(!1);
+							}
+						}
+					};
+				return b
+					? N || !j
+						? (0, a.jsx)(x.E, { className: "h-48" })
+						: (0, a.jsxs)("div", {
+								className: "dms-form-page space-y-4",
+								children: [
+									(0, a.jsx)(_.y, { error: A, success: T, onDismiss: R }),
+									(0, a.jsxs)("div", {
+										className:
+											"flex flex-wrap items-center justify-between gap-2",
+										children: [
+											(0, a.jsxs)(c.$, {
+												variant: "ghost",
+												size: "sm",
+												onClick: () => s("crm-cases"),
+												children: [
+													(0, a.jsx)(h.A, { className: "mr-2 h-4 w-4" }),
+													"Cases",
+												],
+											}),
+											(0, a.jsxs)("div", {
+												className: "flex flex-wrap items-center gap-2",
+												children: [
+													j.protected_escalation
+														? (0, a.jsx)(o.E, {
+																variant: "destructive",
+																children: "Protected escalation",
+														  })
+														: null,
+													j.sla_breached
+														? (0, a.jsx)(o.E, {
+																variant: "destructive",
+																children: "SLA breached",
+														  })
+														: null,
+													j.safety_impact
+														? (0, a.jsx)(o.E, {
+																variant: "destructive",
+																children: "Safety",
+														  })
+														: null,
+													(0, a.jsxs)(c.$, {
+														variant: "outline",
+														size: "sm",
+														disabled: C,
+														onClick: z,
+														children: [
+															C
+																? (0, a.jsx)(v.A, {
+																		className:
+																			"mr-2 h-4 w-4 animate-spin",
+																  })
+																: null,
+															"Escalate",
+														],
+													}),
+												],
+											}),
+										],
+									}),
+									j.protected_escalation
+										? (0, a.jsxs)("p", {
+												className:
+													"rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive",
+												children: [
+													"Protected escalation is active (safety, accident, legal, or public-media risk). Escalation is locked to Executive.",
+													j.can_close_protected
+														? " You can close this case as a manager."
+														: " Closure requires a DMS CRM Manager.",
+												],
+										  })
+										: null,
+									(0, a.jsxs)(d.Zp, {
+										className: "border-border/70 shadow-sm",
+										children: [
+											(0, a.jsx)(d.aR, {
+												children: (0, a.jsxs)(d.ZB, {
+													className: "text-base",
+													children: [
+														String(j.name),
+														" — identification",
+													],
+												}),
+											}),
+											(0, a.jsxs)(d.Wu, {
+												className: "grid gap-4 sm:grid-cols-2",
+												children: [
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Subject",
+															}),
+															(0, a.jsx)(u.p, {
+																value: V.subject,
+																onChange: (e) =>
+																	D("subject", e.target.value),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Customer",
+															}),
+															(0, a.jsx)("p", {
+																className: "text-sm font-medium",
+																children: String(
+																	j.customer_name ||
+																		j.customer ||
+																		"—"
+																),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Owner",
+															}),
+															(0, a.jsx)("p", {
+																className: "text-sm",
+																children: String(
+																	j.owner_name ||
+																		j.case_owner ||
+																		"—"
+																),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Category",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: P(f?.categories),
+																value: V.category,
+																onValueChange: (e) =>
+																	D("category", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Priority",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: P(f?.priorities),
+																value: V.priority,
+																onValueChange: (e) =>
+																	D("priority", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Status",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: B,
+																value: V.status,
+																onValueChange: (e) =>
+																	D("status", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Source",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: P(f?.sources),
+																value: V.source,
+																onValueChange: (e) =>
+																	D("source", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Department",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: P(f?.departments),
+																value: V.responsible_department,
+																onValueChange: (e) =>
+																	D(
+																		"responsible_department",
+																		e || ""
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Escalation level",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: P(f?.escalation_levels),
+																value: V.escalation_level,
+																onValueChange: (e) =>
+																	D(
+																		"escalation_level",
+																		e || "None"
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Next action",
+															}),
+															(0, a.jsx)(u.p, {
+																value: V.next_action,
+																onChange: (e) =>
+																	D(
+																		"next_action",
+																		e.target.value
+																	),
+																placeholder:
+																	"What you will do next",
+																disabled:
+																	V.parked_in_nurture ||
+																	"Resolved" === V.status ||
+																	"Closed" === V.status,
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Next action due",
+															}),
+															(0, a.jsx)(u.p, {
+																type: "datetime-local",
+																value: V.next_action_due,
+																onChange: (e) =>
+																	D(
+																		"next_action_due",
+																		e.target.value
+																	),
+																disabled:
+																	V.parked_in_nurture ||
+																	"Resolved" === V.status ||
+																	"Closed" === V.status,
+															}),
+														],
+													}),
+													(0, a.jsx)("div", {
+														className:
+															"flex items-end pb-1 sm:col-span-2",
+														children: (0, a.jsxs)("label", {
+															className:
+																"flex items-center gap-2 text-sm",
+															children: [
+																(0, a.jsx)("input", {
+																	type: "checkbox",
+																	checked: V.parked_in_nurture,
+																	onChange: (e) =>
+																		D(
+																			"parked_in_nurture",
+																			e.target.checked
+																		),
+																}),
+																"Park in nurture",
+															],
+														}),
+													}),
+													(0, a.jsx)("div", {
+														className:
+															"flex flex-wrap gap-4 sm:col-span-2",
+														children: [
+															["safety_impact", "Safety impact"],
+															[
+																"accident_related",
+																"Accident related",
+															],
+															[
+																"legal_allegation",
+																"Legal allegation",
+															],
+															[
+																"public_media_risk",
+																"Public / media risk",
+															],
+															[
+																"vehicle_off_road",
+																"Vehicle off-road",
+															],
+															["vip_fleet", "VIP / Fleet"],
+															[
+																"customer_accepted",
+																"Customer accepted",
+															],
+														].map(([e, s]) =>
+															(0, a.jsxs)(
+																"label",
+																{
+																	className:
+																		"flex items-center gap-2 text-sm",
+																	children: [
+																		(0, a.jsx)("input", {
+																			type: "checkbox",
+																			checked: !!V[e],
+																			onChange: (s) =>
+																				D(
+																					e,
+																					s.target
+																						.checked
+																				),
+																		}),
+																		s,
+																	],
+																},
+																e
+															)
+														),
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2 sm:col-span-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Reputational risk",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: [
+																	{
+																		value: "None",
+																		label: "None",
+																	},
+																	{ value: "Low", label: "Low" },
+																	{
+																		value: "Medium",
+																		label: "Medium",
+																	},
+																	{
+																		value: "High",
+																		label: "High",
+																	},
+																],
+																value: V.reputational_risk,
+																onValueChange: (e) =>
+																	D(
+																		"reputational_risk",
+																		e || "None"
+																	),
+															}),
+														],
+													}),
+												],
+											}),
+										],
+									}),
+									(0, a.jsxs)(d.Zp, {
+										className: "border-border/70 shadow-sm",
+										children: [
+											(0, a.jsx)(d.aR, {
+												children: (0, a.jsx)(d.ZB, {
+													className: "text-base",
+													children: "SLA",
+												}),
+											}),
+											(0, a.jsxs)(d.Wu, {
+												className: "grid gap-3 sm:grid-cols-2 text-sm",
+												children: [
+													(0, a.jsxs)("p", {
+														children: [
+															(0, a.jsx)("span", {
+																className: "text-muted-foreground",
+																children: "Opened: ",
+															}),
+															j.opened_on
+																? String(j.opened_on)
+																		.slice(0, 16)
+																		.replace("T", " ")
+																: "—",
+														],
+													}),
+													(0, a.jsxs)("p", {
+														children: [
+															(0, a.jsx)("span", {
+																className: "text-muted-foreground",
+																children: "Response deadline: ",
+															}),
+															j.response_deadline
+																? String(j.response_deadline)
+																		.slice(0, 16)
+																		.replace("T", " ")
+																: "—",
+															j.response_breached
+																? (0, a.jsx)(o.E, {
+																		variant: "destructive",
+																		className: "ml-2",
+																		children: "Breached",
+																  })
+																: null,
+														],
+													}),
+													(0, a.jsxs)("p", {
+														children: [
+															(0, a.jsx)("span", {
+																className: "text-muted-foreground",
+																children: "Resolution target: ",
+															}),
+															j.resolution_target
+																? String(j.resolution_target)
+																		.slice(0, 16)
+																		.replace("T", " ")
+																: "—",
+															j.resolution_breached
+																? (0, a.jsx)(o.E, {
+																		variant: "destructive",
+																		className: "ml-2",
+																		children: "Breached",
+																  })
+																: null,
+														],
+													}),
+													(0, a.jsxs)("p", {
+														children: [
+															(0, a.jsx)("span", {
+																className: "text-muted-foreground",
+																children: "Escalated on: ",
+															}),
+															j.escalated_on
+																? String(j.escalated_on)
+																		.slice(0, 16)
+																		.replace("T", " ")
+																: "—",
+														],
+													}),
+												],
+											}),
+										],
+									}),
+									(0, a.jsxs)(d.Zp, {
+										className: "border-border/70 shadow-sm",
+										children: [
+											(0, a.jsx)(d.aR, {
+												children: (0, a.jsx)(d.ZB, {
+													className: "text-base",
+													children: "Description & investigation",
+												}),
+											}),
+											(0, a.jsxs)(d.Wu, {
+												className: "grid gap-4 sm:grid-cols-2",
+												children: [
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Customer statement",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 3,
+																value: V.customer_statement,
+																onChange: (e) =>
+																	D(
+																		"customer_statement",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Requested outcome",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.requested_outcome,
+																onChange: (e) =>
+																	D(
+																		"requested_outcome",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Evidence",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.evidence_notes,
+																onChange: (e) =>
+																	D(
+																		"evidence_notes",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Findings",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 3,
+																value: V.findings,
+																onChange: (e) =>
+																	D("findings", e.target.value),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Responsible process",
+															}),
+															(0, a.jsx)(u.p, {
+																value: V.responsible_process,
+																onChange: (e) =>
+																	D(
+																		"responsible_process",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Root cause",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.root_cause,
+																onChange: (e) =>
+																	D(
+																		"root_cause",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Corrective action",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.corrective_action,
+																onChange: (e) =>
+																	D(
+																		"corrective_action",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Preventive action",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.preventive_action,
+																onChange: (e) =>
+																	D(
+																		"preventive_action",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+												],
+											}),
+										],
+									}),
+									(0, a.jsxs)(d.Zp, {
+										className: "border-border/70 shadow-sm",
+										children: [
+											(0, a.jsx)(d.aR, {
+												children: (0, a.jsx)(d.ZB, {
+													className: "text-base",
+													children: "Resolution & follow-up",
+												}),
+											}),
+											(0, a.jsxs)(d.Wu, {
+												className: "grid gap-4 sm:grid-cols-2",
+												children: [
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Action taken",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.action_taken,
+																onChange: (e) =>
+																	D(
+																		"action_taken",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Resolution summary",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.resolution_summary,
+																onChange: (e) =>
+																	D(
+																		"resolution_summary",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children:
+																	"Goodwill / compensation",
+															}),
+															(0, a.jsx)(u.p, {
+																type: "number",
+																value: V.goodwill_compensation,
+																onChange: (e) =>
+																	D(
+																		"goodwill_compensation",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Closure code",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: P(f?.closure_codes),
+																value: V.closure_code,
+																onValueChange: (e) =>
+																	D("closure_code", e || ""),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children:
+																	"Post-resolution satisfaction",
+															}),
+															(0, a.jsx)(g.Zi, {
+																options: P(f?.satisfaction),
+																value: V.post_resolution_satisfaction,
+																onValueChange: (e) =>
+																	D(
+																		"post_resolution_satisfaction",
+																		e || ""
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Reopen reason",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.reopen_reason,
+																onChange: (e) =>
+																	D(
+																		"reopen_reason",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+													(0, a.jsxs)("div", {
+														className: "sm:col-span-2 space-y-2",
+														children: [
+															(0, a.jsx)("label", {
+																className:
+																	"block text-xs font-medium text-muted-foreground",
+																children: "Lessons learned",
+															}),
+															(0, a.jsx)(m.T, {
+																rows: 2,
+																value: V.lessons_learned,
+																onChange: (e) =>
+																	D(
+																		"lessons_learned",
+																		e.target.value
+																	),
+															}),
+														],
+													}),
+												],
+											}),
+										],
+									}),
+									Array.isArray(j.activities) && j.activities.length > 0
+										? (0, a.jsxs)(d.Zp, {
+												className: "border-border/70 shadow-sm",
+												children: [
+													(0, a.jsx)(d.aR, {
+														children: (0, a.jsx)(d.ZB, {
+															className: "text-base",
+															children: "Linked activities",
+														}),
+													}),
+													(0, a.jsx)(d.Wu, {
+														className: "space-y-2 text-sm",
+														children: j.activities.map((e) =>
+															(0, a.jsxs)(
+																"div",
+																{
+																	className:
+																		"flex justify-between gap-2 border-b border-border/50 py-2 last:border-0",
+																	children: [
+																		(0, a.jsx)("span", {
+																			children: String(
+																				e.subject || e.name
+																			),
+																		}),
+																		(0, a.jsx)("span", {
+																			className:
+																				"text-muted-foreground",
+																			children: String(
+																				e.status || ""
+																			),
+																		}),
+																	],
+																},
+																String(e.name)
+															)
+														),
+													}),
+												],
+										  })
+										: null,
+									(0, a.jsxs)(p.h, {
+										children: [
+											(0, a.jsx)(c.$, {
+												variant: "outline",
+												onClick: () => s("crm-cases"),
+												children: "Cancel",
+											}),
+											(0, a.jsxs)(c.$, {
+												onClick: () => void q(),
+												disabled: k,
+												children: [
+													k
+														? (0, a.jsx)(v.A, {
+																className:
+																	"mr-2 h-4 w-4 animate-spin",
+														  })
+														: null,
+													"Save case",
+												],
+											}),
+										],
+									}),
+								],
+						  })
+					: (0, a.jsx)(d.Zp, {
+							children: (0, a.jsx)(d.Wu, {
+								className: "py-10 text-center text-muted-foreground",
+								children: "No case selected.",
+							}),
+					  });
+			}
+		},
+		80723: (e, s, t) => {
+			t.d(s, { A: () => a });
+			let a = (0, t(90425).A)("arrow-left", [
+				["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
+				["path", { d: "M19 12H5", key: "x3x0zl" }],
+			]);
+		},
+		93108: (e, s, t) => {
+			t.d(s, { B: () => d, y: () => u });
+			var a = t(95155),
+				r = t(12115),
+				n = t(66609),
+				l = t(13545),
+				i = t(12651),
+				o = t(33210),
+				c = t(91337);
+			function d() {
+				let [e, s] = (0, r.useState)(""),
+					[t, a] = (0, r.useState)(""),
+					l = (0, r.useCallback)((e, t = "Something went wrong.") => {
+						let r =
+							(e instanceof Error ? e.message : "string" == typeof e ? e : "")
+								.replace(/<br\s*\/?>/gi, "\n")
+								.replace(/<[^>]*>/g, "")
+								.trim() || t;
+						return (
+							a(""),
+							s(r),
+							n.o.error(r, { duration: 8e3 }),
+							"u" > typeof document &&
+								document
+									.querySelector("main")
+									?.scrollTo({ top: 0, behavior: "smooth" }),
+							r
+						);
+					}, []);
+				return {
+					error: e,
+					success: t,
+					showError: l,
+					showSuccess: (0, r.useCallback)((e) => {
+						s(""), a(e), n.o.success(e);
+					}, []),
+					clear: (0, r.useCallback)(() => {
+						s(""), a("");
+					}, []),
+				};
+			}
+			function u({ error: e, success: s, onDismiss: t, className: r }) {
+				if (!e && !s) return null;
+				let n = !!e;
+				return (0, a.jsx)("div", {
+					className: (0, c.cn)("sticky top-0 z-40 -mx-1 px-1 pt-1", r),
+					children: (0, a.jsxs)("div", {
+						role: n ? "alert" : "status",
+						"aria-live": n ? "assertive" : "polite",
+						className: (0, c.cn)(
+							"flex items-start gap-2 rounded-xl border p-3 text-sm shadow-sm backdrop-blur",
+							n
+								? "border-destructive/40 bg-destructive/10 text-destructive"
+								: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700"
+						),
+						children: [
+							n
+								? (0, a.jsx)(l.A, { className: "mt-0.5 h-4 w-4 shrink-0" })
+								: (0, a.jsx)(i.A, { className: "mt-0.5 h-4 w-4 shrink-0" }),
+							(0, a.jsx)("p", {
+								className: "flex-1 whitespace-pre-wrap break-words",
+								children: e || s,
+							}),
+							t
+								? (0, a.jsx)("button", {
+										type: "button",
+										onClick: t,
+										"aria-label": "Dismiss message",
+										className:
+											"rounded p-0.5 opacity-70 transition-opacity hover:opacity-100",
+										children: (0, a.jsx)(o.A, { className: "h-4 w-4" }),
+								  })
+								: null,
+						],
+					}),
+				});
+			}
+		},
+	},
+]);

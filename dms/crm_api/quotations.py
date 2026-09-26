@@ -113,12 +113,8 @@ def get_quotations(status=None, search=None, limit=50, offset=0):
 		data = dict(row)
 		opp = data.get("custom_dms_crm_opportunity")
 		data["opportunity"] = opp
-		data["opportunity_title"] = (
-			frappe.db.get_value(OPP_DOCTYPE, opp, "title") if opp else None
-		)
-		data["customer_display"] = data.get("customer_name") or customer_display_name(
-			data.get("party_name")
-		)
+		data["opportunity_title"] = frappe.db.get_value(OPP_DOCTYPE, opp, "title") if opp else None
+		data["customer_display"] = data.get("customer_name") or customer_display_name(data.get("party_name"))
 		data["docstatus_label"] = _docstatus_label(data.get("docstatus"))
 		_attach_customer_contact(data, cust_map)
 		out.append(data)
@@ -141,9 +137,7 @@ def get_quotation(name):
 	doc = frappe.get_doc(DOCTYPE, name)
 	data = doc.as_dict()
 	data["docstatus_label"] = _docstatus_label(doc.docstatus)
-	data["customer_display"] = data.get("customer_name") or customer_display_name(
-		data.get("party_name")
-	)
+	data["customer_display"] = data.get("customer_name") or customer_display_name(data.get("party_name"))
 	_attach_customer_contact(data)
 	opp = data.get("custom_dms_crm_opportunity")
 	data["opportunity"] = opp
@@ -156,9 +150,7 @@ def get_quotation(name):
 		)
 		data["opportunity_title"] = opp_row.title if opp_row else None
 		data["opportunity_stage"] = opp_row.stage if opp_row else None
-		data["quotation_customer_status"] = (
-			opp_row.quotation_customer_status if opp_row else None
-		)
+		data["quotation_customer_status"] = opp_row.quotation_customer_status if opp_row else None
 		data["quotation_version"] = opp_row.quotation_version if opp_row else None
 
 	items = []
@@ -177,9 +169,7 @@ def get_quotation(name):
 			}
 		)
 	data["items"] = items
-	data["can_submit"] = cint(doc.docstatus) == 0 and frappe.has_permission(
-		DOCTYPE, "submit", doc=doc
-	)
+	data["can_submit"] = cint(doc.docstatus) == 0 and frappe.has_permission(DOCTYPE, "submit", doc=doc)
 	return data
 
 

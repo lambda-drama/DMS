@@ -268,17 +268,31 @@ export default function OrdersPage() {
                         {formatMoney(row.balance, row.currency)}
                       </TableCell>
                       <TableCell>
-                        {isCancelled(row) ? (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            Cancelled
-                          </Badge>
-                        ) : isDraft(row) ? (
-                          <Badge variant="outline">Draft</Badge>
-                        ) : row.converted ? (
-                          <Badge variant="secondary">Invoiced</Badge>
-                        ) : (
-                          <Badge>{row.status || 'Submitted'}</Badge>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {isCancelled(row) ? (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Cancelled
+                            </Badge>
+                          ) : isDraft(row) ? (
+                            <Badge variant="outline">Draft</Badge>
+                          ) : row.converted ? (
+                            <Badge variant="secondary">Invoiced</Badge>
+                          ) : (
+                            <Badge>{row.status || 'Submitted'}</Badge>
+                          )}
+                          {row.apply_tax_withholding ? (
+                            <Badge
+                              variant="outline"
+                              title={`Tax withholding (TCS) applies on this order's invoice${
+                                row.tax_withholding_category
+                                  ? ` — ${row.tax_withholding_category}`
+                                  : ''
+                              }`}
+                            >
+                              TCS
+                            </Badge>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell onClick={(event) => event.stopPropagation()}>
                         <ListRowActions doctype="Sales Order" docName={row.name}>
@@ -565,6 +579,16 @@ export default function OrdersPage() {
               <DetailRow
                 label="Order total"
                 value={formatMoney(selected.grand_total, selected.currency)}
+              />
+              <DetailRow
+                label="Tax withholding (TCS)"
+                value={
+                  selected.apply_tax_withholding
+                    ? [selected.tax_withholding_category, selected.tax_withholding_group]
+                        .filter(Boolean)
+                        .join(' · ') || 'Applied on the invoice'
+                    : 'Not applied'
+                }
               />
               <DetailRow
                 label="Paid / advance"

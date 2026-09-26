@@ -15,26 +15,23 @@ frappe.ui.form.on("Service Appointment", {
 	},
 });
 
-
 function apply_customer_filter_advanced(frm) {
-    frm.fields_dict.customer.get_query = function(doc, cdt, cdn) {
-        return {
-            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_customers",
-            filters: {}
-        };
-    };
+	frm.fields_dict.customer.get_query = function (doc, cdt, cdn) {
+		return {
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_customers",
+			filters: {},
+		};
+	};
 }
-
 
 function apply_vehicle_item_filter(frm) {
-    frm.fields_dict.vehicle.get_query = function(doc, cdt, cdn) {
-        return {
-            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
-            filters: {}
-        };
-    };
+	frm.fields_dict.vehicle.get_query = function (doc, cdt, cdn) {
+		return {
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
+			filters: {},
+		};
+	};
 }
-
 
 function apply_company_filter(frm) {
 	frappe.call({
@@ -56,8 +53,7 @@ function apply_vin_filter(frm) {
 			filters.vehicle_item = doc.vehicle;
 		}
 		return {
-			query:
-				"dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_vins",
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_vins",
 			filters: filters,
 		};
 	};
@@ -115,8 +111,7 @@ function add_fix_license_plates_button(frm) {
 				),
 				() => {
 					frappe.call({
-						method:
-							"dms.dealer_management_system.doctype.service_appointment.service_appointment.fix_license_plates_from_vin",
+						method: "dms.dealer_management_system.doctype.service_appointment.service_appointment.fix_license_plates_from_vin",
 						freeze: true,
 						freeze_message: __("Updating license plates…"),
 						callback(r) {

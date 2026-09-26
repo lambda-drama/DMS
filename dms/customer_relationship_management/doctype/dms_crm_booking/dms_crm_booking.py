@@ -42,9 +42,7 @@ class DMSCRMBooking(Document):
 			"name",
 		)
 		if existing:
-			frappe.throw(
-				f"VIN / stock unit {self.vehicle_vin} is already reserved by booking {existing}."
-			)
+			frappe.throw(f"VIN / stock unit {self.vehicle_vin} is already reserved by booking {existing}.")
 
 	def append_allocation_history(self, action, from_vin=None, to_vin=None, notes=None, approved_by=None):
 		self.append(

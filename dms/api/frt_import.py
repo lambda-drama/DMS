@@ -74,7 +74,7 @@ def get_frt_import_status(job_id=None):
 	from frappe.utils.background_jobs import get_job, get_job_status
 
 	job = get_job(job_id)
-	status = (get_job_status(job_id) or "queued")
+	status = get_job_status(job_id) or "queued"
 	status = str(getattr(status, "value", status) or "queued").lower()
 	if not job:
 		return {"status": "queued"}

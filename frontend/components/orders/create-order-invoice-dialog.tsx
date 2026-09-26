@@ -15,8 +15,17 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useSWRConfig } from 'swr';
+import {
+  AdvanceReconcileBox,
+  describeAdvanceReconcile,
+} from '@/components/invoices/advance-reconcile-box';
 import * as ordersSvc from '@/services/orders';
 import type { DmsOrderPaymentSource } from '@/services/orders';
+import * as paymentSvc from '@/services/paymentEntries';
+
+/** SWR key prefix of the shared advance box — invalidated after an advance is applied. */
+const ADVANCES_KEY = 'customer-advances';
 
 function formatMoney(amount?: number, currency?: string) {
   return new Intl.NumberFormat('en-US', {
@@ -45,6 +54,8 @@ export function CreateOrderInvoiceDialog({
   const [postingDate, setPostingDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [submit, setSubmit] = useState(true);
+  const [reconcileAdvances, setReconcileAdvances] = useState(false);
+  const { mutate } = useSWRConfig();
 
   const currency = order?.currency || 'ETB';
 
@@ -55,6 +66,7 @@ export function CreateOrderInvoiceDialog({
     setPostingDate(today);
     setDueDate(today);
     setSubmit(true);
+    setReconcileAdvances(false);
   }, [open, order]);
 
   const handleSubmit = async () => {
@@ -66,11 +78,39 @@ export function CreateOrderInvoiceDialog({
         due_date: dueDate || null,
         submit: submit ? 1 : 0,
       });
-      toast.success(
-        `Invoice ${res.name} created — ${formatMoney(res.grand_total, currency)}${
-          res.docstatus === 0 ? ' (draft)' : ''
-        }`
-      );
+      const createdMessage = `Invoice ${res.name} created — ${formatMoney(
+        res.grand_total,
+        currency
+      )}${res.docstatus === 0 ? ' (draft)' : ''}`;
+
+      if (reconcileAdvances && submit) {
+        // Optional second step: settle the customer's advance against the new
+        // invoice and report the balance left to collect.
+        try {
+          const reconciled = await paymentSvc.reconcileInvoiceAdvances(res.name, order.company);
+          void mutate(
+            (key) => Array.isArray(key) && key[0] === ADVANCES_KEY,
+            undefined,
+            { revalidate: true }
+          ).catch(() => undefined);
+          toast.success(createdMessage, { description: describeAdvanceReconcile(reconciled) });
+        } catch (reconcileError) {
+          toast.error(createdMessage, {
+            description:
+              reconcileError instanceof Error
+                ? `The advance could not be applied: ${reconcileError.message}`
+                : 'The advance could not be applied — reconcile it from the Reconciliation Hub.',
+          });
+        }
+      } else if (reconcileAdvances) {
+        toast.warning(createdMessage, {
+          description:
+            'ERPNext settles advances only against submitted invoices — submit the invoice, then apply the advance.',
+        });
+      } else {
+        toast.success(createdMessage);
+      }
+
       onCreated?.(res.name);
       onOpenChange(false);
     } catch (err: unknown) {
@@ -121,6 +161,17 @@ export function CreateOrderInvoiceDialog({
               Submit the invoice
             </Label>
           </div>
+
+          <AdvanceReconcileBox
+            id="order_invoice_reconcile_advance"
+            customer={order?.customer}
+            company={order?.company}
+            currency={currency}
+            enabled={open}
+            checked={reconcileAdvances}
+            onCheckedChange={setReconcileAdvances}
+            willSubmit={submit}
+          />
         </div>
         <DialogFooter>
           <Button

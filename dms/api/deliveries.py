@@ -54,9 +54,7 @@ def get_delivery_checklist_template_items(template=None):
 	template_name, items = _checklist_items_from_template(template)
 	display_name = None
 	if template_name:
-		display_name = frappe.db.get_value(
-			"Delivery Checklist Template", template_name, "template_name"
-		)
+		display_name = frappe.db.get_value("Delivery Checklist Template", template_name, "template_name")
 	return {
 		"template": template_name,
 		"template_name": display_name,
@@ -87,14 +85,23 @@ def get_deliveries(limit=50, offset=0, search=None):
 
 	meta = frappe.get_meta("Vehicle Delivery Note")
 	fields = [
-		"name", "job_card", "customer",
-		"vehicle_vin", "vehicle_model", "license_plate",
-		"delivered_by", "delivery_date_time", "status",
-		"final_odometer_km", "next_service_due_km",
+		"name",
+		"job_card",
+		"customer",
+		"vehicle_vin",
+		"vehicle_model",
+		"license_plate",
+		"delivered_by",
+		"delivery_date_time",
+		"status",
+		"final_odometer_km",
+		"next_service_due_km",
 		"next_service_due_date",
 		"customer_satisfaction_initial",
 		"customer_comments",
-		"docstatus", "creation", "modified",
+		"docstatus",
+		"creation",
+		"modified",
 	]
 	if meta.has_field("customer_satisfaction_score"):
 		fields.append("customer_satisfaction_score")
@@ -146,6 +153,7 @@ def _build_customer_comments(received_by, comments):
 def create_delivery(data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	if not data.get("job_card"):
@@ -165,73 +173,86 @@ def create_delivery(data):
 		time_part = (data.get("delivery_time") or "00:00").strip()
 		delivery_dt = f"{data['delivery_date']} {time_part}:00"
 
-	template_name, template_items = _checklist_items_from_template(
-		data.get("delivery_checklist_template")
-	)
+	template_name, template_items = _checklist_items_from_template(data.get("delivery_checklist_template"))
 
-	doc = frappe.get_doc({
-		"doctype": "Vehicle Delivery Note",
-		"job_card": job_card.name,
-		"customer": customer,
-		"vehicle_vin": data.get("vehicle_vin") or job_card.vehicle_vin,
-		"delivered_by": data.get("delivered_by") or frappe.session.user,
-		"delivery_date_time": delivery_dt or frappe.utils.now_datetime(),
-		"status": data.get("status") or "Completed",
-		"delivery_checklist_template": template_name,
-		"final_odometer_km": data.get("final_odometer_km") or data.get("final_odometer"),
-		"final_fuel_level": data.get("final_fuel_level") or "1/2",
-		"vehicle_condition": data.get("vehicle_condition") or "Good",
-		"new_damage_notes": data.get("new_damage_notes"),
-		"invoice_explained": 1 if data.get("invoice_explained") else 0,
-		"invoice_copy_given": 1 if data.get("invoice_copy_given", 1) else 0,
-		"payment_cleared": 1 if data.get("payment_cleared") else 0,
-		"payment_method": data.get("payment_method"),
-		"payment_receipt_no": data.get("payment_receipt_no"),
-		"next_service_due_km": data.get("next_service_due_km"),
-		"next_service_due_date": data.get("next_service_due_date"),
-		"service_reminder_sticker_given": 1 if data.get("service_reminder_sticker_given", 1) else 0,
-		"service_booklet_updated": 1 if data.get("service_booklet_updated", 1) else 0,
-		"customer_signature": data.get("customer_signature"),
-		"delivered_by_signature": data.get("delivered_by_signature"),
-		"customer_satisfaction_initial": data.get("customer_satisfaction_initial"),
-		"customer_satisfaction_score": data.get("customer_satisfaction_score"),
-		"customer_comments": _build_customer_comments(
-			data.get("received_by"), data.get("customer_comments")
-		),
-		"delivery_notes": data.get("delivery_notes"),
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "Vehicle Delivery Note",
+			"job_card": job_card.name,
+			"customer": customer,
+			"vehicle_vin": data.get("vehicle_vin") or job_card.vehicle_vin,
+			"delivered_by": data.get("delivered_by") or frappe.session.user,
+			"delivery_date_time": delivery_dt or frappe.utils.now_datetime(),
+			"status": data.get("status") or "Completed",
+			"delivery_checklist_template": template_name,
+			"final_odometer_km": data.get("final_odometer_km") or data.get("final_odometer"),
+			"final_fuel_level": data.get("final_fuel_level") or "1/2",
+			"vehicle_condition": data.get("vehicle_condition") or "Good",
+			"new_damage_notes": data.get("new_damage_notes"),
+			"invoice_explained": 1 if data.get("invoice_explained") else 0,
+			"invoice_copy_given": 1 if data.get("invoice_copy_given", 1) else 0,
+			"payment_cleared": 1 if data.get("payment_cleared") else 0,
+			"payment_method": data.get("payment_method"),
+			"payment_receipt_no": data.get("payment_receipt_no"),
+			"next_service_due_km": data.get("next_service_due_km"),
+			"next_service_due_date": data.get("next_service_due_date"),
+			"service_reminder_sticker_given": 1 if data.get("service_reminder_sticker_given", 1) else 0,
+			"service_booklet_updated": 1 if data.get("service_booklet_updated", 1) else 0,
+			"customer_signature": data.get("customer_signature"),
+			"delivered_by_signature": data.get("delivered_by_signature"),
+			"customer_satisfaction_initial": data.get("customer_satisfaction_initial"),
+			"customer_satisfaction_score": data.get("customer_satisfaction_score"),
+			"customer_comments": _build_customer_comments(
+				data.get("received_by"), data.get("customer_comments")
+			),
+			"delivery_notes": data.get("delivery_notes"),
+		}
+	)
 
 	checklist = data.get("delivery_checklist")
 	if isinstance(checklist, str):
 		import json
+
 		checklist = json.loads(checklist) if checklist else []
 
 	if checklist:
 		for row in checklist:
-			doc.append("delivery_checklist", {
-				"check_item": row.get("check_item"),
-				"is_completed": 1 if row.get("is_completed") else 0,
-				"notes": row.get("notes") or "",
-			})
+			doc.append(
+				"delivery_checklist",
+				{
+					"check_item": row.get("check_item"),
+					"is_completed": 1 if row.get("is_completed") else 0,
+					"notes": row.get("notes") or "",
+				},
+			)
 	else:
 		completed = data.get("checklist_completed") or {}
 		if isinstance(completed, str):
 			import json
+
 			completed = json.loads(completed)
 		for item in template_items:
-			doc.append("delivery_checklist", {
-				"check_item": item,
-				"is_completed": 1 if completed.get(item) else 0,
-			})
+			doc.append(
+				"delivery_checklist",
+				{
+					"check_item": item,
+					"is_completed": 1 if completed.get(item) else 0,
+				},
+			)
 
 	# Prefer numeric score; derive Happy/Neutral/Unhappy when only score is sent
-	from dms.dealer_management_system.doctype.vehicle_delivery_note.vehicle_delivery_note import (
-		score_to_satisfaction_label,
-		satisfaction_label_to_score,
-	)
 	from frappe.utils import cint
 
-	score = cint(doc.customer_satisfaction_score) if doc.get("customer_satisfaction_score") not in (None, "") else 0
+	from dms.dealer_management_system.doctype.vehicle_delivery_note.vehicle_delivery_note import (
+		satisfaction_label_to_score,
+		score_to_satisfaction_label,
+	)
+
+	score = (
+		cint(doc.customer_satisfaction_score)
+		if doc.get("customer_satisfaction_score") not in (None, "")
+		else 0
+	)
 	if not (1 <= score <= 5):
 		score = satisfaction_label_to_score(doc.customer_satisfaction_initial) or 0
 	if 1 <= score <= 5:
@@ -267,19 +288,32 @@ def create_delivery(data):
 def update_delivery(name, data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	doc = frappe.get_doc("Vehicle Delivery Note", name)
 	doc.check_permission("write")
 
 	updatable = [
-		"delivery_date_time", "delivered_by", "final_odometer_km",
-		"final_fuel_level", "vehicle_condition", "new_damage_notes",
-		"next_service_due_km", "next_service_due_date",
-		"customer_signature", "delivered_by_signature",
-		"customer_satisfaction_initial", "customer_satisfaction_score", "customer_comments",
-		"delivery_notes", "invoice_explained", "invoice_copy_given",
-		"payment_cleared", "payment_method", "payment_receipt_no",
+		"delivery_date_time",
+		"delivered_by",
+		"final_odometer_km",
+		"final_fuel_level",
+		"vehicle_condition",
+		"new_damage_notes",
+		"next_service_due_km",
+		"next_service_due_date",
+		"customer_signature",
+		"delivered_by_signature",
+		"customer_satisfaction_initial",
+		"customer_satisfaction_score",
+		"customer_comments",
+		"delivery_notes",
+		"invoice_explained",
+		"invoice_copy_given",
+		"payment_cleared",
+		"payment_method",
+		"payment_receipt_no",
 	]
 
 	for field in updatable:

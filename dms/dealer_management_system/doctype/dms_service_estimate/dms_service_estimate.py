@@ -99,9 +99,7 @@ class DMSServiceEstimate(Document):
 def _ensure_estimate_writable(doc: Document):
 	if doc.status in ("Accepted", "Rejected", "Cancelled"):
 		frappe.throw(
-			_("Service Estimate {0} is {1} and cannot be modified.").format(
-				frappe.bold(doc.name), doc.status
-			)
+			_("Service Estimate {0} is {1} and cannot be modified.").format(frappe.bold(doc.name), doc.status)
 		)
 
 
@@ -321,9 +319,7 @@ def accept_estimate(
 			missing.append(_("Schedule End Time"))
 	if missing:
 		frappe.throw(
-			_("Please fill in the following before creating the job card: {0}").format(
-				", ".join(missing)
-			)
+			_("Please fill in the following before creating the job card: {0}").format(", ".join(missing))
 		)
 
 	existing_jc = linked_job_card_for_estimate(doc.name)

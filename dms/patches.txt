@@ -30,3 +30,4 @@ dms.patches.restore_dealer_management_workspace
 dms.patches.backfill_sales_order_dms_order_flag
 dms.patches.use_dms_icon_graphics
 dms.patches.rename_dms_app_title
+dms.patches.disable_sales_order_rounded_total

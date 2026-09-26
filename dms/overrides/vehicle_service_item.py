@@ -103,9 +103,7 @@ def ensure_labour_item_group() -> None:
 		return
 
 	parent = (
-		frappe.db.get_value(
-			"Item Group", {"is_group": 1, "name": ["!=", LABOUR_ITEM_GROUP]}, "name"
-		)
+		frappe.db.get_value("Item Group", {"is_group": 1, "name": ["!=", LABOUR_ITEM_GROUP]}, "name")
 		or "All Item Groups"
 	)
 	if not frappe.db.exists("Item Group", parent):

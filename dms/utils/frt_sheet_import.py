@@ -43,10 +43,15 @@ def _load_workbook_sheets(file_path: str) -> list[tuple[str, object]]:
 		try:
 			from openpyxl import load_workbook
 		except ImportError as exc:
-			raise ImportError(_("Excel import requires openpyxl. Install it in the bench environment.")) from exc
+			raise ImportError(
+				_("Excel import requires openpyxl. Install it in the bench environment.")
+			) from exc
 		book = load_workbook(file_path, data_only=True, read_only=True)
 		try:
-			return [(name, _SheetView([list(row) for row in book[name].iter_rows(values_only=True)])) for name in book.sheetnames]
+			return [
+				(name, _SheetView([list(row) for row in book[name].iter_rows(values_only=True)]))
+				for name in book.sheetnames
+			]
 		finally:
 			book.close()
 
@@ -140,9 +145,7 @@ def ensure_vehicle_service_type(category: str) -> str:
 	if frappe.db.exists("Vehicle Service Type", category):
 		return category
 
-	existing = frappe.db.get_value(
-		"Vehicle Service Type", {"service_type_name": category}, "name"
-	)
+	existing = frappe.db.get_value("Vehicle Service Type", {"service_type_name": category}, "name")
 	if existing:
 		return existing
 
@@ -262,7 +265,9 @@ def _first_row_model_code(sheet, header_row_idx: int, colmap: dict) -> str:
 	return ""
 
 
-def _sheet_model_meta(sheet, sheet_name: str, header_row_idx: int = 0, colmap: dict | None = None) -> tuple[str, str, int | None]:
+def _sheet_model_meta(
+	sheet, sheet_name: str, header_row_idx: int = 0, colmap: dict | None = None
+) -> tuple[str, str, int | None]:
 	model_year = None
 	parsed = _parse_sheet_vehicle_model(sheet_name)
 	colmap = colmap or {}
@@ -350,9 +355,8 @@ def ensure_vehicle_model(
 	if not model_code:
 		frappe.throw(_("Model code is required"))
 
-	existing = (
-		frappe.db.get_value("Vehicle Model", {"model_code": model_code}, "name")
-		or frappe.db.exists("Vehicle Model", model_code)
+	existing = frappe.db.get_value("Vehicle Model", {"model_code": model_code}, "name") or frappe.db.exists(
+		"Vehicle Model", model_code
 	)
 	if existing:
 		_update_vehicle_model_fields(existing, model_name, brand, model_year)
@@ -521,9 +525,7 @@ def upsert_vehicle_service_item(
 	return True
 
 
-def _service_item_display_name(
-	description: str, service_code: str, existing_name: str | None = None
-) -> str:
+def _service_item_display_name(description: str, service_code: str, existing_name: str | None = None) -> str:
 	"""Use job description as Service Item name; suffix code if needed for uniqueness."""
 	description = (description or service_code).strip()
 	if not description:

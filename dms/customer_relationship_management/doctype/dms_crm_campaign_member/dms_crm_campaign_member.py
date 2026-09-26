@@ -28,9 +28,7 @@ class DMSCRMCampaignMember(Document):
 			return
 		if not frappe.db.exists("DocType", "DMS CRM Customer Preference"):
 			return
-		name = frappe.db.get_value(
-			"DMS CRM Customer Preference", {"customer": self.customer}, "name"
-		)
+		name = frappe.db.get_value("DMS CRM Customer Preference", {"customer": self.customer}, "name")
 		if name:
 			frappe.db.set_value(
 				"DMS CRM Customer Preference",

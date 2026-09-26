@@ -354,7 +354,9 @@ def get_vehicle_360(vin: str):
 	identity = {f: doc.get(f) for f in IDENTITY_FIELDS if doc.meta.has_field(f) or f == "name"}
 	identity["name"] = doc.name
 	if identity.get("brand"):
-		identity["brand_label"] = frappe.db.get_value("Brand", identity["brand"], "brand") or identity["brand"]
+		identity["brand_label"] = (
+			frappe.db.get_value("Brand", identity["brand"], "brand") or identity["brand"]
+		)
 
 	owner = _owner(doc.current_customer)
 	ownership_history = _ownership_history(vin)
@@ -389,7 +391,16 @@ def get_vehicle_360(vin: str):
 		"DMS CRM Booking",
 		"vehicle_vin",
 		vin,
-		["name", "status", "customer", "opportunity", "booking_date", "vehicle_model", "deposit_amount", "modified"],
+		[
+			"name",
+			"status",
+			"customer",
+			"opportunity",
+			"booking_date",
+			"vehicle_model",
+			"deposit_amount",
+			"modified",
+		],
 		limit=20,
 	)
 	test_drives = _by_vin(
@@ -563,7 +574,9 @@ def get_vehicle_360(vin: str):
 
 	finance = _finance_from_job_cards(job_cards)
 	open_follow_ups = sum(
-		1 for r in follow_ups if not r.get("follow_up_completed_date") and (r.get("contact_status") or "") != "Completed"
+		1
+		for r in follow_ups
+		if not r.get("follow_up_completed_date") and (r.get("contact_status") or "") != "Completed"
 	)
 	retention_status = (service_dues[0].get("classification") if service_dues else None) or (
 		"Due" if identity.get("next_service_due_date") else "No due record"
@@ -579,7 +592,9 @@ def get_vehicle_360(vin: str):
 		"opportunities_total": len(opportunities),
 		"opportunities_open": sum(1 for r in opportunities if (r.get("status") or "") in OPEN_OPP_STATUSES),
 		"pipeline_value": sum(
-			flt(r.get("expected_value")) for r in opportunities if (r.get("status") or "") in OPEN_OPP_STATUSES
+			flt(r.get("expected_value"))
+			for r in opportunities
+			if (r.get("status") or "") in OPEN_OPP_STATUSES
 		),
 		"sales_appointments": len(sales_appointments),
 		"test_drives": len(test_drives),

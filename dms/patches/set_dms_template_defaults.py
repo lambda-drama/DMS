@@ -2,7 +2,6 @@
 
 import frappe
 
-
 DEFAULTS = {
 	"QC Checklist Template": "Standard Service QC",
 	"Road Test Template": "Standard Post-Repair Road Test",

@@ -60,9 +60,9 @@ def get_dashboard():
 
 	if frappe.db.exists("DocType", "Customer"):
 		groups = []
-		if frappe.db.exists("DocType", "Customer Group") and frappe.get_meta(
-			"Customer Group"
-		).has_field("custom_is_vehicle_customer"):
+		if frappe.db.exists("DocType", "Customer Group") and frappe.get_meta("Customer Group").has_field(
+			"custom_is_vehicle_customer"
+		):
 			groups = frappe.get_all(
 				"Customer Group",
 				filters={"custom_is_vehicle_customer": 1},
@@ -80,9 +80,7 @@ def get_dashboard():
 			fields=["expected_value", "probability"],
 			limit=5000,
 		)
-		stats["pipeline_value"] = sum(
-			flt(r.expected_value) * flt(r.probability) / 100.0 for r in rows
-		)
+		stats["pipeline_value"] = sum(flt(r.expected_value) * flt(r.probability) / 100.0 for r in rows)
 
 	try:
 		from dms.crm_api.reports.kpis import compute_appendix_b_kpis
@@ -94,9 +92,7 @@ def get_dashboard():
 	if frappe.db.exists("DocType", ACT):
 		from frappe.utils import now_datetime
 
-		stats["activities_open"] = _count(
-			ACT, {"status": ["in", ["Open", "In Progress"]]}
-		)
+		stats["activities_open"] = _count(ACT, {"status": ["in", ["Open", "In Progress"]]})
 		stats["activities_overdue"] = frappe.db.count(
 			ACT,
 			{
@@ -115,9 +111,7 @@ def get_dashboard():
 	leads_this_month = _count(LEAD, {"creation": [">=", month_start]})
 	lead_target = 0
 	if frappe.db.exists("DocType", "DMS CRM Settings"):
-		lead_target = cint(
-			frappe.db.get_single_value("DMS CRM Settings", "monthly_lead_target") or 0
-		)
+		lead_target = cint(frappe.db.get_single_value("DMS CRM Settings", "monthly_lead_target") or 0)
 	lead_target_configured = lead_target > 0
 	if not lead_target_configured:
 		# Avoid a fake "100" target in production — gauge tracks actual intake.
@@ -125,9 +119,7 @@ def get_dashboard():
 	stats["lead_target"] = lead_target
 	stats["lead_target_configured"] = 1 if lead_target_configured else 0
 	stats["leads_this_month"] = leads_this_month
-	stats["lead_target_remaining"] = (
-		max(lead_target - leads_this_month, 0) if lead_target_configured else 0
-	)
+	stats["lead_target_remaining"] = max(lead_target - leads_this_month, 0) if lead_target_configured else 0
 
 	my_leads = []
 	if frappe.db.exists("DocType", LEAD):

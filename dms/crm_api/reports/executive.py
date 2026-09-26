@@ -7,7 +7,6 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, getdate, nowdate, time_diff_in_hours
 
-from dms.crm_api.reports.kpis import compute_appendix_b_kpis
 from dms.crm_api.reports.common import (
 	ACTIVITY,
 	CAMPAIGN,
@@ -24,6 +23,7 @@ from dms.crm_api.reports.common import (
 	parse_crm_filters,
 	result,
 )
+from dms.crm_api.reports.kpis import compute_appendix_b_kpis
 
 
 def get_crm_executive_dashboard(filters=None):
@@ -72,9 +72,7 @@ def get_crm_executive_dashboard(filters=None):
 		)
 		summary["new_leads"] = len(leads)
 		summary["qualified_leads"] = sum(
-			1
-			for r in leads
-			if r.get("qualified_on") or (r.get("status") or "") in ("Qualified", "Converted")
+			1 for r in leads if r.get("qualified_on") or (r.get("status") or "") in ("Qualified", "Converted")
 		)
 		sla_rows = [r for r in leads if r.get("sla_status")]
 		if sla_rows:
@@ -149,13 +147,9 @@ def get_crm_executive_dashboard(filters=None):
 		)
 
 	if dt_exists(CASE):
-		summary["open_complaints"] = frappe.db.count(
-			CASE, {"status": ["not in", ["Resolved", "Closed"]]}
-		)
+		summary["open_complaints"] = frappe.db.count(CASE, {"status": ["not in", ["Resolved", "Closed"]]})
 		if frappe.get_meta(CASE).has_field("sla_status"):
-			summary["sla_breaches"] = frappe.db.count(
-				CASE, {"sla_status": ["in", ["Breached", "Breach"]]}
-			)
+			summary["sla_breaches"] = frappe.db.count(CASE, {"sla_status": ["in", ["Breached", "Breach"]]})
 
 	if dt_exists(CAMPAIGN):
 		c_meta = frappe.get_meta(CAMPAIGN)
@@ -169,7 +163,9 @@ def get_crm_executive_dashboard(filters=None):
 			fields=c_fields,
 			limit=500,
 		)
-		summary["campaign_leads"] = sum(cint(c.get("leads_generated") or c.get("response_count")) for c in camps)
+		summary["campaign_leads"] = sum(
+			cint(c.get("leads_generated") or c.get("response_count")) for c in camps
+		)
 
 	# Appendix B formulas always win over convenience counts
 	summary.update(pack.get("summary") or {})
@@ -261,9 +257,7 @@ def _pipeline_report(filters=None):
 
 def _forecast_report(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _(
-		"Weighted forecast = expected_value × probability%. Grouped by branch, model and month."
-	)
+	help_text = _("Weighted forecast = expected_value × probability%. Grouped by branch, model and month.")
 	rows = []
 	if dt_exists(OPP):
 		opps = frappe.get_all(
@@ -447,7 +441,9 @@ def _delivery_report(filters=None):
 
 def _service_retention_overview(filters=None):
 	f = parse_crm_filters(filters)
-	help_text = _("Service due classifications: Upcoming / Due / Overdue / Severely Overdue / Lapsed / Recovered / Inactive / Vehicle Sold / Unreachable from DMS CRM Service Due.")
+	help_text = _(
+		"Service due classifications: Upcoming / Due / Overdue / Severely Overdue / Lapsed / Recovered / Inactive / Vehicle Sold / Unreachable from DMS CRM Service Due."
+	)
 	rows = []
 	if dt_exists(SERVICE_DUE):
 		for r in frappe.get_all(

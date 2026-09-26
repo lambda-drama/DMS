@@ -74,11 +74,10 @@ frappe.ui.form.on("DMS CRM Lead", {
 
 	async model(frm) {
 		if (!frm.doc.model) return;
-		const { message } = await frappe.db.get_value(
-			"Vehicle Model",
-			frm.doc.model,
-			["brand", "variant"],
-		);
+		const { message } = await frappe.db.get_value("Vehicle Model", frm.doc.model, [
+			"brand",
+			"variant",
+		]);
 		if (!message) return;
 		if (message.brand && !frm.doc.brand) {
 			frm.set_value("brand", message.brand);
@@ -115,11 +114,11 @@ frappe.ui.form.on("DMS CRM Lead Item", {
 		const row = frappe.get_doc(cdt, cdn);
 		if (!row.item_code) return;
 
-		const { message } = await frappe.db.get_value(
-			"Item",
-			row.item_code,
-			["item_name", "stock_uom", "standard_rate"],
-		);
+		const { message } = await frappe.db.get_value("Item", row.item_code, [
+			"item_name",
+			"stock_uom",
+			"standard_rate",
+		]);
 		if (!message) return;
 
 		await frappe.model.set_value(cdt, cdn, {

@@ -122,7 +122,11 @@ def spare_part_default_selling_price(spare_docname: str) -> float:
 
 	if flt(sp.get("selling_price")) > 0:
 		return round(flt(sp["selling_price"]) * (1 + dms_spare_part_markup() / 100.0), 2)
-	cost = flt(sp.get("selling_price")) or flt(sp.get("last_purchase_price")) or spare_part_unit_cost(spare_docname)
+	cost = (
+		flt(sp.get("selling_price"))
+		or flt(sp.get("last_purchase_price"))
+		or spare_part_unit_cost(spare_docname)
+	)
 	if cost > 0 and sp.get("markup_percentage") is not None:
 		return round(cost * (1 + flt(sp["markup_percentage"]) / 100.0), 2)
 
