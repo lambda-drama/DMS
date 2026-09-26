@@ -5,6 +5,9 @@ on:
     branches:
       - version-16
   pull_request:
+  # Lets the Server job be re-run from the Actions tab after a fix, without
+  # pushing an empty commit.
+  workflow_dispatch:
 
 concurrency:
   group: version-16-dms-${{ github.event.number }}
@@ -83,14 +86,30 @@ jobs:
       - name: Setup
         run: |
           pip install frappe-bench
-          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          # pyproject.toml pins frappe to >=16.0.0,<17.0.0. A plain `bench init`
+          # clones frappe develop (17.0.0-dev), so CI used to run against a
+          # franken-bench and warn that the installed frappe "does not satisfy
+          # required version '>=16.0.0,<17.0.0'".
+          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" --frappe-branch version-16 ~/frappe-bench
+          # DMS tables are utf8mb4 and hold Arabic/Gulf text. MariaDB 11.8 starts
+          # on different server defaults, so pin the charsets before the site is
+          # created rather than after the first "Incorrect string value" error.
+          mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
+          mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
       - name: Install
         working-directory: /home/runner/frappe-bench
         run: |
+          # pyproject.toml declares erpnext as a frappe-dependency, but
+          # `bench get-app` ignores dependencies unless it is asked for them --
+          # which is what produced "Required frappe-dependency 'erpnext' not
+          # found". DMS seeds custom fields and fixtures onto ERPNext doctypes, so
+          # erpnext has to be on the bench and on the site before dms installs.
+          bench get-app erpnext --branch version-16
           bench get-app dms $GITHUB_WORKSPACE
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
+          bench --site test_site install-app erpnext
           bench --site test_site install-app dms
           bench build
         env:
