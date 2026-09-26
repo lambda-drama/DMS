@@ -26,11 +26,11 @@ OPEN_STATUSES = {"Open", "On Hold"}
 
 class DMSCRMOpportunity(Document):
 	def validate(self):
-		from dms.dealer_management_system.utils.company_permissions import (
-			assert_dms_company_access,
-		)
 		from dms.dealer_management_system.utils.branch_permissions import (
 			assert_dms_branch_access,
+		)
+		from dms.dealer_management_system.utils.company_permissions import (
+			assert_dms_company_access,
 		)
 
 		assert_dms_company_access(self.company)
@@ -107,13 +107,10 @@ class DMSCRMOpportunity(Document):
 				booking
 				and booking.status in ("Confirmed", "Allocated", "Converted to Sale")
 				and not (
-					flt(booking.deposit_amount) > 0
-					and (booking.receipt_reference or booking.payment_entry)
+					flt(booking.deposit_amount) > 0 and (booking.receipt_reference or booking.payment_entry)
 				)
 			):
-				frappe.throw(
-					"Confirmed bookings require a deposit amount and receipt / Payment Entry."
-				)
+				frappe.throw("Confirmed bookings require a deposit amount and receipt / Payment Entry.")
 
 		if self.stage == "Won" and self.sales_invoice:
 			invoice = frappe.db.get_value(
@@ -123,17 +120,13 @@ class DMSCRMOpportunity(Document):
 				as_dict=True,
 			)
 			if not invoice or invoice.docstatus != 1 or not invoice.update_stock:
-				frappe.throw(
-					"Won requires a submitted Sales Invoice with Update Stock enabled."
-				)
+				frappe.throw("Won requires a submitted Sales Invoice with Update Stock enabled.")
 			if self.delivery_readiness:
 				ready_status = frappe.db.get_value(
 					"DMS CRM Delivery Readiness", self.delivery_readiness, "status"
 				)
 				if ready_status not in ("Ready", "Delivered"):
-					frappe.throw(
-						"Complete Delivery Readiness (status Ready) before marking Won."
-					)
+					frappe.throw("Complete Delivery Readiness (status Ready) before marking Won.")
 		elif self.stage in STAGE_PROBABILITY and self.probability in (None, ""):
 			self.probability = STAGE_PROBABILITY[self.stage]
 

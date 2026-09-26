@@ -31,6 +31,7 @@ from dms.api.reports.common import (
 	_vin_sql_clause,
 )
 
+
 def get_warranty_report(filters=None):
 	f = _parse_filters(filters)
 	conds = _jc_filters(
@@ -45,9 +46,19 @@ def get_warranty_report(filters=None):
 		"DMS Job Card",
 		filters=conds,
 		fields=[
-			"name", "posting_date", "customer_name", "vehicle_model", "vehicle_vin", "license_plate",
-			"job_card_type", "warranty_application_type", "warranty_status",
-			"customer_approval_status", "payment_status", "net_amount", "invoice",
+			"name",
+			"posting_date",
+			"customer_name",
+			"vehicle_model",
+			"vehicle_vin",
+			"license_plate",
+			"job_card_type",
+			"warranty_application_type",
+			"warranty_status",
+			"customer_approval_status",
+			"payment_status",
+			"net_amount",
+			"invoice",
 		],
 		order_by="posting_date desc",
 		limit=500,
@@ -61,9 +72,19 @@ def get_warranty_report(filters=None):
 			"name": ["not in", [r.name for r in rows] or ["__none__"]],
 		},
 		fields=[
-			"name", "posting_date", "customer_name", "vehicle_model", "vehicle_vin", "license_plate",
-			"job_card_type", "warranty_application_type", "warranty_status",
-			"customer_approval_status", "payment_status", "net_amount", "invoice",
+			"name",
+			"posting_date",
+			"customer_name",
+			"vehicle_model",
+			"vehicle_vin",
+			"license_plate",
+			"job_card_type",
+			"warranty_application_type",
+			"warranty_status",
+			"customer_approval_status",
+			"payment_status",
+			"net_amount",
+			"invoice",
 		],
 		limit=500,
 	)

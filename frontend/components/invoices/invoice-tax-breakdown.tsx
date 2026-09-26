@@ -26,6 +26,13 @@ export interface InvoiceTaxBreakdownProps {
   applyTaxWithholding: boolean;
   preview: InvoiceTaxPreview | null;
   isLoading?: boolean;
+  /**
+   * Overrides the final amount. The order screen uses it to show the order's own
+   * grand total (withholding is deducted on the invoice, not on the order).
+   */
+  totalOverride?: number | null;
+  /** Label for the final row. Defaults to "Total payable (incl. VAT)". */
+  totalLabel?: string;
   className?: string;
 }
 
@@ -41,11 +48,15 @@ export function InvoiceTaxBreakdown({
   applyTaxWithholding,
   preview,
   isLoading,
+  totalOverride,
+  totalLabel,
   className,
 }: InvoiceTaxBreakdownProps) {
   const vat = preview?.vat_amount || 0;
   const withholding = preview?.withholding_amount || 0;
-  const grandTotal = preview ? preview.grand_total : subtotal;
+  const grandTotal =
+    totalOverride != null ? totalOverride : preview ? preview.grand_total : subtotal;
+  const finalLabel = totalLabel || `Total payable${applyTaxes ? ' (incl. VAT)' : ''}`;
   const currencyCode = preview?.currency || currency || undefined;
   const showVatRow = applyTaxes;
   const showWithholdingRow = applyTaxWithholding;
@@ -96,7 +107,7 @@ export function InvoiceTaxBreakdown({
       ) : null}
 
       <div className="flex items-center justify-between gap-3 border-t pt-1.5">
-        <span className="font-medium">Total payable{showVatRow ? ' (incl. VAT)' : ''}</span>
+        <span className="font-medium">{finalLabel}</span>
         <span className="font-semibold tabular-nums">
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

@@ -76,14 +76,14 @@ def _resolve_service_advisor(data, required=True):
 		return advisor
 	user = frappe.session.user
 	if user and user != "Guest":
-		advisor = frappe.db.get_value(
-			"Service Advisor", {"user_id": user, "status": "Active"}, "name"
-		)
+		advisor = frappe.db.get_value("Service Advisor", {"user_id": user, "status": "Active"}, "name")
 		if advisor:
 			return advisor
 	if not required:
 		return None
-	frappe.throw(_("Service Advisor is required. Select an advisor or link your user to a Service Advisor record."))
+	frappe.throw(
+		_("Service Advisor is required. Select an advisor or link your user to a Service Advisor record.")
+	)
 
 
 def _resolve_customer_vehicle(data, required=True):
@@ -105,9 +105,7 @@ def _append_warning_lights(doc, labels):
 		labels = ["None"]
 	for label in labels:
 		if label == "None":
-			light_name = _get_or_create_warning_light(
-				"Other", notes="No illuminated warning lights reported"
-			)
+			light_name = _get_or_create_warning_light("Other", notes="No illuminated warning lights reported")
 		else:
 			erp_value = WARNING_LIGHT_MAP.get(label, label)
 			light_name = _get_or_create_warning_light(erp_value)
@@ -158,23 +156,33 @@ def get_inspections(
 
 	filters = add_branch_filter(filters, doctype="Vehicle Inspection")
 
-	total = len(frappe.get_all(
-		"Vehicle Inspection",
-		filters=filters,
-		or_filters=or_filters if or_filters else None,
-		limit_page_length=0,
-		pluck="name",
-	))
+	total = len(
+		frappe.get_all(
+			"Vehicle Inspection",
+			filters=filters,
+			or_filters=or_filters if or_filters else None,
+			limit_page_length=0,
+			pluck="name",
+		)
+	)
 
 	inspections = frappe.get_all(
 		"Vehicle Inspection",
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "customer", "vin_chassis",
-			"license_plate", "model_year", "inspection_date",
-			"service_advisor", "customer_vehicle", "company",
-			"docstatus", "creation", "modified",
+			"name",
+			"customer",
+			"vin_chassis",
+			"license_plate",
+			"model_year",
+			"inspection_date",
+			"service_advisor",
+			"customer_vehicle",
+			"company",
+			"docstatus",
+			"creation",
+			"modified",
 		],
 		limit=int(limit),
 		limit_start=int(offset),
@@ -243,13 +251,9 @@ def get_inspection(name):
 	result = doc.as_dict()
 	result["customer_name"] = _customer_display_name(doc.customer)
 	if doc.customer:
-		result["contact_number"] = frappe.db.get_value(
-			"Customer", doc.customer, "mobile_no"
-		)
+		result["contact_number"] = frappe.db.get_value("Customer", doc.customer, "mobile_no")
 	if doc.company:
-		result["company_name"] = frappe.db.get_value(
-			"Company", doc.company, "company_name"
-		)
+		result["company_name"] = frappe.db.get_value("Company", doc.company, "company_name")
 	enrich_inspection_row(result)
 	result["warning_light_labels"] = _warning_light_ui_labels(doc)
 	return result
@@ -264,9 +268,9 @@ def _warning_light_ui_labels(doc):
 		name = row.get("vehicle_warning_light") if isinstance(row, dict) else row.vehicle_warning_light
 		if not name:
 			continue
-		info = frappe.db.get_value(
-			"Vehicle Warning Light", name, ["warning_light", "notes"], as_dict=True
-		) or {}
+		info = (
+			frappe.db.get_value("Vehicle Warning Light", name, ["warning_light", "notes"], as_dict=True) or {}
+		)
 		erp = (info.get("warning_light") or "").strip()
 		notes = info.get("notes") or ""
 		if "No illuminated warning lights" in notes:
@@ -436,23 +440,28 @@ def _apply_inspection_payload(doc, data, as_draft):
 	doc.set("customer_complaints", [])
 	complaints = data.get("customer_complaints") or []
 	if not complaints and not as_draft:
-		complaints = [{
-			"customer_exact_words": "No customer complaints reported at intake.",
-			"symptom_category": "Other",
-		}]
+		complaints = [
+			{
+				"customer_exact_words": "No customer complaints reported at intake.",
+				"symptom_category": "Other",
+			}
+		]
 	for idx, row in enumerate(complaints, start=1):
 		if isinstance(row, str):
 			row = {"customer_exact_words": row}
 		words = (row.get("customer_exact_words") or row.get("complaint") or "").strip()
 		if not words:
 			continue
-		doc.append("customer_complaints", {
-			"complaint_sequence": idx,
-			"customer_exact_words": words,
-			"symptom_category": row.get("symptom_category") or "Other",
-			"frequency": row.get("frequency") or "Sometimes",
-			"severity": row.get("severity") or "3 - Moderate",
-		})
+		doc.append(
+			"customer_complaints",
+			{
+				"complaint_sequence": idx,
+				"customer_exact_words": words,
+				"symptom_category": row.get("symptom_category") or "Other",
+				"frequency": row.get("frequency") or "Sometimes",
+				"severity": row.get("severity") or "3 - Moderate",
+			},
+		)
 
 	if not as_draft and not doc.get("customer_complaints"):
 		frappe.throw(_("At least one customer complaint is required."))
@@ -478,6 +487,7 @@ def _apply_inspection_payload(doc, data, as_draft):
 def create_inspection(data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
@@ -496,6 +506,7 @@ def create_inspection(data):
 def update_inspection(name, data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	doc = frappe.get_doc("Vehicle Inspection", name)
@@ -512,8 +523,11 @@ def update_inspection(name, data):
 
 	if doc.docstatus != 0 or not full_form:
 		updatable = [
-			"inspector", "fuel_level", "overall_condition",
-			"customer_concerns", "inspector_notes",
+			"inspector",
+			"fuel_level",
+			"overall_condition",
+			"customer_concerns",
+			"inspector_notes",
 		]
 		for field in updatable:
 			if field in data:

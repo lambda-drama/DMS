@@ -32,6 +32,7 @@ from dms.api.reports.common import (
 )
 from dms.api.utils import get_dms_companies
 
+
 def get_parts_fill_rate_report(filters=None):
 	f = _parse_filters(filters)
 	vin_sql, vin_params = _vin_sql_clause(f, "jc.vehicle_vin")
@@ -99,6 +100,7 @@ def get_parts_fill_rate_report(filters=None):
 		],
 		"rows": by_part,
 	}
+
 
 def get_parts_issued_per_job_report(filters=None):
 	f = _parse_filters(filters)
@@ -186,6 +188,7 @@ def get_parts_issued_per_job_report(filters=None):
 		rows,
 	)
 
+
 def get_material_request_status_report(filters=None):
 	"""DMS Parts Request status (workshop material requests)."""
 	f = _parse_filters(filters)
@@ -241,9 +244,11 @@ def get_material_request_status_report(filters=None):
 		rows,
 	)
 
+
 def _parse_stock_report_filters(data=None):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data) if data else {}
 	data = data or {}
 	company = (data.get("company") or "").strip() or None
@@ -273,6 +278,7 @@ def _parse_stock_report_filters(data=None):
 		"include_zero_stock": cint(data.get("include_zero_stock", 1)),
 	}
 
+
 def _stock_report_filters_response(f):
 	out = {}
 	if f.get("company"):
@@ -287,12 +293,14 @@ def _stock_report_filters_response(f):
 		out["below_minimum_only"] = "1"
 	return out
 
+
 def _warehouses_for_stock_report(filters):
 	"""Company and warehouse are required; returns a single-warehouse list."""
 	warehouse = (filters.get("warehouse") or "").strip()
 	if warehouse and frappe.db.exists("Warehouse", warehouse):
 		return [warehouse]
 	return []
+
 
 def _spare_part_stock_status(qty, minimum_level):
 	qty = flt(qty)
@@ -302,6 +310,7 @@ def _spare_part_stock_status(qty, minimum_level):
 	if minimum_level > 0 and qty < minimum_level:
 		return _("Below Minimum")
 	return _("OK")
+
 
 def get_spare_parts_stock_report(filters=None):
 	"""Spare parts on-hand stock by warehouse (ERPNext get_stock_balance on linked Item)."""
@@ -348,6 +357,7 @@ def get_spare_parts_stock_report(filters=None):
 
 	needle = (f.get("search") or "").lower()
 	if needle:
+
 		def _matches(sp):
 			for field in ("name", "item_name", "item_code", "oem_part_number", "part_category"):
 				val = (sp.get(field) or "").lower()
@@ -394,22 +404,24 @@ def get_spare_parts_stock_report(filters=None):
 				continue
 
 			wh_row = wh_company.get(wh) or {}
-			rows.append({
-				"spare_part": sp.name,
-				"item_code": item_code,
-				"item_name": sp.get("item_name") or item_code,
-				"oem_part_number": sp.get("oem_part_number") or "",
-				"part_category": sp.get("part_category") or "",
-				"warehouse": wh,
-				"warehouse_name": wh_row.get("warehouse_name") or wh,
-				"company": wh_row.get("company") or f.get("company") or "",
-				"stock_uom": sp.get("stock_uom") or frappe.db.get_value("Item", item_code, "stock_uom"),
-				"qty": qty,
-				"minimum_stock_level": min_level,
-				"reorder_quantity": flt(sp.get("reorder_quantity")),
-				"selling_price": flt(sp.get("selling_price")),
-				"stock_status": status,
-			})
+			rows.append(
+				{
+					"spare_part": sp.name,
+					"item_code": item_code,
+					"item_name": sp.get("item_name") or item_code,
+					"oem_part_number": sp.get("oem_part_number") or "",
+					"part_category": sp.get("part_category") or "",
+					"warehouse": wh,
+					"warehouse_name": wh_row.get("warehouse_name") or wh,
+					"company": wh_row.get("company") or f.get("company") or "",
+					"stock_uom": sp.get("stock_uom") or frappe.db.get_value("Item", item_code, "stock_uom"),
+					"qty": qty,
+					"minimum_stock_level": min_level,
+					"reorder_quantity": flt(sp.get("reorder_quantity")),
+					"selling_price": flt(sp.get("selling_price")),
+					"stock_status": status,
+				}
+			)
 			total_qty += qty
 			if status == _("Below Minimum"):
 				below_min += 1
@@ -432,6 +444,7 @@ def get_spare_parts_stock_report(filters=None):
 		"columns": _spare_parts_stock_columns(),
 		"rows": rows,
 	}
+
 
 def _spare_parts_stock_columns():
 	return [

@@ -21,7 +21,7 @@ from dms.api.spare_part_sales import (
 	_stock_available,
 	_validate_spare_part_lines,
 )
-from dms.api.utils import apply_date_range
+from dms.api.utils import apply_date_range, resolve_dms_customer
 from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
 ORDER_REMARKS_PREFIX = "DMS Order"
@@ -140,8 +140,11 @@ def _order_builder_kwargs(ctx: dict, data: dict) -> dict:
 		"vehicle_vin": ctx.get("vin"),
 		# Include VAT toggle — tri-state so a payload without the key (older clients)
 		# keeps ERPNext's default tax handling.
-		"apply_taxes": (
-			bool(cint(data.get("apply_taxes"))) if "apply_taxes" in data else None
+		"apply_taxes": (bool(cint(data.get("apply_taxes"))) if "apply_taxes" in data else None),
+		# Tax withholding (TCS) is an invoice-side deduction: the order only records
+		# the intent, which the invoice conversion applies.
+		"apply_tax_withholding": (
+			bool(cint(data.get("apply_tax_withholding"))) if "apply_tax_withholding" in data else None
 		),
 	}
 
@@ -186,25 +189,47 @@ def list_dms_orders(
 		)
 	)
 
+	# Tax withholding (TCS) intent lives on DMS custom fields — select them only once
+	# ``bench migrate`` has created them, so the list keeps working on a stale site.
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		SALES_ORDER_WITHHOLDING_CATEGORY,
+		SALES_ORDER_WITHHOLDING_FLAG,
+		SALES_ORDER_WITHHOLDING_GROUP,
+	)
+
+	# Each custom field is checked on its own — a site migrated halfway through a
+	# deploy may have the flag but not the category/group yet.
+	so_meta = frappe.get_meta("Sales Order")
+	has_withholding = so_meta.has_field(SALES_ORDER_WITHHOLDING_FLAG)
+	has_withholding_category = so_meta.has_field(SALES_ORDER_WITHHOLDING_CATEGORY)
+	has_withholding_group = so_meta.has_field(SALES_ORDER_WITHHOLDING_GROUP)
+	list_fields = [
+		"name",
+		"customer",
+		"customer_name",
+		"company",
+		"transaction_date",
+		"delivery_date",
+		"grand_total",
+		"currency",
+		"status",
+		"docstatus",
+		"per_billed",
+		"advance_paid",
+		"modified",
+	]
+	if has_withholding:
+		list_fields.append(f"{SALES_ORDER_WITHHOLDING_FLAG} as apply_tax_withholding")
+	if has_withholding_category:
+		list_fields.append(f"{SALES_ORDER_WITHHOLDING_CATEGORY} as tax_withholding_category")
+	if has_withholding_group:
+		list_fields.append(f"{SALES_ORDER_WITHHOLDING_GROUP} as tax_withholding_group")
+
 	rows = frappe.get_all(
 		"Sales Order",
 		filters=filters,
 		or_filters=or_filters,
-		fields=[
-			"name",
-			"customer",
-			"customer_name",
-			"company",
-			"transaction_date",
-			"delivery_date",
-			"grand_total",
-			"currency",
-			"status",
-			"docstatus",
-			"per_billed",
-			"advance_paid",
-			"modified",
-		],
+		fields=list_fields,
 		order_by="modified desc",
 		limit=int(limit),
 		start=int(offset),
@@ -230,6 +255,13 @@ def list_dms_orders(
 		row["sales_order"] = row["name"]
 		row["already_amended"] = 1 if amended_as else 0
 		row["amended_as"] = amended_as
+		# TCS intent — the invoice conversion applies the deduction. The columns are
+		# aliased to these names, so a site without them simply reports "no TCS".
+		row["apply_tax_withholding"] = cint(row.get("apply_tax_withholding")) if has_withholding else 0
+		row["tax_withholding_category"] = (
+			row.get("tax_withholding_category") if has_withholding_category else None
+		)
+		row["tax_withholding_group"] = row.get("tax_withholding_group") if has_withholding_group else None
 
 	return {"data": rows, "total": total}
 
@@ -282,9 +314,7 @@ def get_dms_order(name):
 
 		vsi_name = None
 		if not spare_part and vsi_item_field:
-			vsi_name = frappe.db.get_value(
-				"Vehicle Service Item", {vsi_item_field: row.item_code}, "name"
-			)
+			vsi_name = frappe.db.get_value("Vehicle Service Item", {vsi_item_field: row.item_code}, "name")
 
 		# Display Name typed on the order line → Sales Order Item description.
 		description = (row.get("description") or "").strip()
@@ -319,10 +349,7 @@ def get_dms_order(name):
 		elif vsi_name:
 			label = row.item_name or vsi_name
 			if vsi_meta and vsi_meta.has_field("custom_item_name"):
-				label = (
-					frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_item_name")
-					or label
-				)
+				label = frappe.db.get_value("Vehicle Service Item", vsi_name, "custom_item_name") or label
 			labour.append(
 				{
 					"vehicle_service_item": vsi_name,
@@ -421,6 +448,12 @@ def get_dms_order(name):
 	advance_paid = flt(so.get("advance_paid"))
 	grand_total = flt(so.grand_total)
 
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		read_sales_order_tax_withholding,
+	)
+
+	applies_withholding, withholding_category, withholding_group = read_sales_order_tax_withholding(so)
+
 	amended_as = frappe.db.get_value("Sales Order", {"amended_from": so.name}, "name")
 
 	return {
@@ -438,6 +471,10 @@ def get_dms_order(name):
 		"currency": so.currency,
 		# Order VAT choice as saved on the Sales Order (has tax rows).
 		"apply_taxes": 1 if (so.get("taxes") or []) else 0,
+		# Tax withholding (TCS) intent — the invoice conversion applies the deduction.
+		"apply_tax_withholding": 1 if applies_withholding else 0,
+		"tax_withholding_category": withholding_category,
+		"tax_withholding_group": withholding_group,
 		"status": so.status,
 		"docstatus": so.docstatus,
 		"per_billed": flt(so.per_billed),
@@ -458,6 +495,11 @@ def get_dms_order(name):
 
 def _order_summary(so) -> dict:
 	so.reload()
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		read_sales_order_tax_withholding,
+	)
+
+	applies_withholding, withholding_category, withholding_group = read_sales_order_tax_withholding(so)
 	return {
 		"name": so.name,
 		"sales_order": so.name,
@@ -467,10 +509,71 @@ def _order_summary(so) -> dict:
 		"net_total": flt(so.net_total),
 		"total_taxes_and_charges": flt(so.total_taxes_and_charges),
 		"grand_total": flt(so.grand_total),
+		"apply_taxes": 1 if (so.get("taxes") or []) else 0,
+		"apply_tax_withholding": 1 if applies_withholding else 0,
+		"tax_withholding_category": withholding_category,
+		"tax_withholding_group": withholding_group,
 		"advance_paid": flt(so.get("advance_paid")),
 		"balance": max(flt(so.grand_total) - flt(so.get("advance_paid")), 0),
 		"status": so.status,
 	}
+
+
+@frappe.whitelist()
+def get_order_tax_preview(data=None):
+	"""VAT an order will carry plus the TCS its Sales Invoice will withhold.
+
+	Returns the invoice tax-preview shape (tax rows, VAT, withholding, grand total)
+	plus the order's own totals — built on an unsaved Sales Order so the numbers match
+	exactly what saving the order (and later converting it) produces.
+
+	The screen calls this while the form is still being filled in, so "not ready yet"
+	reasons (no customer, no lines…) come back as ``message`` instead of a toast.
+	"""
+	data = _parse_data(data)
+	frappe.has_permission("Sales Order", "create", throw=True)
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		_blank_tax_preview,
+		build_order_tax_preview,
+	)
+
+	apply_taxes = bool(cint(data.get("apply_taxes")))
+	apply_tax_withholding = bool(cint(data.get("apply_tax_withholding")))
+	customer = resolve_dms_customer(data.get("customer"))
+
+	try:
+		ctx = _validate_spare_part_lines(data, check_stock=False)
+	except Exception as exc:
+		from frappe.utils.messages import clear_messages
+
+		from dms.dealer_management_system.utils.stock_operations import get_default_dms_company
+
+		clear_messages()
+		empty = _blank_tax_preview(
+			(data.get("company") or "").strip() or get_default_dms_company(),
+			customer,
+			data.get("currency"),
+		)
+		empty["message"] = str(exc) or _("Could not preview taxes for this order.")
+		return empty
+
+	return build_order_tax_preview(
+		customer=ctx["customer"],
+		company=ctx["company"],
+		labour_lines=ctx["labour_lines"],
+		parts_lines=ctx["parts_lines"],
+		warehouse=ctx["warehouse"],
+		currency=data.get("currency") or _company_currency(ctx["company"]),
+		delivery_date=data.get("delivery_date") or data.get("due_date"),
+		transaction_date=data.get("posting_date") or data.get("transaction_date"),
+		remarks=None,
+		labour_discount=data.get("labour_discount"),
+		parts_discount=data.get("parts_discount"),
+		vehicle_vin=ctx.get("vin"),
+		apply_taxes=apply_taxes,
+		apply_tax_withholding=apply_tax_withholding,
+	)
 
 
 @frappe.whitelist()
@@ -626,6 +729,13 @@ def amend_dms_order(name):
 	if meta.has_field(PROFORMA_FLAG_FIELD):
 		amended.set(PROFORMA_FLAG_FIELD, 0)
 
+	# A copy carries the source order's value, which may predate the flag.
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		disable_sales_order_round_off,
+	)
+
+	disable_sales_order_round_off(amended)
+
 	amended.insert()
 	frappe.db.commit()
 
@@ -713,9 +823,7 @@ def record_dms_order_payment(name, data=None):
 		# the entry, exactly like the invoice collection flow.
 		for ref in pe.get("references") or []:
 			ref_outstanding = flt(ref.get("outstanding_amount")) or flt(ref.get("total_amount"))
-			ref.allocated_amount = (
-				min(row_amount, ref_outstanding) if ref_outstanding > 0 else row_amount
-			)
+			ref.allocated_amount = min(row_amount, ref_outstanding) if ref_outstanding > 0 else row_amount
 			break
 
 		row_remarks = (row.get("remarks") or "").strip() or header_remarks
@@ -744,6 +852,24 @@ def record_dms_order_payment(name, data=None):
 		"balance": max(order_total - paid, 0),
 		"mode_of_payment": rows[0].get("mode_of_payment") if rows else None,
 	}
+
+
+def _sales_invoice_withholding_category(si) -> str | None:
+	"""Tax Withholding Category actually in use on a Sales Invoice.
+
+	ERPNext keeps the category on the invoice *rows* (a Sales Invoice has no
+	header-level category); older versions had a header field, so that is
+	preferred whenever the site still has one.
+	"""
+	if frappe.get_meta("Sales Invoice").has_field("tax_withholding_category"):
+		return (si.get("tax_withholding_category") or "").strip() or None
+
+	for item in si.get("items") or []:
+		category = (item.get("tax_withholding_category") or "").strip()
+		if category:
+			return category
+
+	return None
 
 
 @frappe.whitelist()
@@ -775,9 +901,7 @@ def create_dms_order_invoice(name, data=None):
 	if warehouse:
 		allowed = {w["name"] for w in get_dms_allowed_warehouses(so.company)}
 		if allowed and warehouse not in allowed:
-			frappe.throw(
-				_("Warehouse {0} is not configured for DMS stock.").format(frappe.bold(warehouse))
-			)
+			frappe.throw(_("Warehouse {0} is not configured for DMS stock.").format(frappe.bold(warehouse)))
 
 	for row in so.get("items") or []:
 		qty = flt(row.qty) - flt(row.get("billed_qty"))
@@ -799,9 +923,11 @@ def create_dms_order_invoice(name, data=None):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		_apply_dms_selling_price_list_to_sales_invoice,
 		_apply_dms_settings_dimensions_to_sales_invoice,
+		_apply_sales_invoice_tax_choice,
 		_generate_invoice_no,
 		disable_sales_invoice_round_off,
 		mark_sales_invoice_as_dms_ui_transaction,
+		read_sales_order_tax_withholding,
 	)
 	from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 
@@ -825,6 +951,22 @@ def create_dms_order_invoice(name, data=None):
 	_apply_dms_settings_dimensions_to_sales_invoice(si, so.company)
 	apply_company_letter_head(si, so.company)
 	disable_sales_invoice_round_off(si)
+
+	# The order's tax choices follow through to the invoice: VAT as ticked on the order
+	# and the order's TCS intent (both overridable per invoice through `data`).
+	# `set_missing_values()` copies the customer's tax template in, so an order without
+	# VAT has to clear it explicitly.
+	apply_taxes = (
+		bool(cint(data.get("apply_taxes"))) if "apply_taxes" in data else bool(so.get("taxes") or [])
+	)
+	order_withholding, _, _ = read_sales_order_tax_withholding(so)
+	apply_withholding = (
+		bool(cint(data.get("apply_tax_withholding")))
+		if "apply_tax_withholding" in data
+		else order_withholding
+	)
+	_apply_sales_invoice_tax_choice(si, apply_taxes, apply_withholding)
+
 	si.run_method("calculate_taxes_and_totals")
 	si.insert()
 	if cint(data.get("submit", 1)):
@@ -838,8 +980,16 @@ def create_dms_order_invoice(name, data=None):
 		"docstatus": si.docstatus,
 		"customer": si.customer,
 		"customer_name": si.customer_name,
+		"currency": si.currency,
+		"net_total": flt(si.net_total),
+		"total_taxes_and_charges": flt(si.total_taxes_and_charges),
 		"grand_total": flt(si.grand_total),
+		"total_advance": flt(si.get("total_advance")),
 		"outstanding_amount": flt(si.outstanding_amount),
+		"apply_taxes": 1 if (si.get("taxes") or []) else 0,
+		"apply_tax_withholding": 1 if cint(si.get("apply_tds")) else 0,
+		"tax_withholding_category": _sales_invoice_withholding_category(si),
+		"tax_withholding_group": si.get("tax_withholding_group"),
 		"status": si.status,
 		"sales_order": so.name,
 		"per_billed": flt(so.per_billed),

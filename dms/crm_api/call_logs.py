@@ -56,6 +56,7 @@ def _list_fields():
 			fields.append(fieldname)
 	return fields
 
+
 WRITABLE = {
 	"from",
 	"to",
@@ -104,9 +105,7 @@ def _attach_party_labels(row: dict) -> None:
 	ref_name = row.get("reference_docname")
 	if ref_dt == "DMS CRM Lead" and ref_name:
 		row["_lead"] = ref_name
-		row["_lead_label"] = (
-			frappe.db.get_value("DMS CRM Lead", ref_name, "lead_name") or ref_name
-		)
+		row["_lead_label"] = frappe.db.get_value("DMS CRM Lead", ref_name, "lead_name") or ref_name
 	elif ref_dt == "Contact" and ref_name:
 		row["_contact"] = ref_name
 		first = frappe.db.get_value("Contact", ref_name, "first_name") or ""
@@ -598,9 +597,7 @@ def _lead_options(limit: int = 100) -> list[dict]:
 			{
 				"value": row.name,
 				"label": label,
-				"description": " · ".join(
-					p for p in [row.mobile_no, row.status, row.name] if p
-				),
+				"description": " · ".join(p for p in [row.mobile_no, row.status, row.name] if p),
 				"mobile": row.mobile_no or "",
 			}
 		)

@@ -41,9 +41,7 @@ def ensure_dms_item_price_after_item_save(doc, method=None):
 		return
 
 	# Is there already one on the DMS list?
-	dms_price_name = next(
-		(p.name for p in prices if p.price_list == dms_price_list), None
-	)
+	dms_price_name = next((p.name for p in prices if p.price_list == dms_price_list), None)
 
 	fixed = 0
 	for price in prices:

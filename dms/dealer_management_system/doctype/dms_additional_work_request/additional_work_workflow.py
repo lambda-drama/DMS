@@ -6,8 +6,11 @@ import frappe
 from frappe import _
 from frappe.utils import today
 
+
 @frappe.whitelist()
-def create_additional_work_request(job_card: str, description: str, reason: str | None = None, raised_by: str | None = None):
+def create_additional_work_request(
+	job_card: str, description: str, reason: str | None = None, raised_by: str | None = None
+):
 	jc = frappe.get_doc("DMS Job Card", job_card)
 	jc.check_permission("read")
 

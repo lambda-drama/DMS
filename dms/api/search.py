@@ -2,7 +2,12 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, get_vehicle_customer_groups, add_company_filter, add_branch_filter
+from dms.api.utils import (
+	LIST_ORDER_LATEST_CREATED,
+	add_branch_filter,
+	add_company_filter,
+	get_vehicle_customer_groups,
+)
 from dms.dealer_management_system.utils.branch_permissions import BRANCH_SCOPED_DOCTYPES
 from dms.dealer_management_system.utils.company_permissions import apply_vin_company_scope
 
@@ -105,9 +110,7 @@ def _search_invoices(query, limit):
 
 	items = []
 	for r in rows:
-		subtitle = " · ".join(
-			p for p in [r.customer_name, r.status, str(r.grand_total or "")] if p
-		)
+		subtitle = " · ".join(p for p in [r.customer_name, r.status, str(r.grand_total or "")] if p)
 		items.append(_item(r.name, r.name, subtitle, "Sales Invoice", "invoices", {"id": r.name}))
 	return items
 

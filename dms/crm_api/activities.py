@@ -42,11 +42,7 @@ def _enrich(row: dict) -> dict:
 	row["customer_name"] = customer_display_name(row.get("customer"))
 	due = row.get("due_datetime")
 	status = row.get("status")
-	row["is_overdue"] = bool(
-		due
-		and status in ("Open", "In Progress")
-		and get_datetime(due) < now_datetime()
-	)
+	row["is_overdue"] = bool(due and status in ("Open", "In Progress") and get_datetime(due) < now_datetime())
 	return row
 
 
@@ -124,9 +120,7 @@ def get_activities(
 	open_filters = {"status": ["in", ["Open", "In Progress"]]}
 	summary = {
 		"open": frappe.db.count(DOCTYPE, open_filters),
-		"mine_open": frappe.db.count(
-			DOCTYPE, {**open_filters, "assigned_to": frappe.session.user}
-		),
+		"mine_open": frappe.db.count(DOCTYPE, {**open_filters, "assigned_to": frappe.session.user}),
 		"overdue": frappe.db.count(
 			DOCTYPE,
 			{
@@ -243,9 +237,10 @@ def get_overdue_board(scope="mine", limit=50):
 		"due_datetime": ["<", now_datetime()],
 	}
 	scope = (scope or "mine").strip()
-	is_manager = bool(
-		set(frappe.get_roles()).intersection({"System Manager", "DMS CRM Manager"})
-	) or frappe.session.user == "Administrator"
+	is_manager = (
+		bool(set(frappe.get_roles()).intersection({"System Manager", "DMS CRM Manager"}))
+		or frappe.session.user == "Administrator"
+	)
 	if scope == "mine" or (scope == "team" and not is_manager):
 		filters["assigned_to"] = frappe.session.user
 

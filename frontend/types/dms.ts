@@ -2,42 +2,42 @@
 
 // ============ ENUMS ============
 
-export type BookingSource = 
-  | 'Walk-in' 
-  | 'Phone Call' 
-  | 'WhatsApp' 
-  | 'Website' 
-  | 'Social Media' 
-  | 'Sales Referral' 
-  | 'Fleet Contract' 
-  | 'Email' 
-  | 'Referral Customer' 
+export type BookingSource =
+  | 'Walk-in'
+  | 'Phone Call'
+  | 'WhatsApp'
+  | 'Website'
+  | 'Social Media'
+  | 'Sales Referral'
+  | 'Fleet Contract'
+  | 'Email'
+  | 'Referral Customer'
   | 'Other';
 
-export type Priority = 
-  | 'Normal' 
-  | 'VIP' 
-  | 'Comeback/Repeat Repair' 
-  | 'Safety Critical' 
-  | 'Immobilized' 
-  | 'Fleet Priority' 
-  | 'Emergency' 
+export type Priority =
+  | 'Normal'
+  | 'VIP'
+  | 'Comeback/Repeat Repair'
+  | 'Safety Critical'
+  | 'Immobilized'
+  | 'Fleet Priority'
+  | 'Emergency'
   | 'Urgent';
 
-export type AppointmentStatus = 
+export type AppointmentStatus =
   | 'Draft'
   | 'Requested'
   | 'Scheduled'
   | 'Confirmed'
-  | 'Booked' 
-  | 'Reminder Sent' 
-  | 'Arrived' 
-  | 'In Inspection' 
-  | 'In Workshop' 
-  | 'Ready for Pickup' 
-  | 'Completed' 
-  | 'No-Show' 
-  | 'Cancelled' 
+  | 'Booked'
+  | 'Reminder Sent'
+  | 'Arrived'
+  | 'In Inspection'
+  | 'In Workshop'
+  | 'Ready for Pickup'
+  | 'Completed'
+  | 'No-Show'
+  | 'Cancelled'
   | 'Rescheduled';
 
 export type VehicleArrivalStatus =
@@ -46,101 +46,101 @@ export type VehicleArrivalStatus =
   | 'Tow-in'
   | 'Fleet Driver Drop-off';
 
-export type CustomerConfirmationStatus = 
-  | 'Pending' 
-  | 'Confirmed' 
-  | 'Rescheduled' 
-  | 'Cancelled' 
+export type CustomerConfirmationStatus =
+  | 'Pending'
+  | 'Confirmed'
+  | 'Rescheduled'
+  | 'Cancelled'
   | 'No Response';
 
-export type ArrivalMethod = 
-  | 'Driven In' 
-  | 'Towed In' 
-  | 'Carried' 
+export type ArrivalMethod =
+  | 'Driven In'
+  | 'Towed In'
+  | 'Carried'
   | 'PDI/Internal Transfer';
 
-export type FuelLevel = 
-  | 'Empty' 
-  | '1/8' 
-  | '1/4' 
-  | '3/8' 
-  | '1/2' 
-  | '5/8' 
-  | '3/4' 
-  | '7/8' 
+export type FuelLevel =
+  | 'Empty'
+  | '1/8'
+  | '1/4'
+  | '3/8'
+  | '1/2'
+  | '5/8'
+  | '3/4'
+  | '7/8'
   | 'Full';
 
-export type RemoteCondition = 
-  | 'Working' 
-  | 'Weak Battery' 
-  | 'Damaged' 
+export type RemoteCondition =
+  | 'Working'
+  | 'Weak Battery'
+  | 'Damaged'
   | 'Not Available';
 
-export type InspectionItemCondition = 
-  | 'Good' 
-  | 'Fair' 
-  | 'Poor' 
-  | 'Damaged' 
-  | 'Missing' 
+export type InspectionItemCondition =
+  | 'Good'
+  | 'Fair'
+  | 'Poor'
+  | 'Damaged'
+  | 'Missing'
   | 'N/A';
 
-export type JobCardType = 
-  | 'Customer Paid' 
-  | 'Warranty' 
-  | 'Internal' 
-  | 'PDI' 
-  | 'Campaign/Recall' 
-  | 'Insurance' 
-  | 'Goodwill' 
+export type JobCardType =
+  | 'Customer Paid'
+  | 'Warranty'
+  | 'Internal'
+  | 'PDI'
+  | 'Campaign/Recall'
+  | 'Insurance'
+  | 'Goodwill'
   | 'Fleet Contract';
 
-export type JobCardStatus = 
-  | 'Draft' 
-  | 'Open' 
-  | 'Estimation Pending' 
-  | 'Estimation Approved' 
+export type JobCardStatus =
+  | 'Draft'
+  | 'Open'
+  | 'Estimation Pending'
+  | 'Estimation Approved'
   | 'Assigned'
-  | 'Waiting Customer Approval' 
-  | 'Scheduled' 
-  | 'Repair In Progress' 
-  | 'Repair Completed' 
-  | 'Waiting Parts' 
-  | 'Road Test In Progress' 
-  | 'Road Test Completed' 
-  | 'QC In Progress' 
-  | 'QC Failed' 
-  | 'Rework' 
-  | 'Completed' 
-  | 'Cancelled' 
+  | 'Waiting Customer Approval'
+  | 'Scheduled'
+  | 'Repair In Progress'
+  | 'Repair Completed'
+  | 'Waiting Parts'
+  | 'Road Test In Progress'
+  | 'Road Test Completed'
+  | 'QC In Progress'
+  | 'QC Failed'
+  | 'Rework'
+  | 'Completed'
+  | 'Cancelled'
   | 'Delivered';
 
-export type CustomerApprovalStatus = 
-  | 'Pending' 
-  | 'Approved' 
-  | 'Partially Approved' 
-  | 'Rejected' 
-  | 'Verbal Approval' 
-  | 'Written Approval' 
+export type CustomerApprovalStatus =
+  | 'Pending'
+  | 'Approved'
+  | 'Partially Approved'
+  | 'Rejected'
+  | 'Verbal Approval'
+  | 'Written Approval'
   | 'Not Required';
 
-export type QCResult = 
-  | 'Pass' 
-  | 'Fail' 
-  | 'Pass with Advisory' 
+export type QCResult =
+  | 'Pass'
+  | 'Fail'
+  | 'Pass with Advisory'
   | 'Hold';
 
-export type PaymentStatus = 
-  | 'Unpaid' 
-  | 'Partially Paid' 
-  | 'Paid' 
-  | 'Credit' 
-  | 'Warranty' 
+export type PaymentStatus =
+  | 'Unpaid'
+  | 'Partially Paid'
+  | 'Paid'
+  | 'Credit'
+  | 'Warranty'
   | 'Internal';
 
-export type WarrantyApplicationType = 
-  | 'All Invoice' 
-  | 'Labour' 
-  | 'Spare Part' 
+export type WarrantyApplicationType =
+  | 'All Invoice'
+  | 'Labour'
+  | 'Spare Part'
   | 'Discount';
 
 // ============ SERVICE APPOINTMENT ============
@@ -184,7 +184,7 @@ export interface ServiceAppointment {
   promised_delivery_date_time?: string;
   estimated_duration_hours?: number;
   priority: Priority;
-  
+
   // Customer & Vehicle
   customer: string;
   customer_name?: string;
@@ -201,7 +201,7 @@ export interface ServiceAppointment {
   license_plate?: string;
   current_odometer?: number;
   warranty_status?: string;
-  
+
   // Service Details
   service_type_requested: ServiceTypeItem[];
   service_package?: string;
@@ -210,18 +210,18 @@ export interface ServiceAppointment {
   preferred_technician?: string;
   vehicle_arrival_status: VehicleArrivalStatus;
   special_instructions?: string;
-  
+
   // Warranty & Campaign
   warranty_eligibility_checked?: boolean;
   warranty_eligibility_note?: string;
   open_campaigns?: VehicleCampaignItem[];
   campaign_check_completed?: boolean;
-  
+
   // Repeat Repair
   repeat_repair_alert?: boolean;
   repeat_repair_details?: string;
   previous_job_cards?: PreviousJobCardReference[];
-  
+
   // Communication
   reminder_sent?: boolean;
   reminder_sent_datetime?: string;
@@ -229,14 +229,14 @@ export interface ServiceAppointment {
   confirmation_sent?: boolean;
   confirmation_sent_datetime?: string;
   customer_confirmed?: CustomerConfirmationStatus;
-  
+
   // Status
   status: AppointmentStatus;
   arrived_date_time?: string;
   status_history?: string;
   no_show_reason?: string;
   no_show_notes?: string;
-  
+
   // Assignment
   lead_technician?: string;
   technicians?: AssignedTechnician[];
@@ -244,17 +244,17 @@ export interface ServiceAppointment {
   assigned_service_advisor_name?: string;
   assigned_bay?: string;
   alternate_bay?: string;
-  
+
   // Estimated Costs
   estimated_labor_cost?: number;
   estimated_parts_cost?: number;
   estimated_total_cost?: number;
   cost_estimate_provided_to_customer?: boolean;
-  
+
   // Links
   inspection?: string;
   job_card?: string;
-  
+
   // Meta
   docstatus?: 0 | 1 | 2;
   creation?: string;
@@ -344,12 +344,12 @@ export interface VehicleInspection {
   customer_present: boolean;
   service_advisor: string;
   service_advisor_name?: string;
-  
+
   // Received From (if customer not present)
   received_from_name?: string;
   received_from_phone?: string;
   received_from_relationship?: string;
-  
+
   // Vehicle Status
   customer_vehicle: string;
   vin_chassis: string;
@@ -358,7 +358,7 @@ export interface VehicleInspection {
   customer: string;
   license_plate?: string;
   model_year?: number;
-  
+
   // Odometer & Fuel
   odometer: number;
   odometer_unit: 'km' | 'miles';
@@ -366,13 +366,13 @@ export interface VehicleInspection {
   fuel_level: FuelLevel;
   fuel_photo?: string;
   battery_voltage?: number;
-  
+
   // Arrival
   arrival_method: ArrivalMethod;
   keys_received: number;
   remote_condition: RemoteCondition;
   personal_items?: string;
-  
+
   // Warning Lights
   warning_lights: VehicleWarningLight[];
   warning_light_labels?: string[];
@@ -380,7 +380,7 @@ export interface VehicleInspection {
   scan_performed: boolean;
   dtc_codes?: VehicleDTCCode[];
   scan_tool_used?: string;
-  
+
   // Checklists
   exterior_checklist: VehicleExteriorInspectionItem[];
   exterior_photos?: string;
@@ -388,14 +388,14 @@ export interface VehicleInspection {
   tires_checklist: VehicleTireInspectionItem[];
   engine_checklist?: VehicleEngineBayItem[];
   underbody_checklist?: VehicleUnderbodyItem[];
-  
+
   // Customer Complaints
   customer_complaints: VehicleCustomerComplaint[];
-  
+
   // Notes
   service_advisor_notes?: string;
   internal_notes?: string;
-  
+
   // Signatures
   customer_signature: string;
   advisor_signature: string;
@@ -406,7 +406,7 @@ export interface VehicleInspection {
   manager_override_signature?: string;
   customer_digital_sign?: string;
   service_advisor_sign?: string;
-  
+
   // Meta
   docstatus?: 0 | 1 | 2;
   creation?: string;
@@ -690,7 +690,7 @@ export interface DMSJobCard {
   opened_date_time: string;
   completed_date_time?: string;
   promised_delivery_date_time: string;
-  
+
   // Customer & Vehicle
   customer: string;
   customer_name?: string;
@@ -707,7 +707,7 @@ export interface DMSJobCard {
   warranty_status?: string;
   warranty_expiry_date?: string;
   warranty_application_type?: WarrantyApplicationType;
-  
+
   // Priority & Assignment
   priority: Priority;
   is_repeat_repair?: boolean | number;
@@ -737,13 +737,13 @@ export interface DMSJobCard {
   schedule_start_time?: string;
   schedule_end_time?: string;
   reason_for_stop?: string;
-  
+
   // Job Items (Complaint -> Cause -> Correction)
   job_items: JobCardItem[];
-  
+
   // Labour
   labour?: VehicleLabourItem[];
-  
+
   // Parts
   parts?: JobCardPartItem[];
   parts_requests?: Array<{
@@ -752,7 +752,7 @@ export interface DMSJobCard {
     pick_slip?: string;
     stock_entry?: string;
   }>;
-  
+
   // Estimate & Approval
   total_labor_cost?: number;
   total_parts_cost?: number;
@@ -767,13 +767,13 @@ export interface DMSJobCard {
   approval_reference?: string;
   approval_attachment?: string;
   approved_amount?: number;
-  
+
   // Road Test
   road_test_template?: string;
   road_test_results?: RoadTestItemResult[];
   road_test_note?: string;
   rt_result?: 'Pass' | 'Fail';
-  
+
   // Quality Control
   qc_checklist_template?: string;
   qc_results?: JobCardQCResult[];
@@ -789,7 +789,7 @@ export interface DMSJobCard {
   technician_assigned_at?: string;
   repair_started_at?: string;
   invoiced_at?: string;
-  
+
   // Billing & Payment
   invoice?: string;
   /** 1 when an active (non-cancelled) Sales Invoice is linked */
@@ -800,12 +800,12 @@ export interface DMSJobCard {
   payment_reference?: string;
   release_blocked?: boolean;
   release_block_reason?: string;
-  
+
   // Time Log
   time_logs?: DMSJobCardTimeLog[];
   /** UTC epoch ms for earliest open time log — used by live repair timer */
   repair_session_start_ms?: number | null;
-  
+
   // Delivery
   delivered_to?: string;
   delivered_to_phone?: string;
@@ -831,12 +831,12 @@ export interface DMSJobCard {
   };
   already_amended?: number | boolean;
   amended_as?: string | null;
-  
+
   // Display / List
   vehicle_registration?: string;
   service_type?: string;
   expected_completion_date?: string;
-  
+
   // Meta
   docstatus?: 0 | 1 | 2;
   creation?: string;
@@ -1684,5 +1684,24 @@ export interface ReconciliationResult {
   reconciled: ReconciliationAllocationRow[];
   allocated_total: number;
   invoice_count: number;
+}
+
+/**
+ * Outcome of `reconcile_invoice_advances` — applying a customer's open advances to
+ * one freshly created invoice (the invoice screens' *reconcile immediately* step).
+ */
+export interface InvoiceAdvanceReconcileResult {
+  sales_invoice: string;
+  customer: string;
+  customer_name?: string | null;
+  company: string;
+  currency?: string | null;
+  /** Invoice outstanding before the advances were applied. */
+  outstanding_before: number;
+  /** Advance amount allocated to the invoice by this call (0 when nothing applied). */
+  allocated_total: number;
+  /** Invoice outstanding after the advances were applied. */
+  outstanding_after: number;
+  reconciled: ReconciliationAllocationRow[];
 }
 

@@ -1,4 +1,84 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[3637],{43637:(e,t,r)=>{r.r(t),r.d(t,{default:()=>w});var s=r(95155),a=r(12115),l=r(66609),d=r(81672),o=r(49876);let i="dms.crm_api.staff_activity_audit";async function n(e={}){let t=new URLSearchParams;return e.from_date&&t.set("from_date",e.from_date),e.to_date&&t.set("to_date",e.to_date),null!=e.period_days&&t.set("period_days",String(e.period_days)),(0,o.AT)(`/api/method/${i}.get_user_activity_filter_options?${t.toString()}`)}async function c(e={}){let t=new URLSearchParams;return e.from_date&&t.set("from_date",e.from_date),e.to_date&&t.set("to_date",e.to_date),null!=e.period_days&&t.set("period_days",String(e.period_days)),e.user&&t.set("user",e.user),e.doctype&&t.set("doctype",e.doctype),e.department&&t.set("department",e.department),e.activity_type&&t.set("activity_type",e.activity_type),e.sort_by&&t.set("sort_by",e.sort_by),e.sort_order&&t.set("sort_order",e.sort_order),null!=e.limit&&t.set("limit",String(e.limit)),null!=e.offset&&t.set("offset",String(e.offset)),(0,o.AT)(`/api/method/${i}.get_user_activity_report?${t.toString()}`)}async function u(e,t=30){let r=new URLSearchParams;e&&r.set("search",e),r.set("limit",String(t));let s=await (0,o.AT)(`/api/method/${i}.search_audit_users?${r.toString()}`);return Array.isArray(s)?s:[]}async function m(e={}){let t=new URLSearchParams;return e.from_date&&t.set("from_date",e.from_date),e.to_date&&t.set("to_date",e.to_date),null!=e.period_days&&t.set("period_days",String(e.period_days)),e.user&&t.set("user",e.user),e.department&&t.set("department",e.department),e.sort_by&&t.set("sort_by",e.sort_by),e.sort_order&&t.set("sort_order",e.sort_order),null!=e.limit&&t.set("limit",String(e.limit)),(0,o.AT)(`/api/method/${i}.get_user_activity_summary?${t.toString()}`)}var x=r(91337),p=r(99916);let h=[{value:"all",label:"All activity"},{value:"login",label:"Login / Logout"},{value:"route",label:"Page / Route access"},{value:"document",label:"Document edits"}],b=[{value:1,label:"Today"},{value:7,label:"Last 7 days"},{value:30,label:"Last 30 days"},{value:90,label:"Last 90 days"}],g=[{value:"document_edits",label:"Document edits"},{value:"total_events",label:"Total activity"},{value:"logins",label:"Logins"},{value:"routes",label:"Page views"},{value:"last_activity",label:"Last active"},{value:"user",label:"User name"}],f=`
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[3637],
+	{
+		43637: (e, t, r) => {
+			r.r(t), r.d(t, { default: () => w });
+			var s = r(95155),
+				a = r(12115),
+				l = r(66609),
+				d = r(81672),
+				o = r(49876);
+			let i = "dms.crm_api.staff_activity_audit";
+			async function n(e = {}) {
+				let t = new URLSearchParams();
+				return (
+					e.from_date && t.set("from_date", e.from_date),
+					e.to_date && t.set("to_date", e.to_date),
+					null != e.period_days && t.set("period_days", String(e.period_days)),
+					(0, o.AT)(`/api/method/${i}.get_user_activity_filter_options?${t.toString()}`)
+				);
+			}
+			async function c(e = {}) {
+				let t = new URLSearchParams();
+				return (
+					e.from_date && t.set("from_date", e.from_date),
+					e.to_date && t.set("to_date", e.to_date),
+					null != e.period_days && t.set("period_days", String(e.period_days)),
+					e.user && t.set("user", e.user),
+					e.doctype && t.set("doctype", e.doctype),
+					e.department && t.set("department", e.department),
+					e.activity_type && t.set("activity_type", e.activity_type),
+					e.sort_by && t.set("sort_by", e.sort_by),
+					e.sort_order && t.set("sort_order", e.sort_order),
+					null != e.limit && t.set("limit", String(e.limit)),
+					null != e.offset && t.set("offset", String(e.offset)),
+					(0, o.AT)(`/api/method/${i}.get_user_activity_report?${t.toString()}`)
+				);
+			}
+			async function u(e, t = 30) {
+				let r = new URLSearchParams();
+				e && r.set("search", e), r.set("limit", String(t));
+				let s = await (0, o.AT)(`/api/method/${i}.search_audit_users?${r.toString()}`);
+				return Array.isArray(s) ? s : [];
+			}
+			async function m(e = {}) {
+				let t = new URLSearchParams();
+				return (
+					e.from_date && t.set("from_date", e.from_date),
+					e.to_date && t.set("to_date", e.to_date),
+					null != e.period_days && t.set("period_days", String(e.period_days)),
+					e.user && t.set("user", e.user),
+					e.department && t.set("department", e.department),
+					e.sort_by && t.set("sort_by", e.sort_by),
+					e.sort_order && t.set("sort_order", e.sort_order),
+					null != e.limit && t.set("limit", String(e.limit)),
+					(0, o.AT)(`/api/method/${i}.get_user_activity_summary?${t.toString()}`)
+				);
+			}
+			var x = r(91337),
+				p = r(99916);
+			let h = [
+					{ value: "all", label: "All activity" },
+					{ value: "login", label: "Login / Logout" },
+					{ value: "route", label: "Page / Route access" },
+					{ value: "document", label: "Document edits" },
+				],
+				b = [
+					{ value: 1, label: "Today" },
+					{ value: 7, label: "Last 7 days" },
+					{ value: 30, label: "Last 30 days" },
+					{ value: 90, label: "Last 90 days" },
+				],
+				g = [
+					{ value: "document_edits", label: "Document edits" },
+					{ value: "total_events", label: "Total activity" },
+					{ value: "logins", label: "Logins" },
+					{ value: "routes", label: "Page views" },
+					{ value: "last_activity", label: "Last active" },
+					{ value: "user", label: "User name" },
+				],
+				f = `
   body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 16px; }
   h1 { font-size: 16px; margin: 0 0 4px; }
   .meta { color: #475569; margin-bottom: 12px; }
@@ -7,15 +87,462 @@
   th { background: #f1f5f9; }
   td.num, th.num { text-align: right; }
   @page { size: A4 landscape; margin: 10mm; }
-`;function y(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}function v(e,t,r){let s=`<!doctype html><html><head><meta charset="utf-8"><title>${y(r)}</title><style>${f}</style></head><body>${e}</body></html>`;if("pdf"===t){let e=window.open("","_blank");return e?(e.document.write(s+"<script>window.onload = () => window.print()</".concat("script>")),void e.document.close()):void l.o.error("Pop-up blocked — allow pop-ups to export PDF")}let a=new Blob([s],{type:"application/vnd.ms-excel"}),d=document.createElement("a");d.href=URL.createObjectURL(a),d.download=`${r}.xls`,d.click(),URL.revokeObjectURL(d.href)}function j({label:e,column:t,sortBy:r,sortOrder:a,onSort:l}){let d=r===t;return(0,s.jsxs)("button",{type:"button",onClick:()=>l(t),className:"inline-flex items-center gap-0.5 font-semibold text-muted-foreground hover:text-foreground",children:[e,d?"asc"===a?" ↑":" ↓":""]})}function N({value:e,displayLabel:t,onSelect:r,onClear:l}){let[d,o]=(0,a.useState)(t||""),[i,n]=(0,a.useState)(!1),[c,m]=(0,a.useState)([]),[x,p]=(0,a.useState)(!1),h=(0,a.useRef)(null);return(0,a.useEffect)(()=>{o(t||"")},[t,e]),(0,a.useEffect)(()=>{if(!i)return;let e=setTimeout(async()=>{p(!0);try{m(await u(d.trim()||void 0,40))}catch{m([])}finally{p(!1)}},250*!!d.trim());return()=>clearTimeout(e)},[d,i]),(0,a.useEffect)(()=>{let e=e=>{h.current&&!h.current.contains(e.target)&&n(!1)};return document.addEventListener("mousedown",e),()=>document.removeEventListener("mousedown",e)},[]),(0,s.jsxs)("div",{ref:h,className:"relative",children:[(0,s.jsx)("input",{type:"text",value:e?t||e:d,onChange:t=>{o(t.target.value),e&&l(),n(!0)},onFocus:()=>n(!0),placeholder:"Search user name or email…",className:"w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"}),e&&(0,s.jsx)("button",{type:"button",onClick:()=>{l(),o("")},className:"absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs",title:"Clear user filter",children:"✕"}),i&&(0,s.jsxs)("div",{className:"absolute z-30 mt-1 w-full rounded-md border border-border bg-card shadow-lg max-h-56 overflow-auto text-sm",children:[!e&&(0,s.jsx)("button",{type:"button",className:"w-full text-left px-3 py-2 hover:bg-muted text-muted-foreground border-b border-border",onClick:()=>{l(),o(""),n(!1)},children:"All users"}),x?(0,s.jsx)("div",{className:"px-3 py-2 text-muted-foreground text-xs",children:"Searching…"}):0===c.length?(0,s.jsx)("div",{className:"px-3 py-2 text-muted-foreground text-xs",children:"NO USERS FOUND"}):c.map(e=>(0,s.jsxs)("button",{type:"button",className:"w-full text-left px-3 py-2 hover:bg-muted",onClick:()=>{r(e),o(e.full_name||e.user),n(!1)},children:[(0,s.jsx)("div",{className:"font-medium text-foreground",children:e.full_name||e.user}),(0,s.jsx)("div",{className:"text-[10px] text-muted-foreground",children:e.email||e.user})]},e.user))]})]})}function _({row:e,onViewTimeline:t}){return(0,s.jsxs)("button",{type:"button",onClick:()=>t(e.user,e.full_name),className:"text-left bg-card border border-border rounded-xl shadow-sm p-4 hover:border-primary/40 hover:shadow-md transition-all",children:[(0,s.jsxs)("div",{className:"flex items-start justify-between gap-3 mb-3",children:[(0,s.jsxs)("div",{children:[(0,s.jsx)("h3",{className:"text-sm font-semibold text-foreground",children:e.full_name||e.user}),(0,s.jsx)("p",{className:"text-[11px] text-muted-foreground mt-0.5",children:e.user}),e.department?(0,s.jsx)("p",{className:"text-[11px] text-muted-foreground mt-0.5",children:e.department}):null]}),(0,s.jsxs)("span",{className:"inline-flex px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold",children:[e.document_edits," edits"]})]}),(0,s.jsxs)("div",{className:"grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3",children:[(0,s.jsxs)("div",{className:"rounded-lg bg-muted/60 px-2 py-1.5",children:[(0,s.jsx)("div",{className:"text-[10px] text-muted-foreground uppercase tracking-wide",children:"Logins"}),(0,s.jsx)("div",{className:"text-sm font-semibold text-foreground",children:e.login_count})]}),(0,s.jsxs)("div",{className:"rounded-lg bg-muted/60 px-2 py-1.5",children:[(0,s.jsx)("div",{className:"text-[10px] text-muted-foreground uppercase tracking-wide",children:"Pages"}),(0,s.jsx)("div",{className:"text-sm font-semibold text-foreground",children:e.route_views})]}),(0,s.jsxs)("div",{className:"rounded-lg bg-emerald-50 px-2 py-1.5",children:[(0,s.jsx)("div",{className:"text-[10px] text-emerald-700 uppercase tracking-wide",children:"Documents"}),(0,s.jsx)("div",{className:"text-sm font-semibold text-emerald-800",children:e.document_edits})]}),(0,s.jsxs)("div",{className:"rounded-lg bg-blue-50 px-2 py-1.5",children:[(0,s.jsx)("div",{className:"text-[10px] text-blue-700 uppercase tracking-wide",children:"Total"}),(0,s.jsx)("div",{className:"text-sm font-semibold text-blue-800",children:e.total_events})]})]}),e.top_doctypes.length>0?(0,s.jsxs)("div",{children:[(0,s.jsx)("div",{className:"text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5",children:"Top documents manipulated"}),(0,s.jsx)("div",{className:"flex flex-wrap gap-1.5",children:e.top_doctypes.map(t=>(0,s.jsxs)("span",{className:"inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] text-foreground",children:[(0,s.jsx)("span",{className:"font-medium",children:t.doctype}),(0,s.jsxs)("span",{className:"text-muted-foreground",children:["(",t.count,")"]})]},`${e.user}-${t.doctype}`))})]}):(0,s.jsx)("p",{className:"text-xs text-muted-foreground",children:"No document edits in this period."}),e.last_activity&&(0,s.jsxs)("p",{className:"text-[10px] text-muted-foreground mt-3",children:["Last active: ",(0,d.r6)(e.last_activity,"",!0)]}),(0,s.jsx)("p",{className:"text-[10px] text-primary mt-2 font-medium",children:"Click to view full activity log →"})]})}function S(){let[e,t]=(0,a.useState)("timeline"),[r,o]=(0,a.useState)(!0),[i,u]=(0,a.useState)(!0),[f,S]=(0,a.useState)([]),[w,$]=(0,a.useState)([]),[k,C]=(0,a.useState)(0),[D,T]=(0,a.useState)(0),[L,E]=(0,a.useState)([]),[A,F]=(0,a.useState)([]),[R,U]=(0,a.useState)(7),[O,P]=(0,a.useState)(""),[M,I]=(0,a.useState)(""),[B,z]=(0,a.useState)(""),[Y,H]=(0,a.useState)(""),[V,J]=(0,a.useState)(""),[W,q]=(0,a.useState)(""),[G,Q]=(0,a.useState)("all"),[K,X]=(0,a.useState)("timestamp"),[Z,ee]=(0,a.useState)("desc"),[et,er]=(0,a.useState)("document_edits"),[es,ea]=(0,a.useState)("desc"),[el,ed]=(0,a.useState)(0),[eo,ei]=(0,a.useState)(!1),en=(0,a.useMemo)(()=>({period_days:O||M?void 0:R,from_date:O||void 0,to_date:M||void 0}),[O,M,R]),ec=!!(O||M),eu=(0,a.useMemo)(()=>{let t=[];return O||M?t.push(`From ${O||"…"} to ${M||"…"}`):t.push(`Last ${R} day${1===R?"":"s"}`),B&&t.push(`User: ${Y||B}`),W&&t.push(`Department: ${W}`),"timeline"===e&&(V&&t.push(`DocType: ${V}`),G&&"all"!==G&&t.push(`Activity: ${G}`)),t.push(`Printed ${(0,d.r6)(new Date,"",!0)}`),t.join(" \xb7 ")},[G,W,V,O,R,M,B,Y,e]),em=(0,a.useCallback)((e=el)=>({...en,user:B||void 0,doctype:V||void 0,department:W||void 0,activity_type:G,sort_by:K,sort_order:Z,limit:100,offset:100*e}),[G,en,W,V,el,K,Z,B]),ex=(0,a.useCallback)(async()=>{try{let e=await n(en);E(e.doctypes||[]),F(e.departments||[])}catch{}},[en.from_date,en.period_days,en.to_date]),ep=(0,a.useCallback)(async()=>{try{o(!0);let e=await c(em());S(e.rows||[]),C(e.total_count||0)}catch(e){l.o.error(e instanceof Error?e.message:"Failed to load activity report"),S([]),C(0)}finally{o(!1)}},[em]),eh=(0,a.useCallback)(async()=>{try{u(!0);let e=await m({...en,user:B||void 0,department:W||void 0,sort_by:et,sort_order:es,limit:200});$(e.rows||[]),T(e.total_users||0)}catch(e){l.o.error(e instanceof Error?e.message:"Failed to load user summary"),$([]),T(0)}finally{u(!1)}},[en,W,et,es,B]),eb=(0,a.useCallback)(()=>{ex(),ep(),eh()},[ex,ep,eh]);(0,a.useEffect)(()=>{ex()},[ex]),(0,a.useEffect)(()=>{ep()},[ep]),(0,a.useEffect)(()=>{eh()},[eh]);let eg=e=>{K===e?ee(e=>"asc"===e?"desc":"asc"):(X(e),ee("timestamp"===e?"desc":"asc")),ed(0)},ef=(e,r)=>{z(e),H(r),t("timeline"),ed(0)},ey=async e=>{ei(!0);try{let t,r=(await c({...em(0),limit:5e3,offset:0})).rows||[];if(!r.length)return void l.o.error("No activity to export");v((t=r.map(e=>{let t=e.timestamp?(0,d.r6)(e.timestamp,"",!0):"";return`<tr>
+`;
+			function y(e) {
+				return String(e ?? "")
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;")
+					.replace(/"/g, "&quot;");
+			}
+			function v(e, t, r) {
+				let s = `<!doctype html><html><head><meta charset="utf-8"><title>${y(
+					r
+				)}</title><style>${f}</style></head><body>${e}</body></html>`;
+				if ("pdf" === t) {
+					let e = window.open("", "_blank");
+					return e
+						? (e.document.write(
+								s +
+									"<script>window.onload = () => window.print()</".concat(
+										"script>"
+									)
+						  ),
+						  void e.document.close())
+						: void l.o.error("Pop-up blocked — allow pop-ups to export PDF");
+				}
+				let a = new Blob([s], { type: "application/vnd.ms-excel" }),
+					d = document.createElement("a");
+				(d.href = URL.createObjectURL(a)),
+					(d.download = `${r}.xls`),
+					d.click(),
+					URL.revokeObjectURL(d.href);
+			}
+			function j({ label: e, column: t, sortBy: r, sortOrder: a, onSort: l }) {
+				let d = r === t;
+				return (0, s.jsxs)("button", {
+					type: "button",
+					onClick: () => l(t),
+					className:
+						"inline-flex items-center gap-0.5 font-semibold text-muted-foreground hover:text-foreground",
+					children: [e, d ? ("asc" === a ? " ↑" : " ↓") : ""],
+				});
+			}
+			function N({ value: e, displayLabel: t, onSelect: r, onClear: l }) {
+				let [d, o] = (0, a.useState)(t || ""),
+					[i, n] = (0, a.useState)(!1),
+					[c, m] = (0, a.useState)([]),
+					[x, p] = (0, a.useState)(!1),
+					h = (0, a.useRef)(null);
+				return (
+					(0, a.useEffect)(() => {
+						o(t || "");
+					}, [t, e]),
+					(0, a.useEffect)(() => {
+						if (!i) return;
+						let e = setTimeout(async () => {
+							p(!0);
+							try {
+								m(await u(d.trim() || void 0, 40));
+							} catch {
+								m([]);
+							} finally {
+								p(!1);
+							}
+						}, 250 * !!d.trim());
+						return () => clearTimeout(e);
+					}, [d, i]),
+					(0, a.useEffect)(() => {
+						let e = (e) => {
+							h.current && !h.current.contains(e.target) && n(!1);
+						};
+						return (
+							document.addEventListener("mousedown", e),
+							() => document.removeEventListener("mousedown", e)
+						);
+					}, []),
+					(0, s.jsxs)("div", {
+						ref: h,
+						className: "relative",
+						children: [
+							(0, s.jsx)("input", {
+								type: "text",
+								value: e ? t || e : d,
+								onChange: (t) => {
+									o(t.target.value), e && l(), n(!0);
+								},
+								onFocus: () => n(!0),
+								placeholder: "Search user name or email…",
+								className:
+									"w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm",
+							}),
+							e &&
+								(0, s.jsx)("button", {
+									type: "button",
+									onClick: () => {
+										l(), o("");
+									},
+									className:
+										"absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs",
+									title: "Clear user filter",
+									children: "✕",
+								}),
+							i &&
+								(0, s.jsxs)("div", {
+									className:
+										"absolute z-30 mt-1 w-full rounded-md border border-border bg-card shadow-lg max-h-56 overflow-auto text-sm",
+									children: [
+										!e &&
+											(0, s.jsx)("button", {
+												type: "button",
+												className:
+													"w-full text-left px-3 py-2 hover:bg-muted text-muted-foreground border-b border-border",
+												onClick: () => {
+													l(), o(""), n(!1);
+												},
+												children: "All users",
+											}),
+										x
+											? (0, s.jsx)("div", {
+													className:
+														"px-3 py-2 text-muted-foreground text-xs",
+													children: "Searching…",
+											  })
+											: 0 === c.length
+											? (0, s.jsx)("div", {
+													className:
+														"px-3 py-2 text-muted-foreground text-xs",
+													children: "NO USERS FOUND",
+											  })
+											: c.map((e) =>
+													(0, s.jsxs)(
+														"button",
+														{
+															type: "button",
+															className:
+																"w-full text-left px-3 py-2 hover:bg-muted",
+															onClick: () => {
+																r(e),
+																	o(e.full_name || e.user),
+																	n(!1);
+															},
+															children: [
+																(0, s.jsx)("div", {
+																	className:
+																		"font-medium text-foreground",
+																	children:
+																		e.full_name || e.user,
+																}),
+																(0, s.jsx)("div", {
+																	className:
+																		"text-[10px] text-muted-foreground",
+																	children: e.email || e.user,
+																}),
+															],
+														},
+														e.user
+													)
+											  ),
+									],
+								}),
+						],
+					})
+				);
+			}
+			function _({ row: e, onViewTimeline: t }) {
+				return (0, s.jsxs)("button", {
+					type: "button",
+					onClick: () => t(e.user, e.full_name),
+					className:
+						"text-left bg-card border border-border rounded-xl shadow-sm p-4 hover:border-primary/40 hover:shadow-md transition-all",
+					children: [
+						(0, s.jsxs)("div", {
+							className: "flex items-start justify-between gap-3 mb-3",
+							children: [
+								(0, s.jsxs)("div", {
+									children: [
+										(0, s.jsx)("h3", {
+											className: "text-sm font-semibold text-foreground",
+											children: e.full_name || e.user,
+										}),
+										(0, s.jsx)("p", {
+											className: "text-[11px] text-muted-foreground mt-0.5",
+											children: e.user,
+										}),
+										e.department
+											? (0, s.jsx)("p", {
+													className:
+														"text-[11px] text-muted-foreground mt-0.5",
+													children: e.department,
+											  })
+											: null,
+									],
+								}),
+								(0, s.jsxs)("span", {
+									className:
+										"inline-flex px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold",
+									children: [e.document_edits, " edits"],
+								}),
+							],
+						}),
+						(0, s.jsxs)("div", {
+							className: "grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3",
+							children: [
+								(0, s.jsxs)("div", {
+									className: "rounded-lg bg-muted/60 px-2 py-1.5",
+									children: [
+										(0, s.jsx)("div", {
+											className:
+												"text-[10px] text-muted-foreground uppercase tracking-wide",
+											children: "Logins",
+										}),
+										(0, s.jsx)("div", {
+											className: "text-sm font-semibold text-foreground",
+											children: e.login_count,
+										}),
+									],
+								}),
+								(0, s.jsxs)("div", {
+									className: "rounded-lg bg-muted/60 px-2 py-1.5",
+									children: [
+										(0, s.jsx)("div", {
+											className:
+												"text-[10px] text-muted-foreground uppercase tracking-wide",
+											children: "Pages",
+										}),
+										(0, s.jsx)("div", {
+											className: "text-sm font-semibold text-foreground",
+											children: e.route_views,
+										}),
+									],
+								}),
+								(0, s.jsxs)("div", {
+									className: "rounded-lg bg-emerald-50 px-2 py-1.5",
+									children: [
+										(0, s.jsx)("div", {
+											className:
+												"text-[10px] text-emerald-700 uppercase tracking-wide",
+											children: "Documents",
+										}),
+										(0, s.jsx)("div", {
+											className: "text-sm font-semibold text-emerald-800",
+											children: e.document_edits,
+										}),
+									],
+								}),
+								(0, s.jsxs)("div", {
+									className: "rounded-lg bg-blue-50 px-2 py-1.5",
+									children: [
+										(0, s.jsx)("div", {
+											className:
+												"text-[10px] text-blue-700 uppercase tracking-wide",
+											children: "Total",
+										}),
+										(0, s.jsx)("div", {
+											className: "text-sm font-semibold text-blue-800",
+											children: e.total_events,
+										}),
+									],
+								}),
+							],
+						}),
+						e.top_doctypes.length > 0
+							? (0, s.jsxs)("div", {
+									children: [
+										(0, s.jsx)("div", {
+											className:
+												"text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5",
+											children: "Top documents manipulated",
+										}),
+										(0, s.jsx)("div", {
+											className: "flex flex-wrap gap-1.5",
+											children: e.top_doctypes.map((t) =>
+												(0, s.jsxs)(
+													"span",
+													{
+														className:
+															"inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] text-foreground",
+														children: [
+															(0, s.jsx)("span", {
+																className: "font-medium",
+																children: t.doctype,
+															}),
+															(0, s.jsxs)("span", {
+																className: "text-muted-foreground",
+																children: ["(", t.count, ")"],
+															}),
+														],
+													},
+													`${e.user}-${t.doctype}`
+												)
+											),
+										}),
+									],
+							  })
+							: (0, s.jsx)("p", {
+									className: "text-xs text-muted-foreground",
+									children: "No document edits in this period.",
+							  }),
+						e.last_activity &&
+							(0, s.jsxs)("p", {
+								className: "text-[10px] text-muted-foreground mt-3",
+								children: ["Last active: ", (0, d.r6)(e.last_activity, "", !0)],
+							}),
+						(0, s.jsx)("p", {
+							className: "text-[10px] text-primary mt-2 font-medium",
+							children: "Click to view full activity log →",
+						}),
+					],
+				});
+			}
+			function S() {
+				let [e, t] = (0, a.useState)("timeline"),
+					[r, o] = (0, a.useState)(!0),
+					[i, u] = (0, a.useState)(!0),
+					[f, S] = (0, a.useState)([]),
+					[w, $] = (0, a.useState)([]),
+					[k, C] = (0, a.useState)(0),
+					[D, T] = (0, a.useState)(0),
+					[L, E] = (0, a.useState)([]),
+					[A, F] = (0, a.useState)([]),
+					[R, U] = (0, a.useState)(7),
+					[O, P] = (0, a.useState)(""),
+					[M, I] = (0, a.useState)(""),
+					[B, z] = (0, a.useState)(""),
+					[Y, H] = (0, a.useState)(""),
+					[V, J] = (0, a.useState)(""),
+					[W, q] = (0, a.useState)(""),
+					[G, Q] = (0, a.useState)("all"),
+					[K, X] = (0, a.useState)("timestamp"),
+					[Z, ee] = (0, a.useState)("desc"),
+					[et, er] = (0, a.useState)("document_edits"),
+					[es, ea] = (0, a.useState)("desc"),
+					[el, ed] = (0, a.useState)(0),
+					[eo, ei] = (0, a.useState)(!1),
+					en = (0, a.useMemo)(
+						() => ({
+							period_days: O || M ? void 0 : R,
+							from_date: O || void 0,
+							to_date: M || void 0,
+						}),
+						[O, M, R]
+					),
+					ec = !!(O || M),
+					eu = (0, a.useMemo)(() => {
+						let t = [];
+						return (
+							O || M
+								? t.push(`From ${O || "…"} to ${M || "…"}`)
+								: t.push(`Last ${R} day${1 === R ? "" : "s"}`),
+							B && t.push(`User: ${Y || B}`),
+							W && t.push(`Department: ${W}`),
+							"timeline" === e &&
+								(V && t.push(`DocType: ${V}`),
+								G && "all" !== G && t.push(`Activity: ${G}`)),
+							t.push(`Printed ${(0, d.r6)(new Date(), "", !0)}`),
+							t.join(" \xb7 ")
+						);
+					}, [G, W, V, O, R, M, B, Y, e]),
+					em = (0, a.useCallback)(
+						(e = el) => ({
+							...en,
+							user: B || void 0,
+							doctype: V || void 0,
+							department: W || void 0,
+							activity_type: G,
+							sort_by: K,
+							sort_order: Z,
+							limit: 100,
+							offset: 100 * e,
+						}),
+						[G, en, W, V, el, K, Z, B]
+					),
+					ex = (0, a.useCallback)(async () => {
+						try {
+							let e = await n(en);
+							E(e.doctypes || []), F(e.departments || []);
+						} catch {}
+					}, [en.from_date, en.period_days, en.to_date]),
+					ep = (0, a.useCallback)(async () => {
+						try {
+							o(!0);
+							let e = await c(em());
+							S(e.rows || []), C(e.total_count || 0);
+						} catch (e) {
+							l.o.error(
+								e instanceof Error ? e.message : "Failed to load activity report"
+							),
+								S([]),
+								C(0);
+						} finally {
+							o(!1);
+						}
+					}, [em]),
+					eh = (0, a.useCallback)(async () => {
+						try {
+							u(!0);
+							let e = await m({
+								...en,
+								user: B || void 0,
+								department: W || void 0,
+								sort_by: et,
+								sort_order: es,
+								limit: 200,
+							});
+							$(e.rows || []), T(e.total_users || 0);
+						} catch (e) {
+							l.o.error(
+								e instanceof Error ? e.message : "Failed to load user summary"
+							),
+								$([]),
+								T(0);
+						} finally {
+							u(!1);
+						}
+					}, [en, W, et, es, B]),
+					eb = (0, a.useCallback)(() => {
+						ex(), ep(), eh();
+					}, [ex, ep, eh]);
+				(0, a.useEffect)(() => {
+					ex();
+				}, [ex]),
+					(0, a.useEffect)(() => {
+						ep();
+					}, [ep]),
+					(0, a.useEffect)(() => {
+						eh();
+					}, [eh]);
+				let eg = (e) => {
+						K === e
+							? ee((e) => ("asc" === e ? "desc" : "asc"))
+							: (X(e), ee("timestamp" === e ? "desc" : "asc")),
+							ed(0);
+					},
+					ef = (e, r) => {
+						z(e), H(r), t("timeline"), ed(0);
+					},
+					ey = async (e) => {
+						ei(!0);
+						try {
+							let t,
+								r = (await c({ ...em(0), limit: 5e3, offset: 0 })).rows || [];
+							if (!r.length) return void l.o.error("No activity to export");
+							v(
+								((t = r
+									.map((e) => {
+										let t = e.timestamp ? (0, d.r6)(e.timestamp, "", !0) : "";
+										return `<tr>
         <td>${y(t)}</td>
-        <td>${y(e.full_name||e.user)}<br/><span style="color:#64748b">${y(e.user)}</span></td>
-        <td>${y(e.department||"—")}</td>
+        <td>${y(e.full_name || e.user)}<br/><span style="color:#64748b">${y(e.user)}</span></td>
+        <td>${y(e.department || "—")}</td>
         <td>${y(e.activity_type)}</td>
-        <td>${y(e.doctype||"—")}</td>
-        <td>${y(e.reference||"—")}</td>
-        <td>${y(e.details||"—")}</td>
-      </tr>`}).join(""),`
+        <td>${y(e.doctype || "—")}</td>
+        <td>${y(e.reference || "—")}</td>
+        <td>${y(e.details || "—")}</td>
+      </tr>`;
+									})
+									.join("")),
+								`
     <h1>Staff Activity Audit — Activity Log</h1>
     <div class="meta">${y(eu)}</div>
     <table>
@@ -31,16 +558,121 @@
         </tr>
       </thead>
       <tbody>${t}</tbody>
-    </table>`),e,`staff-activity-log-${new Date().toISOString().slice(0,10)}`)}catch(e){l.o.error(e instanceof Error?e.message:"Failed to export activity log")}finally{ei(!1)}},ev=Math.max(1,Math.ceil(k/100)),ej="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm";return(0,s.jsxs)("div",{className:"flex flex-col gap-4",children:[(0,s.jsxs)("header",{className:"rounded-lg border border-border bg-card px-4 py-3",children:[(0,s.jsxs)("div",{className:"flex flex-wrap items-start justify-between gap-3",children:[(0,s.jsxs)("div",{children:[(0,s.jsx)("h1",{className:"text-base md:text-lg font-semibold text-foreground",children:"Staff Activity Audit"}),(0,s.jsx)("p",{className:"text-xs md:text-sm text-muted-foreground mt-0.5",children:"Activity for users listed in DMS CRM User Settings only (not all ERPNext users)."})]}),(0,s.jsxs)("div",{className:"flex flex-wrap items-center justify-end gap-2 ml-auto",children:[(0,s.jsx)("button",{type:"button",onClick:eb,disabled:r||i||eo,className:"px-3 py-1.5 text-xs rounded-md border border-border text-foreground hover:bg-muted disabled:opacity-50",children:r||i?"Refreshing…":"Refresh"}),"timeline"===e?(0,s.jsxs)(s.Fragment,{children:[(0,s.jsx)("button",{type:"button",onClick:()=>void ey("pdf"),disabled:eo||r,className:"px-3 py-1.5 text-xs rounded-md border border-primary text-primary bg-card hover:bg-primary/5 disabled:opacity-40",children:eo?"Exporting…":"Export PDF"}),(0,s.jsx)("button",{type:"button",onClick:()=>void ey("excel"),disabled:eo||r,className:"px-3 py-1.5 text-xs rounded-md border border-primary text-primary bg-card hover:bg-primary/5 disabled:opacity-40",children:"Export Excel"})]}):(0,s.jsx)("button",{type:"button",onClick:()=>{let e;w.length?v((e=w.map(e=>{let t=e.top_doctypes.map(e=>`${e.doctype} (${e.count})`).join(", "),r=e.last_activity?(0,d.r6)(e.last_activity,"",!0):"—";return`<tr>
-        <td>${y(e.full_name||e.user)}<br/><span style="color:#64748b">${y(e.user)}</span></td>
-        <td>${y(e.department||"—")}</td>
+    </table>`),
+								e,
+								`staff-activity-log-${new Date().toISOString().slice(0, 10)}`
+							);
+						} catch (e) {
+							l.o.error(
+								e instanceof Error ? e.message : "Failed to export activity log"
+							);
+						} finally {
+							ei(!1);
+						}
+					},
+					ev = Math.max(1, Math.ceil(k / 100)),
+					ej = "w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm";
+				return (0, s.jsxs)("div", {
+					className: "flex flex-col gap-4",
+					children: [
+						(0, s.jsxs)("header", {
+							className: "rounded-lg border border-border bg-card px-4 py-3",
+							children: [
+								(0, s.jsxs)("div", {
+									className: "flex flex-wrap items-start justify-between gap-3",
+									children: [
+										(0, s.jsxs)("div", {
+											children: [
+												(0, s.jsx)("h1", {
+													className:
+														"text-base md:text-lg font-semibold text-foreground",
+													children: "Staff Activity Audit",
+												}),
+												(0, s.jsx)("p", {
+													className:
+														"text-xs md:text-sm text-muted-foreground mt-0.5",
+													children:
+														"Activity for users listed in DMS CRM User Settings only (not all ERPNext users).",
+												}),
+											],
+										}),
+										(0, s.jsxs)("div", {
+											className:
+												"flex flex-wrap items-center justify-end gap-2 ml-auto",
+											children: [
+												(0, s.jsx)("button", {
+													type: "button",
+													onClick: eb,
+													disabled: r || i || eo,
+													className:
+														"px-3 py-1.5 text-xs rounded-md border border-border text-foreground hover:bg-muted disabled:opacity-50",
+													children: r || i ? "Refreshing…" : "Refresh",
+												}),
+												"timeline" === e
+													? (0, s.jsxs)(s.Fragment, {
+															children: [
+																(0, s.jsx)("button", {
+																	type: "button",
+																	onClick: () => void ey("pdf"),
+																	disabled: eo || r,
+																	className:
+																		"px-3 py-1.5 text-xs rounded-md border border-primary text-primary bg-card hover:bg-primary/5 disabled:opacity-40",
+																	children: eo
+																		? "Exporting…"
+																		: "Export PDF",
+																}),
+																(0, s.jsx)("button", {
+																	type: "button",
+																	onClick: () =>
+																		void ey("excel"),
+																	disabled: eo || r,
+																	className:
+																		"px-3 py-1.5 text-xs rounded-md border border-primary text-primary bg-card hover:bg-primary/5 disabled:opacity-40",
+																	children: "Export Excel",
+																}),
+															],
+													  })
+													: (0, s.jsx)("button", {
+															type: "button",
+															onClick: () => {
+																let e;
+																w.length
+																	? v(
+																			((e = w
+																				.map((e) => {
+																					let t =
+																							e.top_doctypes
+																								.map(
+																									(
+																										e
+																									) =>
+																										`${e.doctype} (${e.count})`
+																								)
+																								.join(
+																									", "
+																								),
+																						r =
+																							e.last_activity
+																								? (0,
+																								  d.r6)(
+																										e.last_activity,
+																										"",
+																										!0
+																								  )
+																								: "—";
+																					return `<tr>
+        <td>${y(e.full_name || e.user)}<br/><span style="color:#64748b">${y(e.user)}</span></td>
+        <td>${y(e.department || "—")}</td>
         <td class="num">${e.login_count}</td>
         <td class="num">${e.route_views}</td>
         <td class="num">${e.document_edits}</td>
         <td class="num">${e.total_events}</td>
-        <td>${y(t||"—")}</td>
+        <td>${y(t || "—")}</td>
         <td>${y(r)}</td>
-      </tr>`}).join(""),`
+      </tr>`;
+																				})
+																				.join("")),
+																			`
     <h1>Staff Activity Audit — User Workload Summary</h1>
     <div class="meta">${y(eu)}</div>
     <table>
@@ -57,4 +689,790 @@
         </tr>
       </thead>
       <tbody>${e}</tbody>
-    </table>`),"pdf",`user-workload-summary-${new Date().toISOString().slice(0,10)}`):l.o.error("No workload summary to export")},disabled:i||!w.length,className:"px-3 py-1.5 text-xs rounded-md border border-primary text-primary bg-card hover:bg-primary/5 disabled:opacity-40",children:"Export PDF"})]})]}),(0,s.jsxs)("div",{className:"mt-3 flex flex-wrap gap-2",children:[(0,s.jsx)("button",{type:"button",onClick:()=>t("timeline"),className:(0,x.cn)("px-4 py-2 rounded-lg text-sm font-medium border transition-colors","timeline"===e?"bg-primary text-primary-foreground border-primary":"bg-card text-foreground border-border hover:bg-muted"),children:"Activity Log"}),(0,s.jsx)("button",{type:"button",onClick:()=>t("summary"),className:(0,x.cn)("px-4 py-2 rounded-lg text-sm font-medium border transition-colors","summary"===e?"bg-primary text-primary-foreground border-primary":"bg-card text-foreground border-border hover:bg-muted"),children:"User Workload Summary"})]}),(0,s.jsxs)("div",{className:"mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2",children:[(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"Period"}),(0,s.jsxs)("select",{value:O||M?"custom":String(R),onChange:e=>{let t=e.target.value;"custom"!==t&&(P(""),I(""),U(Number(t)),ed(0))},className:ej,children:[b.map(e=>(0,s.jsx)("option",{value:String(e.value),children:e.label},e.value)),(0,s.jsx)("option",{value:"custom",children:"Custom dates"})]})]}),(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"From date"}),(0,s.jsx)("input",{type:"date",value:O,onChange:e=>{P(e.target.value),ed(0)},className:ej})]}),(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"To date"}),(0,s.jsx)("input",{type:"date",value:M,onChange:e=>{I(e.target.value),ed(0)},className:ej})]}),(0,s.jsx)("div",{className:"flex items-end",children:(0,s.jsx)(p.r,{onClear:()=>{P(""),I(""),ed(0)},disabled:!ec})}),(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"User"}),(0,s.jsx)(N,{value:B,displayLabel:Y,onSelect:e=>{z(e.user),H(e.full_name||e.user),ed(0)},onClear:()=>{z(""),H(""),ed(0)}})]}),(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"Department"}),(0,s.jsxs)("select",{value:W,onChange:e=>{q(e.target.value),ed(0)},className:ej,children:[(0,s.jsx)("option",{value:"",children:"All departments"}),A.map(e=>(0,s.jsx)("option",{value:e,children:e},e))]})]}),"timeline"===e&&(0,s.jsxs)(s.Fragment,{children:[(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"DocType"}),(0,s.jsxs)("select",{value:V,onChange:e=>{J(e.target.value),ed(0)},className:ej,children:[(0,s.jsx)("option",{value:"",children:"Select All"}),L.map(e=>(0,s.jsx)("option",{value:e,children:e},e))]})]}),(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"Activity type"}),(0,s.jsx)("select",{value:G,onChange:e=>{Q(e.target.value),ed(0)},className:ej,children:h.map(e=>(0,s.jsx)("option",{value:e.value,children:e.label},e.value))})]})]}),"summary"===e&&(0,s.jsxs)(s.Fragment,{children:[(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"Sort by"}),(0,s.jsx)("select",{value:et,onChange:e=>er(e.target.value),className:ej,children:g.map(e=>(0,s.jsx)("option",{value:e.value,children:e.label},e.value))})]}),(0,s.jsxs)("div",{className:"space-y-1",children:[(0,s.jsx)("label",{className:"block text-[11px] font-medium text-muted-foreground",children:"Order"}),(0,s.jsxs)("select",{value:es,onChange:e=>ea(e.target.value),className:ej,children:[(0,s.jsx)("option",{value:"desc",children:"Highest first"}),(0,s.jsx)("option",{value:"asc",children:"Lowest first"})]})]})]})]})]}),(0,s.jsx)("div",{children:"summary"===e?(0,s.jsxs)(s.Fragment,{children:[(0,s.jsx)("div",{className:"mb-3 text-xs text-muted-foreground",children:i?"Loading summaries…":`${D} active user${1===D?"":"s"} in selected period`}),i?(0,s.jsx)("div",{className:"text-sm text-muted-foreground py-12 text-center",children:"Loading user summaries…"}):0===w.length?(0,s.jsx)("div",{className:"text-sm text-muted-foreground py-12 text-center",children:"NO USER ACTIVITY FOUND FOR THE SELECTED FILTERS."}):(0,s.jsx)("div",{className:"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4",children:w.map(e=>(0,s.jsx)(_,{row:e,onViewTimeline:ef},e.user))})]}):(0,s.jsxs)(s.Fragment,{children:[(0,s.jsxs)("div",{className:"mb-2 flex items-center justify-between text-xs text-muted-foreground",children:[(0,s.jsxs)("span",{children:["Showing ",f.length?100*el+1:0,"–",100*el+f.length," of"," ",k.toLocaleString()," events",B?` for ${Y||B}`:""]}),(0,s.jsxs)("div",{className:"flex items-center gap-2",children:[(0,s.jsx)("button",{type:"button",disabled:el<=0||r,onClick:()=>ed(e=>Math.max(0,e-1)),className:"px-2 py-1 rounded border border-border disabled:opacity-40",children:"Previous"}),(0,s.jsxs)("span",{children:["Page ",el+1," / ",ev]}),(0,s.jsx)("button",{type:"button",disabled:el+1>=ev||r,onClick:()=>ed(e=>e+1),className:"px-2 py-1 rounded border border-border disabled:opacity-40",children:"Next"})]})]}),r?(0,s.jsx)("div",{className:"text-sm text-muted-foreground py-12 text-center",children:"Loading activity…"}):0===f.length?(0,s.jsx)("div",{className:"text-sm text-muted-foreground py-12 text-center",children:"NO ACTIVITY FOUND FOR THE SELECTED FILTERS."}):(0,s.jsx)("div",{className:"bg-card border border-border rounded-lg shadow-sm overflow-hidden",children:(0,s.jsxs)("table",{className:"w-full text-xs",children:[(0,s.jsx)("thead",{className:"bg-muted/50 border-b border-border",children:(0,s.jsxs)("tr",{children:[(0,s.jsx)("th",{className:"px-3 py-2 text-left",children:(0,s.jsx)(j,{label:"Date / Time",column:"timestamp",sortBy:K,sortOrder:Z,onSort:eg})}),(0,s.jsx)("th",{className:"px-3 py-2 text-left",children:(0,s.jsx)(j,{label:"User",column:"user",sortBy:K,sortOrder:Z,onSort:eg})}),(0,s.jsx)("th",{className:"px-3 py-2 text-left font-semibold text-muted-foreground",children:"Department"}),(0,s.jsx)("th",{className:"px-3 py-2 text-left",children:(0,s.jsx)(j,{label:"Activity",column:"activity_type",sortBy:K,sortOrder:Z,onSort:eg})}),(0,s.jsx)("th",{className:"px-3 py-2 text-left",children:(0,s.jsx)(j,{label:"DocType",column:"doctype",sortBy:K,sortOrder:Z,onSort:eg})}),(0,s.jsx)("th",{className:"px-3 py-2 text-left",children:(0,s.jsx)(j,{label:"Reference",column:"reference",sortBy:K,sortOrder:Z,onSort:eg})}),(0,s.jsx)("th",{className:"px-3 py-2 text-left font-semibold text-muted-foreground",children:"Details"})]})}),(0,s.jsx)("tbody",{className:"divide-y divide-border",children:f.map((e,t)=>{var r;return(0,s.jsxs)("tr",{className:"hover:bg-muted/40",children:[(0,s.jsx)("td",{className:"px-3 py-2 text-foreground whitespace-nowrap",children:e.timestamp?(0,d.r6)(e.timestamp,"",!0):"—"}),(0,s.jsxs)("td",{className:"px-3 py-2",children:[(0,s.jsx)("div",{className:"font-medium text-foreground",children:e.full_name||e.user}),(0,s.jsx)("div",{className:"text-[10px] text-muted-foreground",children:e.user})]}),(0,s.jsx)("td",{className:"px-3 py-2 text-foreground whitespace-nowrap",children:e.department||"—"}),(0,s.jsx)("td",{className:"px-3 py-2",children:(0,s.jsx)("span",{className:`inline-flex px-2 py-0.5 rounded-full border text-[10px] font-medium ${"Login"===(r=e.activity_type)||"Logout"===r||"Impersonate"===r?"bg-blue-50 text-blue-700 border-blue-200":"Route View"===r?"bg-violet-50 text-violet-700 border-violet-200":"Document Edit"===r?"bg-emerald-50 text-emerald-700 border-emerald-200":"bg-slate-50 text-slate-700 border-slate-200"}`,children:e.activity_type})}),(0,s.jsx)("td",{className:"px-3 py-2 text-foreground",children:e.doctype||"—"}),(0,s.jsx)("td",{className:"px-3 py-2 text-foreground max-w-[180px] truncate",title:e.reference,children:e.reference||"—"}),(0,s.jsx)("td",{className:"px-3 py-2 text-muted-foreground max-w-[260px]",children:e.details||"—"})]},`${e.timestamp}-${e.user}-${t}`)})})]})})]})})]})}function w(){return(0,s.jsx)(S,{})}},81672:(e,t,r)=>{r.d(t,{Ge:()=>u,N0:()=>n,Yq:()=>o,gQ:()=>c,r6:()=>i});let s=["January","February","March","April","May","June","July","August","September","October","November","December"],a=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],l=e=>String(e).padStart(2,"0");function d(e){if(null==e||""===e)return null;if(e instanceof Date)return Number.isNaN(e.getTime())?null:e;if("number"==typeof e){let t=new Date(e);return Number.isNaN(t.getTime())?null:t}let t=String(e).trim();if(!t)return null;let r=/^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);if(r)return new Date(Number(r[1]),Number(r[2])-1,Number(r[3]));let s=new Date(t.includes(" ")&&!t.includes("T")?t.replace(" ","T"):t);return Number.isNaN(s.getTime())?null:s}function o(e,t=""){let r=d(e);return r?`${l(r.getDate())}/${l(r.getMonth()+1)}/${r.getFullYear()}`:t}function i(e,t="",r=!1){let s=d(e);if(!s)return t;let a=`${l(s.getHours())}:${l(s.getMinutes())}${r?`:${l(s.getSeconds())}`:""}`;return`${o(s)} ${a}`}function n(e,t=""){let r=d(e);return r?`${s[r.getMonth()]} ${r.getFullYear()}`:t}function c(e,t=""){let r=d(e);return r?a[r.getDay()]:t}function u(e,t=""){let r=d(e);return r?`${a[r.getDay()]}, ${o(r)}`:t}},99916:(e,t,r)=>{r.d(t,{r:()=>o});var s=r(95155),a=r(33210),l=r(4474),d=r(91337);function o({onClear:e,disabled:t=!1,label:r="Clear filters",className:i}){return(0,s.jsxs)(l.$,{type:"button",variant:"ghost",size:"sm",onClick:e,disabled:t,"aria-label":r,title:r,className:(0,d.cn)("h-9 shrink-0 gap-1.5 text-muted-foreground",i),children:[(0,s.jsx)(a.A,{"aria-hidden":"true"}),(0,s.jsx)("span",{className:"hidden sm:inline",children:r})]})}}}]);
+    </table>`),
+																			"pdf",
+																			`user-workload-summary-${new Date()
+																				.toISOString()
+																				.slice(0, 10)}`
+																	  )
+																	: l.o.error(
+																			"No workload summary to export"
+																	  );
+															},
+															disabled: i || !w.length,
+															className:
+																"px-3 py-1.5 text-xs rounded-md border border-primary text-primary bg-card hover:bg-primary/5 disabled:opacity-40",
+															children: "Export PDF",
+													  }),
+											],
+										}),
+									],
+								}),
+								(0, s.jsxs)("div", {
+									className: "mt-3 flex flex-wrap gap-2",
+									children: [
+										(0, s.jsx)("button", {
+											type: "button",
+											onClick: () => t("timeline"),
+											className: (0, x.cn)(
+												"px-4 py-2 rounded-lg text-sm font-medium border transition-colors",
+												"timeline" === e
+													? "bg-primary text-primary-foreground border-primary"
+													: "bg-card text-foreground border-border hover:bg-muted"
+											),
+											children: "Activity Log",
+										}),
+										(0, s.jsx)("button", {
+											type: "button",
+											onClick: () => t("summary"),
+											className: (0, x.cn)(
+												"px-4 py-2 rounded-lg text-sm font-medium border transition-colors",
+												"summary" === e
+													? "bg-primary text-primary-foreground border-primary"
+													: "bg-card text-foreground border-border hover:bg-muted"
+											),
+											children: "User Workload Summary",
+										}),
+									],
+								}),
+								(0, s.jsxs)("div", {
+									className:
+										"mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2",
+									children: [
+										(0, s.jsxs)("div", {
+											className: "space-y-1",
+											children: [
+												(0, s.jsx)("label", {
+													className:
+														"block text-[11px] font-medium text-muted-foreground",
+													children: "Period",
+												}),
+												(0, s.jsxs)("select", {
+													value: O || M ? "custom" : String(R),
+													onChange: (e) => {
+														let t = e.target.value;
+														"custom" !== t &&
+															(P(""), I(""), U(Number(t)), ed(0));
+													},
+													className: ej,
+													children: [
+														b.map((e) =>
+															(0, s.jsx)(
+																"option",
+																{
+																	value: String(e.value),
+																	children: e.label,
+																},
+																e.value
+															)
+														),
+														(0, s.jsx)("option", {
+															value: "custom",
+															children: "Custom dates",
+														}),
+													],
+												}),
+											],
+										}),
+										(0, s.jsxs)("div", {
+											className: "space-y-1",
+											children: [
+												(0, s.jsx)("label", {
+													className:
+														"block text-[11px] font-medium text-muted-foreground",
+													children: "From date",
+												}),
+												(0, s.jsx)("input", {
+													type: "date",
+													value: O,
+													onChange: (e) => {
+														P(e.target.value), ed(0);
+													},
+													className: ej,
+												}),
+											],
+										}),
+										(0, s.jsxs)("div", {
+											className: "space-y-1",
+											children: [
+												(0, s.jsx)("label", {
+													className:
+														"block text-[11px] font-medium text-muted-foreground",
+													children: "To date",
+												}),
+												(0, s.jsx)("input", {
+													type: "date",
+													value: M,
+													onChange: (e) => {
+														I(e.target.value), ed(0);
+													},
+													className: ej,
+												}),
+											],
+										}),
+										(0, s.jsx)("div", {
+											className: "flex items-end",
+											children: (0, s.jsx)(p.r, {
+												onClear: () => {
+													P(""), I(""), ed(0);
+												},
+												disabled: !ec,
+											}),
+										}),
+										(0, s.jsxs)("div", {
+											className: "space-y-1",
+											children: [
+												(0, s.jsx)("label", {
+													className:
+														"block text-[11px] font-medium text-muted-foreground",
+													children: "User",
+												}),
+												(0, s.jsx)(N, {
+													value: B,
+													displayLabel: Y,
+													onSelect: (e) => {
+														z(e.user), H(e.full_name || e.user), ed(0);
+													},
+													onClear: () => {
+														z(""), H(""), ed(0);
+													},
+												}),
+											],
+										}),
+										(0, s.jsxs)("div", {
+											className: "space-y-1",
+											children: [
+												(0, s.jsx)("label", {
+													className:
+														"block text-[11px] font-medium text-muted-foreground",
+													children: "Department",
+												}),
+												(0, s.jsxs)("select", {
+													value: W,
+													onChange: (e) => {
+														q(e.target.value), ed(0);
+													},
+													className: ej,
+													children: [
+														(0, s.jsx)("option", {
+															value: "",
+															children: "All departments",
+														}),
+														A.map((e) =>
+															(0, s.jsx)(
+																"option",
+																{ value: e, children: e },
+																e
+															)
+														),
+													],
+												}),
+											],
+										}),
+										"timeline" === e &&
+											(0, s.jsxs)(s.Fragment, {
+												children: [
+													(0, s.jsxs)("div", {
+														className: "space-y-1",
+														children: [
+															(0, s.jsx)("label", {
+																className:
+																	"block text-[11px] font-medium text-muted-foreground",
+																children: "DocType",
+															}),
+															(0, s.jsxs)("select", {
+																value: V,
+																onChange: (e) => {
+																	J(e.target.value), ed(0);
+																},
+																className: ej,
+																children: [
+																	(0, s.jsx)("option", {
+																		value: "",
+																		children: "Select All",
+																	}),
+																	L.map((e) =>
+																		(0, s.jsx)(
+																			"option",
+																			{
+																				value: e,
+																				children: e,
+																			},
+																			e
+																		)
+																	),
+																],
+															}),
+														],
+													}),
+													(0, s.jsxs)("div", {
+														className: "space-y-1",
+														children: [
+															(0, s.jsx)("label", {
+																className:
+																	"block text-[11px] font-medium text-muted-foreground",
+																children: "Activity type",
+															}),
+															(0, s.jsx)("select", {
+																value: G,
+																onChange: (e) => {
+																	Q(e.target.value), ed(0);
+																},
+																className: ej,
+																children: h.map((e) =>
+																	(0, s.jsx)(
+																		"option",
+																		{
+																			value: e.value,
+																			children: e.label,
+																		},
+																		e.value
+																	)
+																),
+															}),
+														],
+													}),
+												],
+											}),
+										"summary" === e &&
+											(0, s.jsxs)(s.Fragment, {
+												children: [
+													(0, s.jsxs)("div", {
+														className: "space-y-1",
+														children: [
+															(0, s.jsx)("label", {
+																className:
+																	"block text-[11px] font-medium text-muted-foreground",
+																children: "Sort by",
+															}),
+															(0, s.jsx)("select", {
+																value: et,
+																onChange: (e) =>
+																	er(e.target.value),
+																className: ej,
+																children: g.map((e) =>
+																	(0, s.jsx)(
+																		"option",
+																		{
+																			value: e.value,
+																			children: e.label,
+																		},
+																		e.value
+																	)
+																),
+															}),
+														],
+													}),
+													(0, s.jsxs)("div", {
+														className: "space-y-1",
+														children: [
+															(0, s.jsx)("label", {
+																className:
+																	"block text-[11px] font-medium text-muted-foreground",
+																children: "Order",
+															}),
+															(0, s.jsxs)("select", {
+																value: es,
+																onChange: (e) =>
+																	ea(e.target.value),
+																className: ej,
+																children: [
+																	(0, s.jsx)("option", {
+																		value: "desc",
+																		children: "Highest first",
+																	}),
+																	(0, s.jsx)("option", {
+																		value: "asc",
+																		children: "Lowest first",
+																	}),
+																],
+															}),
+														],
+													}),
+												],
+											}),
+									],
+								}),
+							],
+						}),
+						(0, s.jsx)("div", {
+							children:
+								"summary" === e
+									? (0, s.jsxs)(s.Fragment, {
+											children: [
+												(0, s.jsx)("div", {
+													className:
+														"mb-3 text-xs text-muted-foreground",
+													children: i
+														? "Loading summaries…"
+														: `${D} active user${
+																1 === D ? "" : "s"
+														  } in selected period`,
+												}),
+												i
+													? (0, s.jsx)("div", {
+															className:
+																"text-sm text-muted-foreground py-12 text-center",
+															children: "Loading user summaries…",
+													  })
+													: 0 === w.length
+													? (0, s.jsx)("div", {
+															className:
+																"text-sm text-muted-foreground py-12 text-center",
+															children:
+																"NO USER ACTIVITY FOUND FOR THE SELECTED FILTERS.",
+													  })
+													: (0, s.jsx)("div", {
+															className:
+																"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4",
+															children: w.map((e) =>
+																(0, s.jsx)(
+																	_,
+																	{ row: e, onViewTimeline: ef },
+																	e.user
+																)
+															),
+													  }),
+											],
+									  })
+									: (0, s.jsxs)(s.Fragment, {
+											children: [
+												(0, s.jsxs)("div", {
+													className:
+														"mb-2 flex items-center justify-between text-xs text-muted-foreground",
+													children: [
+														(0, s.jsxs)("span", {
+															children: [
+																"Showing ",
+																f.length ? 100 * el + 1 : 0,
+																"–",
+																100 * el + f.length,
+																" of",
+																" ",
+																k.toLocaleString(),
+																" events",
+																B ? ` for ${Y || B}` : "",
+															],
+														}),
+														(0, s.jsxs)("div", {
+															className: "flex items-center gap-2",
+															children: [
+																(0, s.jsx)("button", {
+																	type: "button",
+																	disabled: el <= 0 || r,
+																	onClick: () =>
+																		ed((e) =>
+																			Math.max(0, e - 1)
+																		),
+																	className:
+																		"px-2 py-1 rounded border border-border disabled:opacity-40",
+																	children: "Previous",
+																}),
+																(0, s.jsxs)("span", {
+																	children: [
+																		"Page ",
+																		el + 1,
+																		" / ",
+																		ev,
+																	],
+																}),
+																(0, s.jsx)("button", {
+																	type: "button",
+																	disabled: el + 1 >= ev || r,
+																	onClick: () =>
+																		ed((e) => e + 1),
+																	className:
+																		"px-2 py-1 rounded border border-border disabled:opacity-40",
+																	children: "Next",
+																}),
+															],
+														}),
+													],
+												}),
+												r
+													? (0, s.jsx)("div", {
+															className:
+																"text-sm text-muted-foreground py-12 text-center",
+															children: "Loading activity…",
+													  })
+													: 0 === f.length
+													? (0, s.jsx)("div", {
+															className:
+																"text-sm text-muted-foreground py-12 text-center",
+															children:
+																"NO ACTIVITY FOUND FOR THE SELECTED FILTERS.",
+													  })
+													: (0, s.jsx)("div", {
+															className:
+																"bg-card border border-border rounded-lg shadow-sm overflow-hidden",
+															children: (0, s.jsxs)("table", {
+																className: "w-full text-xs",
+																children: [
+																	(0, s.jsx)("thead", {
+																		className:
+																			"bg-muted/50 border-b border-border",
+																		children: (0, s.jsxs)(
+																			"tr",
+																			{
+																				children: [
+																					(0, s.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left",
+																							children:
+																								(0,
+																								s.jsx)(
+																									j,
+																									{
+																										label: "Date / Time",
+																										column: "timestamp",
+																										sortBy: K,
+																										sortOrder:
+																											Z,
+																										onSort: eg,
+																									}
+																								),
+																						}
+																					),
+																					(0, s.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left",
+																							children:
+																								(0,
+																								s.jsx)(
+																									j,
+																									{
+																										label: "User",
+																										column: "user",
+																										sortBy: K,
+																										sortOrder:
+																											Z,
+																										onSort: eg,
+																									}
+																								),
+																						}
+																					),
+																					(0, s.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left font-semibold text-muted-foreground",
+																							children:
+																								"Department",
+																						}
+																					),
+																					(0, s.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left",
+																							children:
+																								(0,
+																								s.jsx)(
+																									j,
+																									{
+																										label: "Activity",
+																										column: "activity_type",
+																										sortBy: K,
+																										sortOrder:
+																											Z,
+																										onSort: eg,
+																									}
+																								),
+																						}
+																					),
+																					(0, s.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left",
+																							children:
+																								(0,
+																								s.jsx)(
+																									j,
+																									{
+																										label: "DocType",
+																										column: "doctype",
+																										sortBy: K,
+																										sortOrder:
+																											Z,
+																										onSort: eg,
+																									}
+																								),
+																						}
+																					),
+																					(0, s.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left",
+																							children:
+																								(0,
+																								s.jsx)(
+																									j,
+																									{
+																										label: "Reference",
+																										column: "reference",
+																										sortBy: K,
+																										sortOrder:
+																											Z,
+																										onSort: eg,
+																									}
+																								),
+																						}
+																					),
+																					(0, s.jsx)(
+																						"th",
+																						{
+																							className:
+																								"px-3 py-2 text-left font-semibold text-muted-foreground",
+																							children:
+																								"Details",
+																						}
+																					),
+																				],
+																			}
+																		),
+																	}),
+																	(0, s.jsx)("tbody", {
+																		className:
+																			"divide-y divide-border",
+																		children: f.map((e, t) => {
+																			var r;
+																			return (0, s.jsxs)(
+																				"tr",
+																				{
+																					className:
+																						"hover:bg-muted/40",
+																					children: [
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"px-3 py-2 text-foreground whitespace-nowrap",
+																								children:
+																									e.timestamp
+																										? (0,
+																										  d.r6)(
+																												e.timestamp,
+																												"",
+																												!0
+																										  )
+																										: "—",
+																							}
+																						),
+																						(0,
+																						s.jsxs)(
+																							"td",
+																							{
+																								className:
+																									"px-3 py-2",
+																								children:
+																									[
+																										(0,
+																										s.jsx)(
+																											"div",
+																											{
+																												className:
+																													"font-medium text-foreground",
+																												children:
+																													e.full_name ||
+																													e.user,
+																											}
+																										),
+																										(0,
+																										s.jsx)(
+																											"div",
+																											{
+																												className:
+																													"text-[10px] text-muted-foreground",
+																												children:
+																													e.user,
+																											}
+																										),
+																									],
+																							}
+																						),
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"px-3 py-2 text-foreground whitespace-nowrap",
+																								children:
+																									e.department ||
+																									"—",
+																							}
+																						),
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"px-3 py-2",
+																								children:
+																									(0,
+																									s.jsx)(
+																										"span",
+																										{
+																											className: `inline-flex px-2 py-0.5 rounded-full border text-[10px] font-medium ${
+																												"Login" ===
+																													(r =
+																														e.activity_type) ||
+																												"Logout" ===
+																													r ||
+																												"Impersonate" ===
+																													r
+																													? "bg-blue-50 text-blue-700 border-blue-200"
+																													: "Route View" ===
+																													  r
+																													? "bg-violet-50 text-violet-700 border-violet-200"
+																													: "Document Edit" ===
+																													  r
+																													? "bg-emerald-50 text-emerald-700 border-emerald-200"
+																													: "bg-slate-50 text-slate-700 border-slate-200"
+																											}`,
+																											children:
+																												e.activity_type,
+																										}
+																									),
+																							}
+																						),
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"px-3 py-2 text-foreground",
+																								children:
+																									e.doctype ||
+																									"—",
+																							}
+																						),
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"px-3 py-2 text-foreground max-w-[180px] truncate",
+																								title: e.reference,
+																								children:
+																									e.reference ||
+																									"—",
+																							}
+																						),
+																						(0, s.jsx)(
+																							"td",
+																							{
+																								className:
+																									"px-3 py-2 text-muted-foreground max-w-[260px]",
+																								children:
+																									e.details ||
+																									"—",
+																							}
+																						),
+																					],
+																				},
+																				`${e.timestamp}-${e.user}-${t}`
+																			);
+																		}),
+																	}),
+																],
+															}),
+													  }),
+											],
+									  }),
+						}),
+					],
+				});
+			}
+			function w() {
+				return (0, s.jsx)(S, {});
+			}
+		},
+		81672: (e, t, r) => {
+			r.d(t, { Ge: () => u, N0: () => n, Yq: () => o, gQ: () => c, r6: () => i });
+			let s = [
+					"January",
+					"February",
+					"March",
+					"April",
+					"May",
+					"June",
+					"July",
+					"August",
+					"September",
+					"October",
+					"November",
+					"December",
+				],
+				a = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+				l = (e) => String(e).padStart(2, "0");
+			function d(e) {
+				if (null == e || "" === e) return null;
+				if (e instanceof Date) return Number.isNaN(e.getTime()) ? null : e;
+				if ("number" == typeof e) {
+					let t = new Date(e);
+					return Number.isNaN(t.getTime()) ? null : t;
+				}
+				let t = String(e).trim();
+				if (!t) return null;
+				let r = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
+				if (r) return new Date(Number(r[1]), Number(r[2]) - 1, Number(r[3]));
+				let s = new Date(t.includes(" ") && !t.includes("T") ? t.replace(" ", "T") : t);
+				return Number.isNaN(s.getTime()) ? null : s;
+			}
+			function o(e, t = "") {
+				let r = d(e);
+				return r ? `${l(r.getDate())}/${l(r.getMonth() + 1)}/${r.getFullYear()}` : t;
+			}
+			function i(e, t = "", r = !1) {
+				let s = d(e);
+				if (!s) return t;
+				let a = `${l(s.getHours())}:${l(s.getMinutes())}${
+					r ? `:${l(s.getSeconds())}` : ""
+				}`;
+				return `${o(s)} ${a}`;
+			}
+			function n(e, t = "") {
+				let r = d(e);
+				return r ? `${s[r.getMonth()]} ${r.getFullYear()}` : t;
+			}
+			function c(e, t = "") {
+				let r = d(e);
+				return r ? a[r.getDay()] : t;
+			}
+			function u(e, t = "") {
+				let r = d(e);
+				return r ? `${a[r.getDay()]}, ${o(r)}` : t;
+			}
+		},
+		99916: (e, t, r) => {
+			r.d(t, { r: () => o });
+			var s = r(95155),
+				a = r(33210),
+				l = r(4474),
+				d = r(91337);
+			function o({
+				onClear: e,
+				disabled: t = !1,
+				label: r = "Clear filters",
+				className: i,
+			}) {
+				return (0, s.jsxs)(l.$, {
+					type: "button",
+					variant: "ghost",
+					size: "sm",
+					onClick: e,
+					disabled: t,
+					"aria-label": r,
+					title: r,
+					className: (0, d.cn)("h-9 shrink-0 gap-1.5 text-muted-foreground", i),
+					children: [
+						(0, s.jsx)(a.A, { "aria-hidden": "true" }),
+						(0, s.jsx)("span", { className: "hidden sm:inline", children: r }),
+					],
+				});
+			}
+		},
+	},
+]);

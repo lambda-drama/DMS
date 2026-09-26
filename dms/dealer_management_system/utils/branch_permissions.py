@@ -1,6 +1,4 @@
-"""Branch scoping via standard Frappe User Permissions (Allow = Branch).
-
-"""
+"""Branch scoping via standard Frappe User Permissions (Allow = Branch)."""
 
 from __future__ import annotations
 
@@ -143,9 +141,7 @@ def assert_dms_branch_access(
 
 	company = (company or "").strip() or get_default_dms_company()
 	company_field = get_branch_company_field()
-	branch_company = (
-		frappe.db.get_value("Branch", branch, company_field) if company_field else None
-	)
+	branch_company = frappe.db.get_value("Branch", branch, company_field) if company_field else None
 	if company and branch_company and branch_company != company:
 		frappe.throw(
 			_("Branch {0} belongs to {1}, not {2}. Select a branch of the chosen company.").format(
@@ -155,9 +151,7 @@ def assert_dms_branch_access(
 		)
 
 	frappe.throw(
-		_("Branch {0} is not available for this DMS company or user.").format(
-			frappe.bold(branch)
-		),
+		_("Branch {0} is not available for this DMS company or user.").format(frappe.bold(branch)),
 		frappe.PermissionError,
 	)
 

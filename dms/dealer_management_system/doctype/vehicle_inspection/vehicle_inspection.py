@@ -1,12 +1,12 @@
 # Copyright (c) 2026, Mania and contributors
 # For license information, please see license.txt
 
+from datetime import timedelta  # Alternative
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, now_datetime  # ← Fixed import
-from datetime import timedelta  # Alternative
-
 
 _APPOINTMENT_PRIORITY_TO_JOB_CARD = {
 	"Normal": "Normal",
@@ -83,9 +83,7 @@ class VehicleInspection(Document):
 
 		if self.odometer and old_odometer != self.odometer:
 			frappe.msgprint(
-				_("Vehicle odometer updated from {0} to {1} km").format(
-					old_odometer, self.odometer
-				)
+				_("Vehicle odometer updated from {0} to {1} km").format(old_odometer, self.odometer)
 			)
 
 

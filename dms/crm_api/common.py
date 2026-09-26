@@ -81,10 +81,7 @@ def get_brands(search=None, limit=40):
 		order_by="name asc",
 		ignore_permissions=True,
 	)
-	return [
-		{"name": row.name, "label": row.brand or row.name}
-		for row in rows
-	]
+	return [{"name": row.name, "label": row.brand or row.name} for row in rows]
 
 
 @frappe.whitelist()
@@ -234,17 +231,11 @@ def company_link_query(doctype, txt, searchfield, start, page_len, filters):
 	)
 	if txt:
 		rows = [
-			row
-			for row in rows
-			if txt in (row.name or "").lower()
-			or txt in (row.company_name or "").lower()
+			row for row in rows if txt in (row.name or "").lower() or txt in (row.company_name or "").lower()
 		]
 	start = max(cint(start), 0)
 	page_len = max(cint(page_len) or 20, 1)
-	return [
-		[row.name, row.company_name or row.name]
-		for row in rows[start : start + page_len]
-	]
+	return [[row.name, row.company_name or row.name] for row in rows[start : start + page_len]]
 
 
 @frappe.whitelist()
@@ -410,4 +401,3 @@ def quick_create_vehicle_model(
 	doc.insert()
 	frappe.db.commit()
 	return {"name": doc.name, "label": doc.model_name or doc.name}
-

@@ -229,9 +229,7 @@ def _read_valuation_rates(file_path: str) -> dict[str, float]:
 
 	header_map = _header_map_with_aliases(raw_rows[0], _VALUATION_HEADER_ALIASES)
 	if "part_no" not in header_map or "total_unit_price_with_tt" not in header_map:
-		frappe.throw(
-			_("Valuation workbook must include Part No and Total Unit Price with T/T columns.")
-		)
+		frappe.throw(_("Valuation workbook must include Part No and Total Unit Price with T/T columns."))
 
 	rates: dict[str, float] = {}
 	for raw in raw_rows[1:]:

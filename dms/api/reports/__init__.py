@@ -6,14 +6,8 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
-from dms.dealer_management_system.utils.crm_user_settings import (
-	can_view_dms_report_section,
-	get_allowed_dms_report_sections,
-	require_dms_report_access,
-	require_dms_report_section_access,
-)
+from dms.api.reports.advisor import get_appointment_conversion_report  # noqa: F401
 from dms.api.reports.catalog import _report_catalog
-from dms.api.reports.common import _parse_filters
 
 # Re-export helpers used by other modules (e.g. dashboard.py)
 from dms.api.reports.common import (  # noqa: F401
@@ -21,15 +15,21 @@ from dms.api.reports.common import (  # noqa: F401
 	_apply_link_display_names,
 	_apply_vin_numbers,
 	_jc_filters,
+	_parse_filters,
 	_report_filters_response,
 	_vin_link_filter_value,
 )
-from dms.api.reports.workshop import get_daily_wip_report  # noqa: F401
 from dms.api.reports.executive import get_service_revenue_report  # noqa: F401
-from dms.api.reports.warranty import get_warranty_report  # noqa: F401
-from dms.api.reports.qc import get_qc_failure_report  # noqa: F401
 from dms.api.reports.parts import get_parts_fill_rate_report  # noqa: F401
-from dms.api.reports.advisor import get_appointment_conversion_report  # noqa: F401
+from dms.api.reports.qc import get_qc_failure_report  # noqa: F401
+from dms.api.reports.warranty import get_warranty_report  # noqa: F401
+from dms.api.reports.workshop import get_daily_wip_report  # noqa: F401
+from dms.dealer_management_system.utils.crm_user_settings import (
+	can_view_dms_report_section,
+	get_allowed_dms_report_sections,
+	require_dms_report_access,
+	require_dms_report_section_access,
+)
 
 
 def _all_handlers():
@@ -138,6 +138,7 @@ def get_section_dashboard(section_id, filters=None):
 	"""KPI + chart payload for a report section home."""
 	if isinstance(filters, str):
 		import json
+
 		filters = json.loads(filters) if filters else {}
 
 	section_id = (section_id or "").strip()
@@ -159,6 +160,7 @@ def get_report(report_id, filters=None):
 	"""Run a report by id."""
 	if isinstance(filters, str):
 		import json
+
 		filters = json.loads(filters) if filters else {}
 
 	report_id = (report_id or "").strip()

@@ -20,12 +20,15 @@ def execute():
 		):
 			continue
 
-		snap = frappe.db.get_value(
-			"Customer",
-			row.current_customer,
-			["customer_name", "mobile_no", "email_id", "tax_id"],
-			as_dict=True,
-		) or {}
+		snap = (
+			frappe.db.get_value(
+				"Customer",
+				row.current_customer,
+				["customer_name", "mobile_no", "email_id", "tax_id"],
+				as_dict=True,
+			)
+			or {}
+		)
 
 		doc = frappe.get_doc("VIN No", row.name)
 		doc.append(

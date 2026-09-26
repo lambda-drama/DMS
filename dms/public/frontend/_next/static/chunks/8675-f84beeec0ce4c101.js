@@ -1,1 +1,1500 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[8675],{16776:(e,t,a)=>{a.d(t,{w:()=>o});var s=a(95155),r=a(39658),n=a(79792),l=a(26518),i=a(88361);function o({label:e,mode:t,onModeChange:a,value:d,onValueChange:c,subtotal:u}){let m=(0,i.mW)(t,d),p=(0,i.HW)(u,t,m);return(0,s.jsxs)("div",{className:"rounded-lg border bg-muted/30 p-4 space-y-3",children:[(0,s.jsxs)("p",{className:"text-sm font-medium",children:[e," discount"]}),(0,s.jsxs)("div",{className:"grid gap-3 sm:grid-cols-2",children:[(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(n.J,{className:"text-xs",children:"Type"}),(0,s.jsxs)(l.l6,{value:t,onValueChange:e=>a(e),children:[(0,s.jsx)(l.bq,{children:(0,s.jsx)(l.yv,{})}),(0,s.jsxs)(l.gC,{children:[(0,s.jsx)(l.eb,{value:"none",children:"No discount"}),(0,s.jsx)(l.eb,{value:"percentage",children:"Percentage (%)"}),(0,s.jsx)(l.eb,{value:"amount",children:"Amount"})]})]})]}),"none"!==t&&(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(n.J,{className:"text-xs",children:"percentage"===t?`Percent off ${e.toLowerCase()} total`:`Amount off ${e.toLowerCase()} total`}),(0,s.jsx)(r.p,{type:"number",min:0,max:"percentage"===t?100:u||void 0,step:.01,value:d,onChange:e=>c(e.target.value),placeholder:"percentage"===t?"e.g. 15":"e.g. 500"})]})]}),"none"!==t&&p>0&&(0,s.jsx)("p",{className:"text-xs text-muted-foreground",children:"percentage"===t?`−${p.toLocaleString()} (${m}%) off ${e.toLowerCase()}`:`−${p.toLocaleString()} off ${e.toLowerCase()}`})]})}},21531:(e,t,a)=>{a.d(t,{$2:()=>n,GL:()=>m,Kf:()=>l,Mk:()=>o,NU:()=>h,Nr:()=>p,_H:()=>u,_L:()=>i,hK:()=>c,tP:()=>d,yL:()=>x});var s=a(49876);let r="dms.api.spare_part_sales";async function n(e){return(0,s.AT)(`/api/method/${r}.get_spare_part_sales_defaults`,{method:"POST",body:JSON.stringify({company:e||null})})}async function l(e){return(0,s.AT)(`/api/method/${r}.search_spare_parts_for_sale`,{method:"POST",body:JSON.stringify({search:e?.search||null,warehouse:e?.warehouse||null,limit:e?.limit||25,in_stock_only:+!!e?.inStockOnly})})}async function i(e){return(0,s.AT)(`/api/method/${r}.create_spare_part_sale`,{method:"POST",body:JSON.stringify({data:e})})}async function o(e){return(0,s.AT)(`/api/method/${r}.list_spare_part_proformas`,{method:"POST",body:JSON.stringify({search:e?.search||null,status:e?.status||null,limit:e?.limit??50,offset:e?.offset??0,from_date:e?.from_date||null,to_date:e?.to_date||null})})}async function d(e){return(0,s.AT)(`/api/method/${r}.get_spare_part_proforma`,{method:"POST",body:JSON.stringify({name:e})})}async function c(e){return(0,s.AT)(`/api/method/${r}.create_spare_part_proforma`,{method:"POST",body:JSON.stringify({data:e})})}async function u(e){return(0,s.AT)(`/api/method/${r}.update_spare_part_proforma`,{method:"POST",body:JSON.stringify({data:e})})}async function m(e,t){return(0,s.AT)(`/api/method/${r}.convert_proforma_to_sales_invoice`,{method:"POST",body:JSON.stringify({name:e,data:t||{}})})}async function p(e){return(0,s.AT)(`/api/method/${r}.cancel_spare_part_proforma`,{method:"POST",body:JSON.stringify({name:e})})}async function h(e){return(0,s.AT)(`/api/method/${r}.delete_draft_spare_part_proforma`,{method:"POST",body:JSON.stringify({name:e})})}async function x(e){return(0,s.AT)(`/api/method/${r}.amend_spare_part_proforma`,{method:"POST",body:JSON.stringify({name:e})})}},26518:(e,t,a)=>{a.d(t,{bq:()=>u,eb:()=>p,gC:()=>m,l6:()=>d,yv:()=>c});var s=a(95155);a(12115);var r=a(40287),n=a(66088),l=a(94514),i=a(9921),o=a(91337);function d({...e}){return(0,s.jsx)(r.bL,{"data-slot":"select",...e})}function c({...e}){return(0,s.jsx)(r.WT,{"data-slot":"select-value",...e})}function u({className:e,size:t="default",children:a,...l}){return(0,s.jsxs)(r.l9,{"data-slot":"select-trigger","data-size":t,className:(0,o.cn)("border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-full border bg-transparent px-4 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",e),...l,children:[a,(0,s.jsx)(r.In,{asChild:!0,children:(0,s.jsx)(n.A,{className:"size-4 opacity-50"})})]})}function m({className:e,children:t,position:a="popper",...n}){return(0,s.jsx)(r.ZL,{children:(0,s.jsxs)(r.UC,{"data-slot":"select-content",className:(0,o.cn)("bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md","popper"===a&&"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",e),position:a,...n,children:[(0,s.jsx)(h,{}),(0,s.jsx)(r.LM,{className:(0,o.cn)("p-1","popper"===a&&"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"),children:t}),(0,s.jsx)(x,{})]})})}function p({className:e,children:t,...a}){return(0,s.jsxs)(r.q7,{"data-slot":"select-item",className:(0,o.cn)("focus:bg-dms-green-light focus:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",e),...a,children:[(0,s.jsx)("span",{className:"absolute right-2 flex size-3.5 items-center justify-center",children:(0,s.jsx)(r.VF,{children:(0,s.jsx)(l.A,{className:"size-4"})})}),(0,s.jsx)(r.p4,{children:t})]})}function h({className:e,...t}){return(0,s.jsx)(r.PP,{"data-slot":"select-scroll-up-button",className:(0,o.cn)("flex cursor-default items-center justify-center py-1",e),...t,children:(0,s.jsx)(i.A,{className:"size-4"})})}function x({className:e,...t}){return(0,s.jsx)(r.wn,{"data-slot":"select-scroll-down-button",className:(0,o.cn)("flex cursor-default items-center justify-center py-1",e),...t,children:(0,s.jsx)(n.A,{className:"size-4"})})}},38675:(e,t,a)=>{a.r(t),a.d(t,{default:()=>J});var s=a(95155),r=a(12115),n=a(63360),l=a(55833),i=a(36020),o=a(54828),d=a(10086),c=a(92751),u=a(16776),m=a(4474),p=a(52959),h=a(39658),x=a(79792),f=a(39540),g=a(79984),b=a(83786),v=a(84437),_=a(42074),j=a(88361),y=a(21531),N=a(71376),w=a(32390),S=a(68459),k=a(24642),C=a(6296),A=a(66609);function O(){return{id:crypto.randomUUID(),spare_part:"",item_name:"",qty:"1",unit_price:""}}function T(){let e=new Date;return e.setDate(e.getDate()+30),e.toISOString().split("T")[0]}function J(){let{canCreate:e,canEditPrice:t}=(0,n.Sk)(),{navigate:a}=(0,l.c)(),[J,$]=(0,r.useState)(""),[L,P]=(0,r.useState)(""),[V,z]=(0,r.useState)(null),[Z,q]=(0,r.useState)(!0),[M,F]=(0,r.useState)(""),[I,W]=(0,r.useState)(""),[B,D]=(0,r.useState)(null),[R,E]=(0,r.useState)(""),[H,U]=(0,r.useState)(""),[K,Q]=(0,r.useState)(""),[X,G]=(0,r.useState)(null),[Y,ee]=(0,r.useState)(""),[et,ea]=(0,r.useState)(""),[es,er]=(0,r.useState)(""),[en,el]=(0,r.useState)(""),[ei,eo]=(0,r.useState)(()=>new Date().toISOString().split("T")[0]),[ed,ec]=(0,r.useState)(T),[eu,em]=(0,r.useState)(""),[ep,eh]=(0,r.useState)(!0),[ex,ef]=(0,r.useState)(!0),[eg,eb]=(0,r.useState)([O()]),[ev,e_]=(0,r.useState)(""),[ej,ey]=(0,r.useState)([]),[eN,ew]=(0,r.useState)(!1),[eS,ek]=(0,r.useState)(!1),[eC,eA]=(0,r.useState)("none"),[eO,eT]=(0,r.useState)(""),{data:eJ,isLoading:e$}=(0,i.Rr)(L),{data:eL,isLoading:eP}=(0,i.dQ)(R),{data:eV}=(0,i.Ms)(),{data:ez,isLoading:eZ}=(0,i.mv)(I||void 0,H),{data:eq,isLoading:eM}=(0,i.iR)(en,Y||void 0),eF=(0,r.useMemo)(()=>{let e=eq?.map(e=>({value:e.name,label:e.model_code||e.name,description:[e.brand_label||e.brand,e.model_name,e.variant,e.model_year].filter(Boolean).join(" ")||e.name}))||[];return es&&!e.some(e=>e.value===es)&&e.unshift({value:es,label:es,description:X?.model_name||X?.resolved_vehicle_model_label||""}),e},[eq,es,X]),eI=(0,r.useCallback)(async e=>{q(!0);try{let t=await y.$2(e||void 0);z(t),!J&&t.company&&$(t.company),!M&&t.default_warehouse&&F(t.default_warehouse)}catch(e){A.o.error(e instanceof Error?e.message:"Failed to load spare part sales defaults")}finally{q(!1)}},[J,M]);(0,r.useEffect)(()=>{eI(J)},[J,eI]),(0,r.useEffect)(()=>{let e=!1,t=window.setTimeout(async()=>{ew(!0);try{let t=await y.Kf({search:ev||void 0,warehouse:M||V?.default_warehouse||void 0,inStockOnly:ex,limit:30});if(e)return;ey(t.map(e=>({value:e.name,label:e.item_name||e.name,description:[e.item_code,null!=e.qty_on_hand?`Stock: ${e.qty_on_hand}`:null,null!=e.unit_price?`Price: ${e.unit_price}`:null].filter(Boolean).join(" \xb7 ")})))}catch{e||ey([])}finally{e||ew(!1)}},300);return()=>{e=!0,window.clearTimeout(t)}},[ev,M,V?.default_warehouse,ex]),(0,i.Tr)(eJ,e$,J,e=>$(e.name),{search:L}),(0,i.Zf)(I,e=>{W(e.default_customer),D({name:e.default_customer,customer_name:e.customer_name||e.default_customer,mobile_no:e.mobile_no||void 0})});let eW=(0,r.useMemo)(()=>(V?.companies?.length?V.companies:V?.company?[V.company]:[]).map(e=>({value:e,label:e})),[V?.companies,V?.company]),eB=(0,r.useMemo)(()=>(V?.warehouses??[]).map(e=>({value:e.name,label:e.warehouse_name||e.name})),[V?.warehouses]),eD=(0,r.useMemo)(()=>(0,o.b0)(eL,I,B),[eL,I,B]),eR=e=>{G(e),ee(e.brand||""),ea(e.brand_label||e.brand||""),er(e.model||e.resolved_vehicle_model||""),e.current_customer&&(W(e.current_customer),D({name:e.current_customer,customer_name:e.customer_name||e.current_customer}))},eE=async e=>{if(Q(e),eb([O()]),e_(""),er(""),!e){G(null),ee(""),ea("");return}let t=ez?.find(t=>t.name===e);t&&eR(t);try{let t=await N.Dh(e);eR({name:t.name,vin_number:t.vin_number,plate_number:t.plate_number,model:t.model,model_name:t.model_name,resolved_vehicle_model:t.resolved_vehicle_model,resolved_vehicle_model_label:t.resolved_vehicle_model_label,current_customer:t.current_customer,customer_name:t.customer_name,brand:t.brand,brand_label:t.brand_label})}catch{t||A.o.error("Could not load vehicle details for the selected VIN")}},eH=(0,r.useMemo)(()=>{let e=ez?.map(e=>({value:e.name,label:e.vin_number,description:[e.model,e.model_name,e.plate_number,e.customer_name].filter(Boolean).join(" \xb7 ")}))||[];return K&&X&&!e.some(e=>e.value===K)&&e.unshift({value:K,label:X.vin_number||K,description:[X.model||X.resolved_vehicle_model,X.model_name,X.plate_number,X.customer_name].filter(Boolean).join(" \xb7 ")}),e},[ez,K,X]),eU=eg.reduce((e,t)=>e+(Number(t.qty)||0)*(Number(t.unit_price)||0),0),eK=(0,j.mW)(eC,eO),eQ=(0,j.HW)(eU,eC,eK),eX=eU-eQ,eG=async()=>{if(!e("spare-part-sales"))return;if(!M)return void A.o.error("Select a warehouse");let t=eg.filter(e=>e.spare_part&&Number(e.qty)>0).map(e=>({spare_part:e.spare_part,qty:Number(e.qty),unit_price:Number(e.unit_price||0)}));if(!t.length)return void A.o.error("Add at least one spare part with quantity");ek(!0);try{let e=await y._L({customer:I||void 0,company:J||V?.company||"",warehouse:M,parts:t,posting_date:ei,due_date:ed,remarks:eu||void 0,submit:ep,parts_discount:(0,j.Z_)(eC,eO),vehicle_vin:K||void 0,vehicle_brand:Y||void 0,vehicle_model:es||void 0});A.o.success(ep?`Sales Invoice ${e.name} submitted (${e.grand_total})`:`Sales Invoice ${e.name} saved as draft`),eb([O()]),em(""),Q(""),G(null),ee(""),ea(""),er(""),W(""),D(null),a("invoices")}catch(e){A.o.error(e instanceof Error?e.message:"Failed to create sales invoice")}finally{ek(!1)}};return(0,s.jsxs)("div",{className:"min-w-0 space-y-6",children:[(0,s.jsx)("div",{children:(0,s.jsxs)("h2",{className:"text-2xl font-bold tracking-tight flex items-center gap-2",children:[(0,s.jsx)(w.A,{className:"h-6 w-6"}),"Spare Part Sales"]})}),(0,s.jsxs)(g.Zp,{children:[(0,s.jsx)(g.aR,{children:(0,s.jsx)(g.ZB,{children:"Counter sale"})}),(0,s.jsxs)(g.Wu,{className:"space-y-4",children:[(0,s.jsxs)("div",{className:"grid gap-4 md:grid-cols-2 lg:grid-cols-4",children:[(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Company"}),(0,s.jsx)(d.Zi,{options:eW,value:J||V?.company||"",onValueChange:$,placeholder:Z?"Loading…":"Company",disabled:Z||eW.length<=1})]}),(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Customer"}),(0,s.jsx)(c.Z,{doctype:"Customer",onCreated:(e,t)=>{W(e),D({name:e,customer_name:t||e})},children:(0,s.jsx)(d.Zi,{options:eD,value:I,valueLabel:B?.customer_name,onValueChange:e=>{let t=(0,o.R)(e,eL,eV);W(t.customer),D(t.meta)},onSearchChange:E,placeholder:"Search customer",isLoading:eP})}),V?.default_customer?(0,s.jsxs)("p",{className:"text-xs text-muted-foreground",children:["Optional — if left blank, uses default walk-in customer (",V.default_customer_name||V.default_customer,") from DMS Settings."]}):(0,s.jsx)("p",{className:"text-xs text-muted-foreground",children:"Optional — configure Default Customer in DMS Settings for walk-in sales without selecting a customer."})]}),(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Warehouse *"}),(0,s.jsx)(d.Zi,{options:eB,value:M,onValueChange:F,placeholder:Z?"Loading…":"Parts warehouse",disabled:Z||0===eB.length})]}),(0,s.jsxs)("div",{className:"space-y-2 md:col-span-2",children:[(0,s.jsx)(x.J,{children:"Vehicle (VIN)"}),(0,s.jsx)(d.Zi,{options:eH,value:K,onValueChange:e=>void eE(e),onSearchChange:U,placeholder:"Search VIN, chassis, or plate (min 3 chars)...",isLoading:eZ}),(0,s.jsx)("p",{className:"text-xs text-muted-foreground",children:"Optional — recorded on the invoice remarks when provided."})]}),(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Car make"}),(0,s.jsx)(h.p,{readOnly:!0,value:et,placeholder:"From selected VIN",className:"bg-muted"})]}),(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Vehicle Model"}),(0,s.jsx)(d.Zi,{options:eF,value:es,onValueChange:e=>{er(e),eb([O()]),e_("")},onSearchChange:el,placeholder:"Search Vehicle Model master…",isLoading:eM}),(0,s.jsx)("p",{className:"text-xs text-muted-foreground",children:"Vehicle Model master record (e.g. JX70P) — same link as on VIN and spare part compatibility. Auto-filled from VIN."})]}),(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Posting date"}),(0,s.jsx)(h.p,{type:"date",value:ei,onChange:e=>eo(e.target.value)})]}),(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Due date"}),(0,s.jsx)(h.p,{type:"date",value:ed,onChange:e=>ec(e.target.value)})]})]}),(0,s.jsx)("div",{className:"flex flex-wrap items-center gap-4",children:(0,s.jsxs)("div",{className:"flex items-center gap-2",children:[(0,s.jsx)(v.S,{id:"in-stock-only",checked:ex,onCheckedChange:e=>ef(!!e)}),(0,s.jsx)(x.J,{htmlFor:"in-stock-only",className:"text-sm font-normal cursor-pointer",children:"Show only parts in stock at selected warehouse"})]})}),(0,s.jsxs)("div",{className:"space-y-3",children:[(0,s.jsx)(x.J,{children:"Spare parts *"}),eg.map((e,a)=>(0,s.jsxs)("div",{className:"grid gap-3 md:grid-cols-12 items-end border rounded-lg p-3",children:[(0,s.jsxs)("div",{className:"md:col-span-5 space-y-2",children:[(0,s.jsx)(x.J,{className:"text-xs",children:"Spare part *"}),(0,s.jsx)(d.Zi,{options:ej,value:e.spare_part,onValueChange:async t=>{let s=ej.find(e=>e.value===t),r=e.unit_price;try{let e=(await y.Kf({search:t,warehouse:M||V?.default_warehouse||void 0,limit:1})).find(e=>e.name===t);e&&!r&&null!=e.unit_price&&(r=String(e.unit_price))}catch{}eb(e=>e.map((e,n)=>n===a?{...e,spare_part:t,item_name:s?.label||t,unit_price:r}:e))},onSearchChange:e_,placeholder:"Search spare part",isLoading:eN})]}),(0,s.jsxs)("div",{className:"md:col-span-2 space-y-2",children:[(0,s.jsx)(x.J,{className:"text-xs",children:"Qty *"}),(0,s.jsx)(h.p,{type:"number",min:"0",step:"any",value:e.qty,onChange:e=>eb(t=>t.map((t,s)=>s===a?{...t,qty:e.target.value}:t))})]}),(0,s.jsxs)("div",{className:"md:col-span-2 space-y-2",children:[(0,s.jsx)(x.J,{className:"text-xs",children:t?"Unit price":"Unit price (fixed)"}),(0,s.jsx)(h.p,{type:"number",min:"0",step:"any",readOnly:!t,className:t?void 0:"bg-muted",value:e.unit_price,onChange:e=>eb(t=>t.map((t,s)=>s===a?{...t,unit_price:e.target.value}:t))})]}),(0,s.jsxs)("div",{className:"md:col-span-2 space-y-2",children:[(0,s.jsx)(x.J,{className:"text-xs",children:"Amount"}),(0,s.jsx)(h.p,{readOnly:!0,value:((Number(e.qty)||0)*(Number(e.unit_price)||0)).toFixed(2)})]}),(0,s.jsx)("div",{className:"md:col-span-1 flex justify-end",children:(0,s.jsx)(m.$,{type:"button",variant:"ghost",size:"icon",disabled:eg.length<=1,onClick:()=>eb(e=>e.filter((e,t)=>t!==a)),children:(0,s.jsx)(S.A,{className:"h-4 w-4"})})})]},e.id)),(0,s.jsx)(p._,{onClick:()=>eb(e=>[...e,O()]),label:"Add line"})]}),(0,s.jsx)(u.w,{label:"Parts",mode:eC,onModeChange:eA,value:eO,onValueChange:eT,subtotal:eU}),(0,s.jsxs)("div",{className:"space-y-2",children:[(0,s.jsx)(x.J,{children:"Remarks"}),(0,s.jsx)(f.T,{value:eu,onChange:e=>em(e.target.value),placeholder:"Optional notes for this counter sale",rows:2})]}),(0,s.jsxs)("div",{className:"flex items-center gap-2",children:[(0,s.jsx)(v.S,{id:"submit-invoice",checked:ep,onCheckedChange:e=>eh(!!e)}),(0,s.jsx)(x.J,{htmlFor:"submit-invoice",className:"text-sm font-normal cursor-pointer",children:"Submit invoice immediately"})]}),(0,s.jsxs)("div",{className:"rounded-lg border bg-muted/30 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3",children:[(0,s.jsxs)("div",{className:"flex items-center gap-2 text-sm text-muted-foreground",children:[(0,s.jsx)(k.A,{className:"h-4 w-4"}),(0,s.jsxs)("span",{children:[eg.filter(e=>e.spare_part).length," line(s)",eQ>0?` \xb7 discount: ${eQ.toFixed(2)}`:""]})]}),(0,s.jsxs)("p",{className:"text-xl font-semibold",children:["Total: ",eX.toFixed(2)]})]}),(0,s.jsx)(_.h,{children:(0,s.jsxs)(m.$,{type:"button",onClick:()=>void eG(),disabled:eS||!e("spare-part-sales"),children:[eS?(0,s.jsx)(C.A,{className:"mr-2 h-4 w-4 animate-spin"}):null,"Create sales invoice"]})})]})]}),eg.length>1&&(0,s.jsxs)(g.Zp,{children:[(0,s.jsx)(g.aR,{children:(0,s.jsx)(g.ZB,{className:"text-base",children:"Line summary"})}),(0,s.jsx)(g.Wu,{children:(0,s.jsxs)(b.XI,{children:[(0,s.jsx)(b.A0,{children:(0,s.jsxs)(b.Hj,{children:[(0,s.jsx)(b.nd,{children:"Part"}),(0,s.jsx)(b.nd,{className:"text-right",children:"Qty"}),(0,s.jsx)(b.nd,{className:"text-right",children:"Rate"}),(0,s.jsx)(b.nd,{className:"text-right",children:"Amount"})]})}),(0,s.jsx)(b.BF,{children:eg.filter(e=>e.spare_part).map(e=>(0,s.jsxs)(b.Hj,{children:[(0,s.jsx)(b.nA,{children:e.item_name||e.spare_part}),(0,s.jsx)(b.nA,{className:"text-right",children:e.qty}),(0,s.jsx)(b.nA,{className:"text-right",children:e.unit_price}),(0,s.jsx)(b.nA,{className:"text-right",children:((Number(e.qty)||0)*(Number(e.unit_price)||0)).toFixed(2)})]},e.id))})]})})]})]})}},39540:(e,t,a)=>{a.d(t,{T:()=>n});var s=a(95155);a(12115);var r=a(91337);function n({className:e,...t}){return(0,s.jsx)("textarea",{"data-slot":"textarea",className:(0,r.cn)("border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",e),...t})}},42074:(e,t,a)=>{a.d(t,{h:()=>i});var s=a(95155),r=a(12115),n=a(47650),l=a(91337);function i({children:e,className:t,align:a="end"}){let[o,d]=(0,r.useState)(!1);(0,r.useEffect)(()=>(d(!0),()=>d(!1)),[]);let c=(0,s.jsx)("div",{role:"toolbar","aria-label":"Form actions",className:(0,l.cn)("fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90","pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3","lg:left-64",t),children:(0,s.jsx)("div",{className:(0,l.cn)("mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6","between"===a?"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3":"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"),children:e})});return o?(0,n.createPortal)(c,document.body):null}},52959:(e,t,a)=>{a.d(t,{_:()=>i});var s=a(95155),r=a(4474),n=a(51914),l=a(91337);function i({onClick:e,label:t="Add",className:a,disabled:o}){return(0,s.jsx)("div",{className:(0,l.cn)("pt-1",a),children:(0,s.jsxs)(r.$,{type:"button",onClick:e,disabled:o,children:[(0,s.jsx)(n.A,{className:"h-4 w-4 mr-1"}),t]})})}},54828:(e,t,a)=>{function s(e){return e?.default_customer?{name:e.default_customer,customer_name:e.customer_name||e.default_customer,mobile_no:e.mobile_no||void 0}:null}function r(e,t,a){let s=e?.map(e=>({value:e.name,label:e.customer_name,description:e.mobile_no||void 0}))||[];return t&&a&&!s.some(e=>e.value===t)?[{value:a.name,label:a.customer_name,description:a.mobile_no},...s]:s}function n(e,t,a){if(!e){let e=s(a);return e?{customer:e.name,meta:e}:{customer:"",meta:null}}let r=t?.find(t=>t.name===e);return r?{customer:r.name,meta:{name:r.name,customer_name:r.customer_name,mobile_no:r.mobile_no}}:{customer:e,meta:{name:e,customer_name:e}}}a.d(t,{Gd:()=>s,R:()=>n,b0:()=>r})},79984:(e,t,a)=>{a.d(t,{BT:()=>o,Wu:()=>d,ZB:()=>i,Zp:()=>n,aR:()=>l});var s=a(95155);a(12115);var r=a(91337);function n({className:e,...t}){return(0,s.jsx)("div",{"data-slot":"card",className:(0,r.cn)("bg-card text-card-foreground flex flex-col gap-2 rounded-[1.15rem] border py-3 shadow-[0_4px_20px_rgba(15,61,94,0.05)]",e),...t})}function l({className:e,...t}){return(0,s.jsx)("div",{"data-slot":"card-header",className:(0,r.cn)("@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-3",e),...t})}function i({className:e,...t}){return(0,s.jsx)("div",{"data-slot":"card-title",className:(0,r.cn)("leading-none font-serif-display font-semibold tracking-tight",e),...t})}function o({className:e,...t}){return(0,s.jsx)("div",{"data-slot":"card-description",className:(0,r.cn)("text-muted-foreground text-sm",e),...t})}function d({className:e,...t}){return(0,s.jsx)("div",{"data-slot":"card-content",className:(0,r.cn)("px-4",e),...t})}},83786:(e,t,a)=>{a.d(t,{A0:()=>l,BF:()=>i,Hj:()=>o,XI:()=>n,nA:()=>c,nd:()=>d});var s=a(95155);a(12115);var r=a(91337);function n({className:e,...t}){return(0,s.jsx)("div",{"data-slot":"table-container",className:"relative w-full overflow-x-auto",children:(0,s.jsx)("table",{"data-slot":"table",className:(0,r.cn)("w-full caption-bottom text-sm",e),...t})})}function l({className:e,...t}){return(0,s.jsx)("thead",{"data-slot":"table-header",className:(0,r.cn)("[&_tr]:border-b",e),...t})}function i({className:e,...t}){return(0,s.jsx)("tbody",{"data-slot":"table-body",className:(0,r.cn)("[&_tr:last-child]:border-0",e),...t})}function o({className:e,...t}){return(0,s.jsx)("tr",{"data-slot":"table-row",className:(0,r.cn)("hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",e),...t})}function d({className:e,...t}){return(0,s.jsx)("th",{"data-slot":"table-head",className:(0,r.cn)("text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",e),...t})}function c({className:e,...t}){return(0,s.jsx)("td",{"data-slot":"table-cell",className:(0,r.cn)("p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",e),...t})}},84437:(e,t,a)=>{a.d(t,{S:()=>i});var s=a(95155);a(12115);var r=a(47279),n=a(94514),l=a(91337);function i({className:e,...t}){return(0,s.jsx)(r.bL,{"data-slot":"checkbox",className:(0,l.cn)("peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",e),...t,children:(0,s.jsx)(r.C1,{"data-slot":"checkbox-indicator",className:"flex items-center justify-center text-current transition-none",children:(0,s.jsx)(n.A,{className:"size-3.5"})})})}},88361:(e,t,a)=>{function s(e,t){if("none"===e)return 0;let a=parseFloat(t);return Number.isFinite(a)&&a>0?a:0}function r(e,t,a){return"none"===t||e<=0||a<=0?0:"percentage"===t?Math.min(a,100)/100*e:Math.min(a,e)}function n(e,t){let a=s(e,t);if("none"!==e&&!(a<=0))return{type:e,value:a}}function l(e){let t=(e||"").trim().toLowerCase();return"percentage"===t||"percent"===t?"percentage":"amount"===t?"amount":"none"}function i(e,t){let a=s(e,t);return"none"===e||a<=0?{discount_type:"",discount_value:0}:{discount_type:"percentage"===e?"Percentage":"amount"===e?"Amount":"",discount_value:a}}function o(e,t,a){return r(e,t,a)}function d(e,t){let a=l(e),s=Number(t||0);return"none"===a||s<=0?"":"percentage"===a?`${s}%`:s.toLocaleString()}a.d(t,{HW:()=>r,O6:()=>o,OC:()=>i,VJ:()=>d,Z_:()=>n,mW:()=>s,nO:()=>l})}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[8675],
+	{
+		16776: (e, t, a) => {
+			a.d(t, { w: () => o });
+			var s = a(95155),
+				r = a(39658),
+				n = a(79792),
+				l = a(26518),
+				i = a(88361);
+			function o({
+				label: e,
+				mode: t,
+				onModeChange: a,
+				value: d,
+				onValueChange: c,
+				subtotal: u,
+			}) {
+				let m = (0, i.mW)(t, d),
+					p = (0, i.HW)(u, t, m);
+				return (0, s.jsxs)("div", {
+					className: "rounded-lg border bg-muted/30 p-4 space-y-3",
+					children: [
+						(0, s.jsxs)("p", {
+							className: "text-sm font-medium",
+							children: [e, " discount"],
+						}),
+						(0, s.jsxs)("div", {
+							className: "grid gap-3 sm:grid-cols-2",
+							children: [
+								(0, s.jsxs)("div", {
+									className: "space-y-2",
+									children: [
+										(0, s.jsx)(n.J, {
+											className: "text-xs",
+											children: "Type",
+										}),
+										(0, s.jsxs)(l.l6, {
+											value: t,
+											onValueChange: (e) => a(e),
+											children: [
+												(0, s.jsx)(l.bq, {
+													children: (0, s.jsx)(l.yv, {}),
+												}),
+												(0, s.jsxs)(l.gC, {
+													children: [
+														(0, s.jsx)(l.eb, {
+															value: "none",
+															children: "No discount",
+														}),
+														(0, s.jsx)(l.eb, {
+															value: "percentage",
+															children: "Percentage (%)",
+														}),
+														(0, s.jsx)(l.eb, {
+															value: "amount",
+															children: "Amount",
+														}),
+													],
+												}),
+											],
+										}),
+									],
+								}),
+								"none" !== t &&
+									(0, s.jsxs)("div", {
+										className: "space-y-2",
+										children: [
+											(0, s.jsx)(n.J, {
+												className: "text-xs",
+												children:
+													"percentage" === t
+														? `Percent off ${e.toLowerCase()} total`
+														: `Amount off ${e.toLowerCase()} total`,
+											}),
+											(0, s.jsx)(r.p, {
+												type: "number",
+												min: 0,
+												max: "percentage" === t ? 100 : u || void 0,
+												step: 0.01,
+												value: d,
+												onChange: (e) => c(e.target.value),
+												placeholder:
+													"percentage" === t ? "e.g. 15" : "e.g. 500",
+											}),
+										],
+									}),
+							],
+						}),
+						"none" !== t &&
+							p > 0 &&
+							(0, s.jsx)("p", {
+								className: "text-xs text-muted-foreground",
+								children:
+									"percentage" === t
+										? `−${p.toLocaleString()} (${m}%) off ${e.toLowerCase()}`
+										: `−${p.toLocaleString()} off ${e.toLowerCase()}`,
+							}),
+					],
+				});
+			}
+		},
+		21531: (e, t, a) => {
+			a.d(t, {
+				$2: () => n,
+				GL: () => m,
+				Kf: () => l,
+				Mk: () => o,
+				NU: () => h,
+				Nr: () => p,
+				_H: () => u,
+				_L: () => i,
+				hK: () => c,
+				tP: () => d,
+				yL: () => x,
+			});
+			var s = a(49876);
+			let r = "dms.api.spare_part_sales";
+			async function n(e) {
+				return (0, s.AT)(`/api/method/${r}.get_spare_part_sales_defaults`, {
+					method: "POST",
+					body: JSON.stringify({ company: e || null }),
+				});
+			}
+			async function l(e) {
+				return (0, s.AT)(`/api/method/${r}.search_spare_parts_for_sale`, {
+					method: "POST",
+					body: JSON.stringify({
+						search: e?.search || null,
+						warehouse: e?.warehouse || null,
+						limit: e?.limit || 25,
+						in_stock_only: +!!e?.inStockOnly,
+					}),
+				});
+			}
+			async function i(e) {
+				return (0, s.AT)(`/api/method/${r}.create_spare_part_sale`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function o(e) {
+				return (0, s.AT)(`/api/method/${r}.list_spare_part_proformas`, {
+					method: "POST",
+					body: JSON.stringify({
+						search: e?.search || null,
+						status: e?.status || null,
+						limit: e?.limit ?? 50,
+						offset: e?.offset ?? 0,
+						from_date: e?.from_date || null,
+						to_date: e?.to_date || null,
+					}),
+				});
+			}
+			async function d(e) {
+				return (0, s.AT)(`/api/method/${r}.get_spare_part_proforma`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function c(e) {
+				return (0, s.AT)(`/api/method/${r}.create_spare_part_proforma`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function u(e) {
+				return (0, s.AT)(`/api/method/${r}.update_spare_part_proforma`, {
+					method: "POST",
+					body: JSON.stringify({ data: e }),
+				});
+			}
+			async function m(e, t) {
+				return (0, s.AT)(`/api/method/${r}.convert_proforma_to_sales_invoice`, {
+					method: "POST",
+					body: JSON.stringify({ name: e, data: t || {} }),
+				});
+			}
+			async function p(e) {
+				return (0, s.AT)(`/api/method/${r}.cancel_spare_part_proforma`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function h(e) {
+				return (0, s.AT)(`/api/method/${r}.delete_draft_spare_part_proforma`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+			async function x(e) {
+				return (0, s.AT)(`/api/method/${r}.amend_spare_part_proforma`, {
+					method: "POST",
+					body: JSON.stringify({ name: e }),
+				});
+			}
+		},
+		26518: (e, t, a) => {
+			a.d(t, { bq: () => u, eb: () => p, gC: () => m, l6: () => d, yv: () => c });
+			var s = a(95155);
+			a(12115);
+			var r = a(40287),
+				n = a(66088),
+				l = a(94514),
+				i = a(9921),
+				o = a(91337);
+			function d({ ...e }) {
+				return (0, s.jsx)(r.bL, { "data-slot": "select", ...e });
+			}
+			function c({ ...e }) {
+				return (0, s.jsx)(r.WT, { "data-slot": "select-value", ...e });
+			}
+			function u({ className: e, size: t = "default", children: a, ...l }) {
+				return (0, s.jsxs)(r.l9, {
+					"data-slot": "select-trigger",
+					"data-size": t,
+					className: (0, o.cn)(
+						"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-full border bg-transparent px-4 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+						e
+					),
+					...l,
+					children: [
+						a,
+						(0, s.jsx)(r.In, {
+							asChild: !0,
+							children: (0, s.jsx)(n.A, { className: "size-4 opacity-50" }),
+						}),
+					],
+				});
+			}
+			function m({ className: e, children: t, position: a = "popper", ...n }) {
+				return (0, s.jsx)(r.ZL, {
+					children: (0, s.jsxs)(r.UC, {
+						"data-slot": "select-content",
+						className: (0, o.cn)(
+							"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+							"popper" === a &&
+								"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+							e
+						),
+						position: a,
+						...n,
+						children: [
+							(0, s.jsx)(h, {}),
+							(0, s.jsx)(r.LM, {
+								className: (0, o.cn)(
+									"p-1",
+									"popper" === a &&
+										"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
+								),
+								children: t,
+							}),
+							(0, s.jsx)(x, {}),
+						],
+					}),
+				});
+			}
+			function p({ className: e, children: t, ...a }) {
+				return (0, s.jsxs)(r.q7, {
+					"data-slot": "select-item",
+					className: (0, o.cn)(
+						"focus:bg-dms-green-light focus:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+						e
+					),
+					...a,
+					children: [
+						(0, s.jsx)("span", {
+							className:
+								"absolute right-2 flex size-3.5 items-center justify-center",
+							children: (0, s.jsx)(r.VF, {
+								children: (0, s.jsx)(l.A, { className: "size-4" }),
+							}),
+						}),
+						(0, s.jsx)(r.p4, { children: t }),
+					],
+				});
+			}
+			function h({ className: e, ...t }) {
+				return (0, s.jsx)(r.PP, {
+					"data-slot": "select-scroll-up-button",
+					className: (0, o.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...t,
+					children: (0, s.jsx)(i.A, { className: "size-4" }),
+				});
+			}
+			function x({ className: e, ...t }) {
+				return (0, s.jsx)(r.wn, {
+					"data-slot": "select-scroll-down-button",
+					className: (0, o.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...t,
+					children: (0, s.jsx)(n.A, { className: "size-4" }),
+				});
+			}
+		},
+		38675: (e, t, a) => {
+			a.r(t), a.d(t, { default: () => J });
+			var s = a(95155),
+				r = a(12115),
+				n = a(63360),
+				l = a(55833),
+				i = a(36020),
+				o = a(54828),
+				d = a(10086),
+				c = a(92751),
+				u = a(16776),
+				m = a(4474),
+				p = a(52959),
+				h = a(39658),
+				x = a(79792),
+				f = a(39540),
+				g = a(79984),
+				b = a(83786),
+				v = a(84437),
+				_ = a(42074),
+				j = a(88361),
+				y = a(21531),
+				N = a(71376),
+				w = a(32390),
+				S = a(68459),
+				k = a(24642),
+				C = a(6296),
+				A = a(66609);
+			function O() {
+				return {
+					id: crypto.randomUUID(),
+					spare_part: "",
+					item_name: "",
+					qty: "1",
+					unit_price: "",
+				};
+			}
+			function T() {
+				let e = new Date();
+				return e.setDate(e.getDate() + 30), e.toISOString().split("T")[0];
+			}
+			function J() {
+				let { canCreate: e, canEditPrice: t } = (0, n.Sk)(),
+					{ navigate: a } = (0, l.c)(),
+					[J, $] = (0, r.useState)(""),
+					[L, P] = (0, r.useState)(""),
+					[V, z] = (0, r.useState)(null),
+					[Z, q] = (0, r.useState)(!0),
+					[M, F] = (0, r.useState)(""),
+					[I, W] = (0, r.useState)(""),
+					[B, D] = (0, r.useState)(null),
+					[R, E] = (0, r.useState)(""),
+					[H, U] = (0, r.useState)(""),
+					[K, Q] = (0, r.useState)(""),
+					[X, G] = (0, r.useState)(null),
+					[Y, ee] = (0, r.useState)(""),
+					[et, ea] = (0, r.useState)(""),
+					[es, er] = (0, r.useState)(""),
+					[en, el] = (0, r.useState)(""),
+					[ei, eo] = (0, r.useState)(() => new Date().toISOString().split("T")[0]),
+					[ed, ec] = (0, r.useState)(T),
+					[eu, em] = (0, r.useState)(""),
+					[ep, eh] = (0, r.useState)(!0),
+					[ex, ef] = (0, r.useState)(!0),
+					[eg, eb] = (0, r.useState)([O()]),
+					[ev, e_] = (0, r.useState)(""),
+					[ej, ey] = (0, r.useState)([]),
+					[eN, ew] = (0, r.useState)(!1),
+					[eS, ek] = (0, r.useState)(!1),
+					[eC, eA] = (0, r.useState)("none"),
+					[eO, eT] = (0, r.useState)(""),
+					{ data: eJ, isLoading: e$ } = (0, i.Rr)(L),
+					{ data: eL, isLoading: eP } = (0, i.dQ)(R),
+					{ data: eV } = (0, i.Ms)(),
+					{ data: ez, isLoading: eZ } = (0, i.mv)(I || void 0, H),
+					{ data: eq, isLoading: eM } = (0, i.iR)(en, Y || void 0),
+					eF = (0, r.useMemo)(() => {
+						let e =
+							eq?.map((e) => ({
+								value: e.name,
+								label: e.model_code || e.name,
+								description:
+									[
+										e.brand_label || e.brand,
+										e.model_name,
+										e.variant,
+										e.model_year,
+									]
+										.filter(Boolean)
+										.join(" ") || e.name,
+							})) || [];
+						return (
+							es &&
+								!e.some((e) => e.value === es) &&
+								e.unshift({
+									value: es,
+									label: es,
+									description:
+										X?.model_name || X?.resolved_vehicle_model_label || "",
+								}),
+							e
+						);
+					}, [eq, es, X]),
+					eI = (0, r.useCallback)(
+						async (e) => {
+							q(!0);
+							try {
+								let t = await y.$2(e || void 0);
+								z(t),
+									!J && t.company && $(t.company),
+									!M && t.default_warehouse && F(t.default_warehouse);
+							} catch (e) {
+								A.o.error(
+									e instanceof Error
+										? e.message
+										: "Failed to load spare part sales defaults"
+								);
+							} finally {
+								q(!1);
+							}
+						},
+						[J, M]
+					);
+				(0, r.useEffect)(() => {
+					eI(J);
+				}, [J, eI]),
+					(0, r.useEffect)(() => {
+						let e = !1,
+							t = window.setTimeout(async () => {
+								ew(!0);
+								try {
+									let t = await y.Kf({
+										search: ev || void 0,
+										warehouse: M || V?.default_warehouse || void 0,
+										inStockOnly: ex,
+										limit: 30,
+									});
+									if (e) return;
+									ey(
+										t.map((e) => ({
+											value: e.name,
+											label: e.item_name || e.name,
+											description: [
+												e.item_code,
+												null != e.qty_on_hand
+													? `Stock: ${e.qty_on_hand}`
+													: null,
+												null != e.unit_price
+													? `Price: ${e.unit_price}`
+													: null,
+											]
+												.filter(Boolean)
+												.join(" \xb7 "),
+										}))
+									);
+								} catch {
+									e || ey([]);
+								} finally {
+									e || ew(!1);
+								}
+							}, 300);
+						return () => {
+							(e = !0), window.clearTimeout(t);
+						};
+					}, [ev, M, V?.default_warehouse, ex]),
+					(0, i.Tr)(eJ, e$, J, (e) => $(e.name), { search: L }),
+					(0, i.Zf)(I, (e) => {
+						W(e.default_customer),
+							D({
+								name: e.default_customer,
+								customer_name: e.customer_name || e.default_customer,
+								mobile_no: e.mobile_no || void 0,
+							});
+					});
+				let eW = (0, r.useMemo)(
+						() =>
+							(V?.companies?.length
+								? V.companies
+								: V?.company
+								? [V.company]
+								: []
+							).map((e) => ({ value: e, label: e })),
+						[V?.companies, V?.company]
+					),
+					eB = (0, r.useMemo)(
+						() =>
+							(V?.warehouses ?? []).map((e) => ({
+								value: e.name,
+								label: e.warehouse_name || e.name,
+							})),
+						[V?.warehouses]
+					),
+					eD = (0, r.useMemo)(() => (0, o.b0)(eL, I, B), [eL, I, B]),
+					eR = (e) => {
+						G(e),
+							ee(e.brand || ""),
+							ea(e.brand_label || e.brand || ""),
+							er(e.model || e.resolved_vehicle_model || ""),
+							e.current_customer &&
+								(W(e.current_customer),
+								D({
+									name: e.current_customer,
+									customer_name: e.customer_name || e.current_customer,
+								}));
+					},
+					eE = async (e) => {
+						if ((Q(e), eb([O()]), e_(""), er(""), !e)) {
+							G(null), ee(""), ea("");
+							return;
+						}
+						let t = ez?.find((t) => t.name === e);
+						t && eR(t);
+						try {
+							let t = await N.Dh(e);
+							eR({
+								name: t.name,
+								vin_number: t.vin_number,
+								plate_number: t.plate_number,
+								model: t.model,
+								model_name: t.model_name,
+								resolved_vehicle_model: t.resolved_vehicle_model,
+								resolved_vehicle_model_label: t.resolved_vehicle_model_label,
+								current_customer: t.current_customer,
+								customer_name: t.customer_name,
+								brand: t.brand,
+								brand_label: t.brand_label,
+							});
+						} catch {
+							t || A.o.error("Could not load vehicle details for the selected VIN");
+						}
+					},
+					eH = (0, r.useMemo)(() => {
+						let e =
+							ez?.map((e) => ({
+								value: e.name,
+								label: e.vin_number,
+								description: [
+									e.model,
+									e.model_name,
+									e.plate_number,
+									e.customer_name,
+								]
+									.filter(Boolean)
+									.join(" \xb7 "),
+							})) || [];
+						return (
+							K &&
+								X &&
+								!e.some((e) => e.value === K) &&
+								e.unshift({
+									value: K,
+									label: X.vin_number || K,
+									description: [
+										X.model || X.resolved_vehicle_model,
+										X.model_name,
+										X.plate_number,
+										X.customer_name,
+									]
+										.filter(Boolean)
+										.join(" \xb7 "),
+								}),
+							e
+						);
+					}, [ez, K, X]),
+					eU = eg.reduce(
+						(e, t) => e + (Number(t.qty) || 0) * (Number(t.unit_price) || 0),
+						0
+					),
+					eK = (0, j.mW)(eC, eO),
+					eQ = (0, j.HW)(eU, eC, eK),
+					eX = eU - eQ,
+					eG = async () => {
+						if (!e("spare-part-sales")) return;
+						if (!M) return void A.o.error("Select a warehouse");
+						let t = eg
+							.filter((e) => e.spare_part && Number(e.qty) > 0)
+							.map((e) => ({
+								spare_part: e.spare_part,
+								qty: Number(e.qty),
+								unit_price: Number(e.unit_price || 0),
+							}));
+						if (!t.length)
+							return void A.o.error("Add at least one spare part with quantity");
+						ek(!0);
+						try {
+							let e = await y._L({
+								customer: I || void 0,
+								company: J || V?.company || "",
+								warehouse: M,
+								parts: t,
+								posting_date: ei,
+								due_date: ed,
+								remarks: eu || void 0,
+								submit: ep,
+								parts_discount: (0, j.Z_)(eC, eO),
+								vehicle_vin: K || void 0,
+								vehicle_brand: Y || void 0,
+								vehicle_model: es || void 0,
+							});
+							A.o.success(
+								ep
+									? `Sales Invoice ${e.name} submitted (${e.grand_total})`
+									: `Sales Invoice ${e.name} saved as draft`
+							),
+								eb([O()]),
+								em(""),
+								Q(""),
+								G(null),
+								ee(""),
+								ea(""),
+								er(""),
+								W(""),
+								D(null),
+								a("invoices");
+						} catch (e) {
+							A.o.error(
+								e instanceof Error ? e.message : "Failed to create sales invoice"
+							);
+						} finally {
+							ek(!1);
+						}
+					};
+				return (0, s.jsxs)("div", {
+					className: "min-w-0 space-y-6",
+					children: [
+						(0, s.jsx)("div", {
+							children: (0, s.jsxs)("h2", {
+								className:
+									"text-2xl font-bold tracking-tight flex items-center gap-2",
+								children: [
+									(0, s.jsx)(w.A, { className: "h-6 w-6" }),
+									"Spare Part Sales",
+								],
+							}),
+						}),
+						(0, s.jsxs)(g.Zp, {
+							children: [
+								(0, s.jsx)(g.aR, {
+									children: (0, s.jsx)(g.ZB, { children: "Counter sale" }),
+								}),
+								(0, s.jsxs)(g.Wu, {
+									className: "space-y-4",
+									children: [
+										(0, s.jsxs)("div", {
+											className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4",
+											children: [
+												(0, s.jsxs)("div", {
+													className: "space-y-2",
+													children: [
+														(0, s.jsx)(x.J, { children: "Company" }),
+														(0, s.jsx)(d.Zi, {
+															options: eW,
+															value: J || V?.company || "",
+															onValueChange: $,
+															placeholder: Z
+																? "Loading…"
+																: "Company",
+															disabled: Z || eW.length <= 1,
+														}),
+													],
+												}),
+												(0, s.jsxs)("div", {
+													className: "space-y-2",
+													children: [
+														(0, s.jsx)(x.J, { children: "Customer" }),
+														(0, s.jsx)(c.Z, {
+															doctype: "Customer",
+															onCreated: (e, t) => {
+																W(e),
+																	D({
+																		name: e,
+																		customer_name: t || e,
+																	});
+															},
+															children: (0, s.jsx)(d.Zi, {
+																options: eD,
+																value: I,
+																valueLabel: B?.customer_name,
+																onValueChange: (e) => {
+																	let t = (0, o.R)(e, eL, eV);
+																	W(t.customer), D(t.meta);
+																},
+																onSearchChange: E,
+																placeholder: "Search customer",
+																isLoading: eP,
+															}),
+														}),
+														V?.default_customer
+															? (0, s.jsxs)("p", {
+																	className:
+																		"text-xs text-muted-foreground",
+																	children: [
+																		"Optional — if left blank, uses default walk-in customer (",
+																		V.default_customer_name ||
+																			V.default_customer,
+																		") from DMS Settings.",
+																	],
+															  })
+															: (0, s.jsx)("p", {
+																	className:
+																		"text-xs text-muted-foreground",
+																	children:
+																		"Optional — configure Default Customer in DMS Settings for walk-in sales without selecting a customer.",
+															  }),
+													],
+												}),
+												(0, s.jsxs)("div", {
+													className: "space-y-2",
+													children: [
+														(0, s.jsx)(x.J, {
+															children: "Warehouse *",
+														}),
+														(0, s.jsx)(d.Zi, {
+															options: eB,
+															value: M,
+															onValueChange: F,
+															placeholder: Z
+																? "Loading…"
+																: "Parts warehouse",
+															disabled: Z || 0 === eB.length,
+														}),
+													],
+												}),
+												(0, s.jsxs)("div", {
+													className: "space-y-2 md:col-span-2",
+													children: [
+														(0, s.jsx)(x.J, {
+															children: "Vehicle (VIN)",
+														}),
+														(0, s.jsx)(d.Zi, {
+															options: eH,
+															value: K,
+															onValueChange: (e) => void eE(e),
+															onSearchChange: U,
+															placeholder:
+																"Search VIN, chassis, or plate (min 3 chars)...",
+															isLoading: eZ,
+														}),
+														(0, s.jsx)("p", {
+															className:
+																"text-xs text-muted-foreground",
+															children:
+																"Optional — recorded on the invoice remarks when provided.",
+														}),
+													],
+												}),
+												(0, s.jsxs)("div", {
+													className: "space-y-2",
+													children: [
+														(0, s.jsx)(x.J, { children: "Car make" }),
+														(0, s.jsx)(h.p, {
+															readOnly: !0,
+															value: et,
+															placeholder: "From selected VIN",
+															className: "bg-muted",
+														}),
+													],
+												}),
+												(0, s.jsxs)("div", {
+													className: "space-y-2",
+													children: [
+														(0, s.jsx)(x.J, {
+															children: "Vehicle Model",
+														}),
+														(0, s.jsx)(d.Zi, {
+															options: eF,
+															value: es,
+															onValueChange: (e) => {
+																er(e), eb([O()]), e_("");
+															},
+															onSearchChange: el,
+															placeholder:
+																"Search Vehicle Model master…",
+															isLoading: eM,
+														}),
+														(0, s.jsx)("p", {
+															className:
+																"text-xs text-muted-foreground",
+															children:
+																"Vehicle Model master record (e.g. JX70P) — same link as on VIN and spare part compatibility. Auto-filled from VIN.",
+														}),
+													],
+												}),
+												(0, s.jsxs)("div", {
+													className: "space-y-2",
+													children: [
+														(0, s.jsx)(x.J, {
+															children: "Posting date",
+														}),
+														(0, s.jsx)(h.p, {
+															type: "date",
+															value: ei,
+															onChange: (e) => eo(e.target.value),
+														}),
+													],
+												}),
+												(0, s.jsxs)("div", {
+													className: "space-y-2",
+													children: [
+														(0, s.jsx)(x.J, { children: "Due date" }),
+														(0, s.jsx)(h.p, {
+															type: "date",
+															value: ed,
+															onChange: (e) => ec(e.target.value),
+														}),
+													],
+												}),
+											],
+										}),
+										(0, s.jsx)("div", {
+											className: "flex flex-wrap items-center gap-4",
+											children: (0, s.jsxs)("div", {
+												className: "flex items-center gap-2",
+												children: [
+													(0, s.jsx)(v.S, {
+														id: "in-stock-only",
+														checked: ex,
+														onCheckedChange: (e) => ef(!!e),
+													}),
+													(0, s.jsx)(x.J, {
+														htmlFor: "in-stock-only",
+														className:
+															"text-sm font-normal cursor-pointer",
+														children:
+															"Show only parts in stock at selected warehouse",
+													}),
+												],
+											}),
+										}),
+										(0, s.jsxs)("div", {
+											className: "space-y-3",
+											children: [
+												(0, s.jsx)(x.J, { children: "Spare parts *" }),
+												eg.map((e, a) =>
+													(0, s.jsxs)(
+														"div",
+														{
+															className:
+																"grid gap-3 md:grid-cols-12 items-end border rounded-lg p-3",
+															children: [
+																(0, s.jsxs)("div", {
+																	className:
+																		"md:col-span-5 space-y-2",
+																	children: [
+																		(0, s.jsx)(x.J, {
+																			className: "text-xs",
+																			children:
+																				"Spare part *",
+																		}),
+																		(0, s.jsx)(d.Zi, {
+																			options: ej,
+																			value: e.spare_part,
+																			onValueChange: async (
+																				t
+																			) => {
+																				let s = ej.find(
+																						(e) =>
+																							e.value ===
+																							t
+																					),
+																					r =
+																						e.unit_price;
+																				try {
+																					let e = (
+																						await y.Kf(
+																							{
+																								search: t,
+																								warehouse:
+																									M ||
+																									V?.default_warehouse ||
+																									void 0,
+																								limit: 1,
+																							}
+																						)
+																					).find(
+																						(e) =>
+																							e.name ===
+																							t
+																					);
+																					e &&
+																						!r &&
+																						null !=
+																							e.unit_price &&
+																						(r =
+																							String(
+																								e.unit_price
+																							));
+																				} catch {}
+																				eb((e) =>
+																					e.map((e, n) =>
+																						n === a
+																							? {
+																									...e,
+																									spare_part:
+																										t,
+																									item_name:
+																										s?.label ||
+																										t,
+																									unit_price:
+																										r,
+																							  }
+																							: e
+																					)
+																				);
+																			},
+																			onSearchChange: e_,
+																			placeholder:
+																				"Search spare part",
+																			isLoading: eN,
+																		}),
+																	],
+																}),
+																(0, s.jsxs)("div", {
+																	className:
+																		"md:col-span-2 space-y-2",
+																	children: [
+																		(0, s.jsx)(x.J, {
+																			className: "text-xs",
+																			children: "Qty *",
+																		}),
+																		(0, s.jsx)(h.p, {
+																			type: "number",
+																			min: "0",
+																			step: "any",
+																			value: e.qty,
+																			onChange: (e) =>
+																				eb((t) =>
+																					t.map((t, s) =>
+																						s === a
+																							? {
+																									...t,
+																									qty: e
+																										.target
+																										.value,
+																							  }
+																							: t
+																					)
+																				),
+																		}),
+																	],
+																}),
+																(0, s.jsxs)("div", {
+																	className:
+																		"md:col-span-2 space-y-2",
+																	children: [
+																		(0, s.jsx)(x.J, {
+																			className: "text-xs",
+																			children: t
+																				? "Unit price"
+																				: "Unit price (fixed)",
+																		}),
+																		(0, s.jsx)(h.p, {
+																			type: "number",
+																			min: "0",
+																			step: "any",
+																			readOnly: !t,
+																			className: t
+																				? void 0
+																				: "bg-muted",
+																			value: e.unit_price,
+																			onChange: (e) =>
+																				eb((t) =>
+																					t.map((t, s) =>
+																						s === a
+																							? {
+																									...t,
+																									unit_price:
+																										e
+																											.target
+																											.value,
+																							  }
+																							: t
+																					)
+																				),
+																		}),
+																	],
+																}),
+																(0, s.jsxs)("div", {
+																	className:
+																		"md:col-span-2 space-y-2",
+																	children: [
+																		(0, s.jsx)(x.J, {
+																			className: "text-xs",
+																			children: "Amount",
+																		}),
+																		(0, s.jsx)(h.p, {
+																			readOnly: !0,
+																			value: (
+																				(Number(e.qty) ||
+																					0) *
+																				(Number(
+																					e.unit_price
+																				) || 0)
+																			).toFixed(2),
+																		}),
+																	],
+																}),
+																(0, s.jsx)("div", {
+																	className:
+																		"md:col-span-1 flex justify-end",
+																	children: (0, s.jsx)(m.$, {
+																		type: "button",
+																		variant: "ghost",
+																		size: "icon",
+																		disabled: eg.length <= 1,
+																		onClick: () =>
+																			eb((e) =>
+																				e.filter(
+																					(e, t) =>
+																						t !== a
+																				)
+																			),
+																		children: (0, s.jsx)(S.A, {
+																			className: "h-4 w-4",
+																		}),
+																	}),
+																}),
+															],
+														},
+														e.id
+													)
+												),
+												(0, s.jsx)(p._, {
+													onClick: () => eb((e) => [...e, O()]),
+													label: "Add line",
+												}),
+											],
+										}),
+										(0, s.jsx)(u.w, {
+											label: "Parts",
+											mode: eC,
+											onModeChange: eA,
+											value: eO,
+											onValueChange: eT,
+											subtotal: eU,
+										}),
+										(0, s.jsxs)("div", {
+											className: "space-y-2",
+											children: [
+												(0, s.jsx)(x.J, { children: "Remarks" }),
+												(0, s.jsx)(f.T, {
+													value: eu,
+													onChange: (e) => em(e.target.value),
+													placeholder:
+														"Optional notes for this counter sale",
+													rows: 2,
+												}),
+											],
+										}),
+										(0, s.jsxs)("div", {
+											className: "flex items-center gap-2",
+											children: [
+												(0, s.jsx)(v.S, {
+													id: "submit-invoice",
+													checked: ep,
+													onCheckedChange: (e) => eh(!!e),
+												}),
+												(0, s.jsx)(x.J, {
+													htmlFor: "submit-invoice",
+													className:
+														"text-sm font-normal cursor-pointer",
+													children: "Submit invoice immediately",
+												}),
+											],
+										}),
+										(0, s.jsxs)("div", {
+											className:
+												"rounded-lg border bg-muted/30 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3",
+											children: [
+												(0, s.jsxs)("div", {
+													className:
+														"flex items-center gap-2 text-sm text-muted-foreground",
+													children: [
+														(0, s.jsx)(k.A, { className: "h-4 w-4" }),
+														(0, s.jsxs)("span", {
+															children: [
+																eg.filter((e) => e.spare_part)
+																	.length,
+																" line(s)",
+																eQ > 0
+																	? ` \xb7 discount: ${eQ.toFixed(
+																			2
+																	  )}`
+																	: "",
+															],
+														}),
+													],
+												}),
+												(0, s.jsxs)("p", {
+													className: "text-xl font-semibold",
+													children: ["Total: ", eX.toFixed(2)],
+												}),
+											],
+										}),
+										(0, s.jsx)(_.h, {
+											children: (0, s.jsxs)(m.$, {
+												type: "button",
+												onClick: () => void eG(),
+												disabled: eS || !e("spare-part-sales"),
+												children: [
+													eS
+														? (0, s.jsx)(C.A, {
+																className:
+																	"mr-2 h-4 w-4 animate-spin",
+														  })
+														: null,
+													"Create sales invoice",
+												],
+											}),
+										}),
+									],
+								}),
+							],
+						}),
+						eg.length > 1 &&
+							(0, s.jsxs)(g.Zp, {
+								children: [
+									(0, s.jsx)(g.aR, {
+										children: (0, s.jsx)(g.ZB, {
+											className: "text-base",
+											children: "Line summary",
+										}),
+									}),
+									(0, s.jsx)(g.Wu, {
+										children: (0, s.jsxs)(b.XI, {
+											children: [
+												(0, s.jsx)(b.A0, {
+													children: (0, s.jsxs)(b.Hj, {
+														children: [
+															(0, s.jsx)(b.nd, { children: "Part" }),
+															(0, s.jsx)(b.nd, {
+																className: "text-right",
+																children: "Qty",
+															}),
+															(0, s.jsx)(b.nd, {
+																className: "text-right",
+																children: "Rate",
+															}),
+															(0, s.jsx)(b.nd, {
+																className: "text-right",
+																children: "Amount",
+															}),
+														],
+													}),
+												}),
+												(0, s.jsx)(b.BF, {
+													children: eg
+														.filter((e) => e.spare_part)
+														.map((e) =>
+															(0, s.jsxs)(
+																b.Hj,
+																{
+																	children: [
+																		(0, s.jsx)(b.nA, {
+																			children:
+																				e.item_name ||
+																				e.spare_part,
+																		}),
+																		(0, s.jsx)(b.nA, {
+																			className:
+																				"text-right",
+																			children: e.qty,
+																		}),
+																		(0, s.jsx)(b.nA, {
+																			className:
+																				"text-right",
+																			children: e.unit_price,
+																		}),
+																		(0, s.jsx)(b.nA, {
+																			className:
+																				"text-right",
+																			children: (
+																				(Number(e.qty) ||
+																					0) *
+																				(Number(
+																					e.unit_price
+																				) || 0)
+																			).toFixed(2),
+																		}),
+																	],
+																},
+																e.id
+															)
+														),
+												}),
+											],
+										}),
+									}),
+								],
+							}),
+					],
+				});
+			}
+		},
+		39540: (e, t, a) => {
+			a.d(t, { T: () => n });
+			var s = a(95155);
+			a(12115);
+			var r = a(91337);
+			function n({ className: e, ...t }) {
+				return (0, s.jsx)("textarea", {
+					"data-slot": "textarea",
+					className: (0, r.cn)(
+						"border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+						e
+					),
+					...t,
+				});
+			}
+		},
+		42074: (e, t, a) => {
+			a.d(t, { h: () => i });
+			var s = a(95155),
+				r = a(12115),
+				n = a(47650),
+				l = a(91337);
+			function i({ children: e, className: t, align: a = "end" }) {
+				let [o, d] = (0, r.useState)(!1);
+				(0, r.useEffect)(() => (d(!0), () => d(!1)), []);
+				let c = (0, s.jsx)("div", {
+					role: "toolbar",
+					"aria-label": "Form actions",
+					className: (0, l.cn)(
+						"fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
+						"pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3",
+						"lg:left-64",
+						t
+					),
+					children: (0, s.jsx)("div", {
+						className: (0, l.cn)(
+							"mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6",
+							"between" === a
+								? "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3"
+								: "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"
+						),
+						children: e,
+					}),
+				});
+				return o ? (0, n.createPortal)(c, document.body) : null;
+			}
+		},
+		52959: (e, t, a) => {
+			a.d(t, { _: () => i });
+			var s = a(95155),
+				r = a(4474),
+				n = a(51914),
+				l = a(91337);
+			function i({ onClick: e, label: t = "Add", className: a, disabled: o }) {
+				return (0, s.jsx)("div", {
+					className: (0, l.cn)("pt-1", a),
+					children: (0, s.jsxs)(r.$, {
+						type: "button",
+						onClick: e,
+						disabled: o,
+						children: [(0, s.jsx)(n.A, { className: "h-4 w-4 mr-1" }), t],
+					}),
+				});
+			}
+		},
+		54828: (e, t, a) => {
+			function s(e) {
+				return e?.default_customer
+					? {
+							name: e.default_customer,
+							customer_name: e.customer_name || e.default_customer,
+							mobile_no: e.mobile_no || void 0,
+					  }
+					: null;
+			}
+			function r(e, t, a) {
+				let s =
+					e?.map((e) => ({
+						value: e.name,
+						label: e.customer_name,
+						description: e.mobile_no || void 0,
+					})) || [];
+				return t && a && !s.some((e) => e.value === t)
+					? [{ value: a.name, label: a.customer_name, description: a.mobile_no }, ...s]
+					: s;
+			}
+			function n(e, t, a) {
+				if (!e) {
+					let e = s(a);
+					return e ? { customer: e.name, meta: e } : { customer: "", meta: null };
+				}
+				let r = t?.find((t) => t.name === e);
+				return r
+					? {
+							customer: r.name,
+							meta: {
+								name: r.name,
+								customer_name: r.customer_name,
+								mobile_no: r.mobile_no,
+							},
+					  }
+					: { customer: e, meta: { name: e, customer_name: e } };
+			}
+			a.d(t, { Gd: () => s, R: () => n, b0: () => r });
+		},
+		79984: (e, t, a) => {
+			a.d(t, { BT: () => o, Wu: () => d, ZB: () => i, Zp: () => n, aR: () => l });
+			var s = a(95155);
+			a(12115);
+			var r = a(91337);
+			function n({ className: e, ...t }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "card",
+					className: (0, r.cn)(
+						"bg-card text-card-foreground flex flex-col gap-2 rounded-[1.15rem] border py-3 shadow-[0_4px_20px_rgba(15,61,94,0.05)]",
+						e
+					),
+					...t,
+				});
+			}
+			function l({ className: e, ...t }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "card-header",
+					className: (0, r.cn)(
+						"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-3",
+						e
+					),
+					...t,
+				});
+			}
+			function i({ className: e, ...t }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "card-title",
+					className: (0, r.cn)(
+						"leading-none font-serif-display font-semibold tracking-tight",
+						e
+					),
+					...t,
+				});
+			}
+			function o({ className: e, ...t }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "card-description",
+					className: (0, r.cn)("text-muted-foreground text-sm", e),
+					...t,
+				});
+			}
+			function d({ className: e, ...t }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "card-content",
+					className: (0, r.cn)("px-4", e),
+					...t,
+				});
+			}
+		},
+		83786: (e, t, a) => {
+			a.d(t, {
+				A0: () => l,
+				BF: () => i,
+				Hj: () => o,
+				XI: () => n,
+				nA: () => c,
+				nd: () => d,
+			});
+			var s = a(95155);
+			a(12115);
+			var r = a(91337);
+			function n({ className: e, ...t }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "table-container",
+					className: "relative w-full overflow-x-auto",
+					children: (0, s.jsx)("table", {
+						"data-slot": "table",
+						className: (0, r.cn)("w-full caption-bottom text-sm", e),
+						...t,
+					}),
+				});
+			}
+			function l({ className: e, ...t }) {
+				return (0, s.jsx)("thead", {
+					"data-slot": "table-header",
+					className: (0, r.cn)("[&_tr]:border-b", e),
+					...t,
+				});
+			}
+			function i({ className: e, ...t }) {
+				return (0, s.jsx)("tbody", {
+					"data-slot": "table-body",
+					className: (0, r.cn)("[&_tr:last-child]:border-0", e),
+					...t,
+				});
+			}
+			function o({ className: e, ...t }) {
+				return (0, s.jsx)("tr", {
+					"data-slot": "table-row",
+					className: (0, r.cn)(
+						"hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
+						e
+					),
+					...t,
+				});
+			}
+			function d({ className: e, ...t }) {
+				return (0, s.jsx)("th", {
+					"data-slot": "table-head",
+					className: (0, r.cn)(
+						"text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+						e
+					),
+					...t,
+				});
+			}
+			function c({ className: e, ...t }) {
+				return (0, s.jsx)("td", {
+					"data-slot": "table-cell",
+					className: (0, r.cn)(
+						"p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+						e
+					),
+					...t,
+				});
+			}
+		},
+		84437: (e, t, a) => {
+			a.d(t, { S: () => i });
+			var s = a(95155);
+			a(12115);
+			var r = a(47279),
+				n = a(94514),
+				l = a(91337);
+			function i({ className: e, ...t }) {
+				return (0, s.jsx)(r.bL, {
+					"data-slot": "checkbox",
+					className: (0, l.cn)(
+						"peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+						e
+					),
+					...t,
+					children: (0, s.jsx)(r.C1, {
+						"data-slot": "checkbox-indicator",
+						className: "flex items-center justify-center text-current transition-none",
+						children: (0, s.jsx)(n.A, { className: "size-3.5" }),
+					}),
+				});
+			}
+		},
+		88361: (e, t, a) => {
+			function s(e, t) {
+				if ("none" === e) return 0;
+				let a = parseFloat(t);
+				return Number.isFinite(a) && a > 0 ? a : 0;
+			}
+			function r(e, t, a) {
+				return "none" === t || e <= 0 || a <= 0
+					? 0
+					: "percentage" === t
+					? (Math.min(a, 100) / 100) * e
+					: Math.min(a, e);
+			}
+			function n(e, t) {
+				let a = s(e, t);
+				if ("none" !== e && !(a <= 0)) return { type: e, value: a };
+			}
+			function l(e) {
+				let t = (e || "").trim().toLowerCase();
+				return "percentage" === t || "percent" === t
+					? "percentage"
+					: "amount" === t
+					? "amount"
+					: "none";
+			}
+			function i(e, t) {
+				let a = s(e, t);
+				return "none" === e || a <= 0
+					? { discount_type: "", discount_value: 0 }
+					: {
+							discount_type:
+								"percentage" === e ? "Percentage" : "amount" === e ? "Amount" : "",
+							discount_value: a,
+					  };
+			}
+			function o(e, t, a) {
+				return r(e, t, a);
+			}
+			function d(e, t) {
+				let a = l(e),
+					s = Number(t || 0);
+				return "none" === a || s <= 0
+					? ""
+					: "percentage" === a
+					? `${s}%`
+					: s.toLocaleString();
+			}
+			a.d(t, {
+				HW: () => r,
+				O6: () => o,
+				OC: () => i,
+				VJ: () => d,
+				Z_: () => n,
+				mW: () => s,
+				nO: () => l,
+			});
+		},
+	},
+]);

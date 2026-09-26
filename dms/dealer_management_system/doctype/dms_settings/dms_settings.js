@@ -9,41 +9,77 @@
 
 frappe.ui.form.on("DMS Settings", {
 	refresh(frm) {
-		frm.add_custom_button(__("Create VIN from Serial No"), () => {
-			open_create_vin_modal(frm);
-		}, __("Actions"));
+		frm.add_custom_button(
+			__("Create VIN from Serial No"),
+			() => {
+				open_create_vin_modal(frm);
+			},
+			__("Actions")
+		);
 
-		frm.add_custom_button(__("Link VIN Models from Names"), () => {
-			backfill_vin_model_links(frm);
-		}, __("Actions"));
+		frm.add_custom_button(
+			__("Link VIN Models from Names"),
+			() => {
+				backfill_vin_model_links(frm);
+			},
+			__("Actions")
+		);
 
-		frm.add_custom_button(__("Restore Cancelled Parts Requests"), () => {
-			restore_cancelled_parts_requests(frm);
-		}, __("Actions"));
+		frm.add_custom_button(
+			__("Restore Cancelled Parts Requests"),
+			() => {
+				restore_cancelled_parts_requests(frm);
+			},
+			__("Actions")
+		);
 
-		frm.add_custom_button(__("Import FRT Labour Sheet"), () => {
-			open_frt_import_modal(frm);
-		}, __("Imports"));
+		frm.add_custom_button(
+			__("Import FRT Labour Sheet"),
+			() => {
+				open_frt_import_modal(frm);
+			},
+			__("Imports")
+		);
 
-		frm.add_custom_button(__("Import Service Packages"), () => {
-			open_service_package_import_modal(frm);
-		}, __("Imports"));
+		frm.add_custom_button(
+			__("Import Service Packages"),
+			() => {
+				open_service_package_import_modal(frm);
+			},
+			__("Imports")
+		);
 
-		frm.add_custom_button(__("Import Spare Parts Inventory"), () => {
-			open_inventory_import_modal(frm);
-		}, __("Imports"));
+		frm.add_custom_button(
+			__("Import Spare Parts Inventory"),
+			() => {
+				open_inventory_import_modal(frm);
+			},
+			__("Imports")
+		);
 
-		frm.add_custom_button(__("Create Inventory Stock Reconciliation"), () => {
-			open_inventory_stock_reconciliation_modal(frm);
-		}, __("Actions"));
+		frm.add_custom_button(
+			__("Create Inventory Stock Reconciliation"),
+			() => {
+				open_inventory_stock_reconciliation_modal(frm);
+			},
+			__("Actions")
+		);
 
-		frm.add_custom_button(__("Create Audit Stock Reconciliation"), () => {
-			open_audit_stock_reconciliation_modal(frm);
-		}, __("Actions"));
+		frm.add_custom_button(
+			__("Create Audit Stock Reconciliation"),
+			() => {
+				open_audit_stock_reconciliation_modal(frm);
+			},
+			__("Actions")
+		);
 
-		frm.add_custom_button(__("Create Inventory Item Prices"), () => {
-			open_inventory_item_price_modal(frm);
-		}, __("Actions"));
+		frm.add_custom_button(
+			__("Create Inventory Item Prices"),
+			() => {
+				open_inventory_item_price_modal(frm);
+			},
+			__("Actions")
+		);
 	},
 });
 
@@ -107,7 +143,9 @@ function import_frt_labour_sheet(frm, values) {
 			if (summary.details?.length) {
 				msg += "\n" + __("Per sheet:") + "\n";
 				summary.details.forEach((row) => {
-					msg += `- ${row.sheet}: ${row.model_name} (${row.model_code}) — ${row.services_created || 0} created, ${row.services_updated || 0} updated\n`;
+					msg += `- ${row.sheet}: ${row.model_name} (${row.model_code}) — ${
+						row.services_created || 0
+					} created, ${row.services_updated || 0} updated\n`;
 				});
 			}
 
@@ -179,7 +217,9 @@ function import_service_packages_workbook(frm, file_url) {
 				msg += "\n" + __("Per sheet:") + "\n";
 				summary.details.forEach((row) => {
 					const modelNote = row.vehicle_model_created ? " [model created]" : "";
-					msg += `- ${row.sheet}: ${row.model_name} (${row.model_code})${modelNote} — ${row.packages_created || 0} created, ${row.packages_updated || 0} updated\n`;
+					msg += `- ${row.sheet}: ${row.model_name} (${row.model_code})${modelNote} — ${
+						row.packages_created || 0
+					} created, ${row.packages_updated || 0} updated\n`;
 				});
 			}
 
@@ -447,8 +487,7 @@ function set_audit_difference_account(d) {
 		return;
 	}
 	frappe.call({
-		method:
-			"erpnext.stock.doctype.stock_reconciliation.stock_reconciliation.get_difference_account",
+		method: "erpnext.stock.doctype.stock_reconciliation.stock_reconciliation.get_difference_account",
 		args: { purpose, company },
 		callback(r) {
 			d.set_value("expense_account", r.message || "");
@@ -610,8 +649,7 @@ function backfill_vin_model_links(frm) {
 		),
 		() => {
 			frappe.call({
-				method:
-					"dms.dealer_management_system.doctype.dms_settings.dms_settings.backfill_vin_model_links_action",
+				method: "dms.dealer_management_system.doctype.dms_settings.dms_settings.backfill_vin_model_links_action",
 				args: { dry_run: 0 },
 				freeze: true,
 				freeze_message: __("Linking VIN models…"),
@@ -630,7 +668,9 @@ function backfill_vin_model_links(frm) {
 					if (summary.preview?.length) {
 						msg += "\n" + __("Sample updates:") + "\n";
 						summary.preview.forEach((row) => {
-							msg += `- ${row.name}: ${row.model_name || row.linked_item || ""} → ${row.vehicle_model}\n`;
+							msg += `- ${row.name}: ${row.model_name || row.linked_item || ""} → ${
+								row.vehicle_model
+							}\n`;
 						});
 					}
 
@@ -654,100 +694,100 @@ function backfill_vin_model_links(frm) {
 }
 
 function open_create_vin_modal(frm) {
-    let d = new frappe.ui.Dialog({
-        title: __("Create VIN No from Serial Numbers"),
-        fields: [
-            {
-                fieldname: "company",
-                label: __("Company"),
-                fieldtype: "Link",
-                options: "Company",
-                reqd: 1,
-                default: frappe.defaults.get_default("company"),
-                description: "Select company for serial numbers"
-            },
-            {
-                fieldname: "start_date",
-                label: __("Start Date"),
-                fieldtype: "Date",
-                reqd: 1,
-                default: frappe.datetime.add_months(frappe.datetime.get_today(), -1)
-            },
-            {
-                fieldname: "end_date",
-                label: __("End Date"),
-                fieldtype: "Date",
-                reqd: 1,
-                default: frappe.datetime.get_today()
-            },
-            {
-                fieldname: "item_code",
-                label: __("Item / Vehicle Model (Optional)"),
-                fieldtype: "Link",
-                options: "Item",
-                description: "Leave blank to process all vehicle items"
-            },
-            {
-                fieldname: "column_break_1",
-                fieldtype: "Column Break"
-            },
-            {
-                fieldname: "status_filter",
-                label: __("Serial Status"),
-                fieldtype: "Select",
-                options: "\nActive\nDelivered\nInactive",
-                description: "Filter by serial status (optional)"
-            },
-            {
-                fieldname: "force_recreate",
-                label: __("Force Recreate (Overwrite existing)"),
-                fieldtype: "Check",
-                default: 0,
-                description: "If checked, will update existing VIN No records"
-            }
-        ],
-        primary_action_label: __("Create VIN Records"),
-        primary_action: function(values) {
-            d.hide();
-            create_vin_from_serial(frm, values);
-        }
-    });
-    d.show();
+	let d = new frappe.ui.Dialog({
+		title: __("Create VIN No from Serial Numbers"),
+		fields: [
+			{
+				fieldname: "company",
+				label: __("Company"),
+				fieldtype: "Link",
+				options: "Company",
+				reqd: 1,
+				default: frappe.defaults.get_default("company"),
+				description: "Select company for serial numbers",
+			},
+			{
+				fieldname: "start_date",
+				label: __("Start Date"),
+				fieldtype: "Date",
+				reqd: 1,
+				default: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
+			},
+			{
+				fieldname: "end_date",
+				label: __("End Date"),
+				fieldtype: "Date",
+				reqd: 1,
+				default: frappe.datetime.get_today(),
+			},
+			{
+				fieldname: "item_code",
+				label: __("Item / Vehicle Model (Optional)"),
+				fieldtype: "Link",
+				options: "Item",
+				description: "Leave blank to process all vehicle items",
+			},
+			{
+				fieldname: "column_break_1",
+				fieldtype: "Column Break",
+			},
+			{
+				fieldname: "status_filter",
+				label: __("Serial Status"),
+				fieldtype: "Select",
+				options: "\nActive\nDelivered\nInactive",
+				description: "Filter by serial status (optional)",
+			},
+			{
+				fieldname: "force_recreate",
+				label: __("Force Recreate (Overwrite existing)"),
+				fieldtype: "Check",
+				default: 0,
+				description: "If checked, will update existing VIN No records",
+			},
+		],
+		primary_action_label: __("Create VIN Records"),
+		primary_action: function (values) {
+			d.hide();
+			create_vin_from_serial(frm, values);
+		},
+	});
+	d.show();
 }
 
 function create_vin_from_serial(frm, filters) {
-    frappe.call({
-        method: "dms.dealer_management_system.doctype.dms_settings.dms_settings.create_vin_from_serial_numbers",
-        args: {
-            company: filters.company,
-            start_date: filters.start_date,
-            end_date: filters.end_date,
-            item_code: filters.item_code || null,
-            status_filter: filters.status_filter || null,
-            force_recreate: filters.force_recreate || 0
-        },
-        freeze: true,
-        freeze_message: __("Creating VIN records from serial numbers..."),
-        callback: function(r) {
-            if (r.message) {
-                let msg = __("Process completed!\n\n");
-                msg += __("Company: {0}\n", [filters.company]);
-                msg += __("Date Range: {0} to {1}\n", [filters.start_date, filters.end_date]);
-                msg += __("Total Serial Numbers found: {0}\n", [r.message.total_serial]);
-                msg += __("VIN Records created: {0}\n", [r.message.created]);
-                msg += __("VIN Records updated: {0}\n", [r.message.updated]);
-                msg += __("Skipped: {0}\n", [r.message.skipped]);
-                msg += __("Errors: {0}", [r.message.errors]);
-                
-                frappe.msgprint({
-                    title: __("VIN Creation Summary"),
-                    message: msg,
-                    indicator: r.message.errors > 0 ? "orange" : "green"
-                });
-                frm.reload_doc();
-            }
-        }
-    });
+	frappe.call({
+		method: "dms.dealer_management_system.doctype.dms_settings.dms_settings.create_vin_from_serial_numbers",
+		args: {
+			company: filters.company,
+			start_date: filters.start_date,
+			end_date: filters.end_date,
+			item_code: filters.item_code || null,
+			status_filter: filters.status_filter || null,
+			force_recreate: filters.force_recreate || 0,
+		},
+		freeze: true,
+		freeze_message: __("Creating VIN records from serial numbers..."),
+		callback: function (r) {
+			if (r.message) {
+				let msg = __("Process completed!\n\n");
+				msg += __("Company: {0}\n", [filters.company]);
+				msg += __("Date Range: {0} to {1}\n", [filters.start_date, filters.end_date]);
+				msg += __("Total Serial Numbers found: {0}\n", [r.message.total_serial]);
+				msg += __("VIN Records created: {0}\n", [r.message.created]);
+				msg += __("VIN Records updated: {0}\n", [r.message.updated]);
+				msg += __("Skipped: {0}\n", [r.message.skipped]);
+				msg += __("Errors: {0}", [r.message.errors]);
+
+				frappe.msgprint({
+					title: __("VIN Creation Summary"),
+					message: msg,
+					indicator: r.message.errors > 0 ? "orange" : "green",
+				});
+				frm.reload_doc();
+			}
+		},
+	});
 }
 
 function restore_cancelled_parts_requests(frm) {
@@ -789,7 +829,9 @@ function restore_cancelled_parts_requests(frm) {
 			if (summary.preview && summary.preview.length) {
 				msg += "<br><br>" + __("First entries:") + "<br>";
 				summary.preview.slice(0, 15).forEach((row) => {
-					msg += `- ${row.name} (${row.job_card || __("no job card")}) → ${row.status}<br>`;
+					msg += `- ${row.name} (${row.job_card || __("no job card")}) → ${
+						row.status
+					}<br>`;
 				});
 			}
 

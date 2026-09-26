@@ -2,617 +2,606 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.model.document import Document
-from frappe.utils import nowdate, getdate, add_months, date_diff
 from frappe import _
+from frappe.model.document import Document
+from frappe.utils import add_months, date_diff, getdate, nowdate
+
 
 class VINNo(Document):
-    
-    def validate(self):
-        """Validate before saving"""
-        self.validate_vin_format()
-        self.validate_duplicate_vin()
-        self.validate_engine_number()
-        self.apply_dms_warranty_schedule()
-        self.calculate_warranty_status()
-        self.calculate_next_service()
-        self.validate_odometer()
-        self.sync_customer_history()
-    
-    def on_update(self):
-        """After document is saved - create Serial No if needed"""
-        if not self.linked_serial:
-            self.create_serial_no()
-        if not frappe.flags.get("skip_vin_serial_sync"):
-            self.sync_to_serial_no()
-            
-    def before_save(self):
-        """Server-side before save"""
-        if self.status == "Draft":
-            self.status = "Estimation Pending"
-            
-    
-    def on_trash(self):
-        """When document is deleted - unlink Serial No"""
-        if self.linked_serial:
-            # Just unlink, don't delete Serial No
-            frappe.db.set_value("Serial No", self.linked_serial, "reference_name", None)
-            frappe.db.set_value("Serial No", self.linked_serial, "reference_doctype", None)
-    
-    # ========== VALIDATION METHODS ==========
-    
-    def validate_vin_format(self):
-        """Validate VIN format"""
-        if not self.vin_number:
-            frappe.throw(_("VIN / Chassis Number is required"))
-        
-        vin = (self.vin_number or "").strip()
-        # A VIN is exactly 17 characters. Enforce it on create and whenever the VIN
-        # changes; legacy rows that predate this rule stay editable untouched.
-        if len(vin) != 17 and (self.is_new() or self.has_value_changed("vin_number")):
-            frappe.throw(
-                _("VIN / Chassis Number must be exactly 17 characters. Current length: {0}").format(
-                    len(vin)
-                )
-            )
-    
-    def validate_duplicate_vin(self):
-        """Prevent duplicate VIN creation and say where the existing VIN is.
+	def validate(self):
+		"""Validate before saving"""
+		self.validate_vin_format()
+		self.validate_duplicate_vin()
+		self.validate_engine_number()
+		self.apply_dms_warranty_schedule()
+		self.calculate_warranty_status()
+		self.calculate_next_service()
+		self.validate_odometer()
+		self.sync_customer_history()
 
-        The doctype is named after the VIN (autoname = field:vin_number), so a new
-        record whose VIN already exists collides by name. The old lookup excluded
-        `self.name` — which *is* the VIN — so it never matched and the raw
-        "VIN No X already exists" error came from the database instead. Look the
-        docname up explicitly and report the owning company / customer.
-        """
-        vin = (self.vin_number or "").strip()
-        if not vin:
-            return
+	def on_update(self):
+		"""After document is saved - create Serial No if needed"""
+		if not self.linked_serial:
+			self.create_serial_no()
+		if not frappe.flags.get("skip_vin_serial_sync"):
+			self.sync_to_serial_no()
 
-        fields = ["name", "company", "current_customer", "linked_serial", "model_name"]
-        existing = frappe.db.get_value(
-            "VIN No",
-            {"vin_number": vin, "name": ["!=", self.name or ""]},
-            fields,
-            as_dict=True,
-        )
-        if not existing and self.is_new() and frappe.db.exists("VIN No", vin):
-            # New record: autoname has already set self.name to the VIN, so the
-            # lookup above excluded the very row that collides. Look it up by name.
-            existing = frappe.db.get_value("VIN No", vin, fields, as_dict=True)
-        if not existing:
-            return
+	def before_save(self):
+		"""Server-side before save"""
+		if self.status == "Draft":
+			self.status = "Estimation Pending"
 
-        from dms.dealer_management_system.utils.company_permissions import (
-            get_vin_company_scope_values,
-        )
+	def on_trash(self):
+		"""When document is deleted - unlink Serial No"""
+		if self.linked_serial:
+			# Just unlink, don't delete Serial No
+			frappe.db.set_value("Serial No", self.linked_serial, "reference_name", None)
+			frappe.db.set_value("Serial No", self.linked_serial, "reference_doctype", None)
 
-        company = (existing.get("company") or "").strip()
-        hidden = company not in get_vin_company_scope_values()
+	# ========== VALIDATION METHODS ==========
 
-        message = _("VIN No {0} already exists.").format(frappe.bold(existing["name"]))
-        details = []
-        if existing.get("model_name"):
-            details.append(_("Model") + ": " + str(existing["model_name"]))
-        if company:
-            details.append(_("Company") + ": " + company)
-        if existing.get("current_customer"):
-            details.append(_("Customer") + ": " + str(existing["current_customer"]))
-        if existing.get("linked_serial"):
-            details.append(_("Serial No") + ": " + str(existing["linked_serial"]))
-        if details:
-            message += "<br>" + "<br>".join(details)
+	def validate_vin_format(self):
+		"""Validate VIN format"""
+		if not self.vin_number:
+			frappe.throw(_("VIN / Chassis Number is required"))
 
-        if hidden:
-            message += "<br><br>" + _(
-                "It belongs to a company that is not selected in DMS Settings, so it "
-                "is hidden from the VIN No list. Open it directly: {0}"
-            ).format(f"<a href='/app/vin-no/{existing['name']}'>{existing['name']}</a>")
+		vin = (self.vin_number or "").strip()
+		# A VIN is exactly 17 characters. Enforce it on create and whenever the VIN
+		# changes; legacy rows that predate this rule stay editable untouched.
+		if len(vin) != 17 and (self.is_new() or self.has_value_changed("vin_number")):
+			frappe.throw(
+				_("VIN / Chassis Number must be exactly 17 characters. Current length: {0}").format(len(vin))
+			)
 
-        frappe.throw(message, title=_("Duplicate VIN No"), exc=frappe.DuplicateEntryError)
-        
-    def validate_engine_number(self):
-        """Warn on duplicate engine numbers"""
-        if self.engine_number:
-            existing = frappe.db.exists("VIN No", {
-                "engine_number": self.engine_number, 
-                "name": ["!=", self.name or ""]
-            })
-            if existing:
-                frappe.msgprint(
-                    _("Warning: Engine Number {0} is already registered.").format(self.engine_number),
-                    alert=True,
-                    indicator="red"
-                )
-    
-    def apply_dms_warranty_schedule(self):
-        """Warranty period/km from DMS Settings; start date = vehicle sale from stock."""
-        if frappe.flags.get("preserve_warranty_status"):
-            return
-        from dms.utils.warranty import apply_dms_warranty_schedule
+	def validate_duplicate_vin(self):
+		"""Prevent duplicate VIN creation and say where the existing VIN is.
 
-        apply_dms_warranty_schedule(self, persist=False)
+		The doctype is named after the VIN (autoname = field:vin_number), so a new
+		record whose VIN already exists collides by name. The old lookup excluded
+		`self.name` — which *is* the VIN — so it never matched and the raw
+		"VIN No X already exists" error came from the database instead. Look the
+		docname up explicitly and report the owning company / customer.
+		"""
+		vin = (self.vin_number or "").strip()
+		if not vin:
+			return
 
-    def calculate_warranty_status(self):
-        """Active / Inactive (time) / Expired by Mileage — see dms.utils.warranty."""
-        if frappe.flags.get("preserve_warranty_status"):
-            return
-        from dms.utils.warranty import compute_warranty_status
+		fields = ["name", "company", "current_customer", "linked_serial", "model_name"]
+		existing = frappe.db.get_value(
+			"VIN No",
+			{"vin_number": vin, "name": ["!=", self.name or ""]},
+			fields,
+			as_dict=True,
+		)
+		if not existing and self.is_new() and frappe.db.exists("VIN No", vin):
+			# New record: autoname has already set self.name to the VIN, so the
+			# lookup above excluded the very row that collides. Look it up by name.
+			existing = frappe.db.get_value("VIN No", vin, fields, as_dict=True)
+		if not existing:
+			return
 
-        compute_warranty_status(self)
-    
-    def calculate_next_service(self):
-        """Calculate next service due"""
-        if self.current_odometer and self.service_interval_km:
-            self.next_service_due_km = self.current_odometer + self.service_interval_km
-        
-        if self.last_service_date and self.service_interval_months:
-            self.next_service_due_date = add_months(self.last_service_date, self.service_interval_months)
-        elif self.delivery_date and self.service_interval_months:
-            self.next_service_due_date = add_months(self.delivery_date, self.service_interval_months)
-    
-    def validate_odometer(self):
-        """Warn on an odometer rollback; block only until the caller confirms.
+		from dms.dealer_management_system.utils.company_permissions import (
+			get_vin_company_scope_values,
+		)
 
-        A lower reading is usually a typo, but it can be real (instrument cluster
-        replacement, imported odometer). Callers whose UI already asked the user set
-        ``allow_odometer_rollback``; then the new reading is kept and the warning is
-        shown instead of failing the save.
-        """
-        if self.is_new():
-            return
-        
-        previous_odometer = frappe.db.get_value("VIN No", self.name, "current_odometer")
-        
-        if previous_odometer and self.current_odometer:
-            if self.current_odometer < previous_odometer:
-                message = _("Odometer rollback detected! Previous: {0} km, New: {1} km.").format(
-                    previous_odometer, self.current_odometer
-                )
-                if not self.odometer_rollback_confirmed():
-                    frappe.throw(message, title=_("Odometer rollback"))
-                frappe.msgprint(
-                    _("{0} The new reading was saved because it was confirmed.").format(message),
-                    title=_("Odometer rollback"),
-                    alert=True,
-                    indicator="orange",
-                )
-                return
-            
-            increase = self.current_odometer - previous_odometer
-            if increase > 30000:
-                frappe.msgprint(
-                    _("Warning: Unusual mileage increase of {0} km. Please verify.").format(increase),
-                    alert=True,
-                    indicator="orange"
-                )
-    
-    def odometer_rollback_confirmed(self) -> bool:
-        """True when the caller confirmed a lower odometer (see validate_odometer)."""
-        return bool(
-            frappe.flags.get("allow_odometer_rollback")
-            or self.flags.get("allow_odometer_rollback")
-            or self.get("allow_odometer_rollback")
-        )
+		company = (existing.get("company") or "").strip()
+		hidden = company not in get_vin_company_scope_values()
 
-    # ========== CUSTOMER HISTORY ==========
+		message = _("VIN No {0} already exists.").format(frappe.bold(existing["name"]))
+		details = []
+		if existing.get("model_name"):
+			details.append(_("Model") + ": " + str(existing["model_name"]))
+		if company:
+			details.append(_("Company") + ": " + company)
+		if existing.get("current_customer"):
+			details.append(_("Customer") + ": " + str(existing["current_customer"]))
+		if existing.get("linked_serial"):
+			details.append(_("Serial No") + ": " + str(existing["linked_serial"]))
+		if details:
+			message += "<br>" + "<br>".join(details)
 
-    def sync_customer_history(self):
-        """Keep customer_history in sync when current_customer changes."""
-        if frappe.flags.get("skip_vin_customer_history_sync"):
-            return
-        if not self.current_customer and not self.get("customer_history"):
-            return
+		if hidden:
+			message += "<br><br>" + _(
+				"It belongs to a company that is not selected in DMS Settings, so it "
+				"is hidden from the VIN No list. Open it directly: {0}"
+			).format(f"<a href='/app/vin-no/{existing['name']}'>{existing['name']}</a>")
 
-        if self.is_new():
-            if self.current_customer:
-                self._ensure_current_customer_history_row(self.current_customer)
-            return
+		frappe.throw(message, title=_("Duplicate VIN No"), exc=frappe.DuplicateEntryError)
 
-        before = self.get_doc_before_save()
-        previous_customer = (
-            before.current_customer
-            if before
-            else frappe.db.get_value("VIN No", self.name, "current_customer")
-        )
-        current_customer = self.current_customer
+	def validate_engine_number(self):
+		"""Warn on duplicate engine numbers"""
+		if self.engine_number:
+			existing = frappe.db.exists(
+				"VIN No", {"engine_number": self.engine_number, "name": ["!=", self.name or ""]}
+			)
+			if existing:
+				frappe.msgprint(
+					_("Warning: Engine Number {0} is already registered.").format(self.engine_number),
+					alert=True,
+					indicator="red",
+				)
 
-        if previous_customer == current_customer:
-            if current_customer:
-                self._ensure_current_customer_history_row(current_customer)
-            return
+	def apply_dms_warranty_schedule(self):
+		"""Warranty period/km from DMS Settings; start date = vehicle sale from stock."""
+		if frappe.flags.get("preserve_warranty_status"):
+			return
+		from dms.utils.warranty import apply_dms_warranty_schedule
 
-        # Archive former owner first (even if they only lived on current_customer).
-        if previous_customer and previous_customer != current_customer:
-            self._archive_customer_in_history(previous_customer)
+		apply_dms_warranty_schedule(self, persist=False)
 
-        if current_customer:
-            self._ensure_current_customer_history_row(current_customer)
+	def calculate_warranty_status(self):
+		"""Active / Inactive (time) / Expired by Mileage — see dms.utils.warranty."""
+		if frappe.flags.get("preserve_warranty_status"):
+			return
+		from dms.utils.warranty import compute_warranty_status
 
-    def _customer_snapshot(self, customer):
-        if not customer:
-            return {}
-        return (
-            frappe.db.get_value(
-                "Customer",
-                customer,
-                ["customer_name", "mobile_no", "email_id", "tax_id"],
-                as_dict=True,
-            )
-            or {}
-        )
+		compute_warranty_status(self)
 
-    def _archive_customer_in_history(self, customer):
-        """Move a former owner into customer_history as a closed row."""
-        if not customer:
-            return
+	def calculate_next_service(self):
+		"""Calculate next service due"""
+		if self.current_odometer and self.service_interval_km:
+			self.next_service_due_km = self.current_odometer + self.service_interval_km
 
-        today = getdate(nowdate())
-        had_row = False
-        for row in self.customer_history or []:
-            if row.customer != customer:
-                continue
-            had_row = True
-            row.is_current = 0
-            if not row.to_date:
-                row.to_date = today
+		if self.last_service_date and self.service_interval_months:
+			self.next_service_due_date = add_months(self.last_service_date, self.service_interval_months)
+		elif self.delivery_date and self.service_interval_months:
+			self.next_service_due_date = add_months(self.delivery_date, self.service_interval_months)
 
-        if had_row:
-            return
+	def validate_odometer(self):
+		"""Warn on an odometer rollback; block only until the caller confirms.
 
-        snap = self._customer_snapshot(customer)
-        self.append(
-            "customer_history",
-            {
-                "customer": customer,
-                "customer_name": snap.get("customer_name"),
-                "mobile_no": snap.get("mobile_no"),
-                "email_id": snap.get("email_id"),
-                "tax_id": snap.get("tax_id"),
-                "relationship": "Owner",
-                "from_date": self.delivery_date or today,
-                "to_date": today,
-                "is_current": 0,
-            },
-        )
+		A lower reading is usually a typo, but it can be real (instrument cluster
+		replacement, imported odometer). Callers whose UI already asked the user set
+		``allow_odometer_rollback``; then the new reading is kept and the warning is
+		shown instead of failing the save.
+		"""
+		if self.is_new():
+			return
 
-    def _ensure_current_customer_history_row(self, customer):
-        """One open history row for the active owner; demote all others."""
-        if not customer:
-            return
+		previous_odometer = frappe.db.get_value("VIN No", self.name, "current_odometer")
 
-        today = getdate(nowdate())
-        snap = self._customer_snapshot(customer)
-        matched = None
+		if previous_odometer and self.current_odometer:
+			if self.current_odometer < previous_odometer:
+				message = _("Odometer rollback detected! Previous: {0} km, New: {1} km.").format(
+					previous_odometer, self.current_odometer
+				)
+				if not self.odometer_rollback_confirmed():
+					frappe.throw(message, title=_("Odometer rollback"))
+				frappe.msgprint(
+					_("{0} The new reading was saved because it was confirmed.").format(message),
+					title=_("Odometer rollback"),
+					alert=True,
+					indicator="orange",
+				)
+				return
 
-        for row in self.customer_history or []:
-            if row.customer == customer:
-                matched = row
-                continue
-            if row.is_current:
-                row.is_current = 0
-                if not row.to_date:
-                    row.to_date = today
+			increase = self.current_odometer - previous_odometer
+			if increase > 30000:
+				frappe.msgprint(
+					_("Warning: Unusual mileage increase of {0} km. Please verify.").format(increase),
+					alert=True,
+					indicator="orange",
+				)
 
-        if matched:
-            matched.is_current = 1
-            matched.to_date = None
-            if snap.get("customer_name"):
-                matched.customer_name = snap.get("customer_name")
-            if snap.get("mobile_no"):
-                matched.mobile_no = snap.get("mobile_no")
-            if snap.get("email_id"):
-                matched.email_id = snap.get("email_id")
-            if snap.get("tax_id"):
-                matched.tax_id = snap.get("tax_id")
-            if not matched.from_date:
-                matched.from_date = today
-            return
+	def odometer_rollback_confirmed(self) -> bool:
+		"""True when the caller confirmed a lower odometer (see validate_odometer)."""
+		return bool(
+			frappe.flags.get("allow_odometer_rollback")
+			or self.flags.get("allow_odometer_rollback")
+			or self.get("allow_odometer_rollback")
+		)
 
-        self.append(
-            "customer_history",
-            {
-                "customer": customer,
-                "customer_name": snap.get("customer_name"),
-                "mobile_no": snap.get("mobile_no"),
-                "email_id": snap.get("email_id"),
-                "tax_id": snap.get("tax_id"),
-                "relationship": "Owner",
-                "from_date": today,
-                "is_current": 1,
-            },
-        )
+	# ========== CUSTOMER HISTORY ==========
 
-    # ========== SERIAL NO METHODS ==========
-    
-    def create_serial_no(self):
-        """Create Serial No using ALL existing fields from VIN No"""
-        if not self.company:
-            frappe.throw(_("Company is required on the vehicle to create ERPNext Serial No."))
-        # Calculate warranty period in days (not months)
-        warranty_days = 0
-        if self.warranty_start_date and self.warranty_end_date:
-            warranty_days = date_diff(self.warranty_end_date, self.warranty_start_date)
-        
-        # Prepare serial_no data using ALL standard fields
-        serial_no_data = {
-            # Core identification
-            "doctype": "Serial No",
-            "serial_no": self.vin_number,                    # VIN as Serial No
-            "item_code": self.linked_item,                   # Vehicle Model Item
-            "item_name": self.model_name,                    # Model Name
-            "description": f"{self.model_name} - {self.vin_number} - {self.exterior_color}",
-            "company": self.company,
-            
-            # Customer & Status
-            "customer": self.current_customer,               # Owner
-            # "status": self._get_serial_status(),             # Active/Delivered
-            
-            # Warranty
-            "warranty_period": warranty_days,                # Warranty in days
-            "warranty_expiry_date": self.warranty_end_date,  # Warranty expiry
-            "amc_expiry_date": None,                         # Can be set later
-            "maintenance_status": "Under Warranty" if self.warranty_status == "Active" else "Out of Warranty",
-            
-            # Purchase / Delivery
-            # "purchase_date": self.delivery_date,             # Delivery date
-            "purchase_rate": 0,                              # Can be set from invoice
-            
-            # Reference to source document (VIN No)
-            "reference_doctype": "VIN No",
-            "reference_name": self.name,
-            "posting_date": nowdate(),
-            
-            # Location tracking
-            "location": None,                                # Can be set later
-            "warehouse": None,                               # Can be set later
-            "employee": None,                                # Can be set later
-            "work_order": None,                              # Can be set later
-            
-            # Asset linkage (if vehicle is capitalized)
-            "asset": None,                                   # Can be set later
-            "asset_status": None,
-            "batch_no": None,
-        }
-        
-        # Add custom fields that exist on Serial No (from your JSON)
-        custom_fields = {
-            "custom_engine_number": self.engine_number,
-            "item_code": self.linked_item,
-            "custom_vehicle_brand": self.brand,
-            "custom_vehicle_template": None,                  # Can link to Vehicle Template doc
-            "custom_transmission_type": self.transmission,
-            "custom_max_power": None,                         # Can be set from Item
-            "custom_exterior_color": self.exterior_color,
-            "custom_interior_color": self.interior_color,
-            # "custom_year": str(self.model_year) if self.model_year else None,
-            "custom_seat_capacity": None,                     # Can be set from Item
-            "custom_max_torque": None,                        # Can be set from Item
-            "custom_engine_description": None,                # Can be set from Item
-            "custom_front_tire": None,                        # Can be set from Item
-            "custom_rear_tire": None,                         # Can be set from Item
-            "custom_wheel_base": None,                        # Can be set from Item
-            "custom_overall_width": None,                     # Can be set from Item
-            "custom_overall_length": None,                    # Can be set from Item
-            "custom_overall_height": None,                    # Can be set from Item
-        }
-        
-        # Merge custom fields if they exist in the target system
-        # Only add fields that are actually present in Serial No doctype
-        for field, value in custom_fields.items():
-            if value is not None:
-                # Check if field exists in Serial No
-                if frappe.db.has_column("Serial No", field):
-                    serial_no_data[field] = value
-        
-        # Create the Serial No
-        serial_no = frappe.get_doc(serial_no_data)
-        serial_no.insert(ignore_permissions=True)
-        
-        # Store reference in VIN No
-        self.linked_serial = serial_no.name
-        self.db_set("linked_serial", serial_no.name)
-        
-        frappe.msgprint(
-            _("ERPNext Serial No '{0}' has been created for VIN {1}.").format(
-                serial_no.name, self.vin_number
-            ),
-            indicator="green",
-            alert=True
-        )
-        
-        return serial_no
-    
-    def sync_to_serial_no(self):
-        """Sync changes from VIN No to existing Serial No"""
-        if not self.linked_serial:
-            return
-        
-        serial_no = frappe.get_doc("Serial No", self.linked_serial)
-        needs_update = False
-        
-        # Sync standard fields
-        if serial_no.customer != self.current_customer:
-            serial_no.customer = self.current_customer
-            needs_update = True
-        
-        # Update warranty period in days
-        warranty_days = 0
-        if self.warranty_start_date and self.warranty_end_date:
-            warranty_days = date_diff(self.warranty_end_date, self.warranty_start_date)
-        
-        if serial_no.warranty_period != warranty_days:
-            serial_no.warranty_period = warranty_days
-            needs_update = True
-        
-        if serial_no.warranty_expiry_date != self.warranty_end_date:
-            serial_no.warranty_expiry_date = self.warranty_end_date
-            needs_update = True
-        
-        # Update maintenance status
-        new_maintenance_status = "Under Warranty" if self.warranty_status == "Active" else "Out of Warranty"
-        if serial_no.maintenance_status != new_maintenance_status:
-            serial_no.maintenance_status = new_maintenance_status
-            needs_update = True
-        
-        # Update status
-        new_status = self._get_serial_status()
-        if serial_no.status != new_status:
-            serial_no.status = new_status
-            needs_update = True
-        
-        
-        # Update description
-        new_description = f"{self.model_name} - {self.vin_number} - {self.exterior_color}"
-        if serial_no.description != new_description:
-            serial_no.description = new_description
-            needs_update = True
-        
-        # Update item name if changed
-        if serial_no.item_name != self.model_name:
-            serial_no.item_name = self.model_name
-            needs_update = True
-        custom_year = None
+	def sync_customer_history(self):
+		"""Keep customer_history in sync when current_customer changes."""
+		if frappe.flags.get("skip_vin_customer_history_sync"):
+			return
+		if not self.current_customer and not self.get("customer_history"):
+			return
 
-        if self.model_year:
-            year_name = str(self.model_year)
+		if self.is_new():
+			if self.current_customer:
+				self._ensure_current_customer_history_row(self.current_customer)
+			return
 
-            # Check if Year exists
-            if not frappe.db.exists("Year", year_name):
+		before = self.get_doc_before_save()
+		previous_customer = (
+			before.current_customer
+			if before
+			else frappe.db.get_value("VIN No", self.name, "current_customer")
+		)
+		current_customer = self.current_customer
 
-                # Create Year document
-                year_doc = frappe.get_doc({
-                    "doctype": "Year",
-                    "year": year_name
-                })
+		if previous_customer == current_customer:
+			if current_customer:
+				self._ensure_current_customer_history_row(current_customer)
+			return
 
-                year_doc.insert(ignore_permissions=True)
+		# Archive former owner first (even if they only lived on current_customer).
+		if previous_customer and previous_customer != current_customer:
+			self._archive_customer_in_history(previous_customer)
 
-            custom_year = year_name
-    
-        # Sync custom fields that exist on Serial No
-        custom_field_mapping = {
-            "custom_engine_number": self.engine_number,
-            "custom_transmission_type": self.transmission,
-            "custom_exterior_color": self.exterior_color,
-            "custom_interior_color": self.interior_color,
-            "custom_year": custom_year,
-        }
-        
-        for field, value in custom_field_mapping.items():
-            if value is not None and frappe.db.has_column("Serial No", field):
-                if serial_no.get(field) != value:
-                    serial_no.db_set(field, value)
-        
-        if needs_update:
-            # Avoid Serial No on_update syncing back and overwriting VIN (e.g. inspection owner change).
-            frappe.flags.skip_auto_vin_from_serial = True
-            try:
-                serial_no.save(ignore_permissions=True)
-            finally:
-                frappe.flags.skip_auto_vin_from_serial = False
-    
-    def _get_serial_status(self):
-        """Map VIN status to Serial No status"""
-        status_map = {
-            # "In Stock": "Active",
-            "Delivered to Customer": "Delivered",
-            # "In Service": "Active",
-            # "In Transit": "Active",
-            "Total Loss": "Inactive",
-            "Scrapped": "Consumed"
-        }
-        return status_map.get(self.vehicle_status, "")
-    
-    # ========== HELPER METHODS ==========
-    
-    def get_serial_no(self):
-        """Get linked Serial No document"""
-        if self.linked_serial:
-            return frappe.get_doc("Serial No", self.linked_serial)
-        return None
-    
-    def get_service_history(self):
-        """Get all Job Cards for this vehicle"""
-        return frappe.get_all(
-            "DMS Job Card",
-            filters={"vehicle_vin": self.name},
-            fields=["name", "status", "service_date", "odometer"],
-            order_by="modified desc"
-        )
-    
-    def mark_as_delivered(self, customer_name, delivery_date, sales_invoice=None):
-        """Mark vehicle as delivered to customer"""
-        self.vehicle_status = "Delivered to Customer"
-        self.current_customer = customer_name
-        self.delivery_date = delivery_date
-        self.warranty_start_date = delivery_date
-        self.apply_dms_warranty_schedule()
-        self.calculate_warranty_status()
-        self.save(ignore_permissions=True)
-       
-        # Also update Serial No
-        if self.linked_serial:
-            serial_no = frappe.get_doc("Serial No", self.linked_serial)
-            serial_no.customer = customer_name
-            serial_no.status = "Delivered"
-            serial_no.purchase_date = delivery_date
-            if sales_invoice:
-                serial_no.reference_doctype = "Sales Invoice"
-                serial_no.reference_name = sales_invoice
-            serial_no.save(ignore_permissions=True)
-    
-    def transfer_ownership(self, new_customer_name, transfer_date):
-        """Transfer vehicle to new owner"""
-        self.current_customer = new_customer_name
-        if transfer_date and not self.delivery_date:
-            self.delivery_date = transfer_date
-        self.save(ignore_permissions=True)
-        
-        # Update Serial No
-        if self.linked_serial:
-            serial_no = frappe.get_doc("Serial No", self.linked_serial)
-            serial_no.customer = new_customer_name
-            serial_no.save(ignore_permissions=True)
-            
-    def get_service_interval_km(self):
-        """Get the appropriate service interval based on vehicle conditions"""
-        if not self.model:
-            return 10000
-        model = frappe.get_doc("Vehicle Model", self.model)
-        # Find matching service interval rule
-        for rule in model.service_intervals:
-            if rule.is_default:
-                default_km = rule.interval_km
-                default_months = rule.interval_months
-            
-            # Check if conditions match
-            if rule.condition == "Fleet Vehicle" and self.is_fleet_vehicle:
-                return rule.interval_km
-        
-        return default_km or 10000
+		if current_customer:
+			self._ensure_current_customer_history_row(current_customer)
 
-    def calculate_warranty_dates(self):
-        """Calculate warranty end dates based on vehicle model rules"""
-        if not self.model:
-            return
-        model = frappe.get_doc("Vehicle Model", self.model)
-        
-        for rule in model.warranty_rules:
-            if rule.is_default:
-                if rule.component_category == "Full Vehicle":
-                    # Set main warranty
-                    self.warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
-                    self.warranty_km_limit = rule.warranty_km
-                
-                elif rule.component_category == "Battery (EV/Hybrid)" and self.fuel_type in ["EV", "Hybrid", "PHEV"]:
-                    # Set battery warranty
-                    self.battery_warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
-                    self.battery_warranty_km_limit = rule.warranty_km
-                
-                elif rule.component_category == "Engine/Powertrain":
-                    # Set engine warranty
-                    self.engine_warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
-                    self.engine_warranty_km_limit = rule.warranty_km
-                    
-                    
+	def _customer_snapshot(self, customer):
+		if not customer:
+			return {}
+		return (
+			frappe.db.get_value(
+				"Customer",
+				customer,
+				["customer_name", "mobile_no", "email_id", "tax_id"],
+				as_dict=True,
+			)
+			or {}
+		)
+
+	def _archive_customer_in_history(self, customer):
+		"""Move a former owner into customer_history as a closed row."""
+		if not customer:
+			return
+
+		today = getdate(nowdate())
+		had_row = False
+		for row in self.customer_history or []:
+			if row.customer != customer:
+				continue
+			had_row = True
+			row.is_current = 0
+			if not row.to_date:
+				row.to_date = today
+
+		if had_row:
+			return
+
+		snap = self._customer_snapshot(customer)
+		self.append(
+			"customer_history",
+			{
+				"customer": customer,
+				"customer_name": snap.get("customer_name"),
+				"mobile_no": snap.get("mobile_no"),
+				"email_id": snap.get("email_id"),
+				"tax_id": snap.get("tax_id"),
+				"relationship": "Owner",
+				"from_date": self.delivery_date or today,
+				"to_date": today,
+				"is_current": 0,
+			},
+		)
+
+	def _ensure_current_customer_history_row(self, customer):
+		"""One open history row for the active owner; demote all others."""
+		if not customer:
+			return
+
+		today = getdate(nowdate())
+		snap = self._customer_snapshot(customer)
+		matched = None
+
+		for row in self.customer_history or []:
+			if row.customer == customer:
+				matched = row
+				continue
+			if row.is_current:
+				row.is_current = 0
+				if not row.to_date:
+					row.to_date = today
+
+		if matched:
+			matched.is_current = 1
+			matched.to_date = None
+			if snap.get("customer_name"):
+				matched.customer_name = snap.get("customer_name")
+			if snap.get("mobile_no"):
+				matched.mobile_no = snap.get("mobile_no")
+			if snap.get("email_id"):
+				matched.email_id = snap.get("email_id")
+			if snap.get("tax_id"):
+				matched.tax_id = snap.get("tax_id")
+			if not matched.from_date:
+				matched.from_date = today
+			return
+
+		self.append(
+			"customer_history",
+			{
+				"customer": customer,
+				"customer_name": snap.get("customer_name"),
+				"mobile_no": snap.get("mobile_no"),
+				"email_id": snap.get("email_id"),
+				"tax_id": snap.get("tax_id"),
+				"relationship": "Owner",
+				"from_date": today,
+				"is_current": 1,
+			},
+		)
+
+	# ========== SERIAL NO METHODS ==========
+
+	def create_serial_no(self):
+		"""Create Serial No using ALL existing fields from VIN No"""
+		if not self.company:
+			frappe.throw(_("Company is required on the vehicle to create ERPNext Serial No."))
+		# Calculate warranty period in days (not months)
+		warranty_days = 0
+		if self.warranty_start_date and self.warranty_end_date:
+			warranty_days = date_diff(self.warranty_end_date, self.warranty_start_date)
+
+		# Prepare serial_no data using ALL standard fields
+		serial_no_data = {
+			# Core identification
+			"doctype": "Serial No",
+			"serial_no": self.vin_number,  # VIN as Serial No
+			"item_code": self.linked_item,  # Vehicle Model Item
+			"item_name": self.model_name,  # Model Name
+			"description": f"{self.model_name} - {self.vin_number} - {self.exterior_color}",
+			"company": self.company,
+			# Customer & Status
+			"customer": self.current_customer,  # Owner
+			# "status": self._get_serial_status(),             # Active/Delivered
+			# Warranty
+			"warranty_period": warranty_days,  # Warranty in days
+			"warranty_expiry_date": self.warranty_end_date,  # Warranty expiry
+			"amc_expiry_date": None,  # Can be set later
+			"maintenance_status": "Under Warranty" if self.warranty_status == "Active" else "Out of Warranty",
+			# Purchase / Delivery
+			# "purchase_date": self.delivery_date,             # Delivery date
+			"purchase_rate": 0,  # Can be set from invoice
+			# Reference to source document (VIN No)
+			"reference_doctype": "VIN No",
+			"reference_name": self.name,
+			"posting_date": nowdate(),
+			# Location tracking
+			"location": None,  # Can be set later
+			"warehouse": None,  # Can be set later
+			"employee": None,  # Can be set later
+			"work_order": None,  # Can be set later
+			# Asset linkage (if vehicle is capitalized)
+			"asset": None,  # Can be set later
+			"asset_status": None,
+			"batch_no": None,
+		}
+
+		# Add custom fields that exist on Serial No (from your JSON)
+		custom_fields = {
+			"custom_engine_number": self.engine_number,
+			"item_code": self.linked_item,
+			"custom_vehicle_brand": self.brand,
+			"custom_vehicle_template": None,  # Can link to Vehicle Template doc
+			"custom_transmission_type": self.transmission,
+			"custom_max_power": None,  # Can be set from Item
+			"custom_exterior_color": self.exterior_color,
+			"custom_interior_color": self.interior_color,
+			# "custom_year": str(self.model_year) if self.model_year else None,
+			"custom_seat_capacity": None,  # Can be set from Item
+			"custom_max_torque": None,  # Can be set from Item
+			"custom_engine_description": None,  # Can be set from Item
+			"custom_front_tire": None,  # Can be set from Item
+			"custom_rear_tire": None,  # Can be set from Item
+			"custom_wheel_base": None,  # Can be set from Item
+			"custom_overall_width": None,  # Can be set from Item
+			"custom_overall_length": None,  # Can be set from Item
+			"custom_overall_height": None,  # Can be set from Item
+		}
+
+		# Merge custom fields if they exist in the target system
+		# Only add fields that are actually present in Serial No doctype
+		for field, value in custom_fields.items():
+			if value is not None:
+				# Check if field exists in Serial No
+				if frappe.db.has_column("Serial No", field):
+					serial_no_data[field] = value
+
+		# Create the Serial No
+		serial_no = frappe.get_doc(serial_no_data)
+		serial_no.insert(ignore_permissions=True)
+
+		# Store reference in VIN No
+		self.linked_serial = serial_no.name
+		self.db_set("linked_serial", serial_no.name)
+
+		frappe.msgprint(
+			_("ERPNext Serial No '{0}' has been created for VIN {1}.").format(
+				serial_no.name, self.vin_number
+			),
+			indicator="green",
+			alert=True,
+		)
+
+		return serial_no
+
+	def sync_to_serial_no(self):
+		"""Sync changes from VIN No to existing Serial No"""
+		if not self.linked_serial:
+			return
+
+		serial_no = frappe.get_doc("Serial No", self.linked_serial)
+		needs_update = False
+
+		# Sync standard fields
+		if serial_no.customer != self.current_customer:
+			serial_no.customer = self.current_customer
+			needs_update = True
+
+		# Update warranty period in days
+		warranty_days = 0
+		if self.warranty_start_date and self.warranty_end_date:
+			warranty_days = date_diff(self.warranty_end_date, self.warranty_start_date)
+
+		if serial_no.warranty_period != warranty_days:
+			serial_no.warranty_period = warranty_days
+			needs_update = True
+
+		if serial_no.warranty_expiry_date != self.warranty_end_date:
+			serial_no.warranty_expiry_date = self.warranty_end_date
+			needs_update = True
+
+		# Update maintenance status
+		new_maintenance_status = "Under Warranty" if self.warranty_status == "Active" else "Out of Warranty"
+		if serial_no.maintenance_status != new_maintenance_status:
+			serial_no.maintenance_status = new_maintenance_status
+			needs_update = True
+
+		# Update status
+		new_status = self._get_serial_status()
+		if serial_no.status != new_status:
+			serial_no.status = new_status
+			needs_update = True
+
+		# Update description
+		new_description = f"{self.model_name} - {self.vin_number} - {self.exterior_color}"
+		if serial_no.description != new_description:
+			serial_no.description = new_description
+			needs_update = True
+
+		# Update item name if changed
+		if serial_no.item_name != self.model_name:
+			serial_no.item_name = self.model_name
+			needs_update = True
+		custom_year = None
+
+		if self.model_year:
+			year_name = str(self.model_year)
+
+			# Check if Year exists
+			if not frappe.db.exists("Year", year_name):
+				# Create Year document
+				year_doc = frappe.get_doc({"doctype": "Year", "year": year_name})
+
+				year_doc.insert(ignore_permissions=True)
+
+			custom_year = year_name
+
+		# Sync custom fields that exist on Serial No
+		custom_field_mapping = {
+			"custom_engine_number": self.engine_number,
+			"custom_transmission_type": self.transmission,
+			"custom_exterior_color": self.exterior_color,
+			"custom_interior_color": self.interior_color,
+			"custom_year": custom_year,
+		}
+
+		for field, value in custom_field_mapping.items():
+			if value is not None and frappe.db.has_column("Serial No", field):
+				if serial_no.get(field) != value:
+					serial_no.db_set(field, value)
+
+		if needs_update:
+			# Avoid Serial No on_update syncing back and overwriting VIN (e.g. inspection owner change).
+			frappe.flags.skip_auto_vin_from_serial = True
+			try:
+				serial_no.save(ignore_permissions=True)
+			finally:
+				frappe.flags.skip_auto_vin_from_serial = False
+
+	def _get_serial_status(self):
+		"""Map VIN status to Serial No status"""
+		status_map = {
+			# "In Stock": "Active",
+			"Delivered to Customer": "Delivered",
+			# "In Service": "Active",
+			# "In Transit": "Active",
+			"Total Loss": "Inactive",
+			"Scrapped": "Consumed",
+		}
+		return status_map.get(self.vehicle_status, "")
+
+	# ========== HELPER METHODS ==========
+
+	def get_serial_no(self):
+		"""Get linked Serial No document"""
+		if self.linked_serial:
+			return frappe.get_doc("Serial No", self.linked_serial)
+		return None
+
+	def get_service_history(self):
+		"""Get all Job Cards for this vehicle"""
+		return frappe.get_all(
+			"DMS Job Card",
+			filters={"vehicle_vin": self.name},
+			fields=["name", "status", "service_date", "odometer"],
+			order_by="modified desc",
+		)
+
+	def mark_as_delivered(self, customer_name, delivery_date, sales_invoice=None):
+		"""Mark vehicle as delivered to customer"""
+		self.vehicle_status = "Delivered to Customer"
+		self.current_customer = customer_name
+		self.delivery_date = delivery_date
+		self.warranty_start_date = delivery_date
+		self.apply_dms_warranty_schedule()
+		self.calculate_warranty_status()
+		self.save(ignore_permissions=True)
+
+		# Also update Serial No
+		if self.linked_serial:
+			serial_no = frappe.get_doc("Serial No", self.linked_serial)
+			serial_no.customer = customer_name
+			serial_no.status = "Delivered"
+			serial_no.purchase_date = delivery_date
+			if sales_invoice:
+				serial_no.reference_doctype = "Sales Invoice"
+				serial_no.reference_name = sales_invoice
+			serial_no.save(ignore_permissions=True)
+
+	def transfer_ownership(self, new_customer_name, transfer_date):
+		"""Transfer vehicle to new owner"""
+		self.current_customer = new_customer_name
+		if transfer_date and not self.delivery_date:
+			self.delivery_date = transfer_date
+		self.save(ignore_permissions=True)
+
+		# Update Serial No
+		if self.linked_serial:
+			serial_no = frappe.get_doc("Serial No", self.linked_serial)
+			serial_no.customer = new_customer_name
+			serial_no.save(ignore_permissions=True)
+
+	def get_service_interval_km(self):
+		"""Get the appropriate service interval based on vehicle conditions"""
+		if not self.model:
+			return 10000
+		model = frappe.get_doc("Vehicle Model", self.model)
+		# Find matching service interval rule
+		for rule in model.service_intervals:
+			if rule.is_default:
+				default_km = rule.interval_km
+				default_months = rule.interval_months
+
+			# Check if conditions match
+			if rule.condition == "Fleet Vehicle" and self.is_fleet_vehicle:
+				return rule.interval_km
+
+		return default_km or 10000
+
+	def calculate_warranty_dates(self):
+		"""Calculate warranty end dates based on vehicle model rules"""
+		if not self.model:
+			return
+		model = frappe.get_doc("Vehicle Model", self.model)
+
+		for rule in model.warranty_rules:
+			if rule.is_default:
+				if rule.component_category == "Full Vehicle":
+					# Set main warranty
+					self.warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
+					self.warranty_km_limit = rule.warranty_km
+
+				elif rule.component_category == "Battery (EV/Hybrid)" and self.fuel_type in [
+					"EV",
+					"Hybrid",
+					"PHEV",
+				]:
+					# Set battery warranty
+					self.battery_warranty_end_date = add_months(
+						self.warranty_start_date, rule.warranty_months
+					)
+					self.battery_warranty_km_limit = rule.warranty_km
+
+				elif rule.component_category == "Engine/Powertrain":
+					# Set engine warranty
+					self.engine_warranty_end_date = add_months(self.warranty_start_date, rule.warranty_months)
+					self.engine_warranty_km_limit = rule.warranty_km

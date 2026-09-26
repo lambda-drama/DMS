@@ -388,9 +388,7 @@ def _ensure_package_part(label: str, amount: float = 0, catalog: dict | None = N
 	if existing:
 		return existing
 
-	item_group = (
-		frappe.db.get_single_value("DMS Settings", "default_item_group") or "All Item Groups"
-	)
+	item_group = frappe.db.get_single_value("DMS Settings", "default_item_group") or "All Item Groups"
 	if not frappe.db.exists("Item", oem):
 		frappe.get_doc(
 			{
@@ -549,9 +547,7 @@ def _row_value(row, field: str):
 	return getattr(row, field, None)
 
 
-def _find_vehicle_model_by_code(
-	models: list[dict], model_code: str
-) -> tuple[str, str, str] | None:
+def _find_vehicle_model_by_code(models: list[dict], model_code: str) -> tuple[str, str, str] | None:
 	code_key = _norm_key(model_code)
 	for row in models:
 		if _norm_key(_row_value(row, "model_code")) == code_key:
@@ -559,9 +555,7 @@ def _find_vehicle_model_by_code(
 	return None
 
 
-def _find_vehicle_model_row(
-	models: list[dict], lookup_keys: frozenset[str]
-) -> tuple[str, str, str] | None:
+def _find_vehicle_model_row(models: list[dict], lookup_keys: frozenset[str]) -> tuple[str, str, str] | None:
 	for row in models:
 		row_keys = _model_lookup_keys(_row_value(row, "model_name"), _row_value(row, "model_code"))
 		if row_keys & lookup_keys:
@@ -569,9 +563,7 @@ def _find_vehicle_model_row(
 	return None
 
 
-def _resolve_model_for_key(
-	sheet_key: str, models: list[dict]
-) -> tuple[str, str, str, int] | None:
+def _resolve_model_for_key(sheet_key: str, models: list[dict]) -> tuple[str, str, str, int] | None:
 	if not sheet_key:
 		return None
 
@@ -584,9 +576,7 @@ def _resolve_model_for_key(
 
 		brand = ensure_brand(DEFAULT_BRAND)
 		existed = frappe.db.exists("Vehicle Model", {"model_code": model_code})
-		vehicle_model = ensure_vehicle_model(
-			model_code=model_code, model_name=model_name, brand=brand
-		)
+		vehicle_model = ensure_vehicle_model(model_code=model_code, model_name=model_name, brand=brand)
 		return model_name, model_code, vehicle_model, 0 if existed else 1
 
 	matched = _find_vehicle_model_by_code(models, sheet_key)
@@ -601,9 +591,7 @@ def _resolve_model_for_key(
 	return None
 
 
-def _resolve_vehicle_model(
-	sheet_name: str, sheet_label: str
-) -> tuple[str, str, str, int] | None:
+def _resolve_vehicle_model(sheet_name: str, sheet_label: str) -> tuple[str, str, str, int] | None:
 	models = frappe.get_all(
 		"Vehicle Model", fields=["name", "model_name", "model_code"], filters={"is_active": 1}
 	)
@@ -665,4 +653,4 @@ def _cell_number(value) -> float:
 
 def _slug_part_code(text: str) -> str:
 	base = re.sub(r"[^\w]+", "-", (text or "").upper()).strip("-")
-	return (base[:140] if base else "PART")
+	return base[:140] if base else "PART"

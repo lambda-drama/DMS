@@ -75,6 +75,23 @@ def _shape_payment(row) -> dict:
 	}
 
 
+def _open_advance_rows(pr) -> list:
+	"""Payment rows of the tool that still hold money nobody allocated yet.
+
+	A customer receipt with nothing applied has no *reference row* on the tool,
+	and the excess left over after an earlier allocation looks the same. The
+	tool's own `is_advance` cannot be used for this: ERPNext fills it from
+	`book_advance_payments_in_separate_party_account`, which is off for ordinary
+	DMS receipts, so every real advance would read `is_advance = 0`.
+	"""
+	return [
+		row
+		for row in pr.get("payments") or []
+		if (row.get("reference_type") or "").strip() == "Payment Entry"
+		and not (row.get("reference_row") or "").strip()
+	]
+
+
 def _build_reconciliation(customer: str | None, company: str | None = None):
 	"""Return an in-memory Payment Reconciliation tool doc with entries fetched."""
 	from erpnext.accounts.party import get_party_account
@@ -200,9 +217,7 @@ def _annotate_payment_flags(payments: list[dict]) -> None:
 
 	info = {
 		row.name: row
-		for row in frappe.get_all(
-			"Payment Entry", filters={"name": ["in", names]}, fields=["name", *fields]
-		)
+		for row in frappe.get_all("Payment Entry", filters={"name": ["in", names]}, fields=["name", *fields])
 	}
 	for row in payments:
 		data = info.get(row.get("name"))
@@ -314,3 +329,88 @@ def reconcile_payments(customer=None, company=None, invoice_keys=None, payment_k
 		"invoice_count": len({row["invoice"] for row in allocations}),
 	}
 
+
+@frappe.whitelist()
+def reconcile_invoice_advances(sales_invoice=None, company=None, payment_keys=None):
+	"""Apply a customer's advances / downpayments to one just-created invoice.
+
+	Backs the invoice screens' optional *reconcile immediately* step: the invoice is
+	created / submitted first, then its customer's unallocated receipts (the ticked
+	``payment_keys``, or every advance when none are ticked) are allocated to it by the
+	same Payment Reconciliation engine the hub uses. Returns the invoice's balance
+	before / after so the screen can show what is left for the customer to pay.
+
+	``payment_keys`` are the ``key`` values from :func:`get_reconciliation_overview`.
+	"""
+	_ensure_erpnext()
+	frappe.has_permission("Payment Entry", "write", throw=True)
+	frappe.has_permission("Sales Invoice", "read", throw=True)
+
+	name = (sales_invoice or "").strip()
+	if not name:
+		frappe.throw(_("Sales Invoice is required."))
+	if not frappe.db.exists("Sales Invoice", name):
+		frappe.throw(_("Sales Invoice {0} was not found.").format(frappe.bold(name)))
+
+	si = frappe.get_doc("Sales Invoice", name)
+	si.check_permission("read")
+	if si.docstatus != 1:
+		frappe.throw(_("Submit the invoice before reconciling its advances."))
+
+	company = (company or "").strip() or si.company
+	outstanding_before = flt(si.outstanding_amount)
+	result = {
+		"sales_invoice": si.name,
+		"customer": si.customer,
+		"customer_name": si.get("customer_name"),
+		"company": company,
+		"currency": si.currency,
+		"outstanding_before": outstanding_before,
+		"allocated_total": 0.0,
+		"outstanding_after": outstanding_before,
+		"reconciled": [],
+	}
+	if outstanding_before <= 0:
+		# Already settled — paid in full, or covered by an on-account receipt.
+		return result
+
+	pr = _build_reconciliation(si.customer, company)
+	invoice_key = f"Sales Invoice::{si.name}"
+	invoices = [row for row in pr.get("invoices") or [] if _invoice_key(row) == invoice_key]
+	if not invoices:
+		return result
+
+	wanted = set(_as_list(payment_keys))
+	if wanted:
+		payments = [row for row in pr.get("payments") or [] if _payment_key(row) in wanted]
+	else:
+		# Nothing ticked → apply every open advance of the customer, i.e. the same
+		# receipts the invoice screens list as downpayments.
+		payments = _open_advance_rows(pr)
+	if not payments:
+		return result
+
+	pr.allocate_entries(
+		{
+			"invoices": [_row_dict(row) for row in invoices],
+			"payments": [_row_dict(row) for row in payments],
+		}
+	)
+	# Read the planned allocation before reconciling: the tool refetches its entries
+	# (and therefore its allocation rows) at the end of `reconcile()`.
+	allocations = _allocation_rows(pr)
+	if not allocations:
+		return result
+
+	_assert_reconciliation_dimensions(pr, pr.company)
+	pr.reconcile()
+	frappe.db.commit()
+
+	result.update(
+		{
+			"allocated_total": sum(row["allocated"] for row in allocations),
+			"outstanding_after": flt(frappe.db.get_value("Sales Invoice", si.name, "outstanding_amount")),
+			"reconciled": allocations,
+		}
+	)
+	return result

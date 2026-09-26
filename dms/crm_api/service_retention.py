@@ -187,9 +187,7 @@ def compute_due_snapshot(vin_name: str | None = None, vin_row=None) -> dict:
 	effective = None
 	if due_date and mileage_due_date:
 		effective = min(getdate(due_date), getdate(mileage_due_date))
-		trigger_basis = (
-			"Date" if getdate(due_date) <= getdate(mileage_due_date) else "Mileage"
-		)
+		trigger_basis = "Date" if getdate(due_date) <= getdate(mileage_due_date) else "Mileage"
 	elif due_date:
 		effective = getdate(due_date)
 		trigger_basis = "Date"
@@ -270,8 +268,7 @@ def _retention_overrides(classification, existing=None):
 		return classification
 	prev = existing.classification
 	if prev == "Lapsed" and (
-		existing.status in ("Booked", "In Service", "Completed")
-		or classification in ("Upcoming", "Due")
+		existing.status in ("Booked", "In Service", "Completed") or classification in ("Upcoming", "Due")
 	):
 		return "Recovered"
 	if classification in ("Overdue", "Severely Overdue", "Lapsed") and frappe.db.exists(
@@ -508,11 +505,7 @@ def run_reminder_sequence(limit=200):
 	if not cint(settings.enable_service_retention):
 		return {"created": 0, "message": "disabled"}
 
-	steps = [
-		s
-		for s in (settings.get("service_reminder_sequence") or [])
-		if cint(getattr(s, "enabled", 1))
-	]
+	steps = [s for s in (settings.get("service_reminder_sequence") or []) if cint(getattr(s, "enabled", 1))]
 	if not steps:
 		from dms.customer_relationship_management.doctype.dms_crm_settings.dms_crm_settings import (
 			DEFAULT_REMINDER_SEQUENCE,
@@ -541,9 +534,7 @@ def run_reminder_sequence(limit=200):
 			if days_from_due != offset:
 				continue
 			step_key = step.step_key
-			if frappe.db.exists(
-				REMINDER_LOG, {"service_due": due.name, "step_key": step_key}
-			):
+			if frappe.db.exists(REMINDER_LOG, {"service_due": due.name, "step_key": step_key}):
 				continue
 			activity_name = None
 			if cint(getattr(step, "create_activity", 1)):
@@ -691,9 +682,7 @@ def import_deferred_from_additional_work(additional_work_request):
 	if not frappe.db.exists("DMS Additional Work Request", additional_work_request):
 		frappe.throw(_("Additional Work Request not found."))
 	awr = frappe.get_doc("DMS Additional Work Request", additional_work_request)
-	existing = frappe.db.get_value(
-		DEFERRED, {"additional_work_request": awr.name}, "name"
-	)
+	existing = frappe.db.get_value(DEFERRED, {"additional_work_request": awr.name}, "name")
 	if existing:
 		return frappe.get_doc(DEFERRED, existing).as_dict()
 	job = None

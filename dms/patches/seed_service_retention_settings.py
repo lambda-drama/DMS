@@ -29,9 +29,7 @@ def execute():
 	if doc.meta.has_field("lapsed_days") and not cint(doc.lapsed_days):
 		doc.lapsed_days = 90
 		changed = True
-	if doc.meta.has_field("enable_workshop_journey_events") and not cint(
-		doc.enable_workshop_journey_events
-	):
+	if doc.meta.has_field("enable_workshop_journey_events") and not cint(doc.enable_workshop_journey_events):
 		doc.enable_workshop_journey_events = 1
 		changed = True
 	if not doc.get("service_reminder_sequence"):

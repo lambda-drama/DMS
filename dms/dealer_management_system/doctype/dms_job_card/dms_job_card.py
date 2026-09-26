@@ -7,11 +7,11 @@ from frappe.model.document import Document
 from frappe.utils import cint, flt, now_datetime
 
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+	apply_vehicle_labour_row_pricing,
 	is_labour_row_billable,
 	is_part_row_billable,
 	part_issue_qty,
 	spare_part_default_selling_price,
-	apply_vehicle_labour_row_pricing,
 )
 
 SEVERITY_NORMALIZATION_MAP = {
@@ -64,21 +64,27 @@ def log_job_card_status_change(job_card, new_status, previous_status=None, when=
 		if existing:
 			return
 
-	idx = cint(frappe.db.sql(
-		"SELECT MAX(idx) FROM `tabDMS Job Card Status Log` WHERE parent=%s", name
-	)[0][0] or 0) + 1
-	child = frappe.get_doc({
-		"doctype": "DMS Job Card Status Log",
-		"parent": name,
-		"parenttype": "DMS Job Card",
-		"parentfield": "status_log",
-		"idx": idx,
-		"status": new_status,
-		"previous_status": previous_status or "",
-		"changed_at": when,
-		"changed_by": frappe.session.user,
-		"notes": notes or "",
-	})
+	idx = (
+		cint(
+			frappe.db.sql("SELECT MAX(idx) FROM `tabDMS Job Card Status Log` WHERE parent=%s", name)[0][0]
+			or 0
+		)
+		+ 1
+	)
+	child = frappe.get_doc(
+		{
+			"doctype": "DMS Job Card Status Log",
+			"parent": name,
+			"parenttype": "DMS Job Card",
+			"parentfield": "status_log",
+			"idx": idx,
+			"status": new_status,
+			"previous_status": previous_status or "",
+			"changed_at": when,
+			"changed_by": frappe.session.user,
+			"notes": notes or "",
+		}
+	)
 	child.db_insert()
 
 	# Mirror key journey stamps from status transitions
@@ -207,9 +213,7 @@ class DMSJobCard(Document):
 						file_url,
 					)
 					continue
-				file_doc.create_attachment_copy(
-					self.doctype, self.name, ignore_permissions=True
-				)
+				file_doc.create_attachment_copy(self.doctype, self.name, ignore_permissions=True)
 			except Exception:
 				frappe.logger("dms").warning(
 					"Amend %s: could not copy attachment %s",
@@ -548,7 +552,7 @@ def get_job_card_part_unit_price(spare_part: str | None = None):
 	spare_part = (spare_part or "").strip()
 	if not spare_part or not frappe.db.exists("Spare Part", spare_part):
 		return 0
-	
+
 	return spare_part_default_selling_price(spare_part)
 
 
@@ -560,8 +564,9 @@ The key pattern: frappe.db.set_value() for scalar fields on the parent,
 and direct frappe.db operations for child table rows.
 """
 
-import frappe
 import json
+
+import frappe
 from frappe import _
 from frappe.utils import add_to_date, flt, get_datetime, now_datetime, time_diff_in_hours
 
@@ -689,14 +694,16 @@ def _insert_repair_time_logs(job_card, technicians, start_time=None):
 	base_idx = len(existing)
 	for offset, technician in enumerate(technicians, start=1):
 		child = frappe.new_doc("DMS Job Card Time Log")
-		child.update({
-			"parent": job_card,
-			"parenttype": "DMS Job Card",
-			"parentfield": "time_logs",
-			"idx": base_idx + offset,
-			"technician": technician,
-			"start_time": start_time,
-		})
+		child.update(
+			{
+				"parent": job_card,
+				"parenttype": "DMS Job Card",
+				"parentfield": "time_logs",
+				"idx": base_idx + offset,
+				"technician": technician,
+				"start_time": start_time,
+			}
+		)
 		child.db_insert()
 
 
@@ -720,9 +727,7 @@ def _validate_required_for_repair_submit(doc):
 	if not doc.service_advisor:
 		missing.append(_("Service Advisor"))
 	if missing:
-		frappe.throw(
-			_("Please fill in the following before starting repair: {0}").format(", ".join(missing))
-		)
+		frappe.throw(_("Please fill in the following before starting repair: {0}").format(", ".join(missing)))
 
 
 def _assert_workshop_warehouse_for_repair(doc):
@@ -733,7 +738,11 @@ def _assert_workshop_warehouse_for_repair(doc):
 
 	if (doc.assigned_bay or "").strip() and not (doc.warehouse or "").strip():
 		_sync_workshop_warehouse_from_bay(doc, doc.assigned_bay)
-		if doc.name and doc.docstatus == 1 and ((doc.workshop or "").strip() or (doc.warehouse or "").strip()):
+		if (
+			doc.name
+			and doc.docstatus == 1
+			and ((doc.workshop or "").strip() or (doc.warehouse or "").strip())
+		):
 			updates = {}
 			if doc.workshop:
 				updates["workshop"] = doc.workshop
@@ -748,9 +757,7 @@ def _assert_workshop_warehouse_for_repair(doc):
 	workshop = (doc.workshop or "").strip()
 	if workshop:
 		frappe.throw(
-			_("Kindly add a warehouse on Workshop {0} before starting repair.").format(
-				frappe.bold(workshop)
-			),
+			_("Kindly add a warehouse on Workshop {0} before starting repair.").format(frappe.bold(workshop)),
 			title=_("Warehouse required"),
 		)
 	frappe.throw(
@@ -896,8 +903,7 @@ def job_card_material_evidence(job_card: str, doc=None) -> dict:
 	row_names = [name for name in row_names if name]
 
 	requested = bool(
-		(doc.get("wip_material_transfer") or "").strip()
-		or (doc.get("material_issue") or "").strip()
+		(doc.get("wip_material_transfer") or "").strip() or (doc.get("material_issue") or "").strip()
 	)
 
 	# Parts lines carry their own requisition trace (qty issued, workflow status,
@@ -928,9 +934,7 @@ def material_request_completion_reason(job_card: str, doc=None) -> str | None:
 	evidence = job_card_material_evidence(job_card, doc=doc)
 	if not evidence["has_parts"] or evidence["requested"]:
 		return None
-	return _(
-		"Request the parts or transfer the materials for this job card before completing the repair."
-	)
+	return _("Request the parts or transfer the materials for this job card before completing the repair.")
 
 
 def assert_material_request_before_completion(job_card: str, doc=None) -> None:

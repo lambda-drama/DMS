@@ -117,9 +117,7 @@ def _issue_warehouse_for_part(jc, part) -> str | None:
 		return wh
 
 	wip = get_wip_warehouse(jc.company)
-	if wip and (
-		jc.get("wip_material_transfer") or flt(getattr(part, "quantity_issued", None) or 0) > 0
-	):
+	if wip and (jc.get("wip_material_transfer") or flt(getattr(part, "quantity_issued", None) or 0) > 0):
 		return wip
 
 	return resolve_workshop_warehouse(jc)
@@ -185,9 +183,7 @@ def create_material_issue_for_job_card(jc) -> str | None:
 		available = flt(get_stock_balance(line["item_code"], line["s_warehouse"]))
 		if available < line["qty"]:
 			frappe.throw(
-				_(
-					"Insufficient stock for {0} in {1}. Required {2}, available {3}."
-				).format(
+				_("Insufficient stock for {0} in {1}. Required {2}, available {3}.").format(
 					frappe.bold(line["spare_part"]),
 					frappe.bold(line["s_warehouse"]),
 					line["qty"],

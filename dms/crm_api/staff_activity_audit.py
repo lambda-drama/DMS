@@ -650,9 +650,7 @@ def get_user_activity_summary(
 
 	doctypes_by_user = {}
 	for r in doctype_rows:
-		doctypes_by_user.setdefault(r.user, []).append(
-			{"doctype": r.doctype, "count": int(r.cnt or 0)}
-		)
+		doctypes_by_user.setdefault(r.user, []).append({"doctype": r.doctype, "count": int(r.cnt or 0)})
 
 	for u, row in summary.items():
 		row["top_doctypes"] = doctypes_by_user.get(u, [])[:8]

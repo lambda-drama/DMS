@@ -9,6 +9,7 @@ from dms.api.utils import (
 	resolve_dms_customer,
 )
 
+
 def _resolve_job_card_currency(currency=None, company=None) -> str:
 	"""Default ETB; fall back to company default currency when currency not sent."""
 	cur = (currency or "").strip()
@@ -45,18 +46,22 @@ def _sync_workshop_warehouse_from_bay(doc, bay_name=None):
 	doc.warehouse = warehouse
 
 
-ASSIGNMENT_LOCKED_STATUSES = frozenset({
-	"Completed",
-	"Delivered",
-	"Cancelled",
-})
+ASSIGNMENT_LOCKED_STATUSES = frozenset(
+	{
+		"Completed",
+		"Delivered",
+		"Cancelled",
+	}
+)
 
 
-JOB_CARD_TYPE_LOCKED_STATUSES = frozenset({
-	"Completed",
-	"Delivered",
-	"Cancelled",
-})
+JOB_CARD_TYPE_LOCKED_STATUSES = frozenset(
+	{
+		"Completed",
+		"Delivered",
+		"Cancelled",
+	}
+)
 
 
 def _job_card_type_options() -> set[str]:
@@ -204,32 +209,55 @@ def get_job_cards(
 
 	filters = add_branch_filter(filters, doctype="DMS Job Card")
 
-	total = len(frappe.get_all(
-		"DMS Job Card",
-		filters=filters,
-		or_filters=or_filters if or_filters else None,
-		limit_page_length=0,
-		pluck="name",
-	))
+	total = len(
+		frappe.get_all(
+			"DMS Job Card",
+			filters=filters,
+			or_filters=or_filters if or_filters else None,
+			limit_page_length=0,
+			pluck="name",
+		)
+	)
 
 	job_cards = frappe.get_all(
 		"DMS Job Card",
 		filters=filters,
 		or_filters=or_filters if or_filters else None,
 		fields=[
-			"name", "status", "job_card_type", "posting_date", "company", "currency",
-			"customer", "customer_name", "customer_mobile",
-			"vehicle_vin", "vehicle_model", "license_plate",
-			"current_odometer", "priority", "service_advisor",
-			"lead_technician", "assigned_bay",
-			"estimated_duration_hours", "actual_duration_hours",
-			"total_labor_cost", "total_parts_cost", "total_amount",
-			"customer_approval_status", "payment_status",
-			"promised_delivery_date_time", "opened_date_time",
-			"completed_date_time", "invoice", "docstatus",
-			"is_repeat_repair", "repeat_repair_reference",
+			"name",
+			"status",
+			"job_card_type",
+			"posting_date",
+			"company",
+			"currency",
+			"customer",
+			"customer_name",
+			"customer_mobile",
+			"vehicle_vin",
+			"vehicle_model",
+			"license_plate",
+			"current_odometer",
+			"priority",
+			"service_advisor",
+			"lead_technician",
+			"assigned_bay",
+			"estimated_duration_hours",
+			"actual_duration_hours",
+			"total_labor_cost",
+			"total_parts_cost",
+			"total_amount",
+			"customer_approval_status",
+			"payment_status",
+			"promised_delivery_date_time",
+			"opened_date_time",
+			"completed_date_time",
+			"invoice",
+			"docstatus",
+			"is_repeat_repair",
+			"repeat_repair_reference",
 			"amended_from",
-			"creation", "modified",
+			"creation",
+			"modified",
 		],
 		limit=int(limit),
 		limit_start=int(offset),
@@ -295,11 +323,11 @@ def get_job_card(name):
 			data["workshop"] = doc.workshop
 			data["warehouse"] = doc.warehouse
 
-	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
-		list_parts_requests_for_job_card,
-	)
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		never_requested_part_row_names,
+	)
+	from dms.dealer_management_system.doctype.dms_parts_request.parts_workflow import (
+		list_parts_requests_for_job_card,
 	)
 
 	data["parts_requests"] = list_parts_requests_for_job_card(name)
@@ -336,9 +364,7 @@ def get_job_card(name):
 	active_invoice = get_active_job_card_invoice(name)
 	stored_invoice = (data.get("invoice") or "").strip() or None
 	if active_invoice and active_invoice != stored_invoice:
-		frappe.db.set_value(
-			"DMS Job Card", name, "invoice", active_invoice, update_modified=False
-		)
+		frappe.db.set_value("DMS Job Card", name, "invoice", active_invoice, update_modified=False)
 		data["invoice"] = active_invoice
 	elif not active_invoice and stored_invoice:
 		# Stale pointer (cancelled / deleted SI) — clear so Create can show again.
@@ -362,15 +388,11 @@ def _attach_job_card_people_names(data: dict) -> dict:
 
 	advisor = (data.get("service_advisor") or "").strip()
 	if advisor:
-		data["service_advisor_name"] = (
-			frappe.db.get_value("Service Advisor", advisor, "full_name") or advisor
-		)
+		data["service_advisor_name"] = frappe.db.get_value("Service Advisor", advisor, "full_name") or advisor
 
 	tech = (data.get("lead_technician") or "").strip()
 	if tech:
-		data["lead_technician_name"] = (
-			frappe.db.get_value("Technician", tech, "full_name") or tech
-		)
+		data["lead_technician_name"] = frappe.db.get_value("Technician", tech, "full_name") or tech
 
 	attach_technician_display_names(data.get("assistant_technicians") or [])
 	attach_technician_display_names(data.get("labour") or [])
@@ -455,9 +477,7 @@ def _get_repeat_repair_eligibility(source_job_card, doc=None):
 		return result
 
 	result["eligible"] = True
-	result["reason"] = _("Within probation period ({0} day(s) remaining).").format(
-		max(0, days_remaining)
-	)
+	result["reason"] = _("Within probation period ({0} day(s) remaining).").format(max(0, days_remaining))
 	return result
 
 
@@ -544,56 +564,67 @@ def create_repeat_job_card(source_job_card, customer_complaint_summary=None, lab
 	if complaint:
 		advisor_notes = f"{advisor_notes}\n\n{complaint}"
 
-	doc = frappe.get_doc({
-		"doctype": "DMS Job Card",
-		"job_card_type": source.job_card_type or "Repair",
-		"posting_date": today(),
-		"company": source.company,
-		"currency": source.currency,
-		"customer": source.customer,
-		"vehicle_vin": source.vehicle_vin,
-		"license_plate": source.license_plate,
-		"current_odometer": source.current_odometer,
-		"priority": "Comeback/Repeat Repair",
-		"is_repeat_repair": 1,
-		"repeat_repair_reference": source_name,
-		"service_advisor": source.service_advisor,
-		"workshop": source.workshop,
-		"warehouse": source.warehouse,
-		"warranty_status": source.warranty_status,
-		# Leave billing/warranty application for the user on the new card.
-		"warranty_application_type": "",
-		"skip_vehicle_inspection": 1,
-		"status": "Open",
-		"service_advisor_notes": advisor_notes,
-		"terms": source.terms,
-		"terms_and_conditions": source.terms_and_conditions,
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "DMS Job Card",
+			"job_card_type": source.job_card_type or "Repair",
+			"posting_date": today(),
+			"company": source.company,
+			"currency": source.currency,
+			"customer": source.customer,
+			"vehicle_vin": source.vehicle_vin,
+			"license_plate": source.license_plate,
+			"current_odometer": source.current_odometer,
+			"priority": "Comeback/Repeat Repair",
+			"is_repeat_repair": 1,
+			"repeat_repair_reference": source_name,
+			"service_advisor": source.service_advisor,
+			"workshop": source.workshop,
+			"warehouse": source.warehouse,
+			"warranty_status": source.warranty_status,
+			# Leave billing/warranty application for the user on the new card.
+			"warranty_application_type": "",
+			"skip_vehicle_inspection": 1,
+			"status": "Open",
+			"service_advisor_notes": advisor_notes,
+			"terms": source.terms,
+			"terms_and_conditions": source.terms_and_conditions,
+		}
+	)
 
 	# Prefer an explicit complaint row when the user typed one in the dialog.
 	user_complaint = (customer_complaint_summary or "").strip()
 	if user_complaint:
-		doc.append("job_items", {
-			"complaint_description": user_complaint,
-			"severity": "3 - Moderate",
-		})
+		doc.append(
+			"job_items",
+			{
+				"complaint_description": user_complaint,
+				"severity": "3 - Moderate",
+			},
+		)
 	else:
 		for item in source.get("job_items") or []:
 			desc = (getattr(item, "complaint_description", None) or "").strip()
 			if not desc:
 				continue
-			doc.append("job_items", {
-				"complaint_description": desc,
-				"symptom_category": item.symptom_category,
-				"severity": item.severity,
-				"labor_operation": item.labor_operation,
-			})
+			doc.append(
+				"job_items",
+				{
+					"complaint_description": desc,
+					"symptom_category": item.symptom_category,
+					"severity": item.severity,
+					"labor_operation": item.labor_operation,
+				},
+			)
 
 	if not doc.job_items:
-		doc.append("job_items", {
-			"complaint_description": complaint,
-			"severity": "3 - Moderate",
-		})
+		doc.append(
+			"job_items",
+			{
+				"complaint_description": complaint,
+				"severity": "3 - Moderate",
+			},
+		)
 
 	for line in labour:
 		_append_labour_line_payload(doc, line, default_complaint=complaint)
@@ -790,20 +821,18 @@ def add_labour_line_to_job_card(
 	jc = frappe.get_doc("DMS Job Card", jc_name)
 	jc.check_permission("write")
 
-	from dms.dealer_management_system.utils.price_permissions import (
-		assert_price_allowed_if_changed,
-	)
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 		vehicle_service_item_labour_rate,
+	)
+	from dms.dealer_management_system.utils.price_permissions import (
+		assert_price_allowed_if_changed,
 	)
 
 	default_rate = vehicle_service_item_labour_rate(vsi) if rate_per_hour is not None else 0
 	assert_price_allowed_if_changed(default_rate, rate_per_hour)
 
 	if jc.status not in _ADD_LABOUR_ALLOWED_STATUSES:
-		frappe.throw(
-			_("Cannot add labour when job card status is {0}.").format(jc.status or _("Unknown"))
-		)
+		frappe.throw(_("Cannot add labour when job card status is {0}.").format(jc.status or _("Unknown")))
 
 	if jc.invoice:
 		frappe.throw(_("Cannot add labour after an invoice has been created."))
@@ -862,9 +891,7 @@ def remove_labour_line_from_job_card(job_card, labour_row):
 	jc.check_permission("write")
 
 	if jc.status not in _ADD_LABOUR_ALLOWED_STATUSES:
-		frappe.throw(
-			_("Cannot remove labour when job card status is {0}.").format(jc.status or _("Unknown"))
-		)
+		frappe.throw(_("Cannot remove labour when job card status is {0}.").format(jc.status or _("Unknown")))
 
 	if jc.invoice:
 		frappe.throw(_("Cannot remove labour after an invoice has been created."))
@@ -912,9 +939,7 @@ def update_labour_line_on_job_card(
 	jc.check_permission("write")
 
 	if jc.status not in _ADD_LABOUR_ALLOWED_STATUSES:
-		frappe.throw(
-			_("Cannot edit labour when job card status is {0}.").format(jc.status or _("Unknown"))
-		)
+		frappe.throw(_("Cannot edit labour when job card status is {0}.").format(jc.status or _("Unknown")))
 
 	if jc.invoice:
 		frappe.throw(_("Cannot edit labour after an invoice has been created."))
@@ -987,6 +1012,7 @@ def update_labour_line_on_job_card(
 def create_job_card(data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
@@ -1058,19 +1084,25 @@ def create_job_card(data):
 
 	if data.get("job_items"):
 		for item in data["job_items"]:
-			doc.append("job_items", {
-				"complaint_description": item.get("complaint_description"),
-				"symptom_category": item.get("symptom_category"),
-				"severity": item.get("severity"),
-				"labor_operation": item.get("labor_operation"),
-			})
+			doc.append(
+				"job_items",
+				{
+					"complaint_description": item.get("complaint_description"),
+					"symptom_category": item.get("symptom_category"),
+					"severity": item.get("severity"),
+					"labor_operation": item.get("labor_operation"),
+				},
+			)
 	else:
 		summary = (data.get("customer_complaint_summary") or "").strip()
 		if summary:
-			doc.append("job_items", {
-				"complaint_description": summary,
-				"severity": "3 - Moderate",
-			})
+			doc.append(
+				"job_items",
+				{
+					"complaint_description": summary,
+					"severity": "3 - Moderate",
+				},
+			)
 			if not (data.get("service_advisor_notes") or "").strip():
 				doc.service_advisor_notes = summary
 
@@ -1086,13 +1118,16 @@ def create_job_card(data):
 			bin_location = (part.get("bin_location") or "").strip()
 			if not bin_location and part_code:
 				bin_location = frappe.db.get_value("Spare Part", part_code, "bin_location") or ""
-			doc.append("parts", {
-				"item_code": part_code,
-				"quantity_requested": part.get("quantity_requested", 1),
-				"unit_price": part.get("unit_price"),
-				"bin_location": bin_location,
-				"warehouse": part_warehouse,
-			})
+			doc.append(
+				"parts",
+				{
+					"item_code": part_code,
+					"quantity_requested": part.get("quantity_requested", 1),
+					"unit_price": part.get("unit_price"),
+					"bin_location": bin_location,
+					"warehouse": part_warehouse,
+				},
+			)
 
 	if data.get("assigned_bay"):
 		_sync_workshop_warehouse_from_bay(doc, data.get("assigned_bay"))
@@ -1116,9 +1151,7 @@ def create_job_card(data):
 	if odo is not None and odo != "":
 		odo = cint(odo)
 		if odo >= 0 and cint(doc.current_odometer or 0) != odo:
-			frappe.db.set_value(
-				"DMS Job Card", doc.name, "current_odometer", odo, update_modified=False
-			)
+			frappe.db.set_value("DMS Job Card", doc.name, "current_odometer", odo, update_modified=False)
 			doc.current_odometer = odo
 		doc.sync_vin_odometer_from_job_card()
 
@@ -1149,6 +1182,7 @@ def create_job_card(data):
 def update_job_card(name, data):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	if not name:
@@ -1163,12 +1197,23 @@ def update_job_card(name, data):
 
 	updatable_fields = [
 		"posting_date",
-		"priority", "service_advisor", "lead_technician", "assigned_bay",
-		"estimated_duration_hours", "promised_delivery_date_time",
-		"warranty_status", "warranty_expiry_date", "warranty_application_type",
-		"service_advisor_notes", "internal_notes",
-		"terms", "terms_and_conditions",
-		"schedule_start_time", "schedule_end_time", "workshop", "warehouse",
+		"priority",
+		"service_advisor",
+		"lead_technician",
+		"assigned_bay",
+		"estimated_duration_hours",
+		"promised_delivery_date_time",
+		"warranty_status",
+		"warranty_expiry_date",
+		"warranty_application_type",
+		"service_advisor_notes",
+		"internal_notes",
+		"terms",
+		"terms_and_conditions",
+		"schedule_start_time",
+		"schedule_end_time",
+		"workshop",
+		"warehouse",
 		"current_odometer",
 		"license_plate",
 		"discount_amount",
@@ -1190,9 +1235,7 @@ def update_job_card(name, data):
 		apply_discount_fields_from_payload(doc, data)
 
 	if "currency" in data:
-		doc.currency = _resolve_job_card_currency(
-			data.get("currency"), doc.company or data.get("company")
-		)
+		doc.currency = _resolve_job_card_currency(data.get("currency"), doc.company or data.get("company"))
 
 	if "warehouse" in data and data.get("warehouse"):
 		for row in doc.parts or []:
@@ -1202,6 +1245,7 @@ def update_job_card(name, data):
 		rows = data["assistant_technicians"]
 		if isinstance(rows, str):
 			import json
+
 			rows = json.loads(rows)
 		_apply_assistant_technicians(doc, rows)
 
@@ -1238,19 +1282,25 @@ def update_job_card(name, data):
 				complaint = (item.get("complaint_description") or item.get("complaint") or "").strip()
 				if not complaint:
 					continue
-				doc.append("job_items", {
-					"complaint_description": complaint,
-					"symptom_category": item.get("symptom_category"),
-					"severity": item.get("severity"),
-					"labor_operation": item.get("labor_operation"),
-				})
+				doc.append(
+					"job_items",
+					{
+						"complaint_description": complaint,
+						"symptom_category": item.get("symptom_category"),
+						"severity": item.get("severity"),
+						"labor_operation": item.get("labor_operation"),
+					},
+				)
 			if not doc.get("job_items"):
 				summary = (data.get("customer_complaint_summary") or "").strip()
 				if summary:
-					doc.append("job_items", {
-						"complaint_description": summary,
-						"severity": "3 - Moderate",
-					})
+					doc.append(
+						"job_items",
+						{
+							"complaint_description": summary,
+							"severity": "3 - Moderate",
+						},
+					)
 
 		if "labour" in data:
 			doc.set("labour", [])
@@ -1268,13 +1318,16 @@ def update_job_card(name, data):
 				bin_location = (part.get("bin_location") or "").strip()
 				if not bin_location:
 					bin_location = frappe.db.get_value("Spare Part", part_code, "bin_location") or ""
-				doc.append("parts", {
-					"item_code": part_code,
-					"quantity_requested": part.get("quantity_requested", 1),
-					"unit_price": part.get("unit_price"),
-					"bin_location": bin_location,
-					"warehouse": part_warehouse,
-				})
+				doc.append(
+					"parts",
+					{
+						"item_code": part_code,
+						"quantity_requested": part.get("quantity_requested", 1),
+						"unit_price": part.get("unit_price"),
+						"bin_location": bin_location,
+						"warehouse": part_warehouse,
+					},
+				)
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
 		is_internal_job_card,
@@ -1296,9 +1349,7 @@ def update_job_card(name, data):
 	if odo is not None and odo != "":
 		odo = cint(odo)
 		if odo >= 0 and cint(doc.current_odometer or 0) != odo:
-			frappe.db.set_value(
-				"DMS Job Card", doc.name, "current_odometer", odo, update_modified=False
-			)
+			frappe.db.set_value("DMS Job Card", doc.name, "current_odometer", odo, update_modified=False)
 			doc.current_odometer = odo
 		doc.sync_vin_odometer_from_job_card()
 
@@ -1369,9 +1420,7 @@ def _validate_job_card_before_submit(doc):
 		missing.append(_("Schedule End Time"))
 
 	if missing:
-		frappe.throw(
-			_("Please fill in the following before submitting: {0}").format(", ".join(missing))
-		)
+		frappe.throw(_("Please fill in the following before submitting: {0}").format(", ".join(missing)))
 
 	for row in doc.assistant_technicians or []:
 		if not row.technician:
@@ -1383,6 +1432,7 @@ def _apply_assistant_technicians(doc, rows):
 	for row in rows or []:
 		if isinstance(row, str):
 			import json
+
 			row = json.loads(row)
 		technician = (row.get("technician") or "").strip()
 		if not technician:
@@ -1410,6 +1460,7 @@ def approve_and_submit_job_card(
 	"""Customer approval: validate schedule/technicians, save approval fields, submit document."""
 	if isinstance(assistant_technicians, str):
 		import json
+
 		assistant_technicians = json.loads(assistant_technicians) if assistant_technicians else []
 
 	if not name:
@@ -1484,9 +1535,7 @@ def apply_road_test_template(name, template, force=0):
 
 	existing = doc.road_test_results or []
 	if existing and not force:
-		frappe.throw(
-			_("This job card already has road test results. Set force to replace them.")
-		)
+		frappe.throw(_("This job card already has road test results. Set force to replace them."))
 
 	template_doc = frappe.get_doc("Road Test Template", template)
 	items = template_doc.test_items or []
@@ -1628,6 +1677,7 @@ def save_qc_results(name, qc_checklist_template=None, results=None):
 	"""Save QC template and result rows on a submitted job card."""
 	if isinstance(results, str):
 		import json
+
 		results = json.loads(results) if results else []
 
 	if not name:
@@ -1643,6 +1693,7 @@ def save_qc_results(name, qc_checklist_template=None, results=None):
 	for row in results or []:
 		if isinstance(row, str):
 			import json
+
 			row = json.loads(row)
 		doc.append(
 			"qc_results",
@@ -1676,6 +1727,7 @@ def save_road_test_results(name, road_test_template=None, results=None):
 	"""Save road test template and result rows on a submitted job card."""
 	if isinstance(results, str):
 		import json
+
 		results = json.loads(results) if results else []
 
 	if not name:
@@ -1691,6 +1743,7 @@ def save_road_test_results(name, road_test_template=None, results=None):
 	for row in results or []:
 		if isinstance(row, str):
 			import json
+
 			row = json.loads(row)
 		doc.append(
 			"road_test_results",
@@ -1836,9 +1889,7 @@ def cancel_job_card(name, reason=None):
 	active_inv = get_active_job_card_invoice(doc.name)
 	if active_inv and cint(frappe.db.get_value("Sales Invoice", active_inv, "docstatus")) == 1:
 		frappe.throw(
-			_("Cancel Sales Invoice {0} first, then cancel this job card.").format(
-				frappe.bold(active_inv)
-			)
+			_("Cancel Sales Invoice {0} first, then cancel this job card.").format(frappe.bold(active_inv))
 		)
 
 	if cint(doc.docstatus) == 1:
@@ -2004,9 +2055,7 @@ def _copy_cancelled_job_card(name, *, as_amend: bool):
 	if as_amend:
 		existing = frappe.db.exists("DMS Job Card", {"amended_from": source_name})
 		if existing:
-			frappe.throw(
-				_("This job card is already amended as {0}.").format(frappe.bold(existing))
-			)
+			frappe.throw(_("This job card is already amended as {0}.").format(frappe.bold(existing)))
 
 	new_doc = copy_doc(source, ignore_no_copy=True)
 	_reset_copied_job_card_runtime_fields(new_doc, source_name, as_amend=as_amend)
@@ -2119,11 +2168,19 @@ def _copy_approval_fields(target, source):
 		if value not in (None, ""):
 			target.set(field, value)
 
-	if target.meta.has_field("lead_technician") and source.get("lead_technician") and not target.lead_technician:
+	if (
+		target.meta.has_field("lead_technician")
+		and source.get("lead_technician")
+		and not target.lead_technician
+	):
 		target.lead_technician = source.lead_technician
 	if target.meta.has_field("assigned_bay") and source.get("assigned_bay") and not target.assigned_bay:
 		target.assigned_bay = source.assigned_bay
-	if target.meta.has_field("service_advisor") and source.get("service_advisor") and not target.service_advisor:
+	if (
+		target.meta.has_field("service_advisor")
+		and source.get("service_advisor")
+		and not target.service_advisor
+	):
 		target.service_advisor = source.service_advisor
 
 
@@ -2253,6 +2310,8 @@ def _apply_original_customer_approval(doc, source):
 
 
 def _apply_original_repair(doc, source):
+	from frappe.utils import now_datetime
+
 	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
 		_assert_workshop_warehouse_for_repair,
 		_duration_hours,
@@ -2263,7 +2322,6 @@ def _apply_original_repair(doc, source):
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
 		is_internal_job_card,
 	)
-	from frappe.utils import now_datetime
 
 	_assert_current_status(
 		doc,
@@ -2498,4 +2556,3 @@ def get_job_card_terms(search=None, limit=50):
 		}
 		for row in rows
 	]
-

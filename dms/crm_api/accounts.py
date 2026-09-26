@@ -106,9 +106,7 @@ def get_account(name):
 	data["customer_name"] = customer_display_name(doc.customer)
 	data["owner_name"] = user_display_name(doc.account_owner)
 	data["parent_account_name"] = (
-		frappe.db.get_value(DOCTYPE, doc.parent_account, "account_name")
-		if doc.parent_account
-		else None
+		frappe.db.get_value(DOCTYPE, doc.parent_account, "account_name") if doc.parent_account else None
 	)
 	data["child_accounts"] = frappe.get_all(
 		DOCTYPE,
@@ -277,9 +275,7 @@ def get_account_form_options():
 		"payment_behaviors": _select_options(meta, "payment_behavior"),
 		"growth_potentials": _select_options(meta, "growth_potential"),
 		"relationship_health": _select_options(meta, "relationship_health"),
-		"stakeholder_roles": _select_options(
-			frappe.get_meta("DMS CRM Account Stakeholder"), "role"
-		),
+		"stakeholder_roles": _select_options(frappe.get_meta("DMS CRM Account Stakeholder"), "role"),
 		"territories": _territory_names(),
 	}
 

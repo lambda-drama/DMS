@@ -115,7 +115,17 @@ def list_spare_parts(search=None, include_discontinued=0, limit=50, offset=0):
 			for it in frappe.get_all(
 				"Item",
 				filters={"name": ["in", item_names]},
-				fields=["name", "item_code", "item_name", "item_group", "stock_uom", "description", "standard_rate", "valuation_rate", "disabled"],
+				fields=[
+					"name",
+					"item_code",
+					"item_name",
+					"item_group",
+					"stock_uom",
+					"description",
+					"standard_rate",
+					"valuation_rate",
+					"disabled",
+				],
 				limit=len(item_names),
 			)
 		}
@@ -125,7 +135,16 @@ def list_spare_parts(search=None, include_discontinued=0, limit=50, offset=0):
 		item_price_rows = frappe.get_all(
 			"Item Price",
 			filters={"price_list": "DMS Selling", "item_code": ["in", item_names]},
-			fields=["name", "item_code", "price_list", "price_list_rate", "uom", "currency", "valid_from", "valid_upto"],
+			fields=[
+				"name",
+				"item_code",
+				"price_list",
+				"price_list_rate",
+				"uom",
+				"currency",
+				"valid_from",
+				"valid_upto",
+			],
 			order_by="price_list_rate asc",
 			limit=len(item_names) * 10,
 		)
@@ -133,6 +152,7 @@ def list_spare_parts(search=None, include_discontinued=0, limit=50, offset=0):
 			price_map.setdefault(pr["item_code"], pr)
 
 	from dms.dealer_management_system.utils.stock_operations import get_dms_default_selling_price_list
+
 	default_price_list = get_dms_default_selling_price_list()
 
 	for r in rows:
@@ -264,9 +284,7 @@ def _vehicle_item_groups() -> list[str]:
 	meta = frappe.get_meta("Item Group")
 	if not meta.has_field("custom_is_vehicle"):
 		# Older sites without the flag: every leaf group is selectable.
-		return frappe.get_all(
-			"Item Group", filters={"is_group": 0}, pluck="name", order_by="name asc"
-		)
+		return frappe.get_all("Item Group", filters={"is_group": 0}, pluck="name", order_by="name asc")
 	return frappe.get_all(
 		"Item Group",
 		filters={"custom_is_vehicle": 1, "is_group": 0},
@@ -318,9 +336,7 @@ def _resolve_item_group_parent(parent_item_group: str | None) -> str:
 	# Root of the Item Group tree (ERPNext default), else the first group node.
 	if cint(frappe.db.get_value("Item Group", "All Item Groups", "is_group")):
 		return "All Item Groups"
-	roots = frappe.get_all(
-		"Item Group", filters={"is_group": 1}, pluck="name", order_by="lft asc", limit=1
-	)
+	roots = frappe.get_all("Item Group", filters={"is_group": 1}, pluck="name", order_by="lft asc", limit=1)
 	if not roots:
 		frappe.throw(_("Create a parent Item Group before adding vehicle item groups."))
 	return roots[0]
@@ -467,9 +483,9 @@ def create_vehicle_model(data=None):
 	# docname *is* that Item, so an existing code cannot be reused here.
 	if frappe.db.exists("Item", item_code):
 		frappe.throw(
-			_("Item {0} already exists. Use a different Model code — the model code becomes the Item code.").format(
-				frappe.bold(item_code)
-			)
+			_(
+				"Item {0} already exists. Use a different Model code — the model code becomes the Item code."
+			).format(frappe.bold(item_code))
 		)
 
 	item_doc = frappe.get_doc(
@@ -640,7 +656,17 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 			for it in frappe.get_all(
 				"Item",
 				filters={"name": ["in", item_codes]},
-				fields=["name", "item_code", "item_name", "item_group", "stock_uom", "description", "standard_rate", "valuation_rate", "disabled"],
+				fields=[
+					"name",
+					"item_code",
+					"item_name",
+					"item_group",
+					"stock_uom",
+					"description",
+					"standard_rate",
+					"valuation_rate",
+					"disabled",
+				],
 				limit=len(item_codes),
 			)
 		}
@@ -650,7 +676,16 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 		item_price_rows = frappe.get_all(
 			"Item Price",
 			filters={"price_list": "DMS Selling", "item_code": ["in", item_codes]},
-			fields=["name", "item_code", "price_list", "price_list_rate", "uom", "currency", "valid_from", "valid_upto"],
+			fields=[
+				"name",
+				"item_code",
+				"price_list",
+				"price_list_rate",
+				"uom",
+				"currency",
+				"valid_from",
+				"valid_upto",
+			],
 			order_by="price_list_rate asc",
 			limit=len(item_codes) * 10,
 		)
@@ -658,7 +693,9 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 			price_map.setdefault(pr["item_code"], pr)
 
 	for r in rows:
-		r["item_price"] = price_map.get(r.get("custom_erpnext_item")) if r.get("custom_erpnext_item") else None
+		r["item_price"] = (
+			price_map.get(r.get("custom_erpnext_item")) if r.get("custom_erpnext_item") else None
+		)
 
 	return {"data": rows, "total": total}
 
@@ -845,9 +882,9 @@ def _service_item_create_specs(
 			model_code = (frappe.db.get_value("Vehicle Model", model_name, "model_code") or "").strip()
 			if (require_model_code or len(vehicle_models) > 1) and not model_code:
 				frappe.throw(
-					_("Vehicle Model {0} has no model code, so a combined service code cannot be built.").format(
-						frappe.bold(model_name)
-					)
+					_(
+						"Vehicle Model {0} has no model code, so a combined service code cannot be built."
+					).format(frappe.bold(model_name))
 				)
 		specs.append(
 			{
@@ -1032,9 +1069,7 @@ def bulk_update_vehicle_service_items(service_item=None, hours=None, rate=None):
 			if rate_value is not None and meta.has_field("custom_rate"):
 				doc.set("custom_rate", rate_value)
 			doc.save(ignore_permissions=False)
-			updated.append(
-				{"name": doc.name, "custom_service_code": doc.get("custom_service_code")}
-			)
+			updated.append({"name": doc.name, "custom_service_code": doc.get("custom_service_code")})
 	except Exception:
 		frappe.db.rollback()
 		raise
@@ -1109,7 +1144,19 @@ def list_item_prices(search=None, price_list=None, selling=1, limit=50, offset=0
 
 	rows = frappe.get_all(
 		"Item Price",
-		fields=["name", "item_code", "item_name", "price_list", "price_list_rate", "currency", "uom", "selling", "buying", "valid_from", "valid_upto"],
+		fields=[
+			"name",
+			"item_code",
+			"item_name",
+			"price_list",
+			"price_list_rate",
+			"currency",
+			"uom",
+			"selling",
+			"buying",
+			"valid_from",
+			"valid_upto",
+		],
 		filters=filters,
 		or_filters=or_filters,
 		limit=limit,
@@ -1219,7 +1266,9 @@ def _job_card_terms_list(search=None, limit=100, offset=0):
 	if search:
 		filters["title"] = ["like", f"%{search}%"]
 
-	total = len(frappe.get_all("DMS Job Card Terms", filters=filters or None, pluck="name", limit_page_length=0))
+	total = len(
+		frappe.get_all("DMS Job Card Terms", filters=filters or None, pluck="name", limit_page_length=0)
+	)
 	rows = frappe.get_all(
 		"DMS Job Card Terms",
 		filters=filters or None,
@@ -1243,6 +1292,7 @@ def create_job_card_terms(data):
 	"""Create a DMS Job Card Terms record."""
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	frappe.has_permission("DMS Job Card Terms", "create", throw=True)
@@ -1265,6 +1315,7 @@ def update_job_card_terms(name, data):
 	"""Update a DMS Job Card Terms record."""
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	frappe.has_permission("DMS Job Card Terms", "write", throw=True)
@@ -1300,7 +1351,9 @@ def _sales_invoice_tc_list(search=None, limit=100, offset=0):
 	if search:
 		filters["title"] = ["like", f"%{search}%"]
 
-	total = len(frappe.get_all("DMS Sales Invoice TC", filters=filters or None, pluck="name", limit_page_length=0))
+	total = len(
+		frappe.get_all("DMS Sales Invoice TC", filters=filters or None, pluck="name", limit_page_length=0)
+	)
 	rows = frappe.get_all(
 		"DMS Sales Invoice TC",
 		filters=filters or None,
@@ -1324,6 +1377,7 @@ def create_sales_invoice_tc(data):
 	"""Create a DMS Sales Invoice TC record."""
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	frappe.has_permission("DMS Sales Invoice TC", "create", throw=True)
@@ -1346,6 +1400,7 @@ def update_sales_invoice_tc(name, data):
 	"""Update a DMS Sales Invoice TC record."""
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data)
 
 	frappe.has_permission("DMS Sales Invoice TC", "write", throw=True)
@@ -1646,9 +1701,7 @@ def list_vehicle_service_packages(search=None, active_filter=None, vehicle_model
 	or_filters = None
 	if search and str(search).strip():
 		q = f"%{search.strip()}%"
-		search_fields = _meta_fields(
-			"Vehicle Service Package", ["package_name", "package_id", "description"]
-		)
+		search_fields = _meta_fields("Vehicle Service Package", ["package_name", "package_id", "description"])
 		or_filters = [[f, "like", q] for f in search_fields] or None
 
 	fields = _meta_fields(
@@ -1723,9 +1776,7 @@ def update_vehicle_service_package(name, data):
 	values = _package_values(_parse_data(data))
 	new_name = values.get("package_name")
 	if new_name and new_name != name and frappe.db.exists("Vehicle Service Package", new_name):
-		frappe.throw(
-			_("Vehicle Service Package {0} already exists.").format(frappe.bold(new_name))
-		)
+		frappe.throw(_("Vehicle Service Package {0} already exists.").format(frappe.bold(new_name)))
 
 	doc = frappe.get_doc("Vehicle Service Package", name)
 	doc.update(values)
@@ -1733,12 +1784,8 @@ def update_vehicle_service_package(name, data):
 
 	# `package_name` drives autoname, so follow a rename like the Desk form does.
 	if new_name and new_name != doc.name:
-		renamed = frappe.rename_doc(
-			"Vehicle Service Package", doc.name, new_name, force=True, merge=False
-		)
-		doc = frappe.get_doc(
-			"Vehicle Service Package", renamed if isinstance(renamed, str) else renamed.name
-		)
+		renamed = frappe.rename_doc("Vehicle Service Package", doc.name, new_name, force=True, merge=False)
+		doc = frappe.get_doc("Vehicle Service Package", renamed if isinstance(renamed, str) else renamed.name)
 
 	frappe.db.commit()
 	return {"name": doc.name, "package_name": doc.package_name}

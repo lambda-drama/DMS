@@ -10,7 +10,9 @@ from dms.dealer_management_system.utils.stock_operations import (
 	SPAREPART_STOCK_FIELD,
 	create_dms_material_request,
 	create_dms_purchase_receipt,
+	create_dms_purchase_receipt_from_material_request,
 	create_dms_stock_entry,
+	create_dms_stock_entry_from_material_request,
 	create_dms_stock_item,
 	create_dms_stock_reconciliation,
 	create_dms_supplier,
@@ -18,8 +20,8 @@ from dms.dealer_management_system.utils.stock_operations import (
 	get_dms_material_request_detail,
 	get_dms_material_requests_list,
 	get_dms_pending_material_requests,
-	get_dms_purchase_receipts_list,
 	get_dms_purchase_receipt_detail,
+	get_dms_purchase_receipts_list,
 	get_item_price_list_rate,
 	get_item_uoms_for_ui,
 	get_material_request_defaults,
@@ -28,8 +30,6 @@ from dms.dealer_management_system.utils.stock_operations import (
 	get_stock_operation_defaults,
 	search_stock_items,
 	search_suppliers,
-	create_dms_purchase_receipt_from_material_request,
-	create_dms_stock_entry_from_material_request,
 )
 
 
@@ -61,16 +61,18 @@ def get_stock_entry_detail(name=None):
 	se.check_permission("read")
 	items = []
 	for row in se.get("items") or []:
-		items.append({
-			"item_code": row.item_code,
-			"item_name": row.item_name,
-			"qty": flt(row.qty),
-			"uom": row.uom,
-			"s_warehouse": row.s_warehouse,
-			"t_warehouse": row.t_warehouse,
-			"basic_rate": flt(row.basic_rate),
-			"amount": flt(row.amount),
-		})
+		items.append(
+			{
+				"item_code": row.item_code,
+				"item_name": row.item_name,
+				"qty": flt(row.qty),
+				"uom": row.uom,
+				"s_warehouse": row.s_warehouse,
+				"t_warehouse": row.t_warehouse,
+				"basic_rate": flt(row.basic_rate),
+				"amount": flt(row.amount),
+			}
+		)
 	return {
 		"name": se.name,
 		"stock_entry_type": se.stock_entry_type,
@@ -213,9 +215,7 @@ def create_stock_entry_from_material_request(name=None, submit=1):
 @frappe.whitelist()
 def create_purchase_receipt_from_material_request(name=None, supplier=None, submit=1):
 	frappe.has_permission("Purchase Receipt", "create", throw=True)
-	result = create_dms_purchase_receipt_from_material_request(
-		name, supplier=supplier, submit=cint(submit)
-	)
+	result = create_dms_purchase_receipt_from_material_request(name, supplier=supplier, submit=cint(submit))
 	frappe.db.commit()
 	return result
 

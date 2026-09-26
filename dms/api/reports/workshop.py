@@ -118,7 +118,9 @@ def _parts_summary_by_job(jc_names):
 		fields=["parent", "line_status", "stock_available", "is_backordered", "quantity_requested"],
 		limit=20000,
 	)
-	out = defaultdict(lambda: {"parts_lines": 0, "parts_reserved": 0, "parts_backordered": 0, "parts_short": 0})
+	out = defaultdict(
+		lambda: {"parts_lines": 0, "parts_reserved": 0, "parts_backordered": 0, "parts_short": 0}
+	)
 	for r in rows:
 		s = out[r.parent]
 		s["parts_lines"] += 1
@@ -193,12 +195,8 @@ def get_daily_wip_report(filters=None):
 
 	for row in rows:
 		opened = get_datetime(row.opened_date_time) if row.opened_date_time else None
-		hours_in_workshop = (
-			round(time_diff_in_hours(now, opened), 2) if opened else None
-		)
-		days_in_workshop = (
-			round(hours_in_workshop / 24, 2) if hours_in_workshop is not None else None
-		)
+		hours_in_workshop = round(time_diff_in_hours(now, opened), 2) if opened else None
+		days_in_workshop = round(hours_in_workshop / 24, 2) if hours_in_workshop is not None else None
 		alert = _promise_alert(row.promised_delivery_date_time, now)
 		by_alert[alert] = by_alert.get(alert, 0) + 1
 		if alert in ("delayed", "critically_delayed"):
@@ -337,9 +335,7 @@ def get_job_card_status_report(filters=None):
 		order_by="modified desc",
 		limit=2000,
 	)
-	_apply_link_display_names(
-		rows, {"service_advisor": "Service Advisor", "lead_technician": "Technician"}
-	)
+	_apply_link_display_names(rows, {"service_advisor": "Service Advisor", "lead_technician": "Technician"})
 	_apply_vin_numbers(rows)
 
 	status_entered = _latest_status_entered_map([r.name for r in rows])
@@ -402,9 +398,7 @@ def get_job_card_status_report(filters=None):
 				"lead_technician": row.lead_technician,
 				"age_in_status_hours": age_hours,
 				"age_in_status_days": age_days,
-				"promised_delivery_date_time": _format_datetime_minute(
-					row.promised_delivery_date_time
-				),
+				"promised_delivery_date_time": _format_datetime_minute(row.promised_delivery_date_time),
 				"invoice": row.invoice or "",
 				"payment_status": row.payment_status or "",
 				"is_repeat_repair": cint(row.is_repeat_repair),
@@ -450,12 +444,26 @@ def get_vehicle_turnaround_report(filters=None):
 		"DMS Job Card",
 		filters=conds,
 		fields=[
-			"name", "customer_name", "vehicle_vin", "vehicle_model", "status",
-			"appointment", "inspection", "service_estimate",
-			"opened_date_time", "technician_assigned_at", "repair_started_at",
-			"completed_date_time", "qc_started_at", "qc_checked_date",
-			"invoice", "invoiced_at", "delivery_date_time",
-			"service_advisor", "lead_technician", "creation",
+			"name",
+			"customer_name",
+			"vehicle_vin",
+			"vehicle_model",
+			"status",
+			"appointment",
+			"inspection",
+			"service_estimate",
+			"opened_date_time",
+			"technician_assigned_at",
+			"repair_started_at",
+			"completed_date_time",
+			"qc_started_at",
+			"qc_checked_date",
+			"invoice",
+			"invoiced_at",
+			"delivery_date_time",
+			"service_advisor",
+			"lead_technician",
+			"creation",
 		],
 		order_by="modified desc",
 		limit=1000,
@@ -474,7 +482,11 @@ def get_vehicle_turnaround_report(filters=None):
 
 	sa_map = {}
 	if appointments:
-		for row in frappe.get_all("Service Appointment", filters={"name": ["in", appointments]}, fields=["name", "arrived_date_time"]):
+		for row in frappe.get_all(
+			"Service Appointment",
+			filters={"name": ["in", appointments]},
+			fields=["name", "arrived_date_time"],
+		):
 			sa_map[row.name] = row
 	insp_map = {}
 	if inspections:
@@ -507,7 +519,9 @@ def get_vehicle_turnaround_report(filters=None):
 
 	si_map = {}
 	if invoices and frappe.db.exists("DocType", "Sales Invoice"):
-		for row in frappe.get_all("Sales Invoice", filters={"name": ["in", invoices]}, fields=["name", "creation"]):
+		for row in frappe.get_all(
+			"Sales Invoice", filters={"name": ["in", invoices]}, fields=["name", "creation"]
+		):
 			si_map[row.name] = row
 
 	delivery_map = {}
@@ -523,11 +537,17 @@ def get_vehicle_turnaround_report(filters=None):
 				delivery_map[row.job_card] = row.delivery_date_time
 
 	stage_keys = [
-		"hours_arrival_to_inspection", "hours_inspection_to_estimate",
-		"hours_estimate_to_approval", "hours_approval_to_job_card",
-		"hours_job_card_to_assignment", "hours_assignment_to_repair",
-		"hours_repair_start_to_completion", "hours_completion_to_qc",
-		"hours_qc_to_invoice", "hours_invoice_to_delivery", "hours_arrival_to_delivery",
+		"hours_arrival_to_inspection",
+		"hours_inspection_to_estimate",
+		"hours_estimate_to_approval",
+		"hours_approval_to_job_card",
+		"hours_job_card_to_assignment",
+		"hours_assignment_to_repair",
+		"hours_repair_start_to_completion",
+		"hours_completion_to_qc",
+		"hours_qc_to_invoice",
+		"hours_invoice_to_delivery",
+		"hours_arrival_to_delivery",
 	]
 	stage_buckets = {k: [] for k in stage_keys}
 	out = []
@@ -541,14 +561,22 @@ def get_vehicle_turnaround_report(filters=None):
 		t_insp_start = t_insp_done = None
 		if insp:
 			t_insp_start = get_datetime(insp.inspection_date or insp.creation)
-			t_insp_done = get_datetime(insp.inspection_completed_date) if insp.inspection_completed_date else t_insp_start
+			t_insp_done = (
+				get_datetime(insp.inspection_completed_date)
+				if insp.inspection_completed_date
+				else t_insp_start
+			)
 		t_estimate = get_datetime(est.creation) if est else None
 		t_estimate_ready = t_approval = None
 		if est:
-			t_estimate_ready = get_datetime(est.diagnosis_completed_date) if est.diagnosis_completed_date else t_estimate
+			t_estimate_ready = (
+				get_datetime(est.diagnosis_completed_date) if est.diagnosis_completed_date else t_estimate
+			)
 			t_approval = get_datetime(est.decision_date) if est.decision_date else None
 		t_jc = get_datetime(jc.opened_date_time or jc.creation)
-		t_assigned = get_datetime(jc.technician_assigned_at) if getattr(jc, "technician_assigned_at", None) else None
+		t_assigned = (
+			get_datetime(jc.technician_assigned_at) if getattr(jc, "technician_assigned_at", None) else None
+		)
 		t_repair_start = None
 		if getattr(jc, "repair_started_at", None):
 			t_repair_start = get_datetime(jc.repair_started_at)
@@ -558,8 +586,10 @@ def get_vehicle_turnaround_report(filters=None):
 		t_qc = get_datetime(jc.qc_checked_date) if jc.qc_checked_date else None
 		if not t_qc and getattr(jc, "qc_started_at", None):
 			t_qc = get_datetime(jc.qc_started_at)
-		t_invoice = get_datetime(jc.invoiced_at) if getattr(jc, "invoiced_at", None) else (
-			get_datetime(si.creation) if si and si.creation else None
+		t_invoice = (
+			get_datetime(jc.invoiced_at)
+			if getattr(jc, "invoiced_at", None)
+			else (get_datetime(si.creation) if si and si.creation else None)
 		)
 		t_delivery = None
 		if jc.delivery_date_time:
@@ -604,11 +634,15 @@ def get_vehicle_turnaround_report(filters=None):
 		"avg_arrival_to_delivery_h": _avg(stage_buckets["hours_arrival_to_delivery"]),
 		"avg_arrival_to_delivery_days": (
 			round(_avg(stage_buckets["hours_arrival_to_delivery"]) / 24, 2)
-			if _avg(stage_buckets["hours_arrival_to_delivery"]) is not None else None
+			if _avg(stage_buckets["hours_arrival_to_delivery"]) is not None
+			else None
 		),
 	}
 	return _result(
-		"vehicle_turnaround", _("Vehicle Turnaround Time"), f, summary,
+		"vehicle_turnaround",
+		_("Vehicle Turnaround Time"),
+		f,
+		summary,
 		[
 			{"key": "name", "label": _("Job Card")},
 			{"key": "customer_name", "label": _("Customer")},
@@ -645,8 +679,16 @@ def get_aging_report(filters=None):
 		"DMS Job Card",
 		filters=aging_filters,
 		fields=[
-			"name", "status", "customer_name", "vehicle_vin", "license_plate", "vehicle_model",
-			"opened_date_time", "reason_for_stop", "assigned_bay", "lead_technician",
+			"name",
+			"status",
+			"customer_name",
+			"vehicle_vin",
+			"license_plate",
+			"vehicle_model",
+			"opened_date_time",
+			"reason_for_stop",
+			"assigned_bay",
+			"lead_technician",
 			"promised_delivery_date_time",
 		],
 		order_by="opened_date_time asc",
@@ -668,15 +710,19 @@ def get_aging_report(filters=None):
 			buckets["8-14 days"] += 1
 		else:
 			buckets["15+ days"] += 1
-		aged_rows.append({
-			**jc,
-			"vin_number": getattr(jc, "vin_number", None) or jc.vehicle_vin,
-			"days_open": days,
-			"reason_for_stop": strip_html(jc.reason_for_stop or "")[:200],
-		})
+		aged_rows.append(
+			{
+				**jc,
+				"vin_number": getattr(jc, "vin_number", None) or jc.vehicle_vin,
+				"days_open": days,
+				"reason_for_stop": strip_html(jc.reason_for_stop or "")[:200],
+			}
+		)
 
 	return _result(
-		"aging", _("Aging Report"), f,
+		"aging",
+		_("Aging Report"),
+		f,
 		{"total_in_workshop": len(rows), "by_age_bucket": buckets},
 		[
 			{"key": "name", "label": _("Job Card")},
@@ -702,9 +748,17 @@ def get_bay_utilization_report(filters=None):
 		"Service Bay",
 		filters=bay_filters,
 		fields=[
-			"name", "bay_number", "bay_name", "branch", "bay_type",
-			"current_status", "current_job_card", "current_vehicle",
-			"current_technician", "occupied_from", "estimated_free_time",
+			"name",
+			"bay_number",
+			"bay_name",
+			"branch",
+			"bay_type",
+			"current_status",
+			"current_job_card",
+			"current_vehicle",
+			"current_technician",
+			"occupied_from",
+			"estimated_free_time",
 		],
 		order_by="bay_number asc",
 		limit=200,
@@ -759,25 +813,30 @@ def get_bay_utilization_report(filters=None):
 				idle_hours = None
 		occ_hours = (
 			round(time_diff_in_hours(now, get_datetime(occupied_from)), 2)
-			if occupied_from and is_occ else None
+			if occupied_from and is_occ
+			else None
 		)
 
-		rows.append({
-			"bay": bay.bay_name or bay.bay_number or bay.name,
-			"bay_type": bay.bay_type,
-			"branch": bay.branch or "",
-			"status": status,
-			"current_job_card": (live[0].name if live else bay.current_job_card) or "",
-			"vehicles": len(live),
-			"waiting_parts_vehicles": wp,
-			"occupied_hours": occ_hours,
-			"idle_hours": idle_hours,
-			"blocked": 1 if is_blocked else 0,
-		})
+		rows.append(
+			{
+				"bay": bay.bay_name or bay.bay_number or bay.name,
+				"bay_type": bay.bay_type,
+				"branch": bay.branch or "",
+				"status": status,
+				"current_job_card": (live[0].name if live else bay.current_job_card) or "",
+				"vehicles": len(live),
+				"waiting_parts_vehicles": wp,
+				"occupied_hours": occ_hours,
+				"idle_hours": idle_hours,
+				"blocked": 1 if is_blocked else 0,
+			}
+		)
 
 	util_pct = round((occupied / total) * 100, 1) if total else 0
 	return _result(
-		"bay_utilization", _("Bay Utilization Report"), f,
+		"bay_utilization",
+		_("Bay Utilization Report"),
+		f,
 		{
 			"total_bays": total,
 			"occupied_bays": occupied,
@@ -817,10 +876,21 @@ def get_repair_delay_report(filters=None):
 		"DMS Job Card",
 		filters=conds,
 		fields=[
-			"name", "status", "customer_name", "vehicle_vin", "vehicle_model", "license_plate",
-			"promised_delivery_date_time", "reason_for_stop", "delay_department",
-			"delay_corrective_action", "customer_notified", "service_advisor", "lead_technician",
-			"assigned_bay", "opened_date_time",
+			"name",
+			"status",
+			"customer_name",
+			"vehicle_vin",
+			"vehicle_model",
+			"license_plate",
+			"promised_delivery_date_time",
+			"reason_for_stop",
+			"delay_department",
+			"delay_corrective_action",
+			"customer_notified",
+			"service_advisor",
+			"lead_technician",
+			"assigned_bay",
+			"opened_date_time",
 		],
 		order_by="promised_delivery_date_time asc",
 		limit=500,
@@ -848,25 +918,29 @@ def get_repair_delay_report(filters=None):
 				inferred = "Workshop"
 			else:
 				inferred = "Service Advisor"
-		out.append({
-			"name": r.name,
-			"customer_name": r.customer_name,
-			"vin_number": getattr(r, "vin_number", None) or r.vehicle_vin,
-			"vehicle_model": r.vehicle_model,
-			"promised_delivery_date_time": _format_datetime_minute(r.promised_delivery_date_time),
-			"status": r.status,
-			"delay_hours": delay_h,
-			"delay_days": round(delay_h / 24, 2) if delay_h is not None else None,
-			"delay_department": inferred,
-			"delay_reason": strip_html(r.reason_for_stop or "")[:300] or r.status,
-			"corrective_action": getattr(r, "delay_corrective_action", None) or "",
-			"customer_notified": "Yes" if cint(getattr(r, "customer_notified", 0)) else "No",
-			"service_advisor": r.service_advisor,
-			"lead_technician": r.lead_technician,
-		})
+		out.append(
+			{
+				"name": r.name,
+				"customer_name": r.customer_name,
+				"vin_number": getattr(r, "vin_number", None) or r.vehicle_vin,
+				"vehicle_model": r.vehicle_model,
+				"promised_delivery_date_time": _format_datetime_minute(r.promised_delivery_date_time),
+				"status": r.status,
+				"delay_hours": delay_h,
+				"delay_days": round(delay_h / 24, 2) if delay_h is not None else None,
+				"delay_department": inferred,
+				"delay_reason": strip_html(r.reason_for_stop or "")[:300] or r.status,
+				"corrective_action": getattr(r, "delay_corrective_action", None) or "",
+				"customer_notified": "Yes" if cint(getattr(r, "customer_notified", 0)) else "No",
+				"service_advisor": r.service_advisor,
+				"lead_technician": r.lead_technician,
+			}
+		)
 
 	return _result(
-		"repair_delay", _("Repair Delay Report"), f,
+		"repair_delay",
+		_("Repair Delay Report"),
+		f,
 		{
 			"delayed_jobs": len(out),
 			"avg_delay_hours": _avg([r["delay_hours"] for r in out]),
@@ -898,6 +972,7 @@ def get_repeat_repair_report(filters=None):
 	raw = filters if isinstance(filters, dict) else {}
 	if isinstance(filters, str):
 		import json
+
 		raw = json.loads(filters) if filters else {}
 	window_days = cint(raw.get("return_window_days") or raw.get("return_window") or 0)
 
@@ -969,9 +1044,7 @@ def get_repeat_repair_report(filters=None):
 			fields=["parent", "item_code", "part_name", "quantity_issued", "total_amount"],
 			limit=5000,
 		):
-			parts_by_jc[p.parent].append(
-				f"{p.item_code or p.part_name}×{flt(p.quantity_issued) or 1}"
-			)
+			parts_by_jc[p.parent].append(f"{p.item_code or p.part_name}×{flt(p.quantity_issued) or 1}")
 
 	out = []
 	by_vin = {}
@@ -986,33 +1059,41 @@ def get_repeat_repair_report(filters=None):
 		cost = flt(r.net_amount) or (flt(r.total_parts_cost) + flt(r.total_labor_cost))
 		total_cost += cost
 		warranty = (r.warranty_application_type or "").strip()
-		classification = "Warranty" if warranty else (
-			"Goodwill" if (r.job_card_type or "") == "Goodwill" else (r.job_card_type or "Customer Paid")
+		classification = (
+			"Warranty"
+			if warranty
+			else (
+				"Goodwill" if (r.job_card_type or "") == "Goodwill" else (r.job_card_type or "Customer Paid")
+			)
 		)
 		vin = r.vin_number or r.vehicle_vin or "—"
 		by_vin[vin] = by_vin.get(vin, 0) + 1
 		tech = r.lead_technician or "—"
 		by_tech[tech] = by_tech.get(tech, 0) + 1
-		out.append({
-			"name": r.name,
-			"posting_date": r.posting_date,
-			"repeat_repair_reference": ref or "",
-			"original_complaint": orig_map.get(ref, ""),
-			"repeat_complaint": _strip_html(r.complaint_description)[:400],
-			"symptom_category": r.symptom_category or "",
-			"vin_number": vin,
-			"vehicle_model": r.vehicle_model,
-			"lead_technician": r.lead_technician,
-			"service_advisor": r.service_advisor,
-			"parts_replaced": ", ".join(parts_by_jc.get(r.name) or [])[:300],
-			"comeback_cost": round(cost, 2),
-			"classification": classification,
-			"root_cause": r.symptom_category or "",
-			"corrective_action": "",
-		})
+		out.append(
+			{
+				"name": r.name,
+				"posting_date": r.posting_date,
+				"repeat_repair_reference": ref or "",
+				"original_complaint": orig_map.get(ref, ""),
+				"repeat_complaint": _strip_html(r.complaint_description)[:400],
+				"symptom_category": r.symptom_category or "",
+				"vin_number": vin,
+				"vehicle_model": r.vehicle_model,
+				"lead_technician": r.lead_technician,
+				"service_advisor": r.service_advisor,
+				"parts_replaced": ", ".join(parts_by_jc.get(r.name) or [])[:300],
+				"comeback_cost": round(cost, 2),
+				"classification": classification,
+				"root_cause": r.symptom_category or "",
+				"corrective_action": "",
+			}
+		)
 
 	return _result(
-		"repeat_repair", _("Repeat Repair and Comeback Report"), f,
+		"repeat_repair",
+		_("Repeat Repair and Comeback Report"),
+		f,
 		{
 			"total_repeat_repairs": len(out),
 			"total_comeback_cost": round(total_cost, 2),

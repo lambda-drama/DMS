@@ -35,7 +35,11 @@ class VehicleDeliveryNote(Document):
 
 	def sync_satisfaction_score(self):
 		"""Keep Int 1–5 score and Happy/Neutral/Unhappy label aligned."""
-		score = cint(self.customer_satisfaction_score) if self.customer_satisfaction_score not in (None, "") else 0
+		score = (
+			cint(self.customer_satisfaction_score)
+			if self.customer_satisfaction_score not in (None, "")
+			else 0
+		)
 		if 1 <= score <= 5:
 			self.customer_satisfaction_score = score
 			label = score_to_satisfaction_label(score)
@@ -68,6 +72,7 @@ class VehicleDeliveryNote(Document):
 
 		# Update Job Card status + permanent delivery timestamp (§2.3 TAT)
 		from frappe.utils import now_datetime
+
 		from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
 			log_job_card_status_change,
 		)
@@ -80,9 +85,7 @@ class VehicleDeliveryNote(Document):
 			{"status": "Delivered", "delivery_date_time": delivered_at},
 			update_modified=True,
 		)
-		log_job_card_status_change(
-			self.job_card, "Delivered", previous_status=prev, when=delivered_at
-		)
+		log_job_card_status_change(self.job_card, "Delivered", previous_status=prev, when=delivered_at)
 
 
 @frappe.whitelist()

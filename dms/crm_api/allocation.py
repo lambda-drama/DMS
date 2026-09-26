@@ -113,16 +113,18 @@ def get_allocation_snapshot(booking):
 		for optional in ("branch", "exterior_color", "color"):
 			if meta.has_field(optional):
 				vin_fields.append(optional)
-		vin = frappe.db.get_value(
-			"VIN No",
-			doc.vehicle_vin,
-			vin_fields,
-			as_dict=True,
-		) or {}
+		vin = (
+			frappe.db.get_value(
+				"VIN No",
+				doc.vehicle_vin,
+				vin_fields,
+				as_dict=True,
+			)
+			or {}
+		)
 		if vin.get("status"):
 			vin["location"] = (
-				frappe.db.get_value("Vehicle Location Status", vin["status"], "status")
-				or vin["status"]
+				frappe.db.get_value("Vehicle Location Status", vin["status"], "status") or vin["status"]
 			)
 	readiness = None
 	if doc.opportunity:
@@ -208,9 +210,7 @@ def allocate_vin(booking, vehicle_vin=None, factory_order_reference=None, notes=
 			if other:
 				frappe.throw(_("VIN {0} is already allocated to {1}.").format(vehicle_vin, other))
 		if previous and previous != vehicle_vin and not doc.allocation_switch_approved:
-			frappe.throw(
-				_("Manager approval is required before switching the allocated VIN.")
-			)
+			frappe.throw(_("Manager approval is required before switching the allocated VIN."))
 
 	if previous and previous != vehicle_vin:
 		_release_vin_status(previous)
@@ -374,9 +374,7 @@ def _notify_allocation(doc):
 	for role in ALLOCATION_NOTIFY_ROLES:
 		if not frappe.db.exists("Role", role):
 			continue
-		for user in frappe.get_all(
-			"Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent"
-		):
+		for user in frappe.get_all("Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent"):
 			if user not in ("Administrator", "Guest"):
 				recipients.add(user)
 	unit = doc.vehicle_vin or doc.factory_order_reference or doc.name

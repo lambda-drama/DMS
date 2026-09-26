@@ -52,11 +52,7 @@ def get_fleet_aftersales(customer=None, account=None, search=None, limit=100, of
 		if meta.has_field(candidate):
 			fields.append(candidate)
 
-	order_by = (
-		"next_service_due_date asc"
-		if meta.has_field("next_service_due_date")
-		else "modified desc"
-	)
+	order_by = "next_service_due_date asc" if meta.has_field("next_service_due_date") else "modified desc"
 
 	rows = frappe.get_all(
 		"VIN No",

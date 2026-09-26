@@ -15,27 +15,19 @@ from frappe.tests import UnitTestCase
 
 from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
-FIELD = {
-	"Sales Order": [
-		{"fieldname": "custom_dms_test_flag", "label": "Test Flag", "fieldtype": "Check"}
-	]
-}
+FIELD = {"Sales Order": [{"fieldname": "custom_dms_test_flag", "label": "Test Flag", "fieldtype": "Check"}]}
 
 
 class TestCustomFieldHelpers(UnitTestCase):
 	def test_custom_field_exists_filters_by_doctype_and_fieldname(self):
 		with patch("frappe.db.exists", return_value=True) as exists:
 			self.assertTrue(custom_field_exists("Sales Order", "custom_dms_order"))
-		exists.assert_called_once_with(
-			"Custom Field", {"dt": "Sales Order", "fieldname": "custom_dms_order"}
-		)
+		exists.assert_called_once_with("Custom Field", {"dt": "Sales Order", "fieldname": "custom_dms_order"})
 
 	def test_ensure_custom_fields_skips_without_create_permission(self):
 		with (
 			patch("frappe.has_permission", return_value=False),
-			patch(
-				"frappe.custom.doctype.custom_field.custom_field.create_custom_fields"
-			) as create,
+			patch("frappe.custom.doctype.custom_field.custom_field.create_custom_fields") as create,
 		):
 			self.assertFalse(ensure_custom_fields(FIELD))
 		create.assert_not_called()
@@ -45,9 +37,7 @@ class TestCustomFieldHelpers(UnitTestCase):
 		with (
 			patch("frappe.has_permission", return_value=True),
 			patch("frappe.flags", flags),
-			patch(
-				"frappe.custom.doctype.custom_field.custom_field.create_custom_fields"
-			) as create,
+			patch("frappe.custom.doctype.custom_field.custom_field.create_custom_fields") as create,
 		):
 			self.assertTrue(ensure_custom_fields(FIELD, update=False, ignore_validate=False))
 

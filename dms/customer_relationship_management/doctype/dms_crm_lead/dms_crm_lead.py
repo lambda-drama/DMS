@@ -8,8 +8,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, cint, flt, get_datetime, now_datetime
 
-from dms.crm_api.assignment import apply_round_robin, mark_accepted, _notify_assignment
-
+from dms.crm_api.assignment import _notify_assignment, apply_round_robin, mark_accepted
 
 CLOSED_STATUSES = ("Converted", "Disqualified", "Duplicate", "Invalid", "Nurture")
 RESPONDED_STATUSES = ("Contact Attempted", "Contacted", "Qualified", "Converted")
@@ -71,11 +70,11 @@ class DMSCRMLead(Document):
 			_notify_assignment(self, reason="round_robin_create")
 
 	def validate(self):
-		from dms.dealer_management_system.utils.company_permissions import (
-			assert_dms_company_access,
-		)
 		from dms.dealer_management_system.utils.branch_permissions import (
 			assert_dms_branch_access,
+		)
+		from dms.dealer_management_system.utils.company_permissions import (
+			assert_dms_company_access,
 		)
 
 		assert_dms_company_access(self.company)

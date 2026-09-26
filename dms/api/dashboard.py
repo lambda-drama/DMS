@@ -4,12 +4,12 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, flt, getdate, nowdate
 
+from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
+from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
 from dms.dealer_management_system.utils.crm_user_settings import (
 	can_view_dms_report,
 	require_dms_dashboard_access,
 )
-from dms.api.utils import LIST_ORDER_LATEST_CREATED, add_branch_filter
-from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
 
 ACTIVE_JOB_CARD_STATUSES = [
 	"Estimation Pending",
@@ -174,9 +174,14 @@ def get_dashboard_summary():
 		"DMS Job Card",
 		filters=add_branch_filter({"status": ["in", ACTIVE_JOB_CARD_STATUSES]}, doctype="DMS Job Card"),
 		fields=[
-			"name", "status", "priority", "customer_name",
-			"vehicle_model", "license_plate",
-			"promised_delivery_date_time", "modified",
+			"name",
+			"status",
+			"priority",
+			"customer_name",
+			"vehicle_model",
+			"license_plate",
+			"promised_delivery_date_time",
+			"modified",
 		],
 		order_by=LIST_ORDER_LATEST_CREATED,
 		limit=8,
@@ -187,14 +192,16 @@ def get_dashboard_summary():
 		eta = ""
 		if jc.promised_delivery_date_time:
 			eta = frappe.utils.format_datetime(jc.promised_delivery_date_time, "hh:mm a")
-		active_jobs.append({
-			"id": jc.name,
-			"customer": jc.customer_name or "",
-			"vehicle": _vehicle_label(jc.license_plate, jc.vehicle_model),
-			"status": jc.status,
-			"priority": jc.priority or "Normal",
-			"eta": eta or "—",
-		})
+		active_jobs.append(
+			{
+				"id": jc.name,
+				"customer": jc.customer_name or "",
+				"vehicle": _vehicle_label(jc.license_plate, jc.vehicle_model),
+				"status": jc.status,
+				"priority": jc.priority or "Normal",
+				"eta": eta or "—",
+			}
+		)
 
 	appointments = frappe.get_all(
 		"Service Appointment",
@@ -206,8 +213,12 @@ def get_dashboard_summary():
 			doctype="Service Appointment",
 		),
 		fields=[
-			"name", "appointment_date_time", "customer_name",
-			"license_plate", "vehicle", "status",
+			"name",
+			"appointment_date_time",
+			"customer_name",
+			"license_plate",
+			"vehicle",
+			"status",
 			"customer_complaint_summary",
 		],
 		order_by="appointment_date_time asc",
@@ -233,21 +244,27 @@ def get_dashboard_summary():
 	for apt in appointments:
 		types = service_by_parent.get(apt.name, [])
 		service_label = ", ".join(types) if types else (apt.customer_complaint_summary or "Service")
-		today_schedule.append({
-			"id": apt.name,
-			"time": _format_appointment_time(apt.appointment_date_time),
-			"customer": apt.customer_name or "",
-			"vehicle": _vehicle_label(apt.license_plate, apt.vehicle),
-			"service": service_label[:80],
-			"status": apt.status or "Booked",
-		})
+		today_schedule.append(
+			{
+				"id": apt.name,
+				"time": _format_appointment_time(apt.appointment_date_time),
+				"customer": apt.customer_name or "",
+				"vehicle": _vehicle_label(apt.license_plate, apt.vehicle),
+				"service": service_label[:80],
+				"status": apt.status or "Booked",
+			}
+		)
 
 	bays_raw = frappe.get_all(
 		"Service Bay",
 		filters={"is_active": 1},
 		fields=[
-			"name", "bay_number", "bay_name", "current_status",
-			"current_job_card", "current_vehicle",
+			"name",
+			"bay_number",
+			"bay_name",
+			"current_status",
+			"current_job_card",
+			"current_vehicle",
 		],
 		order_by="bay_number asc",
 		limit=24,
@@ -283,22 +300,27 @@ def get_dashboard_summary():
 		if bay.current_status == "Maintenance":
 			ui_status = "maintenance"
 
-		service_bays.append({
-			"id": bay.name,
-			"bay": bay.bay_name or bay.bay_number or bay.name,
-			"status": ui_status,
-			"erp_status": bay.current_status,
-			"vehicle": vehicle_label,
-			"progress": progress,
-		})
+		service_bays.append(
+			{
+				"id": bay.name,
+				"bay": bay.bay_name or bay.bay_number or bay.name,
+				"status": ui_status,
+				"erp_status": bay.current_status,
+				"vehicle": vehicle_label,
+				"progress": progress,
+			}
+		)
 
 	brd_kpis = {}
 	try:
 		from dms.api.reports import get_brd_dashboard_kpis
-		brd_kpis = get_brd_dashboard_kpis({
-			"from_date": add_days(today, -30),
-			"to_date": today,
-		})
+
+		brd_kpis = get_brd_dashboard_kpis(
+			{
+				"from_date": add_days(today, -30),
+				"to_date": today,
+			}
+		)
 		# Net revenue is report-scoped — hide when user only has dashboard access.
 		if not can_view_dms_report():
 			brd_kpis.pop("net_revenue", None)

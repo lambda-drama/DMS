@@ -9,17 +9,16 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
+from dms.api.utils import get_dms_companies
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_dms_company_defaults_row,
 )
 from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
-from dms.api.utils import get_dms_companies
 from dms.utils.spare_part_auto_create import (
 	SPARE_PART_BIN_LOCATION_FLAG,
 	item_group_auto_generates_spare_parts,
 	try_create_spare_part_from_item,
 )
-
 
 STOCK_ENTRY_PURPOSES = {
 	"Material Issue": "Material Issue",
@@ -337,9 +336,7 @@ def get_stock_item_create_defaults() -> dict:
 	item_group = get_dms_default_item_group()
 	return {
 		"default_item_group": item_group or None,
-		"auto_create_spare_parts": bool(
-			item_group and item_group_auto_generates_spare_parts(item_group)
-		),
+		"auto_create_spare_parts": bool(item_group and item_group_auto_generates_spare_parts(item_group)),
 		"default_stock_uom": get_default_stock_uom(),
 		"uoms": list_uoms_for_item_create(),
 	}
@@ -356,9 +353,7 @@ def _dms_settings_default_selling_price_list() -> str | None:
 			price_list = (frappe.db.get_single_value("DMS Settings", fieldname) or "").strip()
 			if not price_list or not frappe.db.exists("Price List", price_list):
 				continue
-			enabled, selling = frappe.db.get_value(
-				"Price List", price_list, ["enabled", "selling"]
-			) or (0, 0)
+			enabled, selling = frappe.db.get_value("Price List", price_list, ["enabled", "selling"]) or (0, 0)
 			if not cint(enabled):
 				continue
 			if require_selling and not cint(selling):
@@ -544,9 +539,7 @@ def create_dms_stock_item(data: dict) -> dict:
 	item_code = (data.get("item_code") or "").strip()
 	item_name = (data.get("item_name") or item_code).strip()
 	valuation_rate = flt(data.get("valuation_rate") or data.get("cost"))
-	selling_rate = flt(
-		data.get("standard_rate") or data.get("selling_price") or data.get("rate")
-	)
+	selling_rate = flt(data.get("standard_rate") or data.get("selling_price") or data.get("rate"))
 	item_group = (data.get("item_group") or "").strip() or get_dms_default_item_group()
 	stock_uom = resolve_stock_uom(data.get("stock_uom"))
 	bin_location = (data.get("bin_location") or "").strip()
@@ -558,9 +551,7 @@ def create_dms_stock_item(data: dict) -> dict:
 	if frappe.db.exists("Item", item_code):
 		frappe.throw(_("Item {0} already exists.").format(frappe.bold(item_code)))
 	if not item_group:
-		frappe.throw(
-			_("Default Item Group is not configured. Set it on DMS Settings → Default Item Group.")
-		)
+		frappe.throw(_("Default Item Group is not configured. Set it on DMS Settings → Default Item Group."))
 	if not frappe.db.exists("Item Group", item_group):
 		frappe.throw(_("Item Group {0} does not exist.").format(frappe.bold(item_group)))
 
@@ -611,7 +602,9 @@ def create_dms_stock_item(data: dict) -> dict:
 			if auto.price_list == price_list:
 				continue
 			doc = frappe.get_doc("Item Price", auto.name)
-			if frappe.db.exists("Item Price", {"item_code": item.name, "price_list": price_list, "selling": 1}):
+			if frappe.db.exists(
+				"Item Price", {"item_code": item.name, "price_list": price_list, "selling": 1}
+			):
 				doc.delete(ignore_permissions=True)
 			else:
 				doc.price_list = price_list
@@ -683,9 +676,7 @@ def get_purchase_receipt_defaults(company: str | None = None) -> dict:
 	defaults_row = get_dms_company_defaults_row(company)
 	allowed = get_dms_allowed_warehouses(company)
 
-	default_warehouse = (
-		get_dms_purchase_receipt_warehouse(company) or _default_workshop_warehouse(allowed)
-	)
+	default_warehouse = get_dms_purchase_receipt_warehouse(company) or _default_workshop_warehouse(allowed)
 	default_supplier = get_dms_default_supplier(company)
 	default_price_list = get_dms_default_buying_price_list()
 	default_currency = get_company_default_currency(company)
@@ -698,7 +689,10 @@ def get_purchase_receipt_defaults(company: str | None = None) -> dict:
 		"company": company,
 		"default_warehouse": default_warehouse,
 		"default_supplier": default_supplier,
-		"default_supplier_group": (frappe.db.get_single_value("DMS Settings", "default_supplier_group") or "").strip() or None,
+		"default_supplier_group": (
+			frappe.db.get_single_value("DMS Settings", "default_supplier_group") or ""
+		).strip()
+		or None,
 		"default_currency": default_currency,
 		"default_price_list": default_price_list,
 		"price_lists": list_dms_buying_price_lists(),
@@ -839,9 +833,7 @@ def _bin_stock_balance(item_code: str, warehouse: str | None = None) -> float:
 		return 0.0
 
 	if warehouse:
-		return flt(
-			frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse}, "actual_qty")
-		)
+		return flt(frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse}, "actual_qty"))
 
 	rows = frappe.db.sql(
 		"""select sum(actual_qty) from `tabBin` where item_code = %s""",
@@ -948,7 +940,7 @@ def attach_spare_part_stock_available(
 ) -> None:
 	"""Set stock_available on spare part rows (mutates list in place)."""
 	frappe.logger().debug(f"Attaching stock for {len(parts)} parts, warehouse={warehouse}, company={company}")
-	
+
 	erp_by_part: dict[str, str] = {}
 	for part in parts:
 		erp_item = resolve_spare_part_row_erp_item(part)
@@ -1073,7 +1065,9 @@ def _assert_spare_part_item(item_code: str | None):
 		frappe.throw(_("Item {0} is not a spare part.").format(frappe.bold(item_code)))
 
 
-def search_stock_items(search: str | None = None, warehouse: str | None = None, limit: int = 20) -> list[dict]:
+def search_stock_items(
+	search: str | None = None, warehouse: str | None = None, limit: int = 20
+) -> list[dict]:
 	"""Return stock items that have a linked Spare Part record."""
 	sp_filters: dict = {"spare_part_item": ["is", "set"]}
 	sp_meta = frappe.get_meta("Spare Part")
@@ -1339,9 +1333,7 @@ def create_dms_material_request(data: dict) -> dict:
 
 	company = (data.get("company") or "").strip()
 	mr_type = (data.get("material_request_type") or "Purchase").strip()
-	transaction_date = (
-		data.get("transaction_date") or data.get("posting_date") or frappe.utils.today()
-	)
+	transaction_date = data.get("transaction_date") or data.get("posting_date") or frappe.utils.today()
 	schedule_date = data.get("schedule_date") or transaction_date
 	submit = cint(data.get("submit", 1))
 	lines = data.get("items") or []
@@ -1419,9 +1411,7 @@ def create_dms_material_request(data: dict) -> dict:
 	return {"name": mr.name, "docstatus": mr.docstatus, "status": mr.status}
 
 
-def get_dms_material_requests_list(
-	limit: int = 30, offset: int = 0, search: str | None = None
-) -> list[dict]:
+def get_dms_material_requests_list(limit: int = 30, offset: int = 0, search: str | None = None) -> list[dict]:
 	filters: dict = {}
 	sparepart_field = _sparepart_stock_field("Material Request")
 	if sparepart_field:
@@ -1530,9 +1520,7 @@ def get_dms_pending_material_requests(
 		pending_lines = sum(
 			1 for item in mr.items if _mr_item_pending_qty(item, mr.material_request_type) > 0
 		)
-		pending_qty = sum(
-			_mr_item_pending_qty(item, mr.material_request_type) for item in mr.items
-		)
+		pending_qty = sum(_mr_item_pending_qty(item, mr.material_request_type) for item in mr.items)
 		pending_rows.append(
 			{
 				**row,
@@ -1821,9 +1809,7 @@ def get_default_supplier_group() -> str:
 	if leaf:
 		return leaf
 
-	frappe.throw(
-		_("Default Supplier Group is not configured. Set it on DMS Settings or Buying Settings.")
-	)
+	frappe.throw(_("Default Supplier Group is not configured. Set it on DMS Settings or Buying Settings."))
 
 
 def create_dms_supplier(data: dict) -> dict:
@@ -1866,9 +1852,7 @@ def create_dms_supplier(data: dict) -> dict:
 	}
 
 
-def get_dms_purchase_receipts_list(
-	limit: int = 30, offset: int = 0, search: str | None = None
-) -> list[dict]:
+def get_dms_purchase_receipts_list(limit: int = 30, offset: int = 0, search: str | None = None) -> list[dict]:
 	from dms.api.utils import add_company_filter
 
 	filters: dict = {}

@@ -39,6 +39,7 @@ repos:
         exclude: |
             (?x)^(
                 dms/public/dist/.*|
+                dms/public/frontend/_next/.*|
                 .*node_modules.*|
                 .*boilerplate.*|
                 dms/templates/includes/.*|
@@ -56,6 +57,7 @@ repos:
         exclude: |
             (?x)^(
                 dms/public/dist/.*|
+                dms/public/frontend/_next/.*|
                 cypress/.*|
                 .*node_modules.*|
                 .*boilerplate.*|

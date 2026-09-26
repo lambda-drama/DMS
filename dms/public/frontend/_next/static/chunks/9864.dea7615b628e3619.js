@@ -1,1 +1,520 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[9864],{23511:(e,s,a)=>{a.d(s,{E:()=>n});var t=a(95155),r=a(91337);function n({className:e,...s}){return(0,t.jsx)("div",{"data-slot":"skeleton",className:(0,r.cn)("bg-accent animate-pulse rounded-md",e),...s})}},38291:(e,s,a)=>{a.d(s,{E:()=>c});var t=a(95155);a(12115);var r=a(42442),n=a(18460),d=a(91337);let i=(0,n.F)("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",{variants:{variant:{default:"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",secondary:"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",destructive:"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",outline:"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground"}},defaultVariants:{variant:"default"}});function c({className:e,variant:s,asChild:a=!1,...n}){let l=a?r.DX:"span";return(0,t.jsx)(l,{"data-slot":"badge",className:(0,d.cn)(i({variant:s}),e),...n})}},49864:(e,s,a)=>{a.r(s),a.d(s,{default:()=>g});var t=a(95155),r=a(12115),n=a(44855),d=a(32144),i=a(55833),c=a(38291),l=a(4474),m=a(79984),o=a(39658),u=a(23511),x=a(51914),h=a(61878);function g(){let{navigate:e}=(0,i.c)(),[s,a]=(0,r.useState)("campaigns"),[g,p]=(0,r.useState)(""),{data:b,isLoading:j}=(0,n.Ay)("campaigns"===s?["crm-campaigns",g]:null,()=>(0,d.U5)({search:g||void 0,limit:50})),{data:f,isLoading:N}=(0,n.Ay)("segments"===s?["crm-segments",g]:null,()=>(0,d.Bz)({search:g||void 0,limit:50}));return(0,t.jsxs)("div",{className:"space-y-4",children:[(0,t.jsxs)("div",{className:"flex flex-wrap items-center justify-between gap-3",children:[(0,t.jsxs)("div",{className:"flex gap-2",children:[(0,t.jsx)(l.$,{variant:"campaigns"===s?"default":"outline",size:"sm",onClick:()=>a("campaigns"),children:"Campaigns"}),(0,t.jsx)(l.$,{variant:"segments"===s?"default":"outline",size:"sm",onClick:()=>a("segments"),children:"Segments"})]}),(0,t.jsxs)(l.$,{onClick:()=>e("campaigns"===s?"crm-campaign-new":"crm-segment-new"),children:[(0,t.jsx)(x.A,{className:"mr-2 h-4 w-4"}),"campaigns"===s?"New Campaign":"New Segment"]})]}),(0,t.jsxs)(m.Zp,{className:"border-border/70 shadow-sm",children:[(0,t.jsx)(m.aR,{className:"pb-3",children:(0,t.jsxs)("div",{className:"relative",children:[(0,t.jsx)(h.A,{className:"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"}),(0,t.jsx)(o.p,{className:"pl-9",placeholder:"campaigns"===s?"Search campaigns…":"Search segments…",value:g,onChange:e=>p(e.target.value)})]})}),(0,t.jsx)(m.Wu,{children:"campaigns"===s?j?(0,t.jsx)(u.E,{className:"h-24"}):(0,t.jsx)("div",{className:"dms-table-panel",children:(0,t.jsxs)("table",{className:"w-full text-sm",children:[(0,t.jsx)("thead",{children:(0,t.jsxs)("tr",{className:"border-b text-left text-xs text-muted-foreground",children:[(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Campaign"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Type"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Channel"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Members"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Sales"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Status"})]})}),(0,t.jsx)("tbody",{children:0===(b?.data||[]).length?(0,t.jsx)("tr",{children:(0,t.jsx)("td",{colSpan:6,className:"py-10 text-center text-muted-foreground",children:"No campaigns yet."})}):(b?.data||[]).map(s=>(0,t.jsxs)("tr",{className:"cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40",onClick:()=>e("crm-campaign-detail",{id:String(s.name)}),children:[(0,t.jsxs)("td",{className:"py-3",children:[(0,t.jsx)("p",{className:"font-medium",children:String(s.campaign_name||s.name)}),(0,t.jsx)("p",{className:"text-xs text-muted-foreground",children:String(s.name)})]}),(0,t.jsx)("td",{className:"py-3 text-muted-foreground",children:String(s.campaign_type||"—")}),(0,t.jsx)("td",{className:"py-3 text-muted-foreground",children:String(s.channel||"—")}),(0,t.jsx)("td",{className:"py-3 text-muted-foreground",children:Number(s.members_count||0)}),(0,t.jsx)("td",{className:"py-3 text-muted-foreground",children:Number(s.sale_count||0)}),(0,t.jsx)("td",{className:"py-3",children:(0,t.jsx)(c.E,{variant:"secondary",className:"font-normal",children:String(s.status||"—")})})]},String(s.name)))})]})}):N?(0,t.jsx)(u.E,{className:"h-24"}):(0,t.jsx)("div",{className:"dms-table-panel",children:(0,t.jsxs)("table",{className:"w-full text-sm",children:[(0,t.jsx)("thead",{children:(0,t.jsxs)("tr",{className:"border-b text-left text-xs text-muted-foreground",children:[(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Segment"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Brand"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Retention"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Audience"}),(0,t.jsx)("th",{className:"pb-2 font-medium",children:"Status"})]})}),(0,t.jsx)("tbody",{children:0===(f?.data||[]).length?(0,t.jsx)("tr",{children:(0,t.jsx)("td",{colSpan:5,className:"py-10 text-center text-muted-foreground",children:"No segments yet."})}):(f?.data||[]).map(s=>(0,t.jsxs)("tr",{className:"cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40",onClick:()=>e("crm-segment-detail",{id:String(s.name)}),children:[(0,t.jsx)("td",{className:"py-3 font-medium",children:String(s.segment_name||s.name)}),(0,t.jsx)("td",{className:"py-3 text-muted-foreground",children:String(s.brand||"—")}),(0,t.jsx)("td",{className:"py-3 text-muted-foreground",children:String(s.retention_category||"—")}),(0,t.jsx)("td",{className:"py-3 text-muted-foreground",children:Number(s.audience_count||0)}),(0,t.jsx)("td",{className:"py-3",children:(0,t.jsx)(c.E,{variant:"secondary",className:"font-normal",children:String(s.status||"—")})})]},String(s.name)))})]})})})]})]})}},61878:(e,s,a)=>{a.d(s,{A:()=>t});let t=(0,a(90425).A)("search",[["path",{d:"m21 21-4.34-4.34",key:"14j7rj"}],["circle",{cx:"11",cy:"11",r:"8",key:"4ej97u"}]])}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[9864],
+	{
+		23511: (e, s, a) => {
+			a.d(s, { E: () => n });
+			var t = a(95155),
+				r = a(91337);
+			function n({ className: e, ...s }) {
+				return (0, t.jsx)("div", {
+					"data-slot": "skeleton",
+					className: (0, r.cn)("bg-accent animate-pulse rounded-md", e),
+					...s,
+				});
+			}
+		},
+		38291: (e, s, a) => {
+			a.d(s, { E: () => c });
+			var t = a(95155);
+			a(12115);
+			var r = a(42442),
+				n = a(18460),
+				d = a(91337);
+			let i = (0, n.F)(
+				"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+				{
+					variants: {
+						variant: {
+							default:
+								"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+							secondary:
+								"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+							destructive:
+								"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+							outline:
+								"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+						},
+					},
+					defaultVariants: { variant: "default" },
+				}
+			);
+			function c({ className: e, variant: s, asChild: a = !1, ...n }) {
+				let l = a ? r.DX : "span";
+				return (0, t.jsx)(l, {
+					"data-slot": "badge",
+					className: (0, d.cn)(i({ variant: s }), e),
+					...n,
+				});
+			}
+		},
+		49864: (e, s, a) => {
+			a.r(s), a.d(s, { default: () => g });
+			var t = a(95155),
+				r = a(12115),
+				n = a(44855),
+				d = a(32144),
+				i = a(55833),
+				c = a(38291),
+				l = a(4474),
+				m = a(79984),
+				o = a(39658),
+				u = a(23511),
+				x = a(51914),
+				h = a(61878);
+			function g() {
+				let { navigate: e } = (0, i.c)(),
+					[s, a] = (0, r.useState)("campaigns"),
+					[g, p] = (0, r.useState)(""),
+					{ data: b, isLoading: j } = (0, n.Ay)(
+						"campaigns" === s ? ["crm-campaigns", g] : null,
+						() => (0, d.U5)({ search: g || void 0, limit: 50 })
+					),
+					{ data: f, isLoading: N } = (0, n.Ay)(
+						"segments" === s ? ["crm-segments", g] : null,
+						() => (0, d.Bz)({ search: g || void 0, limit: 50 })
+					);
+				return (0, t.jsxs)("div", {
+					className: "space-y-4",
+					children: [
+						(0, t.jsxs)("div", {
+							className: "flex flex-wrap items-center justify-between gap-3",
+							children: [
+								(0, t.jsxs)("div", {
+									className: "flex gap-2",
+									children: [
+										(0, t.jsx)(l.$, {
+											variant: "campaigns" === s ? "default" : "outline",
+											size: "sm",
+											onClick: () => a("campaigns"),
+											children: "Campaigns",
+										}),
+										(0, t.jsx)(l.$, {
+											variant: "segments" === s ? "default" : "outline",
+											size: "sm",
+											onClick: () => a("segments"),
+											children: "Segments",
+										}),
+									],
+								}),
+								(0, t.jsxs)(l.$, {
+									onClick: () =>
+										e(
+											"campaigns" === s
+												? "crm-campaign-new"
+												: "crm-segment-new"
+										),
+									children: [
+										(0, t.jsx)(x.A, { className: "mr-2 h-4 w-4" }),
+										"campaigns" === s ? "New Campaign" : "New Segment",
+									],
+								}),
+							],
+						}),
+						(0, t.jsxs)(m.Zp, {
+							className: "border-border/70 shadow-sm",
+							children: [
+								(0, t.jsx)(m.aR, {
+									className: "pb-3",
+									children: (0, t.jsxs)("div", {
+										className: "relative",
+										children: [
+											(0, t.jsx)(h.A, {
+												className:
+													"absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+											}),
+											(0, t.jsx)(o.p, {
+												className: "pl-9",
+												placeholder:
+													"campaigns" === s
+														? "Search campaigns…"
+														: "Search segments…",
+												value: g,
+												onChange: (e) => p(e.target.value),
+											}),
+										],
+									}),
+								}),
+								(0, t.jsx)(m.Wu, {
+									children:
+										"campaigns" === s
+											? j
+												? (0, t.jsx)(u.E, { className: "h-24" })
+												: (0, t.jsx)("div", {
+														className: "dms-table-panel",
+														children: (0, t.jsxs)("table", {
+															className: "w-full text-sm",
+															children: [
+																(0, t.jsx)("thead", {
+																	children: (0, t.jsxs)("tr", {
+																		className:
+																			"border-b text-left text-xs text-muted-foreground",
+																		children: [
+																			(0, t.jsx)("th", {
+																				className:
+																					"pb-2 font-medium",
+																				children:
+																					"Campaign",
+																			}),
+																			(0, t.jsx)("th", {
+																				className:
+																					"pb-2 font-medium",
+																				children: "Type",
+																			}),
+																			(0, t.jsx)("th", {
+																				className:
+																					"pb-2 font-medium",
+																				children:
+																					"Channel",
+																			}),
+																			(0, t.jsx)("th", {
+																				className:
+																					"pb-2 font-medium",
+																				children:
+																					"Members",
+																			}),
+																			(0, t.jsx)("th", {
+																				className:
+																					"pb-2 font-medium",
+																				children: "Sales",
+																			}),
+																			(0, t.jsx)("th", {
+																				className:
+																					"pb-2 font-medium",
+																				children: "Status",
+																			}),
+																		],
+																	}),
+																}),
+																(0, t.jsx)("tbody", {
+																	children:
+																		0 ===
+																		(b?.data || []).length
+																			? (0, t.jsx)("tr", {
+																					children: (0,
+																					t.jsx)("td", {
+																						colSpan: 6,
+																						className:
+																							"py-10 text-center text-muted-foreground",
+																						children:
+																							"No campaigns yet.",
+																					}),
+																			  })
+																			: (b?.data || []).map(
+																					(s) =>
+																						(0,
+																						t.jsxs)(
+																							"tr",
+																							{
+																								className:
+																									"cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40",
+																								onClick:
+																									() =>
+																										e(
+																											"crm-campaign-detail",
+																											{
+																												id: String(
+																													s.name
+																												),
+																											}
+																										),
+																								children:
+																									[
+																										(0,
+																										t.jsxs)(
+																											"td",
+																											{
+																												className:
+																													"py-3",
+																												children:
+																													[
+																														(0,
+																														t.jsx)(
+																															"p",
+																															{
+																																className:
+																																	"font-medium",
+																																children:
+																																	String(
+																																		s.campaign_name ||
+																																			s.name
+																																	),
+																															}
+																														),
+																														(0,
+																														t.jsx)(
+																															"p",
+																															{
+																																className:
+																																	"text-xs text-muted-foreground",
+																																children:
+																																	String(
+																																		s.name
+																																	),
+																															}
+																														),
+																													],
+																											}
+																										),
+																										(0,
+																										t.jsx)(
+																											"td",
+																											{
+																												className:
+																													"py-3 text-muted-foreground",
+																												children:
+																													String(
+																														s.campaign_type ||
+																															"—"
+																													),
+																											}
+																										),
+																										(0,
+																										t.jsx)(
+																											"td",
+																											{
+																												className:
+																													"py-3 text-muted-foreground",
+																												children:
+																													String(
+																														s.channel ||
+																															"—"
+																													),
+																											}
+																										),
+																										(0,
+																										t.jsx)(
+																											"td",
+																											{
+																												className:
+																													"py-3 text-muted-foreground",
+																												children:
+																													Number(
+																														s.members_count ||
+																															0
+																													),
+																											}
+																										),
+																										(0,
+																										t.jsx)(
+																											"td",
+																											{
+																												className:
+																													"py-3 text-muted-foreground",
+																												children:
+																													Number(
+																														s.sale_count ||
+																															0
+																													),
+																											}
+																										),
+																										(0,
+																										t.jsx)(
+																											"td",
+																											{
+																												className:
+																													"py-3",
+																												children:
+																													(0,
+																													t.jsx)(
+																														c.E,
+																														{
+																															variant:
+																																"secondary",
+																															className:
+																																"font-normal",
+																															children:
+																																String(
+																																	s.status ||
+																																		"—"
+																																),
+																														}
+																													),
+																											}
+																										),
+																									],
+																							},
+																							String(
+																								s.name
+																							)
+																						)
+																			  ),
+																}),
+															],
+														}),
+												  })
+											: N
+											? (0, t.jsx)(u.E, { className: "h-24" })
+											: (0, t.jsx)("div", {
+													className: "dms-table-panel",
+													children: (0, t.jsxs)("table", {
+														className: "w-full text-sm",
+														children: [
+															(0, t.jsx)("thead", {
+																children: (0, t.jsxs)("tr", {
+																	className:
+																		"border-b text-left text-xs text-muted-foreground",
+																	children: [
+																		(0, t.jsx)("th", {
+																			className:
+																				"pb-2 font-medium",
+																			children: "Segment",
+																		}),
+																		(0, t.jsx)("th", {
+																			className:
+																				"pb-2 font-medium",
+																			children: "Brand",
+																		}),
+																		(0, t.jsx)("th", {
+																			className:
+																				"pb-2 font-medium",
+																			children: "Retention",
+																		}),
+																		(0, t.jsx)("th", {
+																			className:
+																				"pb-2 font-medium",
+																			children: "Audience",
+																		}),
+																		(0, t.jsx)("th", {
+																			className:
+																				"pb-2 font-medium",
+																			children: "Status",
+																		}),
+																	],
+																}),
+															}),
+															(0, t.jsx)("tbody", {
+																children:
+																	0 === (f?.data || []).length
+																		? (0, t.jsx)("tr", {
+																				children: (0,
+																				t.jsx)("td", {
+																					colSpan: 5,
+																					className:
+																						"py-10 text-center text-muted-foreground",
+																					children:
+																						"No segments yet.",
+																				}),
+																		  })
+																		: (f?.data || []).map(
+																				(s) =>
+																					(0, t.jsxs)(
+																						"tr",
+																						{
+																							className:
+																								"cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/40",
+																							onClick:
+																								() =>
+																									e(
+																										"crm-segment-detail",
+																										{
+																											id: String(
+																												s.name
+																											),
+																										}
+																									),
+																							children:
+																								[
+																									(0,
+																									t.jsx)(
+																										"td",
+																										{
+																											className:
+																												"py-3 font-medium",
+																											children:
+																												String(
+																													s.segment_name ||
+																														s.name
+																												),
+																										}
+																									),
+																									(0,
+																									t.jsx)(
+																										"td",
+																										{
+																											className:
+																												"py-3 text-muted-foreground",
+																											children:
+																												String(
+																													s.brand ||
+																														"—"
+																												),
+																										}
+																									),
+																									(0,
+																									t.jsx)(
+																										"td",
+																										{
+																											className:
+																												"py-3 text-muted-foreground",
+																											children:
+																												String(
+																													s.retention_category ||
+																														"—"
+																												),
+																										}
+																									),
+																									(0,
+																									t.jsx)(
+																										"td",
+																										{
+																											className:
+																												"py-3 text-muted-foreground",
+																											children:
+																												Number(
+																													s.audience_count ||
+																														0
+																												),
+																										}
+																									),
+																									(0,
+																									t.jsx)(
+																										"td",
+																										{
+																											className:
+																												"py-3",
+																											children:
+																												(0,
+																												t.jsx)(
+																													c.E,
+																													{
+																														variant:
+																															"secondary",
+																														className:
+																															"font-normal",
+																														children:
+																															String(
+																																s.status ||
+																																	"—"
+																															),
+																													}
+																												),
+																										}
+																									),
+																								],
+																						},
+																						String(
+																							s.name
+																						)
+																					)
+																		  ),
+															}),
+														],
+													}),
+											  }),
+								}),
+							],
+						}),
+					],
+				});
+			}
+		},
+		61878: (e, s, a) => {
+			a.d(s, { A: () => t });
+			let t = (0, a(90425).A)("search", [
+				["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
+				["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }],
+			]);
+		},
+	},
+]);

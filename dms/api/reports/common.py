@@ -23,6 +23,7 @@ def _strip_html(text) -> str:
 	if not text:
 		return ""
 	import re
+
 	return re.sub(r"<[^>]+>", "", str(text)).strip()
 
 
@@ -55,6 +56,7 @@ def _dates_for_period(period: str, as_of=None):
 def _parse_filters(data=None):
 	if isinstance(data, str):
 		import json
+
 		data = json.loads(data) if data else {}
 	data = data or {}
 
@@ -75,8 +77,10 @@ def _parse_filters(data=None):
 	# Model may be Vehicle Model link name or display model_name on the job card
 	vehicle_model = (data.get("vehicle_model") or data.get("model") or "").strip() or None
 	vehicle_model_label = (data.get("vehicle_model_label") or "").strip() or None
-	if vehicle_model and frappe.db.exists("DocType", "Vehicle Model") and frappe.db.exists(
-		"Vehicle Model", vehicle_model
+	if (
+		vehicle_model
+		and frappe.db.exists("DocType", "Vehicle Model")
+		and frappe.db.exists("Vehicle Model", vehicle_model)
 	):
 		vehicle_model_label = (
 			vehicle_model_label
@@ -98,10 +102,7 @@ def _parse_filters(data=None):
 		"company": company,
 		"branch": branch,
 		"service_advisor": (data.get("service_advisor") or data.get("advisor") or "").strip() or None,
-		"technician": (
-			data.get("technician") or data.get("lead_technician") or ""
-		).strip()
-		or None,
+		"technician": (data.get("technician") or data.get("lead_technician") or "").strip() or None,
 		"vehicle_model": vehicle_model,
 		"vehicle_model_label": vehicle_model_label,
 		"job_card_type": (data.get("job_card_type") or data.get("job_type") or "").strip() or None,
@@ -110,6 +111,7 @@ def _parse_filters(data=None):
 		"vin_names": vin_names,
 		"vin_number_map": vin_number_map,
 	}
+
 
 def _resolve_vin_filter(vin_no=None, vin_search=None):
 	"""Resolve VIN filter from dropdown (exact link) or free-text search."""
@@ -122,6 +124,7 @@ def _resolve_vin_filter(vin_no=None, vin_search=None):
 		names, mapping = _lookup_vins(vin_search)
 		return names, mapping, vin_search
 	return None, {}, None
+
 
 def _lookup_vins(search_term):
 	"""Resolve partial VIN search to VIN No link names (None = no filter)."""
@@ -144,11 +147,13 @@ def _lookup_vins(search_term):
 		return [], {}
 	return [r.name for r in rows], {r.name: (r.vin_number or r.name) for r in rows}
 
+
 def _vin_link_filter_value(filters):
 	"""Value for Link fields (vehicle_vin / vin_chassis) when VIN search is active."""
 	if filters.get("vin_names") is None:
 		return None
 	return filters["vin_names"] or ["__NO_VIN_MATCH__"]
+
 
 def _vin_sql_clause(filters, column="jc.vehicle_vin"):
 	if filters.get("vin_names") is None:
@@ -156,6 +161,7 @@ def _vin_sql_clause(filters, column="jc.vehicle_vin"):
 	if not filters["vin_names"]:
 		return " AND 1=0", {}
 	return f" AND {column} IN %(vin_names)s", {"vin_names": filters["vin_names"]}
+
 
 def _report_filters_response(f):
 	out = {"from_date": str(f["from_date"]), "to_date": str(f["to_date"])}
@@ -242,6 +248,8 @@ def _jc_sql_filters(filters, alias="jc"):
 	clauses.append(vin_sql)
 	params.update(vin_params)
 	return "".join(clauses), params
+
+
 def _apply_vin_numbers(rows, link_field="vehicle_vin", output_field="vin_number"):
 	if not rows:
 		return rows
@@ -253,14 +261,16 @@ def _apply_vin_numbers(rows, link_field="vehicle_vin", output_field="vin_number"
 			filters={"name": ["in", ids]},
 			fields=["name", "vin_number"],
 		):
-			vin_map[row.name] = (row.vin_number or row.name)
+			vin_map[row.name] = row.vin_number or row.name
 	for row in rows:
 		vid = _row_get(row, link_field)
 		_row_set(row, output_field, vin_map.get(vid, vid or ""))
 	return rows
 
+
 def _apply_vin_numbers_from_field(rows, link_field="vin", output_field="vin_number"):
 	return _apply_vin_numbers(rows, link_field=link_field, output_field=output_field)
+
 
 def _format_datetime_minute(value):
 	"""Format datetime as YYYY-MM-DD HH:MM (no seconds / fractions)."""
@@ -277,11 +287,13 @@ def _row_get(row, field):
 		return row.get(field)
 	return getattr(row, field, None)
 
+
 def _row_set(row, field, value):
 	if isinstance(row, dict):
 		row[field] = value
 	else:
 		setattr(row, field, value)
+
 
 def _bulk_full_names(doctype, ids):
 	"""Map document name → full_name for Service Advisor / Technician."""
@@ -301,6 +313,7 @@ def _bulk_full_names(doctype, ids):
 		mapping.setdefault(name, name)
 	return mapping
 
+
 def _apply_link_display_names(rows, field_doctype_map):
 	"""Replace link IDs on each row with human-readable full_name."""
 	if not rows:
@@ -313,6 +326,7 @@ def _apply_link_display_names(rows, field_doctype_map):
 				_row_set(row, field, mapping.get(raw, raw))
 	return rows
 
+
 def _result(report_id, title, filters, summary, columns, rows):
 	return {
 		"report_id": report_id,
@@ -322,4 +336,3 @@ def _result(report_id, title, filters, summary, columns, rows):
 		"columns": columns,
 		"rows": rows,
 	}
-

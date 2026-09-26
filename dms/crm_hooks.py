@@ -45,9 +45,7 @@ def apply_crm_hooks(hooks_globals: dict) -> None:
 						if prev is None:
 							combined[event] = handlers
 						elif isinstance(prev, list):
-							combined[event] = prev + (
-								handlers if isinstance(handlers, list) else [handlers]
-							)
+							combined[event] = prev + (handlers if isinstance(handlers, list) else [handlers])
 						else:
 							combined[event] = [prev] + (
 								handlers if isinstance(handlers, list) else [handlers]

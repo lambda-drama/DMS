@@ -75,12 +75,21 @@ def _preference_map(customers: list[str]) -> dict[str, dict]:
 	rows = frappe.get_all(
 		PREFERENCE,
 		filters={"customer": ["in", customers]},
-		fields=["customer", "marketing_consent", "do_not_contact", "preferred_channel", "preferred_language", "loyalty_tier"],
+		fields=[
+			"customer",
+			"marketing_consent",
+			"do_not_contact",
+			"preferred_channel",
+			"preferred_language",
+			"loyalty_tier",
+		],
 	)
 	return {r.customer: r for r in rows}
 
 
-def resolve_segment_customers(segment_name: str | None = None, *, segment_doc=None, limit: int = 5000) -> list[str]:
+def resolve_segment_customers(
+	segment_name: str | None = None, *, segment_doc=None, limit: int = 5000
+) -> list[str]:
 	"""Return deduplicated customer names matching segment criteria."""
 	seg = segment_doc or frappe.get_doc(SEGMENT, segment_name)
 	customers: set[str] | None = None
@@ -109,9 +118,7 @@ def resolve_segment_customers(segment_name: str | None = None, *, segment_doc=No
 	has_service_filter = any(
 		[seg.retention_category, seg.service_overdue_days_min, cint(seg.has_deferred_work)]
 	)
-	has_sales_filter = any(
-		[seg.sales_status, seg.lost_reason, seg.last_enquiry_days, seg.purchase_timeframe]
-	)
+	has_sales_filter = any([seg.sales_status, seg.lost_reason, seg.last_enquiry_days, seg.purchase_timeframe])
 
 	if has_vehicle_filter and frappe.db.exists("DocType", "VIN No"):
 		vin_filters = {}
@@ -154,7 +161,9 @@ def resolve_segment_customers(segment_name: str | None = None, *, segment_doc=No
 		rows = frappe.get_all(
 			"DMS CRM Service Due",
 			filters=sd_filters,
-			fields=["customer", "overdue_days"] if frappe.get_meta("DMS CRM Service Due").has_field("overdue_days") else ["customer"],
+			fields=["customer", "overdue_days"]
+			if frappe.get_meta("DMS CRM Service Due").has_field("overdue_days")
+			else ["customer"],
 			limit_page_length=limit * 2,
 		)
 		matched = set()
@@ -248,11 +257,7 @@ def resolve_segment_customers(segment_name: str | None = None, *, segment_doc=No
 		p = pref.get(c) or {}
 		if not cint(seg.include_do_not_contact) and cint(p.get("do_not_contact")):
 			continue
-		if (
-			cint(seg.require_marketing_consent)
-			and pref.get(c)
-			and not cint(p.get("marketing_consent"))
-		):
+		if cint(seg.require_marketing_consent) and pref.get(c) and not cint(p.get("marketing_consent")):
 			continue
 		if seg.loyalty_tier and p.get("loyalty_tier") and p.get("loyalty_tier") != seg.loyalty_tier:
 			continue
@@ -295,9 +300,36 @@ def refresh_campaign_metrics(campaign_name: str) -> dict:
 	doc.members_count = len(members)
 	doc.control_group_count = sum(1 for m in members if cint(m.in_control_group))
 	status_map = {
-		"delivered_count": {"Delivered", "Opened", "Responded", "Appointment", "Test Drive", "Quoted", "Booked", "Sold", "Workshop Visit"},
-		"opened_count": {"Opened", "Responded", "Appointment", "Test Drive", "Quoted", "Booked", "Sold", "Workshop Visit"},
-		"response_count": {"Responded", "Appointment", "Test Drive", "Quoted", "Booked", "Sold", "Workshop Visit"},
+		"delivered_count": {
+			"Delivered",
+			"Opened",
+			"Responded",
+			"Appointment",
+			"Test Drive",
+			"Quoted",
+			"Booked",
+			"Sold",
+			"Workshop Visit",
+		},
+		"opened_count": {
+			"Opened",
+			"Responded",
+			"Appointment",
+			"Test Drive",
+			"Quoted",
+			"Booked",
+			"Sold",
+			"Workshop Visit",
+		},
+		"response_count": {
+			"Responded",
+			"Appointment",
+			"Test Drive",
+			"Quoted",
+			"Booked",
+			"Sold",
+			"Workshop Visit",
+		},
 		"appointment_count": {"Appointment", "Test Drive", "Quoted", "Booked", "Sold"},
 		"test_drive_count": {"Test Drive", "Quoted", "Booked", "Sold"},
 		"quotation_count": {"Quoted", "Booked", "Sold"},
@@ -381,9 +413,7 @@ def get_campaign(name):
 	doc = frappe.get_doc(CAMPAIGN, name)
 	data = doc.as_dict()
 	data["owner_name"] = user_display_name(doc.campaign_owner)
-	data["segment_name"] = (
-		frappe.db.get_value(SEGMENT, doc.segment, "segment_name") if doc.segment else None
-	)
+	data["segment_name"] = frappe.db.get_value(SEGMENT, doc.segment, "segment_name") if doc.segment else None
 	data["members"] = frappe.get_all(
 		MEMBER,
 		filters={"campaign": doc.name},
@@ -459,9 +489,7 @@ def build_campaign_audience(name, replace_existing=0):
 		for mname in frappe.get_all(MEMBER, filters={"campaign": doc.name}, pluck="name"):
 			frappe.delete_doc(MEMBER, mname, ignore_permissions=True, force=True)
 
-	existing = set(
-		frappe.get_all(MEMBER, filters={"campaign": doc.name}, pluck="customer")
-	)
+	existing = set(frappe.get_all(MEMBER, filters={"campaign": doc.name}, pluck="customer"))
 	added = skipped_suppressed = 0
 	eligible = []
 	for c in customers:
@@ -645,9 +673,7 @@ def preview_segment(name=None, data=None):
 		tmp = frappe.new_doc(SEGMENT)
 		_apply_payload(tmp, payload, allow_readonly=True)
 		customers = resolve_segment_customers(segment_doc=tmp, limit=5000)
-	sample = [
-		{"name": c, "customer_name": customer_display_name(c)} for c in customers[:25]
-	]
+	sample = [{"name": c, "customer_name": customer_display_name(c)} for c in customers[:25]]
 	return {"count": len(customers), "sample": sample}
 
 

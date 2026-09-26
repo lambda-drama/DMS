@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("Vehicle Model", {
 	refresh(frm) {
-        apply_vehicle_item_filter(frm)
+		apply_vehicle_item_filter(frm);
 		frm.set_query("labor_operation", "standard_labor_operations", () => ({
 			filters: { custom_active: 1 },
 		}));
@@ -11,10 +11,10 @@ frappe.ui.form.on("Vehicle Model", {
 });
 
 function apply_vehicle_item_filter(frm) {
-    frm.fields_dict.model.get_query = function(doc, cdt, cdn) {
-        return {
-            query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
-            filters: {}
-        };
-    };
+	frm.fields_dict.model.get_query = function (doc, cdt, cdn) {
+		return {
+			query: "dms.dealer_management_system.doctype.service_appointment.service_appointment.get_vehicle_items",
+			filters: {},
+		};
+	};
 }

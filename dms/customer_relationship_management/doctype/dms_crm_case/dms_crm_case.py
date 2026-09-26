@@ -6,7 +6,6 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, cint, flt, get_datetime, now_datetime
 
-
 # Blueprint §12.3 defaults (hours) — overridden by DMS CRM Settings when present
 PRIORITY_SLA_HOURS = {
 	"Critical": (0.25, 4),  # 15 min / 4h
@@ -137,7 +136,9 @@ class DMSCRMCase(Document):
 		# Notify once when case newly enters protected escalation
 		if not cint(self.protected_escalation):
 			return
-		was_protected = cint(self.get_doc_before_save().protected_escalation) if self.get_doc_before_save() else 0
+		was_protected = (
+			cint(self.get_doc_before_save().protected_escalation) if self.get_doc_before_save() else 0
+		)
 		if was_protected:
 			return
 		self._notify_protected_escalation()
@@ -186,9 +187,7 @@ class DMSCRMCase(Document):
 						)
 				if before.reputational_risk == "High" and self.reputational_risk != "High":
 					frappe.throw(
-						_(
-							"Reputational risk on a protected case cannot be lowered by ordinary users."
-						)
+						_("Reputational risk on a protected case cannot be lowered by ordinary users.")
 					)
 				if before.escalation_level == "Executive" and self.escalation_level != "Executive":
 					self.escalation_level = "Executive"

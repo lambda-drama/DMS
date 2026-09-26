@@ -17,8 +17,10 @@ from frappe.query_builder import DocType, Order
 from frappe.query_builder.functions import Count
 from frappe.utils import cint, flt, today
 
-from dms.api.invoices import _dms_sales_invoice_condition
-from dms.api.invoices import list_modes_of_payment  # noqa: F401  (re-exported for the UI)
+from dms.api.invoices import (
+	_dms_sales_invoice_condition,
+	list_modes_of_payment,  # noqa: F401  (re-exported for the UI)
+)
 from dms.api.utils import get_dms_companies, parse_filter_date
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_dms_company_defaults_row,
@@ -298,9 +300,7 @@ def _is_dms_payment_entry(pe) -> bool:
 		if (values.get("custom_dms_job_card") or "").strip():
 			return True
 		if any(
-			cint(values.get(fieldname))
-			for fieldname in check_fields
-			if fieldname != "custom_dms_job_card"
+			cint(values.get(fieldname)) for fieldname in check_fields if fieldname != "custom_dms_job_card"
 		):
 			return True
 	return False
@@ -576,9 +576,9 @@ def _advance_request(data) -> dict:
 		frappe.throw(_("Company is required."))
 	if not _has_field(DMS_FLAG_FIELD):
 		frappe.throw(
-			_(
-				"Add the Custom Field {0} on Payment Entry (DMS fixtures) before recording advances."
-			).format(frappe.bold(DMS_FLAG_FIELD))
+			_("Add the Custom Field {0} on Payment Entry (DMS fixtures) before recording advances.").format(
+				frappe.bold(DMS_FLAG_FIELD)
+			)
 		)
 
 	if amended_from:
@@ -589,9 +589,7 @@ def _advance_request(data) -> dict:
 		# Frappe derives the amended document name from `amended_from`, so one
 		# amendment replaces exactly one entry — record extra modes separately.
 		frappe.throw(
-			_(
-				"Amend one payment entry at a time. Record the other modes as new advance rows instead."
-			)
+			_("Amend one payment entry at a time. Record the other modes as new advance rows instead.")
 		)
 
 	return {
@@ -617,9 +615,7 @@ def _assert_amendable_advance(source: str, customer: str) -> None:
 	if source_pe.docstatus != 2:
 		frappe.throw(_("Only cancelled payment entries can be amended. Cancel it first."))
 	if (source_pe.party or "").strip() != customer:
-		frappe.throw(
-			_("The amendment must stay on customer {0}.").format(frappe.bold(source_pe.party))
-		)
+		frappe.throw(_("The amendment must stay on customer {0}.").format(frappe.bold(source_pe.party)))
 	existing = frappe.db.exists("Payment Entry", {"amended_from": source})
 	if existing:
 		frappe.throw(_("This payment entry is already amended as {0}.").format(frappe.bold(existing)))
@@ -805,7 +801,6 @@ def create_advance_payment(data):
 	}
 
 
-
 @frappe.whitelist()
 def get_customer_advances(customer=None, company=None, limit=100):
 	"""Open (unallocated) customer advances — powers the Job Card / Estimate payment section."""
@@ -851,14 +846,9 @@ def get_customer_advances(customer=None, company=None, limit=100):
 	# Only truly unallocated receipts count as advances — an overpayment that is
 	# partly allocated to an invoice is a receipt, not a downpayment.
 	unallocated_rows = [row for row in rows if not refs_by_name.get(row.get("name"))]
-	advances = [
-		_shape_row(row, [], links_by_name.get(row.get("name"), {}))
-		for row in unallocated_rows
-	]
+	advances = [_shape_row(row, [], links_by_name.get(row.get("name"), {})) for row in unallocated_rows]
 
-	customer_name = next(
-		(row.get("party_name") for row in rows if row.get("party_name")), None
-	)
+	customer_name = next((row.get("party_name") for row in rows if row.get("party_name")), None)
 	if not customer_name and frappe.db.exists("Customer", customer):
 		customer_name = frappe.db.get_value("Customer", customer, "customer_name") or customer
 
@@ -906,7 +896,6 @@ def delete_draft_payment_entry(name=None):
 	return {"deleted": name}
 
 
-
 @frappe.whitelist()
 def amend_payment_entry(name=None, submit=1):
 	"""Amend a cancelled DMS Payment Entry (Desk-style copy with ``amended_from``).
@@ -932,9 +921,7 @@ def amend_payment_entry(name=None, submit=1):
 
 	existing = frappe.db.exists("Payment Entry", {"amended_from": name})
 	if existing:
-		frappe.throw(
-			_("This payment entry is already amended as {0}.").format(frappe.bold(existing))
-		)
+		frappe.throw(_("This payment entry is already amended as {0}.").format(frappe.bold(existing)))
 
 	# Mirror Desk amend: copy the cancelled document (including no_copy fields).
 	amended = copy_doc(pe, ignore_no_copy=True)
@@ -964,4 +951,3 @@ def amend_payment_entry(name=None, submit=1):
 		"paid_amount": flt(amended.paid_amount),
 		"unallocated_amount": flt(amended.unallocated_amount),
 	}
-

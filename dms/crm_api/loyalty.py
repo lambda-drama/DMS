@@ -70,11 +70,7 @@ def _erpnext_points(customer: str) -> dict:
 		company = None
 		if program:
 			company = frappe.db.get_value("Loyalty Program", program, "company")
-		company = (
-			company
-			or frappe.defaults.get_user_default("Company")
-			or frappe.db.get_default("company")
-		)
+		company = company or frappe.defaults.get_user_default("Company") or frappe.db.get_default("company")
 		details = get_loyalty_program_details_with_points(
 			customer,
 			loyalty_program=program,
@@ -84,9 +80,7 @@ def _erpnext_points(customer: str) -> dict:
 		if details and details.get("loyalty_program"):
 			out["points"] = flt(details.get("loyalty_points") or details.get("total_points"))
 			out["loyalty_program"] = out["loyalty_program"] or details.get("loyalty_program")
-			out["loyalty_program_tier"] = out["loyalty_program_tier"] or details.get(
-				"tier_name"
-			)
+			out["loyalty_program_tier"] = out["loyalty_program_tier"] or details.get("tier_name")
 			out["source"] = "erpnext"
 			return out
 	except Exception:
@@ -246,8 +240,10 @@ def compute_customer_value(customer: str) -> dict:
 		health += 10
 	health = max(0, min(100, health))
 
-	churn_risk = "High" if retention in ("Lapsed", "At Risk") or missed >= 2 else (
-		"Medium" if inactive_days > 45 else "Low"
+	churn_risk = (
+		"High"
+		if retention in ("Lapsed", "At Risk") or missed >= 2
+		else ("Medium" if inactive_days > 45 else "Low")
 	)
 
 	opps = []
@@ -259,8 +255,10 @@ def compute_customer_value(customer: str) -> dict:
 			limit=50,
 		)
 	won = sum(1 for o in opps if (o.get("status") or "") == "Won" or (o.get("stage") or "") == "Won")
-	repurchase = "High" if won or (len(job_cards) >= 3 and health >= 70) else (
-		"Medium" if job_cards or opps else "Low"
+	repurchase = (
+		"High"
+		if won or (len(job_cards) >= 3 and health >= 70)
+		else ("Medium" if job_cards or opps else "Low")
 	)
 
 	scope = "Fleet" if frappe.db.get_value("Customer", customer, "customer_type") == "Company" else "Retail"
@@ -684,9 +682,7 @@ def _ensure_loyalty_program(name: str, company: str) -> str:
 			],
 		}
 	)
-	cc = frappe.db.get_value(
-		"Cost Center", {"company": company, "is_group": 0}, "name"
-	)
+	cc = frappe.db.get_value("Cost Center", {"company": company, "is_group": 0}, "name")
 	if cc and doc.meta.has_field("cost_center"):
 		doc.cost_center = cc
 	doc.insert(ignore_permissions=True)
@@ -717,8 +713,7 @@ def _ensure_tier_pricing_rule(tier_name: str, discount_pct: float, company: str)
 		return existing
 
 	condition = (
-		f'frappe.db.get_value("Customer", doc.get("customer"), "loyalty_program_tier") '
-		f'== "{tier_name}"'
+		f'frappe.db.get_value("Customer", doc.get("customer"), "loyalty_program_tier") == "{tier_name}"'
 	)
 	doc = frappe.get_doc(
 		{
@@ -763,9 +758,7 @@ def setup_loyalty_engine(company=None, create_pricing_rules=True):
 	linked = []
 	if cint(create_pricing_rules):
 		for row in settings.tiers or []:
-			rule = _ensure_tier_pricing_rule(
-				row.tier_name, flt(row.service_discount_pct), company
-			)
+			rule = _ensure_tier_pricing_rule(row.tier_name, flt(row.service_discount_pct), company)
 			if rule:
 				row.pricing_rule = rule
 				linked.append({"tier": row.tier_name, "pricing_rule": rule})
@@ -800,9 +793,7 @@ def _sync_preference_tier(customer: str, tier: str | None):
 		return
 	if not pref_tier:
 		pref_tier = "Bronze"
-	name = frappe.db.get_value(
-		"DMS CRM Customer Preference", {"customer": customer}, "name"
-	)
+	name = frappe.db.get_value("DMS CRM Customer Preference", {"customer": customer}, "name")
 	if name:
 		frappe.db.set_value(
 			"DMS CRM Customer Preference",
@@ -895,9 +886,7 @@ def get_service_discount_pct(customer: str) -> float:
 @frappe.whitelist()
 def setup_loyalty_programs(company=None, create_pricing_rules=1):
 	ensure_crm_write(SETTINGS)
-	return setup_loyalty_engine(
-		company=company, create_pricing_rules=cint(create_pricing_rules)
-	)
+	return setup_loyalty_engine(company=company, create_pricing_rules=cint(create_pricing_rules))
 
 
 @frappe.whitelist()
@@ -1008,9 +997,7 @@ def get_loyalty_setup_status():
 			)
 	return {
 		"enable_loyalty": cint(getattr(s, "enable_loyalty", 0)) if s else 0,
-		"use_erpnext_loyalty_program": cint(getattr(s, "use_erpnext_loyalty_program", 0))
-		if s
-		else 0,
+		"use_erpnext_loyalty_program": cint(getattr(s, "use_erpnext_loyalty_program", 0)) if s else 0,
 		"company": company,
 		"retail_loyalty_program": retail,
 		"fleet_loyalty_program": fleet,

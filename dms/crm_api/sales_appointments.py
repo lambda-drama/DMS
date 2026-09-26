@@ -40,9 +40,7 @@ def _enrich(row: dict) -> dict:
 	row["customer_name"] = customer_display_name(row.get("customer"))
 	row["owner_name"] = user_display_name(row.get("assigned_to"))
 	if row.get("opportunity"):
-		row["opportunity_title"] = (
-			frappe.db.get_value(OPP, row["opportunity"], "title") or row["opportunity"]
-		)
+		row["opportunity_title"] = frappe.db.get_value(OPP, row["opportunity"], "title") or row["opportunity"]
 	return row
 
 
@@ -113,8 +111,8 @@ def get_appointment(name):
 @frappe.whitelist()
 def get_form_options():
 	ensure_crm_read(DOCTYPE)
-	from dms.dealer_management_system.utils.company_permissions import get_dms_companies
 	from dms.dealer_management_system.utils.branch_permissions import get_dms_branches
+	from dms.dealer_management_system.utils.company_permissions import get_dms_companies
 
 	meta = frappe.get_meta(DOCTYPE)
 

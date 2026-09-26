@@ -24,6 +24,7 @@ def ensure_runtime_custom_fields() -> None:
 	from dms.api.orders import ensure_sales_order_dms_order_field
 	from dms.crm_api.opportunities import _ensure_quotation_link_field
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		ensure_sales_order_tax_withholding_fields,
 		ensure_sales_order_vehicle_vin_field,
 	)
 	from dms.dealer_management_system.doctype.vehicle_labour_item.vehicle_labour_item import (
@@ -34,6 +35,7 @@ def ensure_runtime_custom_fields() -> None:
 	for ensure in (
 		ensure_sales_order_dms_order_field,
 		ensure_sales_order_vehicle_vin_field,
+		ensure_sales_order_tax_withholding_fields,
 		_ensure_quotation_link_field,
 		ensure_labour_display_name_field,
 		ensure_force_password_field,

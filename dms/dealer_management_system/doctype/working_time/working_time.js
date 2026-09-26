@@ -2,22 +2,10 @@
 // For license information, please see license.txt
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-const ALL_DAYS = [
-	"Monday",
-	"Tuesday",
-	"Wednesday",
-	"Thursday",
-	"Friday",
-	"Saturday",
-	"Sunday",
-];
+const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function used_days(frm) {
-	return new Set(
-		(frm.doc.weekly_schedule || [])
-			.map((r) => r.day_of_week)
-			.filter(Boolean)
-	);
+	return new Set((frm.doc.weekly_schedule || []).map((r) => r.day_of_week).filter(Boolean));
 }
 
 function next_unused_day(frm) {
@@ -57,9 +45,10 @@ frappe.ui.form.on("Working Time Day", {
 		);
 		if (dup.length) {
 			frappe.msgprint(
-				__("{0} is already in this schedule. Pick another day or remove the duplicate row.", [
-					row.day_of_week,
-				])
+				__(
+					"{0} is already in this schedule. Pick another day or remove the duplicate row.",
+					[row.day_of_week]
+				)
 			);
 		}
 	},

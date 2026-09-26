@@ -1,6 +1,5 @@
 import frappe
-from frappe.utils import cint
-from frappe.utils import add_user_info
+from frappe.utils import add_user_info, cint
 
 DMS_NOTIFICATION_DOCTYPES = (
 	"Service Appointment",

@@ -139,15 +139,10 @@ def get_lead_form_options():
 		lang_rows = frappe.get_all(
 			"Language",
 			fields=lang_fields,
-			order_by="language_name asc, name asc"
-			if "language_name" in lang_fields
-			else "name asc",
+			order_by="language_name asc, name asc" if "language_name" in lang_fields else "name asc",
 			limit_page_length=500,
 		)
-		languages = [
-			{"value": row.name, "label": row.get("language_name") or row.name}
-			for row in lang_rows
-		]
+		languages = [{"value": row.name, "label": row.get("language_name") or row.name} for row in lang_rows]
 	from dms.dealer_management_system.utils.crm_user_settings import get_lead_sales_persons
 
 	sales_person_ids = get_lead_sales_persons()
@@ -174,10 +169,7 @@ def get_lead_form_options():
 
 	from dms.dealer_management_system.utils.branch_permissions import get_dms_branches
 
-	branches = [
-		row["name"]
-		for row in get_dms_branches(company=default_company, limit=500)
-	]
+	branches = [row["name"] for row in get_dms_branches(company=default_company, limit=500)]
 
 	currency = None
 	currency_symbol = None

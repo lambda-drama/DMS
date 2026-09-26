@@ -166,7 +166,9 @@ def get_service_packages_for_vehicle(vin=None, vehicle_model=None, search=None):
 			"vehicle_model": None,
 			"vehicle_model_label": label,
 			"packages": [],
-			"message": _("Could not resolve a Vehicle Model for this VIN. Set the Model field on the vehicle (VIN No)."),
+			"message": _(
+				"Could not resolve a Vehicle Model for this VIN. Set the Model field on the vehicle (VIN No)."
+			),
 		}
 
 	if not label:
@@ -195,9 +197,9 @@ def get_service_package_lines(package_name=None, vin=None, vehicle_model=None):
 		allowed = _package_names_for_vehicle_model(vm)
 		if package_name not in allowed:
 			frappe.throw(
-				_(
-					"Service package {0} is not configured for this vehicle's model ({1})."
-				).format(frappe.bold(package_name), frappe.bold(vm))
+				_("Service package {0} is not configured for this vehicle's model ({1}).").format(
+					frappe.bold(package_name), frappe.bold(vm)
+				)
 			)
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (

@@ -181,9 +181,7 @@ def _ensure_quotation_item_names(quotation):
 			continue
 		if (row.item_name or "").strip():
 			continue
-		row.item_name = (
-			frappe.db.get_value("Item", row.item_code, "item_name") or row.item_code
-		)
+		row.item_name = frappe.db.get_value("Item", row.item_code, "item_name") or row.item_code
 		if not row.uom:
 			row.uom = frappe.db.get_value("Item", row.item_code, "stock_uom")
 
@@ -460,10 +458,11 @@ def _apply_dms_taxes_to_quotation(quotation, apply_taxes: bool):
 	if not apply_taxes:
 		return None
 
+	from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		get_dms_default_taxes_and_charges_template,
 	)
-	from erpnext.controllers.accounts_controller import get_taxes_and_charges
 
 	template = get_dms_default_taxes_and_charges_template(getattr(quotation, "company", None))
 	quotation.taxes_and_charges = template
@@ -498,9 +497,7 @@ def _build_quotation_totals_preview(doc, items: list[dict], apply_taxes: bool) -
 	except Exception as e:
 		# Still return net if tax template is missing / misconfigured
 		net = sum(
-			(flt(r.get("qty")) or 1)
-			* flt(r.get("rate"))
-			* (1 - flt(r.get("discount_percentage")) / 100)
+			(flt(r.get("qty")) or 1) * flt(r.get("rate")) * (1 - flt(r.get("discount_percentage")) / 100)
 			for r in items
 		)
 		return {
@@ -658,9 +655,7 @@ def get_opportunity(name):
 	data["owner_name"] = user_display_name(doc.opportunity_owner)
 	data["customer_name"] = customer_display_name(doc.customer)
 	if doc.get("account"):
-		data["account_name"] = frappe.db.get_value(
-			"DMS CRM Account", doc.account, "account_name"
-		)
+		data["account_name"] = frappe.db.get_value("DMS CRM Account", doc.account, "account_name")
 	if doc.get("tender"):
 		data["tender_title"] = frappe.db.get_value("DMS CRM Tender", doc.tender, "title")
 	if doc.get("framework_agreement"):
@@ -697,9 +692,7 @@ def get_opportunity(name):
 			):
 				if meta.has_field(candidate):
 					fields.append(candidate)
-			data[f"{fieldname}_details"] = frappe.db.get_value(
-				doctype, value, fields, as_dict=True
-			)
+			data[f"{fieldname}_details"] = frappe.db.get_value(doctype, value, fields, as_dict=True)
 	return data
 
 
@@ -788,13 +781,9 @@ def get_quotation_preview(name, apply_taxes=0):
 			}
 		)
 	totals = _build_quotation_totals_preview(doc, items, cint(apply_taxes))
-	dms_tax_template = (
-		frappe.db.get_single_value("DMS Settings", "default_taxes_and_charges_template") or ""
-	)
+	dms_tax_template = frappe.db.get_single_value("DMS Settings", "default_taxes_and_charges_template") or ""
 	currency = totals.get("currency")
-	currency_symbol = (
-		frappe.db.get_value("Currency", currency, "symbol") if currency else None
-	) or currency
+	currency_symbol = (frappe.db.get_value("Currency", currency, "symbol") if currency else None) or currency
 	has_deal_items = any((row.get("item_code") or "").strip() for row in (doc.items or []))
 	has_vehicle = bool(vin and vin.get("linked_item"))
 	if has_deal_items and has_vehicle:
@@ -835,8 +824,8 @@ def get_opportunity_form_options():
 		opts = [o.strip() for o in raw.split("\n") if o.strip()]
 		return opts or list(fallback)
 
-	from dms.dealer_management_system.utils.company_permissions import get_dms_companies
 	from dms.dealer_management_system.utils.branch_permissions import get_dms_branches
+	from dms.dealer_management_system.utils.company_permissions import get_dms_companies
 
 	companies = get_dms_companies()
 	default_company = None
@@ -924,9 +913,7 @@ def create_sales_appointment(name, data=None):
 			"duration_minutes": cint(payload.get("duration_minutes") or 60),
 			"status": "Scheduled",
 			"appointment_type": payload.get("appointment_type") or "Showroom Appointment",
-			"assigned_to": payload.get("assigned_to")
-			or doc.opportunity_owner
-			or frappe.session.user,
+			"assigned_to": payload.get("assigned_to") or doc.opportunity_owner or frappe.session.user,
 			"company": doc.company,
 			"branch": doc.branch,
 			"agenda": payload.get("agenda"),
@@ -1013,9 +1000,7 @@ def create_quotation_from_opportunity(name, mark_won=0, force=0, apply_taxes=0):
 	if not test_drive or test_drive.status != "Completed":
 		frappe.throw(_("Complete the linked Test Drive before creating a Quotation."))
 	if test_drive.outcome not in ("Interested", "Quotation Requested"):
-		frappe.throw(
-			_("The Test Drive outcome must be Interested or Quotation Requested before quoting.")
-		)
+		frappe.throw(_("The Test Drive outcome must be Interested or Quotation Requested before quoting."))
 
 	if not doc.customer:
 		frappe.throw(
@@ -1029,8 +1014,8 @@ def create_quotation_from_opportunity(name, mark_won=0, force=0, apply_taxes=0):
 	if not doc.company:
 		frappe.throw(_("Company is required to create a Quotation."))
 
-	from dms.dealer_management_system.utils.company_permissions import assert_dms_company_access
 	from dms.dealer_management_system.utils.branch_permissions import assert_dms_branch_access
+	from dms.dealer_management_system.utils.company_permissions import assert_dms_company_access
 
 	assert_dms_company_access(doc.company)
 	assert_dms_branch_access(doc.branch, company=doc.company)
@@ -1176,9 +1161,7 @@ def _crm_default_warehouse(company: str | None = None) -> str:
 	warehouse = (frappe.db.get_single_value("DMS CRM Settings", "default_warehouse") or "").strip()
 	if not warehouse:
 		frappe.throw(
-			_(
-				"Set Default Warehouse on DMS CRM Settings before creating a Sales Order for stock items."
-			)
+			_("Set Default Warehouse on DMS CRM Settings before creating a Sales Order for stock items.")
 		)
 	if not frappe.db.exists("Warehouse", warehouse):
 		frappe.throw(_("DMS CRM Settings Default Warehouse {0} was not found.").format(warehouse))
@@ -1255,15 +1238,18 @@ def create_sales_order_from_opportunity(name, booking_data=None):
 	from erpnext.selling.doctype.quotation.quotation import make_sales_order
 
 	order = make_sales_order(quotation.name)
-	order.delivery_date = getdate(doc.expected_close_date) if doc.expected_close_date else add_days(today(), 7)
+	order.delivery_date = (
+		getdate(doc.expected_close_date) if doc.expected_close_date else add_days(today(), 7)
+	)
 	for row in order.items:
 		row.delivery_date = order.delivery_date
 	if getattr(quotation, "custom_serial_no", None):
-		_apply_custom_serial_no(order, vin_labels=[
-			line.strip()
-			for line in (quotation.custom_serial_no or "").splitlines()
-			if line.strip()
-		])
+		_apply_custom_serial_no(
+			order,
+			vin_labels=[
+				line.strip() for line in (quotation.custom_serial_no or "").splitlines() if line.strip()
+			],
+		)
 	else:
 		_apply_custom_serial_no(order, opportunity=doc)
 	vehicle_vin = booking_data.get("vehicle_vin") or frappe.db.get_value(
@@ -1377,14 +1363,10 @@ def create_sales_invoice_from_opportunity(name):
 		invoice.custom_invoice_no = _generate_invoice_no(doc.company)
 	# Banadir/DMS validates that invoice and receivable-account currencies match.
 	account_currency = (
-		frappe.db.get_value("Account", invoice.debit_to, "account_currency")
-		if invoice.debit_to
-		else None
+		frappe.db.get_value("Account", invoice.debit_to, "account_currency") if invoice.debit_to else None
 	)
 	if account_currency and invoice.currency != account_currency:
-		receivable_parent = frappe.db.get_value(
-			"Account", invoice.debit_to, "parent_account"
-		)
+		receivable_parent = frappe.db.get_value("Account", invoice.debit_to, "parent_account")
 		matching_receivable = frappe.db.get_value(
 			"Account",
 			{
@@ -1406,11 +1388,7 @@ def create_sales_invoice_from_opportunity(name):
 		invoice.debit_to = matching_receivable
 	_apply_crm_default_warehouse(invoice)
 	# Only enable stock update when every stock item already has a warehouse.
-	stock_rows = [
-		row
-		for row in invoice.items
-		if frappe.db.get_value("Item", row.item_code, "is_stock_item")
-	]
+	stock_rows = [row for row in invoice.items if frappe.db.get_value("Item", row.item_code, "is_stock_item")]
 	invoice.update_stock = cint(bool(stock_rows) and all(row.warehouse for row in stock_rows))
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		disable_sales_invoice_round_off,
@@ -1446,9 +1424,7 @@ def mark_opportunity_won(name):
 	if invoice.docstatus != 1:
 		frappe.throw(_("Submit the Sales Invoice before marking the deal Won."))
 	if not invoice.update_stock:
-		frappe.throw(
-			_("The submitted Sales Invoice must have Update Stock enabled before Won.")
-		)
+		frappe.throw(_("The submitted Sales Invoice must have Update Stock enabled before Won."))
 	doc.stage = "Won"
 	doc.status = "Won"
 	doc.probability = 100

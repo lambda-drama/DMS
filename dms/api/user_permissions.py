@@ -1,6 +1,7 @@
 """DMS CRM User Settings management API — User Permission master page."""
 
 import json
+
 import frappe
 from frappe import _
 
@@ -52,8 +53,11 @@ def get_user_permission_settings():
 			r[f] = int(getattr(row, f, 0) or 0)
 		rows.append(r)
 
-	users = [{"user": u.user, "full_name": frappe.db.get_value("User", u.user, "full_name") or u.user}
-			for u in (doc.get("users") or []) if u.user]
+	users = [
+		{"user": u.user, "full_name": frappe.db.get_value("User", u.user, "full_name") or u.user}
+		for u in (doc.get("users") or [])
+		if u.user
+	]
 	return {"permission_rows": rows, "whitelisted_users": users}
 
 
@@ -71,8 +75,9 @@ def save_user_permission(data):
 
 	whitelisted = {u.user for u in doc.get("users") or [] if u.user}
 	if user not in whitelisted:
-		frappe.throw(_("User {0} is not in the whitelist.").format(frappe.bold(user)),
-			title=_("Not whitelisted"))
+		frappe.throw(
+			_("User {0} is not in the whitelist.").format(frappe.bold(user)), title=_("Not whitelisted")
+		)
 
 	row = None
 	row_name = (data.get("name") or "").strip()

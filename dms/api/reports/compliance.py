@@ -102,9 +102,7 @@ def _bulk_document_companies(pairs: list[tuple[str, str]]) -> dict[tuple[str, st
 		if has_job_card:
 			fields.append("job_card")
 
-		rows = frappe.get_all(
-			dt, filters={"name": ["in", unique]}, fields=fields, limit_page_length=0
-		)
+		rows = frappe.get_all(dt, filters={"name": ["in", unique]}, fields=fields, limit_page_length=0)
 		for row in rows:
 			key = (dt, row.name)
 			if has_company and row.get("company"):
@@ -225,11 +223,7 @@ def get_user_audit_trail_report(filters=None):
 				}
 			)
 
-	pairs = [
-		(e["doctype"], e["document"])
-		for e in raw_events
-		if e.get("doctype") and e.get("document")
-	]
+	pairs = [(e["doctype"], e["document"]) for e in raw_events if e.get("doctype") and e.get("document")]
 	company_map = _bulk_document_companies(pairs)
 
 	rows = []
@@ -272,9 +266,7 @@ def get_odometer_exception_report(filters=None):
 
 	allowed_companies = get_permitted_dms_companies()
 	insp_meta = (
-		frappe.get_meta("Vehicle Inspection")
-		if frappe.db.exists("DocType", "Vehicle Inspection")
-		else None
+		frappe.get_meta("Vehicle Inspection") if frappe.db.exists("DocType", "Vehicle Inspection") else None
 	)
 	if insp_meta and insp_meta.has_field("company"):
 		if not allowed_companies:
@@ -305,9 +297,7 @@ def get_odometer_exception_report(filters=None):
 	prev_by_vin = {}
 	for inv in inspections:
 		vin = inv.vin_chassis
-		vin_label = (
-			vin_display.get(vin) or frappe.db.get_value("VIN No", vin, "vin_number") if vin else ""
-		)
+		vin_label = vin_display.get(vin) or frappe.db.get_value("VIN No", vin, "vin_number") if vin else ""
 		if not vin_label and vin:
 			vin_label = vin
 		odo = flt(inv.odometer)

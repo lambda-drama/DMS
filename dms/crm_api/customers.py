@@ -99,10 +99,9 @@ def _customer_contacts(customer: str) -> list[dict]:
 	data = []
 	for r in rows:
 		row = dict(r)
-		row["full_name"] = (
-			" ".join(p for p in [row.get("first_name"), row.get("last_name")] if p).strip()
-			or row.get("name")
-		)
+		row["full_name"] = " ".join(
+			p for p in [row.get("first_name"), row.get("last_name")] if p
+		).strip() or row.get("name")
 		# Blueprint org roles — best-effort from designation / company
 		role = (row.get("designation") or "").strip()
 		if not role and row.get("company_name"):
@@ -180,9 +179,7 @@ def _vehicle_ownership_history(customer: str) -> list[dict]:
 		return []
 	for r in rows:
 		r["ownership_status"] = (
-			"Current"
-			if cint(r.get("is_current")) or r.get("current_customer") == customer
-			else "Previous"
+			"Current" if cint(r.get("is_current")) or r.get("current_customer") == customer else "Previous"
 		)
 	return rows
 
@@ -571,7 +568,9 @@ def _loyalty_value(
 	aftersales_revenue = sum(flt(j.get("total_amount")) for j in job_cards)
 	ltv = sales_revenue + aftersales_revenue
 
-	won_deals = sum(1 for o in opportunities if (o.get("status") or "") == "Won" or (o.get("stage") or "") == "Won")
+	won_deals = sum(
+		1 for o in opportunities if (o.get("status") or "") == "Won" or (o.get("stage") or "") == "Won"
+	)
 	service_visits = len(job_cards)
 	deliveries_count = len(deliveries)
 
@@ -593,8 +592,10 @@ def _loyalty_value(
 	else:
 		tier = "Prospect"
 
-	repurchase = "High" if won_deals or (service_visits >= 3 and avg_nps and avg_nps >= 7) else (
-		"Medium" if service_visits or opportunities else "Low"
+	repurchase = (
+		"High"
+		if won_deals or (service_visits >= 3 and avg_nps and avg_nps >= 7)
+		else ("Medium" if service_visits or opportunities else "Low")
 	)
 
 	referrals = []
@@ -868,7 +869,9 @@ def create_customer(data=None, force=0):
 	groups = _dms_customer_groups()
 	if not groups:
 		frappe.throw(
-			_("No DMS customer groups configured. Mark Customer Groups with Is Vehicle Customer in DMS Settings.")
+			_(
+				"No DMS customer groups configured. Mark Customer Groups with Is Vehicle Customer in DMS Settings."
+			)
 		)
 
 	customer_group = (payload.get("customer_group") or "").strip() or groups[0]
@@ -1238,7 +1241,9 @@ def get_customer_360(customer: str):
 		"deliveries": len(deliveries),
 		"campaigns": len(campaigns),
 		"pipeline_value": sum(
-			flt(r.get("expected_value")) for r in opportunities if (r.get("status") or "") in OPEN_OPP_STATUSES
+			flt(r.get("expected_value"))
+			for r in opportunities
+			if (r.get("status") or "") in OPEN_OPP_STATUSES
 		),
 		"outstanding": finance.get("outstanding") or 0,
 		"lifetime_value": loyalty.get("lifetime_value") or 0,
@@ -1419,16 +1424,14 @@ def merge_customers(master: str, duplicate: str, field_overrides=None, confirm_d
 		vin_filters_d = {"customer": duplicate}
 		# field may be customer or owner depending on schema
 		meta = frappe.get_meta("VIN No")
-		cust_field = "customer" if meta.has_field("customer") else (
-			"customer_name" if meta.has_field("customer_name") else None
+		cust_field = (
+			"customer"
+			if meta.has_field("customer")
+			else ("customer_name" if meta.has_field("customer_name") else None)
 		)
 		if cust_field:
-			master_vins = set(
-				frappe.get_all("VIN No", filters={cust_field: master}, pluck="name")
-			)
-			dup_vins = set(
-				frappe.get_all("VIN No", filters={cust_field: duplicate}, pluck="name")
-			)
+			master_vins = set(frappe.get_all("VIN No", filters={cust_field: master}, pluck="name"))
+			dup_vins = set(frappe.get_all("VIN No", filters={cust_field: duplicate}, pluck="name"))
 	if master_vins and dup_vins and master_vins != dup_vins and not cint(confirm_different_vehicles):
 		frappe.throw(
 			_(

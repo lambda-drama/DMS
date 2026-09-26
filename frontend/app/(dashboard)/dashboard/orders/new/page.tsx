@@ -12,6 +12,7 @@ import { CreateServiceItemDialog } from '@/components/create-service-item-dialog
 import { CreateSparePartDialog } from '@/components/create-spare-part-dialog';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
+import { InvoiceTaxBreakdown } from '@/components/invoices/invoice-tax-breakdown';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -122,6 +123,7 @@ export default function OrderNewPage() {
   const [remarks, setRemarks] = useState('');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [applyTaxes, setApplyTaxes] = useState(false);
+  const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
   const [parts, setParts] = useState<PartRow[]>([emptyLine()]);
   const [labourRows, setLabourRows] = useState<LabourRow[]>([emptyLabour()]);
   const [serviceItemSearch, setServiceItemSearch] = useState('');
@@ -135,6 +137,8 @@ export default function OrderNewPage() {
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [partsDiscountInput, setPartsDiscountInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [orderTaxPreview, setOrderTaxPreview] = useState<ordersSvc.DmsOrderTaxPreview | null>(null);
+  const [orderTaxPreviewLoading, setOrderTaxPreviewLoading] = useState(false);
 
   const { data: defaults } = useSWR('spare-part-sales-defaults', () =>
     sparePartSalesSvc.fetchSparePartSalesDefaults()
@@ -233,6 +237,101 @@ export default function OrderNewPage() {
   );
   const grandTotal = labourTotal - labourDiscountTotal + partsTotal - partsDiscountTotal;
 
+  // Exactly the lines / discounts the save sends — the tax preview must be built
+  // from the same numbers, otherwise the amounts on screen would not match the
+  // order that gets stored.
+  const orderTaxLines = useMemo(
+    () => ({
+      parts: parts
+        .filter((row) => row.spare_part && Number(row.qty) > 0)
+        .map((row) => ({
+          spare_part: row.spare_part,
+          qty: Number(row.qty),
+          unit_price: Number(row.unit_price || 0),
+          // Display name → Sales Order Item description.
+          description: row.display_name.trim() || undefined,
+        })),
+      labour: labourRows
+        .filter((row) => row.vehicle_service_item && Number(row.hours) > 0)
+        .map((row) => ({
+          vehicle_service_item: row.vehicle_service_item,
+          hours: Number(row.hours),
+          rate_per_hour: Number(row.rate_per_hour || 0),
+          // Display name → Sales Order Item description.
+          description: row.display_name.trim() || undefined,
+        })),
+    }),
+    [parts, labourRows]
+  );
+
+  const orderLabourDiscount = useMemo(
+    () => buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
+    [labourDiscountMode, labourDiscountInput]
+  );
+  const orderPartsDiscount = useMemo(
+    () => buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
+    [partsDiscountMode, partsDiscountInput]
+  );
+
+  // VAT the order will carry plus the TCS its invoice will withhold — recalculated
+  // (debounced) whenever a toggle, a line or a date changes.
+  useEffect(() => {
+    const ready =
+      Boolean(customer) &&
+      (orderTaxLines.parts.length > 0 || orderTaxLines.labour.length > 0) &&
+      (orderTaxLines.parts.length === 0 || Boolean(warehouse));
+    if (!ready || (!applyTaxes && !applyTaxWithholding)) {
+      setOrderTaxPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setOrderTaxPreviewLoading(true);
+      ordersSvc
+        .getOrderTaxPreview({
+          customer,
+          company: defaults?.company,
+          warehouse: warehouse || undefined,
+          currency,
+          transaction_date: transactionDate,
+          delivery_date: deliveryDate,
+          apply_taxes: applyTaxes,
+          apply_tax_withholding: applyTaxWithholding,
+          parts: orderTaxLines.parts,
+          labour: orderTaxLines.labour,
+          labour_discount: orderLabourDiscount || null,
+          parts_discount: orderPartsDiscount || null,
+        })
+        .then((data) => {
+          if (!cancelled) setOrderTaxPreview(data);
+        })
+        .catch(() => {
+          if (!cancelled) setOrderTaxPreview(null);
+        })
+        .finally(() => {
+          if (!cancelled) setOrderTaxPreviewLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    customer,
+    warehouse,
+    transactionDate,
+    deliveryDate,
+    currency,
+    applyTaxes,
+    applyTaxWithholding,
+    defaults?.company,
+    orderTaxLines,
+    orderLabourDiscount,
+    orderPartsDiscount,
+  ]);
+
   useEffect(() => {
     if (editName || !defaults) return;
     setWarehouse((prev) => prev || defaults.default_warehouse || '');
@@ -253,6 +352,8 @@ export default function OrderNewPage() {
     setApplyTaxes(
       Boolean(existing.apply_taxes) || Number(existing.total_taxes_and_charges) > 0
     );
+    // Withholding is stored on the order and applied when it is invoiced.
+    setApplyTaxWithholding(Boolean(existing.apply_tax_withholding));
     setParts(
       (existing.parts || []).length
         ? (existing.parts || []).map((row) => ({
@@ -372,25 +473,8 @@ export default function OrderNewPage() {
   const saveOrder = async (mode: 'draft' | 'create') => {
     const asDraft = mode === 'draft';
 
-    const payloadParts = parts
-      .filter((row) => row.spare_part && Number(row.qty) > 0)
-      .map((row) => ({
-        spare_part: row.spare_part,
-        qty: Number(row.qty),
-        unit_price: Number(row.unit_price || 0),
-        // Display name → Sales Order Item description.
-        description: row.display_name.trim() || undefined,
-      }));
-
-    const payloadLabour = labourRows
-      .filter((row) => row.vehicle_service_item && Number(row.hours) > 0)
-      .map((row) => ({
-        vehicle_service_item: row.vehicle_service_item,
-        hours: Number(row.hours),
-        rate_per_hour: Number(row.rate_per_hour || 0),
-        // Display name → Sales Order Item description.
-        description: row.display_name.trim() || undefined,
-      }));
+    const payloadParts = orderTaxLines.parts;
+    const payloadLabour = orderTaxLines.labour;
 
     if (!payloadParts.length && !payloadLabour.length) {
       toast.error(
@@ -415,11 +499,13 @@ export default function OrderNewPage() {
       remarks: remarks || undefined,
       // Include VAT — DMS Settings Default Taxes and Charges Template.
       apply_taxes: applyTaxes,
+      // Withholding (TCS) is stored on the order and applied to its invoice.
+      apply_tax_withholding: applyTaxWithholding,
       submit: asDraft ? 0 : 1,
       parts: payloadParts,
       labour: payloadLabour,
-      labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
-      parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
+      labour_discount: orderLabourDiscount,
+      parts_discount: orderPartsDiscount,
     };
 
     setSubmitting(true);
@@ -554,6 +640,25 @@ export default function OrderNewPage() {
               <p className="pl-6 text-xs text-muted-foreground">
                 Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked to
                 place the order without VAT.
+              </p>
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="order-apply-tax-withholding"
+                  checked={applyTaxWithholding}
+                  onCheckedChange={(value) => setApplyTaxWithholding(Boolean(value))}
+                />
+                <Label
+                  htmlFor="order-apply-tax-withholding"
+                  className="cursor-pointer font-normal"
+                >
+                  Include tax withholding (TCS)
+                </Label>
+              </div>
+              <p className="pl-6 text-xs text-muted-foreground">
+                Stored on the order and applied when its invoice is raised — ERPNext withholds tax
+                only on sales invoices. Uses the Default Tax Withholding Category from DMS Settings.
               </p>
             </div>
           </CardContent>
@@ -821,14 +926,42 @@ export default function OrderNewPage() {
                   <span className="tabular-nums">-{formatMoney(partsDiscountTotal, currency)}</span>
                 </div>
               ) : null}
-              <div className="flex justify-between border-t pt-2 text-base font-medium">
-                <span>{applyTaxes ? 'Net total (excl. VAT)' : 'Order total'}</span>
-                <span className="tabular-nums">{formatMoney(grandTotal, currency)}</span>
-              </div>
+              {applyTaxes || applyTaxWithholding ? (
+                <InvoiceTaxBreakdown
+                  subtotal={grandTotal}
+                  currency={currency}
+                  applyTaxes={applyTaxes}
+                  applyTaxWithholding={applyTaxWithholding}
+                  preview={orderTaxPreview}
+                  isLoading={orderTaxPreviewLoading}
+                  // Withholding never lands on the order, so the final row shows the
+                  // order's own grand total (the invoice deducts TCS from it later).
+                  totalOverride={orderTaxPreview ? orderTaxPreview.order_grand_total : null}
+                  totalLabel={applyTaxes ? 'Order total (incl. VAT)' : 'Order total'}
+                />
+              ) : (
+                <div className="flex justify-between border-t pt-2 text-base font-medium">
+                  <span>Order total</span>
+                  <span className="tabular-nums">{formatMoney(grandTotal, currency)}</span>
+                </div>
+              )}
               {applyTaxes ? (
                 <p className="text-xs text-muted-foreground">
                   VAT is applied from the DMS Settings Default Taxes and Charges Template and added
                   to the grand total when the order is saved.
+                </p>
+              ) : null}
+              {applyTaxWithholding ? (
+                <p className="text-xs text-muted-foreground">
+                  TCS is withheld on the invoice, not on the order — the order total above is not
+                  reduced by it. The invoice will be raised for{' '}
+                  {formatMoney(orderTaxPreview ? orderTaxPreview.grand_total : grandTotal, currency)}
+                  {', of which '}
+                  {formatMoney(
+                    orderTaxPreview ? Math.abs(orderTaxPreview.withholding_amount || 0) : 0,
+                    currency
+                  )}
+                  {' is paid to the tax authority by the customer instead.'}
                 </p>
               ) : null}
             </div>

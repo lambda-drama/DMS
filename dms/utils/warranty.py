@@ -9,7 +9,6 @@ import frappe
 from frappe import _
 from frappe.utils import add_months, cint, flt, getdate, nowdate
 
-
 WARRANTY_ACTIVE = "Active"
 WARRANTY_INACTIVE = "Inactive"
 WARRANTY_EXPIRED_MILEAGE = "Expired by Mileage"

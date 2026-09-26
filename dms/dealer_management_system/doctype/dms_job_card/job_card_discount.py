@@ -39,18 +39,14 @@ def parse_discount_payload(discount) -> dict | None:
 	if dtype not in ("percentage", "amount"):
 		return None
 	value = flt(
-		discount.get("value")
-		if discount.get("value") is not None
-		else discount.get("discount_value")
+		discount.get("value") if discount.get("value") is not None else discount.get("discount_value")
 	)
 	if value <= 0:
 		return None
 	return {"type": dtype, "value": value}
 
 
-def compute_group_discount_amount(
-	subtotal: float, discount_type, discount_value: float
-) -> float:
+def compute_group_discount_amount(subtotal: float, discount_type, discount_value: float) -> float:
 	subtotal = flt(subtotal)
 	dtype = normalize_job_card_discount_type(discount_type)
 	value = flt(discount_value)

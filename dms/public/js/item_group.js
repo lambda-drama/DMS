@@ -4,14 +4,18 @@
 frappe.ui.form.on("Item Group", {
 	refresh(frm) {
 		if (frm.doc.custom_auto_generate_spare_parts && !frm.is_new()) {
-			frm.add_custom_button(__("Create Spare Parts from Items"), () => {
-				frappe.confirm(
-					__(
-						"Create Spare Part records for all Items in this group that do not already have one?"
-					),
-					() => create_spare_parts_from_group(frm)
-				);
-			}, __("Actions"));
+			frm.add_custom_button(
+				__("Create Spare Parts from Items"),
+				() => {
+					frappe.confirm(
+						__(
+							"Create Spare Part records for all Items in this group that do not already have one?"
+						),
+						() => create_spare_parts_from_group(frm)
+					);
+				},
+				__("Actions")
+			);
 		}
 	},
 });

@@ -53,9 +53,7 @@ class DMSCRMDeliveryReadiness(Document):
 	def _load_template_checklist(self):
 		if self.checklist or not self.checklist_template:
 			return
-		template = frappe.get_cached_doc(
-			"DMS CRM Delivery Readiness Template", self.checklist_template
-		)
+		template = frappe.get_cached_doc("DMS CRM Delivery Readiness Template", self.checklist_template)
 		for row in template.checklist_items:
 			self.append(
 				"checklist",

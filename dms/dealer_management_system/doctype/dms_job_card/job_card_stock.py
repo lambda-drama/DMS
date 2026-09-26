@@ -36,9 +36,7 @@ def get_wip_warehouse(company: str | None) -> str | None:
 
 def resolve_workshop_warehouse(jc) -> str | None:
 	"""Source warehouse (workshop / job card header)."""
-	for candidate in (
-		getattr(jc, "warehouse", None),
-	):
+	for candidate in (getattr(jc, "warehouse", None),):
 		wh = (candidate or "").strip()
 		if wh:
 			return wh
@@ -128,9 +126,7 @@ def transfer_job_card_parts_to_wip(jc) -> str | None:
 		available = flt(get_stock_balance(line["item_code"], source_wh))
 		if available < line["qty"]:
 			frappe.throw(
-				_(
-					"Insufficient stock for {0} in {1}. Required {2}, available {3}."
-				).format(
+				_("Insufficient stock for {0} in {1}. Required {2}, available {3}.").format(
 					frappe.bold(line["item_code"]),
 					frappe.bold(source_wh),
 					line["qty"],
@@ -365,9 +361,7 @@ def _clone_issued_parts_request(source_pr, target_jc, part_map, new_stock_entry:
 		pr.parts_staff_signature = source_pr.parts_staff_signature
 	if source_pr.received_by_signature:
 		pr.received_by_signature = source_pr.received_by_signature
-	pr.remarks = _("Recreated from {0} on main job card {1}").format(
-		source_pr.name, source_pr.job_card
-	)
+	pr.remarks = _("Recreated from {0} on main job card {1}").format(source_pr.name, source_pr.job_card)
 
 	line_status = "Received" if pr.status == "Received" else "Issued"
 	wip_wh = get_wip_warehouse(target_jc.company)
@@ -458,9 +452,7 @@ def recreate_issued_stock_from_original(target_jc, source_jc) -> list[str]:
 	if old_wip and old_wip not in seen_stock and frappe.db.exists("Stock Entry", old_wip):
 		new_se = clone_cancelled_stock_entry(
 			old_wip,
-			remarks=_("WIP transfer recreated from {0} for Job Card {1}").format(
-				old_wip, target_jc.name
-			),
+			remarks=_("WIP transfer recreated from {0} for Job Card {1}").format(old_wip, target_jc.name),
 		)
 		recreated.append(new_se)
 		frappe.db.set_value(
@@ -473,4 +465,3 @@ def recreate_issued_stock_from_original(target_jc, source_jc) -> list[str]:
 		target_jc.wip_material_transfer = new_se
 
 	return recreated
-

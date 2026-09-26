@@ -1,1 +1,1726 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[8972],{8972:(e,s,t)=>{t.r(s),t.d(s,{default:()=>E});var a=t(95155),r=t(12115),n=t(55833),i=t(36020),l=t(10086),d=t(4474),c=t(39658),o=t(79792),m=t(39540),u=t(79984),x=t(84437),h=t(61991),p=t(26518),g=t(30069),f=t(42074),v=t(31529),j=t(5240),b=t(60541),y=t(80723),N=t(48368),w=t(14636),_=t(42869),C=t(21053),k=t(12651),S=t(6296),F=t(37618),z=t(66609);let A=["Empty","1/8","1/4","3/8","1/2","5/8","3/4","7/8","Full"],$=["Excellent","Good","Fair","Customer Reported New Damage"],R=["Cash","Card","Bank Transfer","Credit Account","Warranty","Insurance","Fleet Account"];function E(){let{navigate:e,viewParams:s}=(0,n.c)(),t=s.get("jobcard")||s.get("job_card")||s.get("id")||"",[E,J]=(0,r.useState)(t);(0,r.useEffect)(()=>{J(t)},[t]);let L=E||t,{data:T,isLoading:B}=(0,i.pw)(L||null),{data:D,isLoading:W}=(0,i.eT)({status:"Completed",limit:100}),{trigger:Z,isMutating:M}=(0,i.wB)(),O=(D?.data??[]).map(e=>({value:e.name,label:e.name,description:[e.license_plate,e.customer_name||e.customer].filter(Boolean).join(" \xb7 ")})),[q,P]=(0,r.useState)(()=>new Date().toISOString().split("T")[0]),[V,I]=(0,r.useState)(()=>new Date().toTimeString().slice(0,5)),[G,U]=(0,r.useState)(""),[X,Y]=(0,r.useState)(""),[H,Q]=(0,r.useState)(""),[K,ee]=(0,r.useState)("1/2"),[es,et]=(0,r.useState)("Good"),[ea,er]=(0,r.useState)(""),[en,ei]=(0,r.useState)(!0),[el,ed]=(0,r.useState)(!0),[ec,eo]=(0,r.useState)(!0),[em,eu]=(0,r.useState)("Cash"),[ex,eh]=(0,r.useState)(0),[ep,eg]=(0,r.useState)(""),[ef,ev]=(0,r.useState)(""),[ej,eb]=(0,r.useState)(""),[ey,eN]=(0,r.useState)(""),[ew,e_]=(0,r.useState)(null),[eC,ek]=(0,r.useState)([]),[eS,eF]=(0,r.useState)(""),[ez,eA]=(0,r.useState)([]),[e$,eR]=(0,r.useState)(!0),[eE,eJ]=(0,r.useState)({});(0,r.useEffect)(()=>{let e=!1;return eR(!0),Promise.all([b.gX(),b.VM()]).then(([s,t])=>{if(e)return;ek(s);let a=s.find(e=>!!e.is_default)||s[0];eF(a?.name||t.template||"");let r=t.items||[];eA(r),eJ(Object.fromEntries(r.map(e=>[e,!1])))}).catch(()=>{e||z.o.error("Failed to load delivery checklist template")}).finally(()=>{e||eR(!1)}),()=>{e=!0}},[]);let eL=async e=>{eR(!0);try{let s=await b.VM(e||void 0),t=s.items||[];eA(t),eJ(Object.fromEntries(t.map(e=>[e,!1]))),eF(s.template||e)}catch{z.o.error("Failed to load checklist from template")}finally{eR(!1)}},eT=T?.customer_name||T?.customer||"",eB=T?.customer_mobile?.trim()||X.trim()||"",eD=!!(T&&!T.customer_mobile?.trim());(0,r.useEffect)(()=>{T?.current_odometer&&Q(String(T.current_odometer))},[T?.name,T?.current_odometer]);let eW=(0,r.useMemo)(()=>ez.length>0&&ez.every(e=>eE[e]),[ez,eE]),eZ=eW&&!!ej&&!!ey&&ex>=1&&!!H&&en&&ec,eM=async(e,s)=>{e_(e);try{let t=await (0,j.QM)(s);"customer"===e?eb(t):eN(t),z.o.success("customer"===e?"Customer signature saved":"Staff signature saved")}catch(e){z.o.error(e instanceof Error?e.message:"Failed to save signature")}finally{e_(null)}},eO=async s=>{if(s.preventDefault(),!T)return void z.o.error("Job card is required");if(!eW)return void z.o.error("Please complete all checklist items");if(!ej||!ey)return void z.o.error("Customer and staff signatures are required");if(!(ex>=1&&ex<=5))return void z.o.error("Please rate customer satisfaction (1–5 stars)");try{await Z({job_card:T.name,customer:T.customer,vehicle_vin:T.vehicle_vin,delivery_date_time:q?`${q} ${V||"00:00"}:00`:"",delivered_by:void 0,received_by:G.trim()||void 0,customer_mobile:eD?X.trim():void 0,final_odometer_km:parseInt(H,10)||0,final_fuel_level:K,vehicle_condition:es,new_damage_notes:"Customer Reported New Damage"===es?ea:void 0,invoice_explained:en,invoice_copy_given:el,payment_cleared:ec,payment_method:ec?em:void 0,customer_satisfaction_score:ex,customer_satisfaction_initial:(0,v.O9)(ex),customer_comments:ep||void 0,customer_signature:ej,delivered_by_signature:ey,delivery_notes:ef||void 0,delivery_checklist_template:eS||void 0,checklist_completed:eE,submit:!0}),z.o.success("Vehicle delivery recorded"),e("deliveries")}catch(e){z.o.error(e instanceof Error?e.message:"Failed to record delivery")}};return L&&B?(0,a.jsx)("div",{className:"flex items-center justify-center h-96",children:(0,a.jsx)("div",{className:"animate-spin rounded-full h-8 w-8 border-b-2 border-primary"})}):(0,a.jsxs)("div",{className:"min-w-0 space-y-4 sm:space-y-6",children:[(0,a.jsxs)("div",{className:"flex items-center gap-4",children:[(0,a.jsx)(d.$,{variant:"ghost",size:"icon",onClick:()=>e("deliveries"),children:(0,a.jsx)(y.A,{className:"h-5 w-5"})}),(0,a.jsxs)("div",{children:[(0,a.jsx)("h1",{className:"text-2xl font-bold text-foreground",children:"New Vehicle Delivery"}),(0,a.jsx)("p",{className:"text-muted-foreground mt-1",children:"Record vehicle handover to customer"})]})]}),(0,a.jsxs)("form",{id:"new-delivery-form",onSubmit:eO,className:"dms-form-page min-w-0 space-y-4 sm:space-y-6",children:[(0,a.jsxs)(u.Zp,{className:T?"border-primary/30 bg-primary/5":"",children:[(0,a.jsxs)(u.aR,{children:[(0,a.jsxs)(u.ZB,{className:"flex items-center gap-2",children:[(0,a.jsx)(N.A,{className:"h-5 w-5"}),"Job card *"]}),(0,a.jsx)(u.BT,{children:"Link this delivery to a completed job card. Opening from a job card pre-fills this field."})]}),(0,a.jsxs)(u.Wu,{className:"space-y-3",children:[(0,a.jsxs)("div",{className:"space-y-2 max-w-lg",children:[(0,a.jsx)(o.J,{htmlFor:"job_card",children:"Job card ID"}),t&&T?(0,a.jsx)(c.p,{id:"job_card",value:T.name,readOnly:!0,className:"bg-muted font-medium"}):(0,a.jsx)(l.Zi,{value:E,onValueChange:J,options:O,placeholder:"Search completed job cards…",isLoading:W})]}),L&&!T&&!B&&(0,a.jsxs)("p",{className:"text-sm text-destructive",children:['Job card "',L,'" was not found.']}),!L&&(0,a.jsx)("p",{className:"text-sm text-muted-foreground",children:"Select a job card to enable Record delivery."}),T&&(0,a.jsxs)("div",{className:"grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground pt-1",children:[(0,a.jsxs)("span",{children:[T.license_plate," \xb7 ",T.vehicle_model]}),null!=T.net_amount&&(0,a.jsxs)("span",{children:["Amount: ",Number(T.net_amount).toLocaleString()]})]})]})]}),(0,a.jsxs)("div",{className:"grid md:grid-cols-2 gap-6",children:[(0,a.jsxs)(u.Zp,{children:[(0,a.jsx)(u.aR,{children:(0,a.jsxs)(u.ZB,{className:"flex items-center gap-2",children:[(0,a.jsx)(w.A,{className:"h-5 w-5"}),"Vehicle"]})}),(0,a.jsxs)(u.Wu,{className:"space-y-4",children:[(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{children:"License plate"}),(0,a.jsx)(c.p,{value:T?.license_plate||"",readOnly:!0,className:"bg-muted"})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{htmlFor:"final_odometer_km",children:"Final odometer (km) *"}),(0,a.jsx)(c.p,{id:"final_odometer_km",type:"number",min:0,value:H,onChange:e=>Q(e.target.value),required:!0})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{children:"Final fuel level *"}),(0,a.jsxs)(p.l6,{value:K,onValueChange:ee,children:[(0,a.jsx)(p.bq,{children:(0,a.jsx)(p.yv,{})}),(0,a.jsx)(p.gC,{children:A.map(e=>(0,a.jsx)(p.eb,{value:e,children:e},e))})]})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{children:"Condition at delivery"}),(0,a.jsxs)(p.l6,{value:es,onValueChange:et,children:[(0,a.jsx)(p.bq,{children:(0,a.jsx)(p.yv,{})}),(0,a.jsx)(p.gC,{children:$.map(e=>(0,a.jsx)(p.eb,{value:e,children:e},e))})]})]}),"Customer Reported New Damage"===es&&(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{htmlFor:"new_damage_notes",children:"New damage notes"}),(0,a.jsx)(m.T,{id:"new_damage_notes",rows:2,value:ea,onChange:e=>er(e.target.value)})]})]})]}),(0,a.jsxs)(u.Zp,{children:[(0,a.jsxs)(u.aR,{children:[(0,a.jsxs)(u.ZB,{className:"flex items-center gap-2",children:[(0,a.jsx)(_.A,{className:"h-5 w-5"}),"Customer"]}),(0,a.jsx)(u.BT,{children:"Name and contact come from the customer record linked to the job card."})]}),(0,a.jsxs)(u.Wu,{className:"space-y-4",children:[(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{children:"Customer name"}),(0,a.jsx)(c.p,{value:eT,readOnly:!0,className:"bg-muted"})]}),eD?(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{htmlFor:"customer_mobile",children:"Contact number"}),(0,a.jsx)(c.p,{id:"customer_mobile",type:"tel",placeholder:"Customer has no mobile on file — add one",value:X,onChange:e=>Y(e.target.value)}),(0,a.jsx)("p",{className:"text-xs text-muted-foreground",children:"Saved to the customer record if missing."})]}):(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{children:"Contact number"}),(0,a.jsx)(c.p,{value:eB,readOnly:!0,className:"bg-muted"})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{htmlFor:"received_by",children:"Received by (customer / representative)"}),(0,a.jsx)(c.p,{id:"received_by",placeholder:"Name of person receiving the vehicle",value:G,onChange:e=>U(e.target.value)})]})]})]})]}),(0,a.jsxs)(u.Zp,{children:[(0,a.jsx)(u.aR,{children:(0,a.jsxs)(u.ZB,{className:"flex items-center gap-2",children:[(0,a.jsx)(C.A,{className:"h-5 w-5"}),"Delivery details"]})}),(0,a.jsxs)(u.Wu,{className:"space-y-4",children:[(0,a.jsxs)("div",{className:"grid md:grid-cols-2 gap-4",children:[(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{htmlFor:"delivery_date",children:"Delivery date *"}),(0,a.jsx)(c.p,{id:"delivery_date",type:"date",value:q,onChange:e=>P(e.target.value),required:!0})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{htmlFor:"delivery_time",children:"Delivery time *"}),(0,a.jsx)(c.p,{id:"delivery_time",type:"time",value:V,onChange:e=>I(e.target.value),required:!0})]})]}),(0,a.jsx)("p",{className:"text-sm text-muted-foreground",children:"Delivered by is recorded as the logged-in user when the delivery is submitted."})]})]}),(0,a.jsxs)(u.Zp,{children:[(0,a.jsx)(u.aR,{children:(0,a.jsx)(u.ZB,{children:"Billing confirmation"})}),(0,a.jsxs)(u.Wu,{className:"space-y-4",children:[(0,a.jsxs)("div",{className:"flex flex-wrap gap-6",children:[(0,a.jsxs)("label",{className:"flex items-center gap-2 cursor-pointer",children:[(0,a.jsx)(x.S,{checked:en,onCheckedChange:e=>ei(!!e)}),(0,a.jsx)("span",{className:"text-sm",children:"Invoice explained to customer *"})]}),(0,a.jsxs)("label",{className:"flex items-center gap-2 cursor-pointer",children:[(0,a.jsx)(x.S,{checked:el,onCheckedChange:e=>ed(!!e)}),(0,a.jsx)("span",{className:"text-sm",children:"Invoice copy given"})]}),(0,a.jsxs)("label",{className:"flex items-center gap-2 cursor-pointer",children:[(0,a.jsx)(x.S,{checked:ec,onCheckedChange:e=>eo(!!e)}),(0,a.jsx)("span",{className:"text-sm",children:"Payment cleared *"})]})]}),ec&&(0,a.jsxs)("div",{className:"space-y-2 max-w-xs",children:[(0,a.jsx)(o.J,{children:"Payment method"}),(0,a.jsxs)(p.l6,{value:em,onValueChange:eu,children:[(0,a.jsx)(p.bq,{children:(0,a.jsx)(p.yv,{})}),(0,a.jsx)(p.gC,{children:R.map(e=>(0,a.jsx)(p.eb,{value:e,children:e},e))})]})]})]})]}),(0,a.jsxs)(u.Zp,{children:[(0,a.jsxs)(u.aR,{children:[(0,a.jsxs)(u.ZB,{className:"flex items-center gap-2",children:[(0,a.jsx)(k.A,{className:"h-5 w-5"}),"Delivery checklist"]}),(0,a.jsx)(u.BT,{children:"Complete all items before handing over the vehicle"})]}),(0,a.jsxs)(u.Wu,{className:"space-y-4",children:[(0,a.jsxs)("div",{className:"space-y-2 max-w-lg",children:[(0,a.jsx)(o.J,{children:"Checklist template"}),(0,a.jsxs)(p.l6,{value:eS,onValueChange:e=>{eF(e),eL(e)},disabled:e$||0===eC.length,children:[(0,a.jsx)(p.bq,{children:(0,a.jsx)(p.yv,{placeholder:"Select checklist template"})}),(0,a.jsx)(p.gC,{children:eC.map(e=>(0,a.jsxs)(p.eb,{value:e.name,children:[e.template_name,e.is_default?" (Default)":""]},e.name))})]})]}),e$?(0,a.jsxs)("div",{className:"flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center",children:[(0,a.jsx)(S.A,{className:"h-4 w-4 animate-spin"}),"Loading checklist…"]}):(0,a.jsxs)(a.Fragment,{children:[(0,a.jsx)("div",{className:"grid md:grid-cols-2 gap-3",children:ez.map(e=>(0,a.jsxs)("label",{className:"flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer",children:[(0,a.jsx)(x.S,{checked:eE[e],onCheckedChange:s=>eJ(t=>({...t,[e]:!!s}))}),(0,a.jsx)("span",{className:"text-sm leading-snug",children:e})]},e))}),(0,a.jsx)(h.w,{className:"my-4"}),(0,a.jsxs)("p",{className:"text-sm text-muted-foreground",children:[Object.values(eE).filter(Boolean).length," of"," ",ez.length," completed"]})]})]})]}),(0,a.jsxs)(u.Zp,{children:[(0,a.jsxs)(u.aR,{children:[(0,a.jsxs)(u.ZB,{className:"flex items-center gap-2",children:[(0,a.jsx)(F.A,{className:"h-5 w-5"}),"Signatures"]}),(0,a.jsx)(u.BT,{children:"Customer confirms receipt; staff confirms handover (required on desk checkout)."})]}),(0,a.jsxs)(u.Wu,{className:"min-w-0 space-y-4 sm:space-y-6",children:[(0,a.jsxs)("div",{className:"grid md:grid-cols-2 gap-6",children:[(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{children:"Customer signature *"}),(0,a.jsx)(g.g,{existingUrl:ej||void 0,uploading:"customer"===ew,onSave:e=>eM("customer",e),onClear:()=>eb("")})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{children:"Delivered by signature (staff) *"}),(0,a.jsx)(g.g,{existingUrl:ey||void 0,uploading:"staff"===ew,onSave:e=>eM("staff",e),onClear:()=>eN("")})]})]}),(0,a.jsxs)("div",{className:"space-y-2 max-w-md",children:[(0,a.jsx)(o.J,{children:"Customer satisfaction *"}),(0,a.jsxs)("div",{className:"rounded-lg border border-border/80 bg-card px-3 py-3",children:[(0,a.jsx)(v.Gk,{value:ex||null,size:"lg",interactive:!0,onChange:eh}),(0,a.jsxs)("p",{className:"mt-1.5 text-[11px] text-muted-foreground",children:["Tap a star (1–5). ",ex?`Selected: ${ex}/5 \xb7 ${(0,v.O9)(ex)}`:"No rating yet"]})]})]}),(0,a.jsxs)("div",{className:"space-y-2",children:[(0,a.jsx)(o.J,{htmlFor:"customer_comments",children:"Customer comments"}),(0,a.jsx)(m.T,{id:"customer_comments",rows:2,placeholder:"Optional feedback at delivery",value:ep,onChange:e=>eg(e.target.value)})]})]})]}),(0,a.jsxs)(u.Zp,{children:[(0,a.jsx)(u.aR,{children:(0,a.jsx)(u.ZB,{children:"Delivery notes"})}),(0,a.jsx)(u.Wu,{children:(0,a.jsx)(m.T,{rows:3,placeholder:"Special instructions or notes…",value:ef,onChange:e=>ev(e.target.value)})})]}),(0,a.jsxs)(f.h,{children:[(0,a.jsx)(d.$,{type:"button",variant:"outline",onClick:()=>e("deliveries"),children:"Cancel"}),(0,a.jsxs)(d.$,{type:"submit",form:"new-delivery-form",disabled:M||!eZ,children:[(0,a.jsx)(C.A,{className:"h-4 w-4 mr-2"}),M?"Recording…":"Record delivery"]})]})]})]})}},26518:(e,s,t)=>{t.d(s,{bq:()=>m,eb:()=>x,gC:()=>u,l6:()=>c,yv:()=>o});var a=t(95155);t(12115);var r=t(40287),n=t(66088),i=t(94514),l=t(9921),d=t(91337);function c({...e}){return(0,a.jsx)(r.bL,{"data-slot":"select",...e})}function o({...e}){return(0,a.jsx)(r.WT,{"data-slot":"select-value",...e})}function m({className:e,size:s="default",children:t,...i}){return(0,a.jsxs)(r.l9,{"data-slot":"select-trigger","data-size":s,className:(0,d.cn)("border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-full border bg-transparent px-4 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",e),...i,children:[t,(0,a.jsx)(r.In,{asChild:!0,children:(0,a.jsx)(n.A,{className:"size-4 opacity-50"})})]})}function u({className:e,children:s,position:t="popper",...n}){return(0,a.jsx)(r.ZL,{children:(0,a.jsxs)(r.UC,{"data-slot":"select-content",className:(0,d.cn)("bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md","popper"===t&&"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",e),position:t,...n,children:[(0,a.jsx)(h,{}),(0,a.jsx)(r.LM,{className:(0,d.cn)("p-1","popper"===t&&"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"),children:s}),(0,a.jsx)(p,{})]})})}function x({className:e,children:s,...t}){return(0,a.jsxs)(r.q7,{"data-slot":"select-item",className:(0,d.cn)("focus:bg-dms-green-light focus:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",e),...t,children:[(0,a.jsx)("span",{className:"absolute right-2 flex size-3.5 items-center justify-center",children:(0,a.jsx)(r.VF,{children:(0,a.jsx)(i.A,{className:"size-4"})})}),(0,a.jsx)(r.p4,{children:s})]})}function h({className:e,...s}){return(0,a.jsx)(r.PP,{"data-slot":"select-scroll-up-button",className:(0,d.cn)("flex cursor-default items-center justify-center py-1",e),...s,children:(0,a.jsx)(l.A,{className:"size-4"})})}function p({className:e,...s}){return(0,a.jsx)(r.wn,{"data-slot":"select-scroll-down-button",className:(0,d.cn)("flex cursor-default items-center justify-center py-1",e),...s,children:(0,a.jsx)(n.A,{className:"size-4"})})}},30069:(e,s,t)=>{t.d(s,{g:()=>o});var a=t(95155),r=t(12115),n=t(6296),i=t(37618),l=t(68459),d=t(94514),c=t(4474);function o({onSave:e,onClear:s,existingUrl:t,uploading:m=!1,disabled:u=!1,className:x=""}){let h=(0,r.useRef)(null),p=(0,r.useRef)(null),g=(0,r.useRef)(!1),f=(0,r.useRef)(!1),[v,j]=(0,r.useState)(!1),[b,y]=(0,r.useState)(t?"done":"idle");(0,r.useEffect)(()=>{t&&y("done")},[t]);let N=(0,r.useCallback)((e=!1)=>{let s=h.current,t=p.current;if(!s||!t)return null;let a=t.clientWidth;if(a<1)return null;let r=Math.min(window.devicePixelRatio||1,3);s.width=Math.floor(a*r),s.height=Math.floor(144*r),s.style.width="100%",s.style.maxWidth="100%",s.style.height="144px";let n=s.getContext("2d");return n?(n.setTransform(1,0,0,1,0,0),n.scale(r,r),n.strokeStyle="#1e293b",n.lineWidth=2.2,n.lineCap="round",n.lineJoin="round",e&&n.clearRect(0,0,a,144),f.current=!0,n):null},[]),w=(0,r.useCallback)((e,s)=>{let t=s.getBoundingClientRect();return t.width<1||t.height<1?{x:0,y:0}:e.target===s&&Number.isFinite(e.offsetX)&&Number.isFinite(e.offsetY)?{x:e.offsetX,y:e.offsetY}:{x:Math.max(0,Math.min(t.width,e.clientX-t.left)),y:Math.max(0,Math.min(t.height,e.clientY-t.top))}},[]);(0,r.useEffect)(()=>{if("drawing"!==b){f.current=!1;return}let e=h.current,s=p.current;if(!e||!s)return;j(!1),N(!0);let t=new ResizeObserver(()=>{g.current||N(!0)});t.observe(s);let a=s=>{if(u||m)return;("touch"===s.pointerType||"pen"===s.pointerType)&&s.preventDefault(),f.current||N(!0);let t=e.getContext("2d");if(!t)return;e.setPointerCapture(s.pointerId),g.current=!0;let a=w(s,e);t.beginPath(),t.moveTo(a.x,a.y)},r=s=>{if(!g.current)return;("touch"===s.pointerType||"pen"===s.pointerType)&&s.preventDefault();let t=e.getContext("2d");if(!t)return;let a=w(s,e);t.lineTo(a.x,a.y),t.stroke(),j(!0)},n=s=>{if(g.current){g.current=!1;try{e.releasePointerCapture(s.pointerId)}catch{}}};return e.addEventListener("pointerdown",a),e.addEventListener("pointermove",r),e.addEventListener("pointerup",n),e.addEventListener("pointercancel",n),e.addEventListener("pointerleave",n),()=>{t.disconnect(),e.removeEventListener("pointerdown",a),e.removeEventListener("pointermove",r),e.removeEventListener("pointerup",n),e.removeEventListener("pointercancel",n),e.removeEventListener("pointerleave",n)}},[b,u,m,N,w]);let _=()=>{N(!0),j(!1),s?.()};return m?(0,a.jsxs)("div",{className:`flex min-h-[120px] w-full min-w-0 max-w-full items-center justify-center rounded-lg border border-dashed bg-muted/30 ${x}`,children:[(0,a.jsx)(n.A,{className:"h-6 w-6 animate-spin text-muted-foreground"}),(0,a.jsx)("span",{className:"ml-2 text-sm text-muted-foreground",children:"Saving signature…"})]}):"idle"===b?(0,a.jsxs)("button",{type:"button",disabled:u,onClick:()=>y("drawing"),className:`flex min-h-[120px] w-full min-w-0 max-w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground transition-colors hover:border-[var(--dms-green)] hover:bg-[var(--dms-green-light)]/30 hover:text-foreground disabled:opacity-50 ${x}`,children:[(0,a.jsx)(i.A,{className:"h-5 w-5"}),(0,a.jsx)("span",{className:"text-sm font-medium",children:"Customer digital signature"}),(0,a.jsx)("span",{className:"text-xs",children:"Tap to sign"})]}):"done"===b&&t?(0,a.jsxs)("div",{className:`flex min-h-[120px] w-full min-w-0 max-w-full flex-col items-center justify-center gap-2 rounded-lg border border-[var(--dms-green)]/40 bg-[var(--dms-green-light)]/20 p-3 ${x}`,children:[(0,a.jsx)("img",{src:(e=>{if(e.startsWith("http")||e.startsWith("data:"))return e;let s=window.location.origin;return`${s}${e.startsWith("/")?"":"/"}${e}`})(t),alt:"Customer signature",className:"max-h-20 object-contain"}),!u&&(0,a.jsxs)(c.$,{type:"button",variant:"ghost",size:"sm",className:"h-8 text-xs text-muted-foreground",onClick:()=>{y("drawing"),_()},children:[(0,a.jsx)(l.A,{className:"mr-1 h-3 w-3"}),"Re-sign"]})]}):(0,a.jsxs)("div",{ref:p,className:`flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-lg border bg-card ${x}`,children:[(0,a.jsxs)("div",{className:"flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2",children:[(0,a.jsxs)("span",{className:"flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground",children:[(0,a.jsx)(i.A,{className:"h-3 w-3"}),"Draw signature"]}),(0,a.jsxs)("div",{className:"ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1",children:[(0,a.jsxs)(c.$,{type:"button",variant:"ghost",size:"sm",className:"h-7 px-2 text-xs",onClick:_,disabled:!v,children:[(0,a.jsx)(l.A,{className:"h-3 w-3 sm:mr-1"}),(0,a.jsx)("span",{className:"hidden sm:inline",children:"Clear"})]}),(0,a.jsx)(c.$,{type:"button",variant:"ghost",size:"sm",className:"h-7 px-2 text-xs",onClick:()=>{y("idle"),_()},children:"Cancel"}),(0,a.jsxs)(c.$,{type:"button",size:"sm",className:"h-7 px-2 text-xs",onClick:()=>{let s=h.current;s&&s.toBlob(s=>{s&&(e(new File([s],`signature_${Date.now()}.png`,{type:"image/png"})),y("done"))},"image/png")},disabled:!v,children:[(0,a.jsx)(d.A,{className:"h-3 w-3 sm:mr-1"}),(0,a.jsx)("span",{className:"hidden sm:inline",children:"Save"})]})]})]}),(0,a.jsx)("canvas",{ref:h,className:"block h-36 w-full max-w-full cursor-crosshair bg-white box-border",style:{touchAction:"none"}})]})}},31529:(e,s,t)=>{t.d(s,{Gk:()=>d,O9:()=>l,gt:()=>i});var a=t(95155),r=t(94290),n=t(91337);function i(e){let s=e.toLowerCase();return"customer_rating_score"===s||"customer_satisfaction_score"===s||"csat_score"===s||"avg_rating"===s||"csat_actual"===s||"csat_target"===s||"csat"===s||s.includes("satisfaction")&&(s.includes("score")||s.includes("rating"))}function l(e){return e>=4?"Happy":e>=3?"Neutral":"Unhappy"}function d({value:e,max:s=5,size:t="md",showValue:i=!0,className:l,interactive:c=!1,onChange:o}){let m=function(e){if(null==e||""===e)return null;if("number"==typeof e&&Number.isFinite(e))return Math.max(0,Math.min(5,e));let s=String(e).trim().toLowerCase();if("happy"===s)return 5;if("neutral"===s)return 3;if("unhappy"===s)return 1;let t=s.match(/(\d+(?:\.\d+)?)/);if(!t)return null;let a=Number(t[1]);return Number.isFinite(a)?Math.max(0,Math.min(5,a)):null}(e),u="sm"===t?"h-3.5 w-3.5":"lg"===t?"h-6 w-6":"h-4 w-4";if(!c&&null==m)return(0,a.jsx)("span",{className:"text-muted-foreground",children:"—"});let x=m??0;return(0,a.jsxs)("span",{className:(0,n.cn)("inline-flex items-center gap-2",l),title:x?`${x.toFixed(x%1?1:0)} / ${s}`:void 0,"aria-label":c?`Select rating out of ${s} stars`:`${x.toFixed(1)} out of ${s} stars`,children:[(0,a.jsx)("span",{className:"inline-flex items-center gap-0.5",children:Array.from({length:s},(e,s)=>{let t=s+1,i=Math.max(0,Math.min(1,x-s)),l=i>0;return c&&o?(0,a.jsx)("button",{type:"button",className:(0,n.cn)("rounded p-0.5 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dms-gold/40",l?"text-dms-gold":"text-muted-foreground/40 hover:text-dms-gold/70"),"aria-label":`${t} star${1===t?"":"s"}`,"aria-pressed":x>=t,onClick:()=>o(t),children:(0,a.jsx)(r.A,{className:(0,n.cn)(u,l&&"fill-dms-gold"),strokeWidth:1.5})},s):(0,a.jsxs)("span",{className:"relative inline-flex",children:[(0,a.jsx)(r.A,{className:(0,n.cn)(u,"text-muted-foreground/35"),strokeWidth:1.5}),i>0&&(0,a.jsx)("span",{className:"absolute inset-0 overflow-hidden",style:{width:`${100*i}%`},children:(0,a.jsx)(r.A,{className:(0,n.cn)(u,"fill-dms-gold text-dms-gold"),strokeWidth:1.5})})]},s)})}),i&&(0,a.jsxs)("span",{className:"tabular-nums text-sm font-semibold text-foreground",children:[x?x%1==0?x.toFixed(0):x.toFixed(1):"—",(0,a.jsxs)("span",{className:"font-normal text-muted-foreground",children:[" / ",s]})]})]})}},39540:(e,s,t)=>{t.d(s,{T:()=>n});var a=t(95155);t(12115);var r=t(91337);function n({className:e,...s}){return(0,a.jsx)("textarea",{"data-slot":"textarea",className:(0,r.cn)("border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",e),...s})}},42074:(e,s,t)=>{t.d(s,{h:()=>l});var a=t(95155),r=t(12115),n=t(47650),i=t(91337);function l({children:e,className:s,align:t="end"}){let[d,c]=(0,r.useState)(!1);(0,r.useEffect)(()=>(c(!0),()=>c(!1)),[]);let o=(0,a.jsx)("div",{role:"toolbar","aria-label":"Form actions",className:(0,i.cn)("fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90","pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3","lg:left-64",s),children:(0,a.jsx)("div",{className:(0,i.cn)("mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6","between"===t?"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3":"grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"),children:e})});return d?(0,n.createPortal)(o,document.body):null}},61991:(e,s,t)=>{t.d(s,{w:()=>i});var a=t(95155);t(12115);var r=t(89803),n=t(91337);function i({className:e,orientation:s="horizontal",decorative:t=!0,...l}){return(0,a.jsx)(r.b,{"data-slot":"separator",decorative:t,orientation:s,className:(0,n.cn)("bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",e),...l})}},79984:(e,s,t)=>{t.d(s,{BT:()=>d,Wu:()=>c,ZB:()=>l,Zp:()=>n,aR:()=>i});var a=t(95155);t(12115);var r=t(91337);function n({className:e,...s}){return(0,a.jsx)("div",{"data-slot":"card",className:(0,r.cn)("bg-card text-card-foreground flex flex-col gap-2 rounded-[1.15rem] border py-3 shadow-[0_4px_20px_rgba(15,61,94,0.05)]",e),...s})}function i({className:e,...s}){return(0,a.jsx)("div",{"data-slot":"card-header",className:(0,r.cn)("@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-3",e),...s})}function l({className:e,...s}){return(0,a.jsx)("div",{"data-slot":"card-title",className:(0,r.cn)("leading-none font-serif-display font-semibold tracking-tight",e),...s})}function d({className:e,...s}){return(0,a.jsx)("div",{"data-slot":"card-description",className:(0,r.cn)("text-muted-foreground text-sm",e),...s})}function c({className:e,...s}){return(0,a.jsx)("div",{"data-slot":"card-content",className:(0,r.cn)("px-4",e),...s})}},84437:(e,s,t)=>{t.d(s,{S:()=>l});var a=t(95155);t(12115);var r=t(47279),n=t(94514),i=t(91337);function l({className:e,...s}){return(0,a.jsx)(r.bL,{"data-slot":"checkbox",className:(0,i.cn)("peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",e),...s,children:(0,a.jsx)(r.C1,{"data-slot":"checkbox-indicator",className:"flex items-center justify-center text-current transition-none",children:(0,a.jsx)(n.A,{className:"size-3.5"})})})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[8972],
+	{
+		8972: (e, s, t) => {
+			t.r(s), t.d(s, { default: () => E });
+			var a = t(95155),
+				r = t(12115),
+				n = t(55833),
+				i = t(36020),
+				l = t(10086),
+				d = t(4474),
+				c = t(39658),
+				o = t(79792),
+				m = t(39540),
+				u = t(79984),
+				x = t(84437),
+				h = t(61991),
+				p = t(26518),
+				g = t(30069),
+				f = t(42074),
+				v = t(31529),
+				j = t(5240),
+				b = t(60541),
+				y = t(80723),
+				N = t(48368),
+				w = t(14636),
+				_ = t(42869),
+				C = t(21053),
+				k = t(12651),
+				S = t(6296),
+				F = t(37618),
+				z = t(66609);
+			let A = ["Empty", "1/8", "1/4", "3/8", "1/2", "5/8", "3/4", "7/8", "Full"],
+				$ = ["Excellent", "Good", "Fair", "Customer Reported New Damage"],
+				R = [
+					"Cash",
+					"Card",
+					"Bank Transfer",
+					"Credit Account",
+					"Warranty",
+					"Insurance",
+					"Fleet Account",
+				];
+			function E() {
+				let { navigate: e, viewParams: s } = (0, n.c)(),
+					t = s.get("jobcard") || s.get("job_card") || s.get("id") || "",
+					[E, J] = (0, r.useState)(t);
+				(0, r.useEffect)(() => {
+					J(t);
+				}, [t]);
+				let L = E || t,
+					{ data: T, isLoading: B } = (0, i.pw)(L || null),
+					{ data: D, isLoading: W } = (0, i.eT)({ status: "Completed", limit: 100 }),
+					{ trigger: Z, isMutating: M } = (0, i.wB)(),
+					O = (D?.data ?? []).map((e) => ({
+						value: e.name,
+						label: e.name,
+						description: [e.license_plate, e.customer_name || e.customer]
+							.filter(Boolean)
+							.join(" \xb7 "),
+					})),
+					[q, P] = (0, r.useState)(() => new Date().toISOString().split("T")[0]),
+					[V, I] = (0, r.useState)(() => new Date().toTimeString().slice(0, 5)),
+					[G, U] = (0, r.useState)(""),
+					[X, Y] = (0, r.useState)(""),
+					[H, Q] = (0, r.useState)(""),
+					[K, ee] = (0, r.useState)("1/2"),
+					[es, et] = (0, r.useState)("Good"),
+					[ea, er] = (0, r.useState)(""),
+					[en, ei] = (0, r.useState)(!0),
+					[el, ed] = (0, r.useState)(!0),
+					[ec, eo] = (0, r.useState)(!0),
+					[em, eu] = (0, r.useState)("Cash"),
+					[ex, eh] = (0, r.useState)(0),
+					[ep, eg] = (0, r.useState)(""),
+					[ef, ev] = (0, r.useState)(""),
+					[ej, eb] = (0, r.useState)(""),
+					[ey, eN] = (0, r.useState)(""),
+					[ew, e_] = (0, r.useState)(null),
+					[eC, ek] = (0, r.useState)([]),
+					[eS, eF] = (0, r.useState)(""),
+					[ez, eA] = (0, r.useState)([]),
+					[e$, eR] = (0, r.useState)(!0),
+					[eE, eJ] = (0, r.useState)({});
+				(0, r.useEffect)(() => {
+					let e = !1;
+					return (
+						eR(!0),
+						Promise.all([b.gX(), b.VM()])
+							.then(([s, t]) => {
+								if (e) return;
+								ek(s);
+								let a = s.find((e) => !!e.is_default) || s[0];
+								eF(a?.name || t.template || "");
+								let r = t.items || [];
+								eA(r), eJ(Object.fromEntries(r.map((e) => [e, !1])));
+							})
+							.catch(() => {
+								e || z.o.error("Failed to load delivery checklist template");
+							})
+							.finally(() => {
+								e || eR(!1);
+							}),
+						() => {
+							e = !0;
+						}
+					);
+				}, []);
+				let eL = async (e) => {
+						eR(!0);
+						try {
+							let s = await b.VM(e || void 0),
+								t = s.items || [];
+							eA(t),
+								eJ(Object.fromEntries(t.map((e) => [e, !1]))),
+								eF(s.template || e);
+						} catch {
+							z.o.error("Failed to load checklist from template");
+						} finally {
+							eR(!1);
+						}
+					},
+					eT = T?.customer_name || T?.customer || "",
+					eB = T?.customer_mobile?.trim() || X.trim() || "",
+					eD = !!(T && !T.customer_mobile?.trim());
+				(0, r.useEffect)(() => {
+					T?.current_odometer && Q(String(T.current_odometer));
+				}, [T?.name, T?.current_odometer]);
+				let eW = (0, r.useMemo)(() => ez.length > 0 && ez.every((e) => eE[e]), [ez, eE]),
+					eZ = eW && !!ej && !!ey && ex >= 1 && !!H && en && ec,
+					eM = async (e, s) => {
+						e_(e);
+						try {
+							let t = await (0, j.QM)(s);
+							"customer" === e ? eb(t) : eN(t),
+								z.o.success(
+									"customer" === e
+										? "Customer signature saved"
+										: "Staff signature saved"
+								);
+						} catch (e) {
+							z.o.error(e instanceof Error ? e.message : "Failed to save signature");
+						} finally {
+							e_(null);
+						}
+					},
+					eO = async (s) => {
+						if ((s.preventDefault(), !T))
+							return void z.o.error("Job card is required");
+						if (!eW) return void z.o.error("Please complete all checklist items");
+						if (!ej || !ey)
+							return void z.o.error("Customer and staff signatures are required");
+						if (!(ex >= 1 && ex <= 5))
+							return void z.o.error("Please rate customer satisfaction (1–5 stars)");
+						try {
+							await Z({
+								job_card: T.name,
+								customer: T.customer,
+								vehicle_vin: T.vehicle_vin,
+								delivery_date_time: q ? `${q} ${V || "00:00"}:00` : "",
+								delivered_by: void 0,
+								received_by: G.trim() || void 0,
+								customer_mobile: eD ? X.trim() : void 0,
+								final_odometer_km: parseInt(H, 10) || 0,
+								final_fuel_level: K,
+								vehicle_condition: es,
+								new_damage_notes:
+									"Customer Reported New Damage" === es ? ea : void 0,
+								invoice_explained: en,
+								invoice_copy_given: el,
+								payment_cleared: ec,
+								payment_method: ec ? em : void 0,
+								customer_satisfaction_score: ex,
+								customer_satisfaction_initial: (0, v.O9)(ex),
+								customer_comments: ep || void 0,
+								customer_signature: ej,
+								delivered_by_signature: ey,
+								delivery_notes: ef || void 0,
+								delivery_checklist_template: eS || void 0,
+								checklist_completed: eE,
+								submit: !0,
+							}),
+								z.o.success("Vehicle delivery recorded"),
+								e("deliveries");
+						} catch (e) {
+							z.o.error(
+								e instanceof Error ? e.message : "Failed to record delivery"
+							);
+						}
+					};
+				return L && B
+					? (0, a.jsx)("div", {
+							className: "flex items-center justify-center h-96",
+							children: (0, a.jsx)("div", {
+								className:
+									"animate-spin rounded-full h-8 w-8 border-b-2 border-primary",
+							}),
+					  })
+					: (0, a.jsxs)("div", {
+							className: "min-w-0 space-y-4 sm:space-y-6",
+							children: [
+								(0, a.jsxs)("div", {
+									className: "flex items-center gap-4",
+									children: [
+										(0, a.jsx)(d.$, {
+											variant: "ghost",
+											size: "icon",
+											onClick: () => e("deliveries"),
+											children: (0, a.jsx)(y.A, { className: "h-5 w-5" }),
+										}),
+										(0, a.jsxs)("div", {
+											children: [
+												(0, a.jsx)("h1", {
+													className:
+														"text-2xl font-bold text-foreground",
+													children: "New Vehicle Delivery",
+												}),
+												(0, a.jsx)("p", {
+													className: "text-muted-foreground mt-1",
+													children:
+														"Record vehicle handover to customer",
+												}),
+											],
+										}),
+									],
+								}),
+								(0, a.jsxs)("form", {
+									id: "new-delivery-form",
+									onSubmit: eO,
+									className: "dms-form-page min-w-0 space-y-4 sm:space-y-6",
+									children: [
+										(0, a.jsxs)(u.Zp, {
+											className: T ? "border-primary/30 bg-primary/5" : "",
+											children: [
+												(0, a.jsxs)(u.aR, {
+													children: [
+														(0, a.jsxs)(u.ZB, {
+															className: "flex items-center gap-2",
+															children: [
+																(0, a.jsx)(N.A, {
+																	className: "h-5 w-5",
+																}),
+																"Job card *",
+															],
+														}),
+														(0, a.jsx)(u.BT, {
+															children:
+																"Link this delivery to a completed job card. Opening from a job card pre-fills this field.",
+														}),
+													],
+												}),
+												(0, a.jsxs)(u.Wu, {
+													className: "space-y-3",
+													children: [
+														(0, a.jsxs)("div", {
+															className: "space-y-2 max-w-lg",
+															children: [
+																(0, a.jsx)(o.J, {
+																	htmlFor: "job_card",
+																	children: "Job card ID",
+																}),
+																t && T
+																	? (0, a.jsx)(c.p, {
+																			id: "job_card",
+																			value: T.name,
+																			readOnly: !0,
+																			className:
+																				"bg-muted font-medium",
+																	  })
+																	: (0, a.jsx)(l.Zi, {
+																			value: E,
+																			onValueChange: J,
+																			options: O,
+																			placeholder:
+																				"Search completed job cards…",
+																			isLoading: W,
+																	  }),
+															],
+														}),
+														L &&
+															!T &&
+															!B &&
+															(0, a.jsxs)("p", {
+																className:
+																	"text-sm text-destructive",
+																children: [
+																	'Job card "',
+																	L,
+																	'" was not found.',
+																],
+															}),
+														!L &&
+															(0, a.jsx)("p", {
+																className:
+																	"text-sm text-muted-foreground",
+																children:
+																	"Select a job card to enable Record delivery.",
+															}),
+														T &&
+															(0, a.jsxs)("div", {
+																className:
+																	"grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground pt-1",
+																children: [
+																	(0, a.jsxs)("span", {
+																		children: [
+																			T.license_plate,
+																			" \xb7 ",
+																			T.vehicle_model,
+																		],
+																	}),
+																	null != T.net_amount &&
+																		(0, a.jsxs)("span", {
+																			children: [
+																				"Amount: ",
+																				Number(
+																					T.net_amount
+																				).toLocaleString(),
+																			],
+																		}),
+																],
+															}),
+													],
+												}),
+											],
+										}),
+										(0, a.jsxs)("div", {
+											className: "grid md:grid-cols-2 gap-6",
+											children: [
+												(0, a.jsxs)(u.Zp, {
+													children: [
+														(0, a.jsx)(u.aR, {
+															children: (0, a.jsxs)(u.ZB, {
+																className:
+																	"flex items-center gap-2",
+																children: [
+																	(0, a.jsx)(w.A, {
+																		className: "h-5 w-5",
+																	}),
+																	"Vehicle",
+																],
+															}),
+														}),
+														(0, a.jsxs)(u.Wu, {
+															className: "space-y-4",
+															children: [
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			children:
+																				"License plate",
+																		}),
+																		(0, a.jsx)(c.p, {
+																			value:
+																				T?.license_plate ||
+																				"",
+																			readOnly: !0,
+																			className: "bg-muted",
+																		}),
+																	],
+																}),
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			htmlFor:
+																				"final_odometer_km",
+																			children:
+																				"Final odometer (km) *",
+																		}),
+																		(0, a.jsx)(c.p, {
+																			id: "final_odometer_km",
+																			type: "number",
+																			min: 0,
+																			value: H,
+																			onChange: (e) =>
+																				Q(e.target.value),
+																			required: !0,
+																		}),
+																	],
+																}),
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			children:
+																				"Final fuel level *",
+																		}),
+																		(0, a.jsxs)(p.l6, {
+																			value: K,
+																			onValueChange: ee,
+																			children: [
+																				(0, a.jsx)(p.bq, {
+																					children: (0,
+																					a.jsx)(
+																						p.yv,
+																						{}
+																					),
+																				}),
+																				(0, a.jsx)(p.gC, {
+																					children:
+																						A.map(
+																							(e) =>
+																								(0,
+																								a.jsx)(
+																									p.eb,
+																									{
+																										value: e,
+																										children:
+																											e,
+																									},
+																									e
+																								)
+																						),
+																				}),
+																			],
+																		}),
+																	],
+																}),
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			children:
+																				"Condition at delivery",
+																		}),
+																		(0, a.jsxs)(p.l6, {
+																			value: es,
+																			onValueChange: et,
+																			children: [
+																				(0, a.jsx)(p.bq, {
+																					children: (0,
+																					a.jsx)(
+																						p.yv,
+																						{}
+																					),
+																				}),
+																				(0, a.jsx)(p.gC, {
+																					children:
+																						$.map(
+																							(e) =>
+																								(0,
+																								a.jsx)(
+																									p.eb,
+																									{
+																										value: e,
+																										children:
+																											e,
+																									},
+																									e
+																								)
+																						),
+																				}),
+																			],
+																		}),
+																	],
+																}),
+																"Customer Reported New Damage" ===
+																	es &&
+																	(0, a.jsxs)("div", {
+																		className: "space-y-2",
+																		children: [
+																			(0, a.jsx)(o.J, {
+																				htmlFor:
+																					"new_damage_notes",
+																				children:
+																					"New damage notes",
+																			}),
+																			(0, a.jsx)(m.T, {
+																				id: "new_damage_notes",
+																				rows: 2,
+																				value: ea,
+																				onChange: (e) =>
+																					er(
+																						e.target
+																							.value
+																					),
+																			}),
+																		],
+																	}),
+															],
+														}),
+													],
+												}),
+												(0, a.jsxs)(u.Zp, {
+													children: [
+														(0, a.jsxs)(u.aR, {
+															children: [
+																(0, a.jsxs)(u.ZB, {
+																	className:
+																		"flex items-center gap-2",
+																	children: [
+																		(0, a.jsx)(_.A, {
+																			className: "h-5 w-5",
+																		}),
+																		"Customer",
+																	],
+																}),
+																(0, a.jsx)(u.BT, {
+																	children:
+																		"Name and contact come from the customer record linked to the job card.",
+																}),
+															],
+														}),
+														(0, a.jsxs)(u.Wu, {
+															className: "space-y-4",
+															children: [
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			children:
+																				"Customer name",
+																		}),
+																		(0, a.jsx)(c.p, {
+																			value: eT,
+																			readOnly: !0,
+																			className: "bg-muted",
+																		}),
+																	],
+																}),
+																eD
+																	? (0, a.jsxs)("div", {
+																			className: "space-y-2",
+																			children: [
+																				(0, a.jsx)(o.J, {
+																					htmlFor:
+																						"customer_mobile",
+																					children:
+																						"Contact number",
+																				}),
+																				(0, a.jsx)(c.p, {
+																					id: "customer_mobile",
+																					type: "tel",
+																					placeholder:
+																						"Customer has no mobile on file — add one",
+																					value: X,
+																					onChange: (
+																						e
+																					) =>
+																						Y(
+																							e
+																								.target
+																								.value
+																						),
+																				}),
+																				(0, a.jsx)("p", {
+																					className:
+																						"text-xs text-muted-foreground",
+																					children:
+																						"Saved to the customer record if missing.",
+																				}),
+																			],
+																	  })
+																	: (0, a.jsxs)("div", {
+																			className: "space-y-2",
+																			children: [
+																				(0, a.jsx)(o.J, {
+																					children:
+																						"Contact number",
+																				}),
+																				(0, a.jsx)(c.p, {
+																					value: eB,
+																					readOnly: !0,
+																					className:
+																						"bg-muted",
+																				}),
+																			],
+																	  }),
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			htmlFor: "received_by",
+																			children:
+																				"Received by (customer / representative)",
+																		}),
+																		(0, a.jsx)(c.p, {
+																			id: "received_by",
+																			placeholder:
+																				"Name of person receiving the vehicle",
+																			value: G,
+																			onChange: (e) =>
+																				U(e.target.value),
+																		}),
+																	],
+																}),
+															],
+														}),
+													],
+												}),
+											],
+										}),
+										(0, a.jsxs)(u.Zp, {
+											children: [
+												(0, a.jsx)(u.aR, {
+													children: (0, a.jsxs)(u.ZB, {
+														className: "flex items-center gap-2",
+														children: [
+															(0, a.jsx)(C.A, {
+																className: "h-5 w-5",
+															}),
+															"Delivery details",
+														],
+													}),
+												}),
+												(0, a.jsxs)(u.Wu, {
+													className: "space-y-4",
+													children: [
+														(0, a.jsxs)("div", {
+															className: "grid md:grid-cols-2 gap-4",
+															children: [
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			htmlFor:
+																				"delivery_date",
+																			children:
+																				"Delivery date *",
+																		}),
+																		(0, a.jsx)(c.p, {
+																			id: "delivery_date",
+																			type: "date",
+																			value: q,
+																			onChange: (e) =>
+																				P(e.target.value),
+																			required: !0,
+																		}),
+																	],
+																}),
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			htmlFor:
+																				"delivery_time",
+																			children:
+																				"Delivery time *",
+																		}),
+																		(0, a.jsx)(c.p, {
+																			id: "delivery_time",
+																			type: "time",
+																			value: V,
+																			onChange: (e) =>
+																				I(e.target.value),
+																			required: !0,
+																		}),
+																	],
+																}),
+															],
+														}),
+														(0, a.jsx)("p", {
+															className:
+																"text-sm text-muted-foreground",
+															children:
+																"Delivered by is recorded as the logged-in user when the delivery is submitted.",
+														}),
+													],
+												}),
+											],
+										}),
+										(0, a.jsxs)(u.Zp, {
+											children: [
+												(0, a.jsx)(u.aR, {
+													children: (0, a.jsx)(u.ZB, {
+														children: "Billing confirmation",
+													}),
+												}),
+												(0, a.jsxs)(u.Wu, {
+													className: "space-y-4",
+													children: [
+														(0, a.jsxs)("div", {
+															className: "flex flex-wrap gap-6",
+															children: [
+																(0, a.jsxs)("label", {
+																	className:
+																		"flex items-center gap-2 cursor-pointer",
+																	children: [
+																		(0, a.jsx)(x.S, {
+																			checked: en,
+																			onCheckedChange: (e) =>
+																				ei(!!e),
+																		}),
+																		(0, a.jsx)("span", {
+																			className: "text-sm",
+																			children:
+																				"Invoice explained to customer *",
+																		}),
+																	],
+																}),
+																(0, a.jsxs)("label", {
+																	className:
+																		"flex items-center gap-2 cursor-pointer",
+																	children: [
+																		(0, a.jsx)(x.S, {
+																			checked: el,
+																			onCheckedChange: (e) =>
+																				ed(!!e),
+																		}),
+																		(0, a.jsx)("span", {
+																			className: "text-sm",
+																			children:
+																				"Invoice copy given",
+																		}),
+																	],
+																}),
+																(0, a.jsxs)("label", {
+																	className:
+																		"flex items-center gap-2 cursor-pointer",
+																	children: [
+																		(0, a.jsx)(x.S, {
+																			checked: ec,
+																			onCheckedChange: (e) =>
+																				eo(!!e),
+																		}),
+																		(0, a.jsx)("span", {
+																			className: "text-sm",
+																			children:
+																				"Payment cleared *",
+																		}),
+																	],
+																}),
+															],
+														}),
+														ec &&
+															(0, a.jsxs)("div", {
+																className: "space-y-2 max-w-xs",
+																children: [
+																	(0, a.jsx)(o.J, {
+																		children: "Payment method",
+																	}),
+																	(0, a.jsxs)(p.l6, {
+																		value: em,
+																		onValueChange: eu,
+																		children: [
+																			(0, a.jsx)(p.bq, {
+																				children: (0,
+																				a.jsx)(p.yv, {}),
+																			}),
+																			(0, a.jsx)(p.gC, {
+																				children: R.map(
+																					(e) =>
+																						(0, a.jsx)(
+																							p.eb,
+																							{
+																								value: e,
+																								children:
+																									e,
+																							},
+																							e
+																						)
+																				),
+																			}),
+																		],
+																	}),
+																],
+															}),
+													],
+												}),
+											],
+										}),
+										(0, a.jsxs)(u.Zp, {
+											children: [
+												(0, a.jsxs)(u.aR, {
+													children: [
+														(0, a.jsxs)(u.ZB, {
+															className: "flex items-center gap-2",
+															children: [
+																(0, a.jsx)(k.A, {
+																	className: "h-5 w-5",
+																}),
+																"Delivery checklist",
+															],
+														}),
+														(0, a.jsx)(u.BT, {
+															children:
+																"Complete all items before handing over the vehicle",
+														}),
+													],
+												}),
+												(0, a.jsxs)(u.Wu, {
+													className: "space-y-4",
+													children: [
+														(0, a.jsxs)("div", {
+															className: "space-y-2 max-w-lg",
+															children: [
+																(0, a.jsx)(o.J, {
+																	children: "Checklist template",
+																}),
+																(0, a.jsxs)(p.l6, {
+																	value: eS,
+																	onValueChange: (e) => {
+																		eF(e), eL(e);
+																	},
+																	disabled:
+																		e$ || 0 === eC.length,
+																	children: [
+																		(0, a.jsx)(p.bq, {
+																			children: (0, a.jsx)(
+																				p.yv,
+																				{
+																					placeholder:
+																						"Select checklist template",
+																				}
+																			),
+																		}),
+																		(0, a.jsx)(p.gC, {
+																			children: eC.map((e) =>
+																				(0, a.jsxs)(
+																					p.eb,
+																					{
+																						value: e.name,
+																						children: [
+																							e.template_name,
+																							e.is_default
+																								? " (Default)"
+																								: "",
+																						],
+																					},
+																					e.name
+																				)
+																			),
+																		}),
+																	],
+																}),
+															],
+														}),
+														e$
+															? (0, a.jsxs)("div", {
+																	className:
+																		"flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center",
+																	children: [
+																		(0, a.jsx)(S.A, {
+																			className:
+																				"h-4 w-4 animate-spin",
+																		}),
+																		"Loading checklist…",
+																	],
+															  })
+															: (0, a.jsxs)(a.Fragment, {
+																	children: [
+																		(0, a.jsx)("div", {
+																			className:
+																				"grid md:grid-cols-2 gap-3",
+																			children: ez.map((e) =>
+																				(0, a.jsxs)(
+																					"label",
+																					{
+																						className:
+																							"flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer",
+																						children: [
+																							(0,
+																							a.jsx)(
+																								x.S,
+																								{
+																									checked:
+																										eE[
+																											e
+																										],
+																									onCheckedChange:
+																										(
+																											s
+																										) =>
+																											eJ(
+																												(
+																													t
+																												) => ({
+																													...t,
+																													[e]: !!s,
+																												})
+																											),
+																								}
+																							),
+																							(0,
+																							a.jsx)(
+																								"span",
+																								{
+																									className:
+																										"text-sm leading-snug",
+																									children:
+																										e,
+																								}
+																							),
+																						],
+																					},
+																					e
+																				)
+																			),
+																		}),
+																		(0, a.jsx)(h.w, {
+																			className: "my-4",
+																		}),
+																		(0, a.jsxs)("p", {
+																			className:
+																				"text-sm text-muted-foreground",
+																			children: [
+																				Object.values(
+																					eE
+																				).filter(Boolean)
+																					.length,
+																				" of",
+																				" ",
+																				ez.length,
+																				" completed",
+																			],
+																		}),
+																	],
+															  }),
+													],
+												}),
+											],
+										}),
+										(0, a.jsxs)(u.Zp, {
+											children: [
+												(0, a.jsxs)(u.aR, {
+													children: [
+														(0, a.jsxs)(u.ZB, {
+															className: "flex items-center gap-2",
+															children: [
+																(0, a.jsx)(F.A, {
+																	className: "h-5 w-5",
+																}),
+																"Signatures",
+															],
+														}),
+														(0, a.jsx)(u.BT, {
+															children:
+																"Customer confirms receipt; staff confirms handover (required on desk checkout).",
+														}),
+													],
+												}),
+												(0, a.jsxs)(u.Wu, {
+													className: "min-w-0 space-y-4 sm:space-y-6",
+													children: [
+														(0, a.jsxs)("div", {
+															className: "grid md:grid-cols-2 gap-6",
+															children: [
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			children:
+																				"Customer signature *",
+																		}),
+																		(0, a.jsx)(g.g, {
+																			existingUrl:
+																				ej || void 0,
+																			uploading:
+																				"customer" === ew,
+																			onSave: (e) =>
+																				eM("customer", e),
+																			onClear: () => eb(""),
+																		}),
+																	],
+																}),
+																(0, a.jsxs)("div", {
+																	className: "space-y-2",
+																	children: [
+																		(0, a.jsx)(o.J, {
+																			children:
+																				"Delivered by signature (staff) *",
+																		}),
+																		(0, a.jsx)(g.g, {
+																			existingUrl:
+																				ey || void 0,
+																			uploading:
+																				"staff" === ew,
+																			onSave: (e) =>
+																				eM("staff", e),
+																			onClear: () => eN(""),
+																		}),
+																	],
+																}),
+															],
+														}),
+														(0, a.jsxs)("div", {
+															className: "space-y-2 max-w-md",
+															children: [
+																(0, a.jsx)(o.J, {
+																	children:
+																		"Customer satisfaction *",
+																}),
+																(0, a.jsxs)("div", {
+																	className:
+																		"rounded-lg border border-border/80 bg-card px-3 py-3",
+																	children: [
+																		(0, a.jsx)(v.Gk, {
+																			value: ex || null,
+																			size: "lg",
+																			interactive: !0,
+																			onChange: eh,
+																		}),
+																		(0, a.jsxs)("p", {
+																			className:
+																				"mt-1.5 text-[11px] text-muted-foreground",
+																			children: [
+																				"Tap a star (1–5). ",
+																				ex
+																					? `Selected: ${ex}/5 \xb7 ${(0,
+																					  v.O9)(ex)}`
+																					: "No rating yet",
+																			],
+																		}),
+																	],
+																}),
+															],
+														}),
+														(0, a.jsxs)("div", {
+															className: "space-y-2",
+															children: [
+																(0, a.jsx)(o.J, {
+																	htmlFor: "customer_comments",
+																	children: "Customer comments",
+																}),
+																(0, a.jsx)(m.T, {
+																	id: "customer_comments",
+																	rows: 2,
+																	placeholder:
+																		"Optional feedback at delivery",
+																	value: ep,
+																	onChange: (e) =>
+																		eg(e.target.value),
+																}),
+															],
+														}),
+													],
+												}),
+											],
+										}),
+										(0, a.jsxs)(u.Zp, {
+											children: [
+												(0, a.jsx)(u.aR, {
+													children: (0, a.jsx)(u.ZB, {
+														children: "Delivery notes",
+													}),
+												}),
+												(0, a.jsx)(u.Wu, {
+													children: (0, a.jsx)(m.T, {
+														rows: 3,
+														placeholder:
+															"Special instructions or notes…",
+														value: ef,
+														onChange: (e) => ev(e.target.value),
+													}),
+												}),
+											],
+										}),
+										(0, a.jsxs)(f.h, {
+											children: [
+												(0, a.jsx)(d.$, {
+													type: "button",
+													variant: "outline",
+													onClick: () => e("deliveries"),
+													children: "Cancel",
+												}),
+												(0, a.jsxs)(d.$, {
+													type: "submit",
+													form: "new-delivery-form",
+													disabled: M || !eZ,
+													children: [
+														(0, a.jsx)(C.A, {
+															className: "h-4 w-4 mr-2",
+														}),
+														M ? "Recording…" : "Record delivery",
+													],
+												}),
+											],
+										}),
+									],
+								}),
+							],
+					  });
+			}
+		},
+		26518: (e, s, t) => {
+			t.d(s, { bq: () => m, eb: () => x, gC: () => u, l6: () => c, yv: () => o });
+			var a = t(95155);
+			t(12115);
+			var r = t(40287),
+				n = t(66088),
+				i = t(94514),
+				l = t(9921),
+				d = t(91337);
+			function c({ ...e }) {
+				return (0, a.jsx)(r.bL, { "data-slot": "select", ...e });
+			}
+			function o({ ...e }) {
+				return (0, a.jsx)(r.WT, { "data-slot": "select-value", ...e });
+			}
+			function m({ className: e, size: s = "default", children: t, ...i }) {
+				return (0, a.jsxs)(r.l9, {
+					"data-slot": "select-trigger",
+					"data-size": s,
+					className: (0, d.cn)(
+						"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-full border bg-transparent px-4 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+						e
+					),
+					...i,
+					children: [
+						t,
+						(0, a.jsx)(r.In, {
+							asChild: !0,
+							children: (0, a.jsx)(n.A, { className: "size-4 opacity-50" }),
+						}),
+					],
+				});
+			}
+			function u({ className: e, children: s, position: t = "popper", ...n }) {
+				return (0, a.jsx)(r.ZL, {
+					children: (0, a.jsxs)(r.UC, {
+						"data-slot": "select-content",
+						className: (0, d.cn)(
+							"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+							"popper" === t &&
+								"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+							e
+						),
+						position: t,
+						...n,
+						children: [
+							(0, a.jsx)(h, {}),
+							(0, a.jsx)(r.LM, {
+								className: (0, d.cn)(
+									"p-1",
+									"popper" === t &&
+										"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
+								),
+								children: s,
+							}),
+							(0, a.jsx)(p, {}),
+						],
+					}),
+				});
+			}
+			function x({ className: e, children: s, ...t }) {
+				return (0, a.jsxs)(r.q7, {
+					"data-slot": "select-item",
+					className: (0, d.cn)(
+						"focus:bg-dms-green-light focus:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+						e
+					),
+					...t,
+					children: [
+						(0, a.jsx)("span", {
+							className:
+								"absolute right-2 flex size-3.5 items-center justify-center",
+							children: (0, a.jsx)(r.VF, {
+								children: (0, a.jsx)(i.A, { className: "size-4" }),
+							}),
+						}),
+						(0, a.jsx)(r.p4, { children: s }),
+					],
+				});
+			}
+			function h({ className: e, ...s }) {
+				return (0, a.jsx)(r.PP, {
+					"data-slot": "select-scroll-up-button",
+					className: (0, d.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...s,
+					children: (0, a.jsx)(l.A, { className: "size-4" }),
+				});
+			}
+			function p({ className: e, ...s }) {
+				return (0, a.jsx)(r.wn, {
+					"data-slot": "select-scroll-down-button",
+					className: (0, d.cn)(
+						"flex cursor-default items-center justify-center py-1",
+						e
+					),
+					...s,
+					children: (0, a.jsx)(n.A, { className: "size-4" }),
+				});
+			}
+		},
+		30069: (e, s, t) => {
+			t.d(s, { g: () => o });
+			var a = t(95155),
+				r = t(12115),
+				n = t(6296),
+				i = t(37618),
+				l = t(68459),
+				d = t(94514),
+				c = t(4474);
+			function o({
+				onSave: e,
+				onClear: s,
+				existingUrl: t,
+				uploading: m = !1,
+				disabled: u = !1,
+				className: x = "",
+			}) {
+				let h = (0, r.useRef)(null),
+					p = (0, r.useRef)(null),
+					g = (0, r.useRef)(!1),
+					f = (0, r.useRef)(!1),
+					[v, j] = (0, r.useState)(!1),
+					[b, y] = (0, r.useState)(t ? "done" : "idle");
+				(0, r.useEffect)(() => {
+					t && y("done");
+				}, [t]);
+				let N = (0, r.useCallback)((e = !1) => {
+						let s = h.current,
+							t = p.current;
+						if (!s || !t) return null;
+						let a = t.clientWidth;
+						if (a < 1) return null;
+						let r = Math.min(window.devicePixelRatio || 1, 3);
+						(s.width = Math.floor(a * r)),
+							(s.height = Math.floor(144 * r)),
+							(s.style.width = "100%"),
+							(s.style.maxWidth = "100%"),
+							(s.style.height = "144px");
+						let n = s.getContext("2d");
+						return n
+							? (n.setTransform(1, 0, 0, 1, 0, 0),
+							  n.scale(r, r),
+							  (n.strokeStyle = "#1e293b"),
+							  (n.lineWidth = 2.2),
+							  (n.lineCap = "round"),
+							  (n.lineJoin = "round"),
+							  e && n.clearRect(0, 0, a, 144),
+							  (f.current = !0),
+							  n)
+							: null;
+					}, []),
+					w = (0, r.useCallback)((e, s) => {
+						let t = s.getBoundingClientRect();
+						return t.width < 1 || t.height < 1
+							? { x: 0, y: 0 }
+							: e.target === s &&
+							  Number.isFinite(e.offsetX) &&
+							  Number.isFinite(e.offsetY)
+							? { x: e.offsetX, y: e.offsetY }
+							: {
+									x: Math.max(0, Math.min(t.width, e.clientX - t.left)),
+									y: Math.max(0, Math.min(t.height, e.clientY - t.top)),
+							  };
+					}, []);
+				(0, r.useEffect)(() => {
+					if ("drawing" !== b) {
+						f.current = !1;
+						return;
+					}
+					let e = h.current,
+						s = p.current;
+					if (!e || !s) return;
+					j(!1), N(!0);
+					let t = new ResizeObserver(() => {
+						g.current || N(!0);
+					});
+					t.observe(s);
+					let a = (s) => {
+							if (u || m) return;
+							("touch" === s.pointerType || "pen" === s.pointerType) &&
+								s.preventDefault(),
+								f.current || N(!0);
+							let t = e.getContext("2d");
+							if (!t) return;
+							e.setPointerCapture(s.pointerId), (g.current = !0);
+							let a = w(s, e);
+							t.beginPath(), t.moveTo(a.x, a.y);
+						},
+						r = (s) => {
+							if (!g.current) return;
+							("touch" === s.pointerType || "pen" === s.pointerType) &&
+								s.preventDefault();
+							let t = e.getContext("2d");
+							if (!t) return;
+							let a = w(s, e);
+							t.lineTo(a.x, a.y), t.stroke(), j(!0);
+						},
+						n = (s) => {
+							if (g.current) {
+								g.current = !1;
+								try {
+									e.releasePointerCapture(s.pointerId);
+								} catch {}
+							}
+						};
+					return (
+						e.addEventListener("pointerdown", a),
+						e.addEventListener("pointermove", r),
+						e.addEventListener("pointerup", n),
+						e.addEventListener("pointercancel", n),
+						e.addEventListener("pointerleave", n),
+						() => {
+							t.disconnect(),
+								e.removeEventListener("pointerdown", a),
+								e.removeEventListener("pointermove", r),
+								e.removeEventListener("pointerup", n),
+								e.removeEventListener("pointercancel", n),
+								e.removeEventListener("pointerleave", n);
+						}
+					);
+				}, [b, u, m, N, w]);
+				let _ = () => {
+					N(!0), j(!1), s?.();
+				};
+				return m
+					? (0, a.jsxs)("div", {
+							className: `flex min-h-[120px] w-full min-w-0 max-w-full items-center justify-center rounded-lg border border-dashed bg-muted/30 ${x}`,
+							children: [
+								(0, a.jsx)(n.A, {
+									className: "h-6 w-6 animate-spin text-muted-foreground",
+								}),
+								(0, a.jsx)("span", {
+									className: "ml-2 text-sm text-muted-foreground",
+									children: "Saving signature…",
+								}),
+							],
+					  })
+					: "idle" === b
+					? (0, a.jsxs)("button", {
+							type: "button",
+							disabled: u,
+							onClick: () => y("drawing"),
+							className: `flex min-h-[120px] w-full min-w-0 max-w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground transition-colors hover:border-[var(--dms-green)] hover:bg-[var(--dms-green-light)]/30 hover:text-foreground disabled:opacity-50 ${x}`,
+							children: [
+								(0, a.jsx)(i.A, { className: "h-5 w-5" }),
+								(0, a.jsx)("span", {
+									className: "text-sm font-medium",
+									children: "Customer digital signature",
+								}),
+								(0, a.jsx)("span", {
+									className: "text-xs",
+									children: "Tap to sign",
+								}),
+							],
+					  })
+					: "done" === b && t
+					? (0, a.jsxs)("div", {
+							className: `flex min-h-[120px] w-full min-w-0 max-w-full flex-col items-center justify-center gap-2 rounded-lg border border-[var(--dms-green)]/40 bg-[var(--dms-green-light)]/20 p-3 ${x}`,
+							children: [
+								(0, a.jsx)("img", {
+									src: ((e) => {
+										if (e.startsWith("http") || e.startsWith("data:"))
+											return e;
+										let s = window.location.origin;
+										return `${s}${e.startsWith("/") ? "" : "/"}${e}`;
+									})(t),
+									alt: "Customer signature",
+									className: "max-h-20 object-contain",
+								}),
+								!u &&
+									(0, a.jsxs)(c.$, {
+										type: "button",
+										variant: "ghost",
+										size: "sm",
+										className: "h-8 text-xs text-muted-foreground",
+										onClick: () => {
+											y("drawing"), _();
+										},
+										children: [
+											(0, a.jsx)(l.A, { className: "mr-1 h-3 w-3" }),
+											"Re-sign",
+										],
+									}),
+							],
+					  })
+					: (0, a.jsxs)("div", {
+							ref: p,
+							className: `flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-lg border bg-card ${x}`,
+							children: [
+								(0, a.jsxs)("div", {
+									className:
+										"flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2",
+									children: [
+										(0, a.jsxs)("span", {
+											className:
+												"flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground",
+											children: [
+												(0, a.jsx)(i.A, { className: "h-3 w-3" }),
+												"Draw signature",
+											],
+										}),
+										(0, a.jsxs)("div", {
+											className:
+												"ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1",
+											children: [
+												(0, a.jsxs)(c.$, {
+													type: "button",
+													variant: "ghost",
+													size: "sm",
+													className: "h-7 px-2 text-xs",
+													onClick: _,
+													disabled: !v,
+													children: [
+														(0, a.jsx)(l.A, {
+															className: "h-3 w-3 sm:mr-1",
+														}),
+														(0, a.jsx)("span", {
+															className: "hidden sm:inline",
+															children: "Clear",
+														}),
+													],
+												}),
+												(0, a.jsx)(c.$, {
+													type: "button",
+													variant: "ghost",
+													size: "sm",
+													className: "h-7 px-2 text-xs",
+													onClick: () => {
+														y("idle"), _();
+													},
+													children: "Cancel",
+												}),
+												(0, a.jsxs)(c.$, {
+													type: "button",
+													size: "sm",
+													className: "h-7 px-2 text-xs",
+													onClick: () => {
+														let s = h.current;
+														s &&
+															s.toBlob((s) => {
+																s &&
+																	(e(
+																		new File(
+																			[s],
+																			`signature_${Date.now()}.png`,
+																			{ type: "image/png" }
+																		)
+																	),
+																	y("done"));
+															}, "image/png");
+													},
+													disabled: !v,
+													children: [
+														(0, a.jsx)(d.A, {
+															className: "h-3 w-3 sm:mr-1",
+														}),
+														(0, a.jsx)("span", {
+															className: "hidden sm:inline",
+															children: "Save",
+														}),
+													],
+												}),
+											],
+										}),
+									],
+								}),
+								(0, a.jsx)("canvas", {
+									ref: h,
+									className:
+										"block h-36 w-full max-w-full cursor-crosshair bg-white box-border",
+									style: { touchAction: "none" },
+								}),
+							],
+					  });
+			}
+		},
+		31529: (e, s, t) => {
+			t.d(s, { Gk: () => d, O9: () => l, gt: () => i });
+			var a = t(95155),
+				r = t(94290),
+				n = t(91337);
+			function i(e) {
+				let s = e.toLowerCase();
+				return (
+					"customer_rating_score" === s ||
+					"customer_satisfaction_score" === s ||
+					"csat_score" === s ||
+					"avg_rating" === s ||
+					"csat_actual" === s ||
+					"csat_target" === s ||
+					"csat" === s ||
+					(s.includes("satisfaction") && (s.includes("score") || s.includes("rating")))
+				);
+			}
+			function l(e) {
+				return e >= 4 ? "Happy" : e >= 3 ? "Neutral" : "Unhappy";
+			}
+			function d({
+				value: e,
+				max: s = 5,
+				size: t = "md",
+				showValue: i = !0,
+				className: l,
+				interactive: c = !1,
+				onChange: o,
+			}) {
+				let m = (function (e) {
+						if (null == e || "" === e) return null;
+						if ("number" == typeof e && Number.isFinite(e))
+							return Math.max(0, Math.min(5, e));
+						let s = String(e).trim().toLowerCase();
+						if ("happy" === s) return 5;
+						if ("neutral" === s) return 3;
+						if ("unhappy" === s) return 1;
+						let t = s.match(/(\d+(?:\.\d+)?)/);
+						if (!t) return null;
+						let a = Number(t[1]);
+						return Number.isFinite(a) ? Math.max(0, Math.min(5, a)) : null;
+					})(e),
+					u = "sm" === t ? "h-3.5 w-3.5" : "lg" === t ? "h-6 w-6" : "h-4 w-4";
+				if (!c && null == m)
+					return (0, a.jsx)("span", {
+						className: "text-muted-foreground",
+						children: "—",
+					});
+				let x = m ?? 0;
+				return (0, a.jsxs)("span", {
+					className: (0, n.cn)("inline-flex items-center gap-2", l),
+					title: x ? `${x.toFixed(x % 1 ? 1 : 0)} / ${s}` : void 0,
+					"aria-label": c
+						? `Select rating out of ${s} stars`
+						: `${x.toFixed(1)} out of ${s} stars`,
+					children: [
+						(0, a.jsx)("span", {
+							className: "inline-flex items-center gap-0.5",
+							children: Array.from({ length: s }, (e, s) => {
+								let t = s + 1,
+									i = Math.max(0, Math.min(1, x - s)),
+									l = i > 0;
+								return c && o
+									? (0, a.jsx)(
+											"button",
+											{
+												type: "button",
+												className: (0, n.cn)(
+													"rounded p-0.5 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dms-gold/40",
+													l
+														? "text-dms-gold"
+														: "text-muted-foreground/40 hover:text-dms-gold/70"
+												),
+												"aria-label": `${t} star${1 === t ? "" : "s"}`,
+												"aria-pressed": x >= t,
+												onClick: () => o(t),
+												children: (0, a.jsx)(r.A, {
+													className: (0, n.cn)(u, l && "fill-dms-gold"),
+													strokeWidth: 1.5,
+												}),
+											},
+											s
+									  )
+									: (0, a.jsxs)(
+											"span",
+											{
+												className: "relative inline-flex",
+												children: [
+													(0, a.jsx)(r.A, {
+														className: (0, n.cn)(
+															u,
+															"text-muted-foreground/35"
+														),
+														strokeWidth: 1.5,
+													}),
+													i > 0 &&
+														(0, a.jsx)("span", {
+															className:
+																"absolute inset-0 overflow-hidden",
+															style: { width: `${100 * i}%` },
+															children: (0, a.jsx)(r.A, {
+																className: (0, n.cn)(
+																	u,
+																	"fill-dms-gold text-dms-gold"
+																),
+																strokeWidth: 1.5,
+															}),
+														}),
+												],
+											},
+											s
+									  );
+							}),
+						}),
+						i &&
+							(0, a.jsxs)("span", {
+								className: "tabular-nums text-sm font-semibold text-foreground",
+								children: [
+									x ? (x % 1 == 0 ? x.toFixed(0) : x.toFixed(1)) : "—",
+									(0, a.jsxs)("span", {
+										className: "font-normal text-muted-foreground",
+										children: [" / ", s],
+									}),
+								],
+							}),
+					],
+				});
+			}
+		},
+		39540: (e, s, t) => {
+			t.d(s, { T: () => n });
+			var a = t(95155);
+			t(12115);
+			var r = t(91337);
+			function n({ className: e, ...s }) {
+				return (0, a.jsx)("textarea", {
+					"data-slot": "textarea",
+					className: (0, r.cn)(
+						"border-input placeholder:text-muted-foreground focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-2xl border bg-transparent px-4 py-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+						e
+					),
+					...s,
+				});
+			}
+		},
+		42074: (e, s, t) => {
+			t.d(s, { h: () => l });
+			var a = t(95155),
+				r = t(12115),
+				n = t(47650),
+				i = t(91337);
+			function l({ children: e, className: s, align: t = "end" }) {
+				let [d, c] = (0, r.useState)(!1);
+				(0, r.useEffect)(() => (c(!0), () => c(!1)), []);
+				let o = (0, a.jsx)("div", {
+					role: "toolbar",
+					"aria-label": "Form actions",
+					className: (0, i.cn)(
+						"fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(15,61,94,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
+						"pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3",
+						"lg:left-64",
+						s
+					),
+					children: (0, a.jsx)("div", {
+						className: (0, i.cn)(
+							"mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6",
+							"between" === t
+								? "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3"
+								: "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3"
+						),
+						children: e,
+					}),
+				});
+				return d ? (0, n.createPortal)(o, document.body) : null;
+			}
+		},
+		61991: (e, s, t) => {
+			t.d(s, { w: () => i });
+			var a = t(95155);
+			t(12115);
+			var r = t(89803),
+				n = t(91337);
+			function i({ className: e, orientation: s = "horizontal", decorative: t = !0, ...l }) {
+				return (0, a.jsx)(r.b, {
+					"data-slot": "separator",
+					decorative: t,
+					orientation: s,
+					className: (0, n.cn)(
+						"bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+						e
+					),
+					...l,
+				});
+			}
+		},
+		79984: (e, s, t) => {
+			t.d(s, { BT: () => d, Wu: () => c, ZB: () => l, Zp: () => n, aR: () => i });
+			var a = t(95155);
+			t(12115);
+			var r = t(91337);
+			function n({ className: e, ...s }) {
+				return (0, a.jsx)("div", {
+					"data-slot": "card",
+					className: (0, r.cn)(
+						"bg-card text-card-foreground flex flex-col gap-2 rounded-[1.15rem] border py-3 shadow-[0_4px_20px_rgba(15,61,94,0.05)]",
+						e
+					),
+					...s,
+				});
+			}
+			function i({ className: e, ...s }) {
+				return (0, a.jsx)("div", {
+					"data-slot": "card-header",
+					className: (0, r.cn)(
+						"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-3",
+						e
+					),
+					...s,
+				});
+			}
+			function l({ className: e, ...s }) {
+				return (0, a.jsx)("div", {
+					"data-slot": "card-title",
+					className: (0, r.cn)(
+						"leading-none font-serif-display font-semibold tracking-tight",
+						e
+					),
+					...s,
+				});
+			}
+			function d({ className: e, ...s }) {
+				return (0, a.jsx)("div", {
+					"data-slot": "card-description",
+					className: (0, r.cn)("text-muted-foreground text-sm", e),
+					...s,
+				});
+			}
+			function c({ className: e, ...s }) {
+				return (0, a.jsx)("div", {
+					"data-slot": "card-content",
+					className: (0, r.cn)("px-4", e),
+					...s,
+				});
+			}
+		},
+		84437: (e, s, t) => {
+			t.d(s, { S: () => l });
+			var a = t(95155);
+			t(12115);
+			var r = t(47279),
+				n = t(94514),
+				i = t(91337);
+			function l({ className: e, ...s }) {
+				return (0, a.jsx)(r.bL, {
+					"data-slot": "checkbox",
+					className: (0, i.cn)(
+						"peer border-input dark:bg-input/30 data-[state=checked]:bg-dms-green data-[state=checked]:text-white dark:data-[state=checked]:bg-dms-green data-[state=checked]:border-dms-green focus-visible:border-dms-green focus-visible:ring-(--dms-green)/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 cursor-pointer rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+						e
+					),
+					...s,
+					children: (0, a.jsx)(r.C1, {
+						"data-slot": "checkbox-indicator",
+						className: "flex items-center justify-center text-current transition-none",
+						children: (0, a.jsx)(n.A, { className: "size-3.5" }),
+					}),
+				});
+			}
+		},
+	},
+]);

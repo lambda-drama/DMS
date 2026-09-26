@@ -309,7 +309,9 @@ def auto_create_vin_on_bundle_submit(doc, method=None):
 
 
 @frappe.whitelist()
-def create_vin_from_serial_numbers(company, start_date, end_date, item_code=None, status_filter=None, force_recreate=0):
+def create_vin_from_serial_numbers(
+	company, start_date, end_date, item_code=None, status_filter=None, force_recreate=0
+):
 	"""
 	Create VIN No records from existing Serial Numbers
 
@@ -351,11 +353,25 @@ def create_vin_from_serial_numbers(company, start_date, end_date, item_code=None
 		"Serial No",
 		filters=serial_filters,
 		fields=[
-			"name", "serial_no", "item_code", "item_name", "customer",
-			"status", "posting_date", "warranty_expiry_date", "description", "company",
-			"custom_engine_number", "custom_model", "custom_year", "custom_interior_color",
-			"custom_exterior_color", "custom_transmission_type", "brand",
-			"reference_doctype", "reference_name",
+			"name",
+			"serial_no",
+			"item_code",
+			"item_name",
+			"customer",
+			"status",
+			"posting_date",
+			"warranty_expiry_date",
+			"description",
+			"company",
+			"custom_engine_number",
+			"custom_model",
+			"custom_year",
+			"custom_interior_color",
+			"custom_exterior_color",
+			"custom_transmission_type",
+			"brand",
+			"reference_doctype",
+			"reference_name",
 		],
 	)
 
@@ -378,10 +394,12 @@ def create_vin_from_serial_numbers(company, start_date, end_date, item_code=None
 				result["skipped"] += 1
 		except Exception as e:
 			result["errors"] += 1
-			result["error_details"].append({
-				"serial": serial.serial_no,
-				"error": str(e),
-			})
+			result["error_details"].append(
+				{
+					"serial": serial.serial_no,
+					"error": str(e),
+				}
+			)
 			frappe.log_error(
 				f"Error creating VIN for serial {serial.serial_no}: {e!s}",
 				"VIN Creation",

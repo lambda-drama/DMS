@@ -1,1 +1,210 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[6008],{6008:(e,r,t)=>{t.r(r),t.d(r,{default:()=>v});var s=t(95155),a=t(12115),i=t(44855),n=t(32144),d=t(55833),l=t(79984),c=t(39658),o=t(23511),u=t(38291);function v(){let{navigate:e}=(0,d.c)(),[r,t]=(0,a.useState)(""),[v,x]=(0,a.useState)("all"),{data:m,isLoading:g}=(0,i.Ay)(["crm-delivery-readiness",r,v],()=>(0,n.J1)({search:r,status:v})),h=m?.data||[];return(0,s.jsxs)("div",{className:"space-y-4",children:[(0,s.jsx)("div",{className:"flex flex-wrap items-end justify-between gap-3",children:(0,s.jsxs)("div",{children:[(0,s.jsx)("h1",{className:"text-xl font-semibold tracking-tight",children:"Delivery Readiness"}),(0,s.jsx)("p",{className:"text-sm text-muted-foreground",children:"Commercial, vehicle, documents, customer, handover and CRM checks before delivery."})]})}),(0,s.jsxs)(l.Zp,{children:[(0,s.jsx)(l.aR,{className:"pb-3",children:(0,s.jsx)(l.ZB,{className:"text-base",children:"Filters"})}),(0,s.jsxs)(l.Wu,{className:"flex flex-wrap gap-3",children:[(0,s.jsx)(c.p,{placeholder:"Search deal, customer or VIN…",value:r,onChange:e=>t(e.target.value),className:"max-w-sm"}),(0,s.jsx)("select",{className:"h-9 rounded-md border border-input bg-background px-3 text-sm",value:v,onChange:e=>x(e.target.value),children:["all","Draft","In Progress","Ready","Blocked","Delivered"].map(e=>(0,s.jsx)("option",{value:e,children:"all"===e?"All statuses":e},e))})]})]}),g?(0,s.jsx)(o.E,{className:"h-64"}):(0,s.jsx)(l.Zp,{children:(0,s.jsx)(l.Wu,{className:"divide-y p-0",children:0===h.length?(0,s.jsx)("p",{className:"p-6 text-sm text-muted-foreground",children:"No delivery readiness records yet."}):h.map(r=>(0,s.jsxs)("button",{type:"button",className:"flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/40",onClick:()=>e("crm-delivery-readiness-detail",{id:String(r.name)}),children:[(0,s.jsxs)("div",{children:[(0,s.jsx)("div",{className:"font-medium",children:String(r.name)}),(0,s.jsxs)("div",{className:"text-xs text-muted-foreground",children:[String(r.opportunity||"—")," \xb7 ",String(r.customer||"—")," \xb7"," ",String(r.vehicle_vin||"No VIN")]})]}),(0,s.jsx)(u.E,{variant:"outline",children:String(r.status||"Draft")})]},String(r.name)))})})]})}},23511:(e,r,t)=>{t.d(r,{E:()=>i});var s=t(95155),a=t(91337);function i({className:e,...r}){return(0,s.jsx)("div",{"data-slot":"skeleton",className:(0,a.cn)("bg-accent animate-pulse rounded-md",e),...r})}},38291:(e,r,t)=>{t.d(r,{E:()=>l});var s=t(95155);t(12115);var a=t(42442),i=t(18460),n=t(91337);let d=(0,i.F)("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",{variants:{variant:{default:"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",secondary:"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",destructive:"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",outline:"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground"}},defaultVariants:{variant:"default"}});function l({className:e,variant:r,asChild:t=!1,...i}){let c=t?a.DX:"span";return(0,s.jsx)(c,{"data-slot":"badge",className:(0,n.cn)(d({variant:r}),e),...i})}}}]);
+"use strict";
+(self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([
+	[6008],
+	{
+		6008: (e, r, t) => {
+			t.r(r), t.d(r, { default: () => v });
+			var s = t(95155),
+				a = t(12115),
+				i = t(44855),
+				n = t(32144),
+				d = t(55833),
+				l = t(79984),
+				c = t(39658),
+				o = t(23511),
+				u = t(38291);
+			function v() {
+				let { navigate: e } = (0, d.c)(),
+					[r, t] = (0, a.useState)(""),
+					[v, x] = (0, a.useState)("all"),
+					{ data: m, isLoading: g } = (0, i.Ay)(["crm-delivery-readiness", r, v], () =>
+						(0, n.J1)({ search: r, status: v })
+					),
+					h = m?.data || [];
+				return (0, s.jsxs)("div", {
+					className: "space-y-4",
+					children: [
+						(0, s.jsx)("div", {
+							className: "flex flex-wrap items-end justify-between gap-3",
+							children: (0, s.jsxs)("div", {
+								children: [
+									(0, s.jsx)("h1", {
+										className: "text-xl font-semibold tracking-tight",
+										children: "Delivery Readiness",
+									}),
+									(0, s.jsx)("p", {
+										className: "text-sm text-muted-foreground",
+										children:
+											"Commercial, vehicle, documents, customer, handover and CRM checks before delivery.",
+									}),
+								],
+							}),
+						}),
+						(0, s.jsxs)(l.Zp, {
+							children: [
+								(0, s.jsx)(l.aR, {
+									className: "pb-3",
+									children: (0, s.jsx)(l.ZB, {
+										className: "text-base",
+										children: "Filters",
+									}),
+								}),
+								(0, s.jsxs)(l.Wu, {
+									className: "flex flex-wrap gap-3",
+									children: [
+										(0, s.jsx)(c.p, {
+											placeholder: "Search deal, customer or VIN…",
+											value: r,
+											onChange: (e) => t(e.target.value),
+											className: "max-w-sm",
+										}),
+										(0, s.jsx)("select", {
+											className:
+												"h-9 rounded-md border border-input bg-background px-3 text-sm",
+											value: v,
+											onChange: (e) => x(e.target.value),
+											children: [
+												"all",
+												"Draft",
+												"In Progress",
+												"Ready",
+												"Blocked",
+												"Delivered",
+											].map((e) =>
+												(0, s.jsx)(
+													"option",
+													{
+														value: e,
+														children: "all" === e ? "All statuses" : e,
+													},
+													e
+												)
+											),
+										}),
+									],
+								}),
+							],
+						}),
+						g
+							? (0, s.jsx)(o.E, { className: "h-64" })
+							: (0, s.jsx)(l.Zp, {
+									children: (0, s.jsx)(l.Wu, {
+										className: "divide-y p-0",
+										children:
+											0 === h.length
+												? (0, s.jsx)("p", {
+														className:
+															"p-6 text-sm text-muted-foreground",
+														children:
+															"No delivery readiness records yet.",
+												  })
+												: h.map((r) =>
+														(0, s.jsxs)(
+															"button",
+															{
+																type: "button",
+																className:
+																	"flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/40",
+																onClick: () =>
+																	e(
+																		"crm-delivery-readiness-detail",
+																		{ id: String(r.name) }
+																	),
+																children: [
+																	(0, s.jsxs)("div", {
+																		children: [
+																			(0, s.jsx)("div", {
+																				className:
+																					"font-medium",
+																				children: String(
+																					r.name
+																				),
+																			}),
+																			(0, s.jsxs)("div", {
+																				className:
+																					"text-xs text-muted-foreground",
+																				children: [
+																					String(
+																						r.opportunity ||
+																							"—"
+																					),
+																					" \xb7 ",
+																					String(
+																						r.customer ||
+																							"—"
+																					),
+																					" \xb7",
+																					" ",
+																					String(
+																						r.vehicle_vin ||
+																							"No VIN"
+																					),
+																				],
+																			}),
+																		],
+																	}),
+																	(0, s.jsx)(u.E, {
+																		variant: "outline",
+																		children: String(
+																			r.status || "Draft"
+																		),
+																	}),
+																],
+															},
+															String(r.name)
+														)
+												  ),
+									}),
+							  }),
+					],
+				});
+			}
+		},
+		23511: (e, r, t) => {
+			t.d(r, { E: () => i });
+			var s = t(95155),
+				a = t(91337);
+			function i({ className: e, ...r }) {
+				return (0, s.jsx)("div", {
+					"data-slot": "skeleton",
+					className: (0, a.cn)("bg-accent animate-pulse rounded-md", e),
+					...r,
+				});
+			}
+		},
+		38291: (e, r, t) => {
+			t.d(r, { E: () => l });
+			var s = t(95155);
+			t(12115);
+			var a = t(42442),
+				i = t(18460),
+				n = t(91337);
+			let d = (0, i.F)(
+				"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+				{
+					variants: {
+						variant: {
+							default:
+								"border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+							secondary:
+								"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+							destructive:
+								"border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+							outline:
+								"text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+						},
+					},
+					defaultVariants: { variant: "default" },
+				}
+			);
+			function l({ className: e, variant: r, asChild: t = !1, ...i }) {
+				let c = t ? a.DX : "span";
+				return (0, s.jsx)(c, {
+					"data-slot": "badge",
+					className: (0, n.cn)(d({ variant: r }), e),
+					...i,
+				});
+			}
+		},
+	},
+]);

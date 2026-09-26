@@ -14,18 +14,15 @@ frappe.ui.form.on("Serial No", {
 				if (!r.message || !r.message.eligible) return;
 
 				const warning = r.message.warning;
-				frm.add_custom_button(
-					__("Create VIN No"),
-					() => {
-						const message = warning
-							? __(
-									"Create a VIN No record from this serial number?<br><br><b>Note:</b> {0}",
-									[warning]
-								)
-							: __("Create a VIN No record from this serial number?");
-						frappe.confirm(message, () => create_vin_no(frm));
-					}
-				);
+				frm.add_custom_button(__("Create VIN No"), () => {
+					const message = warning
+						? __(
+								"Create a VIN No record from this serial number?<br><br><b>Note:</b> {0}",
+								[warning]
+						  )
+						: __("Create a VIN No record from this serial number?");
+					frappe.confirm(message, () => create_vin_no(frm));
+				});
 			},
 		});
 	},

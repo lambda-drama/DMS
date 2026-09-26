@@ -6,7 +6,6 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, add_months, cint, get_datetime, now_datetime
 
-
 MIN_NOTES_LEN = 5
 
 
