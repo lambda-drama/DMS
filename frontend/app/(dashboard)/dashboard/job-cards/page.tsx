@@ -61,6 +61,7 @@ import { ListRowActions } from "@/components/list-row-actions";
 import { ClearDateFiltersButton } from "@/components/clear-date-filters-button";
 import { cn, vehicleListingLines } from "@/lib/utils";
 import * as jobCardsSvc from "@/services/jobCards";
+import * as deliveriesSvc from "@/services/deliveries";
 import type { DMSJobCard, JobCardStatus } from "@/types/dms";
 import {
   Dialog,
@@ -82,7 +83,11 @@ function canCreateRepeatJob(jc: Pick<DMSJobCard, "status" | "job_card_type">) {
 
 function canCancelJobCard(jc: Pick<DMSJobCard, "status" | "docstatus">) {
   const workflow = resolveJobCardWorkflowStatus(jc.status, jc.docstatus);
-  return workflow !== "Cancelled" && workflow !== "Delivered";
+  return workflow !== "Cancelled";
+}
+
+function isDeliveredJobCard(jc: Pick<DMSJobCard, "status" | "docstatus">) {
+  return resolveJobCardWorkflowStatus(jc.status, jc.docstatus) === "Delivered";
 }
 
 function isCancelledJobCard(jc: Pick<DMSJobCard, "status" | "docstatus">) {
@@ -289,6 +294,8 @@ export default function JobCardsPage() {
   const [showMobileStats, setShowMobileStats] = useState(false);
   const [repeatSource, setRepeatSource] = useState<DMSJobCard | null>(null);
   const [cancelTarget, setCancelTarget] = useState<DMSJobCard | null>(null);
+  const [deliveredCancelTarget, setDeliveredCancelTarget] = useState<DMSJobCard | null>(null);
+  const [invoiceCancelTarget, setInvoiceCancelTarget] = useState<DMSJobCard | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [creatingVersion, setCreatingVersion] = useState<string | null>(null);
@@ -371,6 +378,51 @@ export default function JobCardsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to cancel job card");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const requestCancelJobCard = (jc: DMSJobCard) => {
+    if (isDeliveredJobCard(jc)) {
+      setDeliveredCancelTarget(jc);
+      return;
+    }
+    if (jc.invoice) {
+      setInvoiceCancelTarget(jc);
+      return;
+    }
+    setCancelReason("");
+    setCancelTarget(jc);
+  };
+
+  const handleContinueToInvoice = () => {
+    const jc = invoiceCancelTarget;
+    if (!jc?.invoice) {
+      setInvoiceCancelTarget(null);
+      return;
+    }
+    setInvoiceCancelTarget(null);
+    navigate("invoices", { id: jc.invoice, cancel_job_card: jc.name });
+  };
+
+  const handleContinueToDelivery = async () => {
+    const jc = deliveredCancelTarget;
+    if (!jc) return;
+    try {
+      const delivery = await deliveriesSvc.getDeliveryForJobCard(jc.name);
+      setDeliveredCancelTarget(null);
+      if (delivery?.name) {
+        navigate("deliveries", { id: delivery.name, cancel_job_card: jc.name });
+        return;
+      }
+      toast.error("No submitted delivery found. You can cancel the job card directly.");
+      if (jc.invoice) {
+        setInvoiceCancelTarget(jc);
+        return;
+      }
+      setCancelReason("");
+      setCancelTarget(jc);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to open delivery");
     }
   };
 
@@ -740,10 +792,7 @@ export default function JobCardsPage() {
                                 {canCancelJobCard(jc) ? (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
-                                    onClick={() => {
-                                      setCancelReason("");
-                                      setCancelTarget(jc);
-                                    }}
+                                    onClick={() => requestCancelJobCard(jc)}
                                   >
                                     <XCircle className="mr-2 h-4 w-4" />
                                     Cancel Job Card
@@ -923,10 +972,7 @@ export default function JobCardsPage() {
                               {canCancelJobCard(jc) ? (
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
-                                  onClick={() => {
-                                    setCancelReason("");
-                                    setCancelTarget(jc);
-                                  }}
+                                  onClick={() => requestCancelJobCard(jc)}
                                 >
                                   <XCircle className="h-4 w-4 mr-2" />
                                   Cancel Job Card
@@ -1084,6 +1130,60 @@ export default function JobCardsPage() {
           navigate("job-card-detail", { id: name });
         }}
       />
+
+      <Dialog
+        open={!!deliveredCancelTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeliveredCancelTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel delivered job card?</DialogTitle>
+            <DialogDescription>
+              {deliveredCancelTarget
+                ? `${deliveredCancelTarget.name} is already delivered. Cancel the delivery first, then come back to cancel this job card.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeliveredCancelTarget(null)}>
+              Keep Job Card
+            </Button>
+            <Button variant="destructive" onClick={() => void handleContinueToDelivery()}>
+              <XCircle className="h-4 w-4 mr-2" />
+              Continue to Delivery
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!invoiceCancelTarget}
+        onOpenChange={(open) => {
+          if (!open) setInvoiceCancelTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel the invoice first?</DialogTitle>
+            <DialogDescription>
+              {invoiceCancelTarget
+                ? `${invoiceCancelTarget.name} has invoice ${invoiceCancelTarget.invoice}. Cancel that invoice first (or delete it if it is still a draft), then come back to cancel this job card.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInvoiceCancelTarget(null)}>
+              Keep Job Card
+            </Button>
+            <Button variant="destructive" onClick={handleContinueToInvoice}>
+              <XCircle className="h-4 w-4 mr-2" />
+              Continue to Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={!!cancelTarget}

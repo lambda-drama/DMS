@@ -283,6 +283,34 @@ def get_invoice_tax_preview(
 	)
 
 
+def _sync_customer_contact_from_invoice_payload(customer: str, data: dict) -> None:
+	"""Write phone / email from the standalone invoice form onto the Customer.
+
+	``Customer.mobile_no`` / ``email_id`` are read-only ``fetch_from`` fields of the
+	primary Contact, so values go through :func:`sync_customer_contact`. Blank values
+	are omitted so creating an invoice never clears stored contact details.
+	"""
+	customer = (customer or "").strip()
+	if not customer or not frappe.db.exists("Customer", customer):
+		return
+
+	updates: dict[str, str] = {}
+	mobile = (data.get("customer_mobile_no") or data.get("mobile_no") or "").strip()
+	email = (data.get("customer_email_id") or data.get("email_id") or "").strip()
+	if mobile:
+		updates["mobile_no"] = mobile
+	if email:
+		updates["email_id"] = email
+	if not updates or not frappe.has_permission("Customer", "write"):
+		return
+
+	from dms.utils.customer_contact import changed_contact_values, sync_customer_contact
+
+	changes = changed_contact_values(customer, **updates)
+	if changes:
+		sync_customer_contact(customer, **changes)
+
+
 @frappe.whitelist()
 def create_standalone_invoice(data):
 	"""Create a Sales Invoice from the DMS UI (labour + parts, no job card)."""
@@ -299,8 +327,11 @@ def create_standalone_invoice(data):
 		create_standalone_dms_sales_invoice,
 	)
 
+	customer = resolve_dms_customer(data.get("customer"))
+	_sync_customer_contact_from_invoice_payload(customer, data)
+
 	name = create_standalone_dms_sales_invoice(
-		customer=resolve_dms_customer(data.get("customer")),
+		customer=customer,
 		company=data.get("company"),
 		labour_lines=data.get("labour") or data.get("labour_lines") or [],
 		parts_lines=data.get("parts") or data.get("parts_lines") or [],
@@ -696,6 +727,10 @@ def cancel_sales_invoice(sales_invoice):
 		frappe.throw(_("Only submitted invoices can be cancelled."))
 
 	si.check_permission("cancel")
+
+	from dms.api.payment_entries import unlink_payment_entries_from_sales_invoice
+
+	unlink_payment_entries_from_sales_invoice(si)
 	si.cancel()
 
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
@@ -1206,6 +1241,7 @@ def collect_payment(
 	reference_no=None,
 	payments=None,
 	remarks=None,
+	posting_date=None,
 ):
 	"""Record one or more Payment Entries against a Sales Invoice.
 
@@ -1216,6 +1252,8 @@ def collect_payment(
 	remain supported. ``remarks`` (header level) is the operator's receipt note; it is
 	stored on ``Payment Entry.custom_dms_remarks`` and shown on the invoice/payment
 	screens. A row-level ``remarks`` overrides the header value for that entry.
+
+	``posting_date`` is the Payment Entry date (defaults to today).
 	"""
 	_ensure_erpnext()
 	import json
@@ -1312,6 +1350,7 @@ def collect_payment(
 	created: list[str] = []
 	paid_total = 0.0
 	pe_meta = frappe.get_meta("Payment Entry")
+	pe_posting_date = getdate(posting_date) if posting_date else getdate(today())
 	si_job_card = (
 		(si.get("custom_dms_job_card") or "").strip()
 		if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card")
@@ -1331,6 +1370,11 @@ def collect_payment(
 		pe = get_payment_entry("Sales Invoice", invoice_name)
 		if isinstance(pe, dict):
 			pe = frappe.get_doc(pe)
+
+		pe.set_posting_time = 1
+		pe.posting_date = pe_posting_date
+		if not pe.get("reference_date"):
+			pe.reference_date = pe_posting_date
 
 		pe.mode_of_payment = spec["mode_of_payment"]
 		if spec.get("reference_no"):

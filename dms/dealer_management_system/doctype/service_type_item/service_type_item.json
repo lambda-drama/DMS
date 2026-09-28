@@ -6,36 +6,12 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "parent",
-  "parenttype",
-  "parentfield",
   "service_type",
   "is_urgent",
   "estimated_hours",
   "notes"
  ],
  "fields": [
-  {
-   "fieldname": "parent",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Parent",
-   "read_only": 1
-  },
-  {
-   "fieldname": "parenttype",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Parent Type",
-   "read_only": 1
-  },
-  {
-   "fieldname": "parentfield",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Parent Field",
-   "read_only": 1
-  },
   {
    "columns": 3,
    "fieldname": "service_type",

@@ -407,14 +407,14 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Delivery Status",
-   "options": "Completed\nPartial\nCustomer Not Available\nRescheduled\nFailed"
+   "options": "Completed\nPartial\nCustomer Not Available\nRescheduled\nFailed\nCancelled"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-10 01:27:23.606480",
+ "modified": "2026-09-29 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Delivery Note",
@@ -422,6 +422,8 @@
  "owner": "Administrator",
  "permissions": [
   {
+   "amend": 1,
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -431,9 +433,12 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
+   "amend": 1,
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -443,6 +448,7 @@
    "report": 1,
    "role": "Dealer Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],
@@ -470,6 +476,10 @@
   {
    "color": "Red",
    "title": "Failed"
+  },
+  {
+   "color": "Red",
+   "title": "Cancelled"
   }
  ]
 }

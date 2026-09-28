@@ -339,3 +339,60 @@ def submit_delivery(name):
 	frappe.db.commit()
 
 	return {"name": doc.name, "docstatus": doc.docstatus}
+
+
+@frappe.whitelist()
+def get_delivery_for_job_card(job_card):
+	"""Submitted delivery linked to a job card, if any."""
+	from dms.dealer_management_system.doctype.vehicle_delivery_note.vehicle_delivery_note import (
+		get_submitted_delivery_for_job_card,
+	)
+
+	if not job_card:
+		frappe.throw(_("Job Card is required"))
+	name = get_submitted_delivery_for_job_card(job_card)
+	if not name:
+		return None
+	doc = frappe.get_doc("Vehicle Delivery Note", name)
+	doc.check_permission("read")
+	return {
+		"name": doc.name,
+		"job_card": doc.job_card,
+		"status": doc.status,
+		"docstatus": doc.docstatus,
+	}
+
+
+@frappe.whitelist()
+def cancel_delivery(name, reason=None):
+	"""Cancel a submitted vehicle delivery and revert the job card to Completed."""
+	from frappe.utils import cint
+
+	if not name:
+		frappe.throw(_("Delivery name is required"))
+
+	doc = frappe.get_doc("Vehicle Delivery Note", name)
+	if not (doc.has_permission("cancel") or doc.has_permission("write")):
+		frappe.throw(_("Not permitted to cancel this Delivery"))
+
+	if cint(doc.docstatus) == 2:
+		frappe.throw(_("Delivery is already cancelled."))
+	if cint(doc.docstatus) != 1:
+		frappe.throw(_("Only submitted deliveries can be cancelled."))
+
+	doc.flags.ignore_permissions = True
+	doc.cancel()
+	frappe.db.commit()
+	doc.reload()
+
+	job_card_status = None
+	if doc.job_card:
+		job_card_status = frappe.db.get_value("DMS Job Card", doc.job_card, "status")
+
+	return {
+		"name": doc.name,
+		"status": doc.status,
+		"docstatus": doc.docstatus,
+		"job_card": doc.job_card,
+		"job_card_status": job_card_status,
+	}

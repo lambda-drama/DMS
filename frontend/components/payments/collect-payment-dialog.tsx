@@ -1,6 +1,6 @@
 'use client';
 
-import { formatDate } from '@/lib/date-format';
+import { formatDate, todayISO } from '@/lib/date-format';
 
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -86,7 +86,8 @@ export interface CollectPaymentDialogProps {
   closeOnRecord?: boolean;
   onRecord: (
     payments: PaymentRowPayload[],
-    remarks: string
+    remarks: string,
+    postingDate: string
   ) => Promise<{ payment_entry?: string; payment_entries?: string[] }>;
   onPaid?: () => void;
 }
@@ -106,6 +107,7 @@ export function CollectPaymentDialog({
   const [submitting, setSubmitting] = useState(false);
   const [rows, setRows] = useState<PaymentRow[]>([newPaymentRow()]);
   const [remarks, setRemarks] = useState('');
+  const [postingDate, setPostingDate] = useState(todayISO);
 
   const outstanding = target?.outstanding || 0;
   const currency = target?.currency;
@@ -115,6 +117,7 @@ export function CollectPaymentDialog({
     setSubmitting(false);
     setRows([newPaymentRow(modes[0]?.name || '', outstanding)]);
     setRemarks('');
+    setPostingDate(todayISO());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on open/target only
   }, [open, target?.name]);
 
@@ -172,6 +175,10 @@ export function CollectPaymentDialog({
       toast.error('Add at least one mode of payment with an amount');
       return;
     }
+    if (!postingDate) {
+      toast.error('Enter a posting date');
+      return;
+    }
     if (totalPaid <= 0) {
       toast.error('Enter a valid payment amount');
       return;
@@ -179,7 +186,7 @@ export function CollectPaymentDialog({
 
     setSubmitting(true);
     try {
-      const result = await onRecord(payments, remarks.trim());
+      const result = await onRecord(payments, remarks.trim(), postingDate);
       const label =
         result.payment_entries && result.payment_entries.length > 1
           ? result.payment_entries.join(', ')
@@ -255,6 +262,21 @@ export function CollectPaymentDialog({
 
               {canPay ? (
                 <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="collect-payment-posting-date">Posting date *</Label>
+                    <Input
+                      id="collect-payment-posting-date"
+                      type="date"
+                      value={postingDate}
+                      onChange={(e) => setPostingDate(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Date of this receipt in the accounts books. Defaults to today — change it to
+                      backdate.
+                    </p>
+                  </div>
+
                   <div className="hidden items-center gap-2 px-1 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(7rem,0.7fr)_minmax(0,1fr)_2.25rem]">
                     <span>Mode *</span>
                     <span>Amount *</span>

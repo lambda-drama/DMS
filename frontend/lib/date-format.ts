@@ -145,3 +145,14 @@ export function toISODateTime(value: DateInput, fallback = ''): string {
 export function todayISO(): string {
   return toISODate(new Date());
 }
+
+/** Add calendar months to a `yyyy-mm-dd` date, clamping the day to the month length. */
+export function addCalendarMonthsISO(isoDate: DateInput, months: number): string {
+  const d = parseDateValue(isoDate) || new Date();
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+  return toISODate(d);
+}

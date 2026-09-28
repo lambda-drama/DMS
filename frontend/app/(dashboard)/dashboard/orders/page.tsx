@@ -60,14 +60,21 @@ function formatMoney(amount?: number, currency?: string) {
   }).format(amount ?? 0);
 }
 
-const STATUS_OPTIONS = ['Draft', 'To Deliver and Bill', 'To Bill', 'To Deliver', 'Completed', 'Cancelled'];
+const STATUS_OPTIONS = [
+  'Draft',
+  'To Deliver and Bill',
+  'To Bill',
+  'To Deliver',
+  'Completed',
+  'Cancelled',
+];
 
 export default function OrdersPage() {
   const { viewParams, navigate } = useNavigation();
   const { canCreate, canWrite, canDelete, canSubmit, canCancel } = usePermissions();
 
   const [search, setSearch] = usePersistedFilter('orders', 'search', '');
-  const [status, setStatus] = usePersistedFilter('orders', 'status', '');
+  const [status, setStatus] = usePersistedFilter('orders', 'status', 'all');
   const [debounced, setDebounced] = useState(search);
   const [selectedId, setSelectedId] = useState<string | null>(viewParams.get('name'));
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -90,7 +97,7 @@ export default function OrdersPage() {
     () =>
       ordersSvc.listDmsOrders({
         search: debounced || undefined,
-        status: status || undefined,
+        status: status && status !== 'all' ? status : undefined,
         limit: 100,
       })
   );
@@ -200,13 +207,13 @@ export default function OrdersPage() {
             </div>
             <Select
               value={status || 'all'}
-              onValueChange={(value) => setStatus(value === 'all' ? '' : value)}
+              onValueChange={setStatus}
             >
               <SelectTrigger className="sm:w-56">
-                <SelectValue placeholder="All statuses" />
+                <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="all">All (excl. Cancelled)</SelectItem>
                 {STATUS_OPTIONS.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
@@ -237,7 +244,7 @@ export default function OrdersPage() {
                     <TableHead>Order</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Order date</TableHead>
-                    <TableHead>Expected</TableHead>
+                    <TableHead>Valid To</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Paid</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
@@ -553,7 +560,7 @@ export default function OrdersPage() {
               <DetailRow label="Customer" value={selected.customer_name || selected.customer} />
               <DetailRow label="Company" value={selected.company} />
               <DetailRow label="Order date" value={selected.transaction_date} />
-              <DetailRow label="Expected delivery" value={selected.delivery_date} />
+              <DetailRow label="Valid To" value={selected.delivery_date} />
               <DetailRow label="Warehouse" value={selected.warehouse || undefined} />
               <DetailRow label="Status" value={selected.status} />
               {selected.amended_from ? (

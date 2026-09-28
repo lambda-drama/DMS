@@ -9,6 +9,7 @@ import { useJobCard, useServiceBays, useServiceEstimate, useTechnicians } from "
 import { canEditJobCardAssignment, canStartRepairFromWorkflow, isJobCardWorkshopAssigned, resolveJobCardWorkflowStatus } from "@/lib/job-card-workflow";
 import { technicianDisplayName, technicianNameFromList } from "@/lib/technician-label";
 import * as jobCardsSvc from "@/services/jobCards";
+import * as deliveriesSvc from "@/services/deliveries";
 import type { OriginalJobCardStage } from "@/services/jobCards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,6 +79,7 @@ import {
   FilePenLine,
   Paperclip,
   Eye,
+  Ban,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -254,7 +256,7 @@ function UseMainJobCardToggle({
 export default function JobCardDetailPage() {
   const { viewParams, navigate } = useNavigation();
   const id = viewParams.get("id") || "";
-  const { canEditPrice, canWrite, canCreate } = usePermissions();
+  const { canEditPrice, canWrite, canCreate, canCancel } = usePermissions();
   const { data: jobCard, isLoading, error, mutate } = useJobCard(id || null);
   const { data: linkedEstimate } = useServiceEstimate(jobCard?.service_estimate || null);
   const [additionalWorkRequests, setAdditionalWorkRequests] = useState<AdditionalWorkRequestSummary[]>([]);
@@ -279,6 +281,13 @@ export default function JobCardDetailPage() {
   const [qcFailReason, setQcFailReason] = useState("");
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
   const [showRepeatJobDialog, setShowRepeatJobDialog] = useState(false);
+  const [showCancelJobDialog, setShowCancelJobDialog] = useState(false);
+  const [showCancelDeliveryFirstDialog, setShowCancelDeliveryFirstDialog] = useState(false);
+  const [showCancelInvoiceFirstDialog, setShowCancelInvoiceFirstDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancellingJobCard, setCancellingJobCard] = useState(false);
+  const openedCancelAfterDelivery = useRef(false);
+  const [cancelReturnReady, setCancelReturnReady] = useState(false);
   const [partsFlowRefreshKey, setPartsFlowRefreshKey] = useState(0);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showAdvanceDialog, setShowAdvanceDialog] = useState(false);
@@ -497,6 +506,90 @@ export default function JobCardDetailPage() {
     }
   };
 
+  const goToLinkedDelivery = async (openCancel = false) => {
+    const linked = jobCard?.vehicle_delivery;
+    if (linked) {
+      navigate("deliveries", {
+        id: linked,
+        ...(openCancel ? { cancel_job_card: id } : {}),
+      });
+      return;
+    }
+    try {
+      const delivery = await deliveriesSvc.getDeliveryForJobCard(id);
+      if (!delivery?.name) {
+        toast.error("No submitted delivery found for this job card");
+        return;
+      }
+      navigate("deliveries", {
+        id: delivery.name,
+        ...(openCancel ? { cancel_job_card: id } : {}),
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to open delivery");
+    }
+  };
+
+  const handleConfirmCancelDeliveryFirst = async () => {
+    setShowCancelDeliveryFirstDialog(false);
+    const linked = jobCard?.vehicle_delivery;
+    if (linked) {
+      navigate("deliveries", { id: linked, cancel_job_card: id });
+      return;
+    }
+    try {
+      const delivery = await deliveriesSvc.getDeliveryForJobCard(id);
+      if (delivery?.name) {
+        navigate("deliveries", { id: delivery.name, cancel_job_card: id });
+        return;
+      }
+    } catch {
+      /* fall through */
+    }
+    if (jobCard?.has_active_invoice || jobCard?.invoice) {
+      setShowCancelInvoiceFirstDialog(true);
+      return;
+    }
+    setShowCancelJobDialog(true);
+  };
+
+  const handleConfirmCancelInvoiceFirst = () => {
+    setShowCancelInvoiceFirstDialog(false);
+    const invoiceName = (jobCard?.invoice || "").trim();
+    if (invoiceName) {
+      navigate("invoices", { id: invoiceName, cancel_job_card: id });
+      return;
+    }
+    setShowCancelJobDialog(true);
+  };
+
+  const openCancelJobCardFlow = () => {
+    if (workflowStatus === "Delivered") {
+      setShowCancelDeliveryFirstDialog(true);
+      return;
+    }
+    if (jobCard?.has_active_invoice) {
+      setShowCancelInvoiceFirstDialog(true);
+      return;
+    }
+    setShowCancelJobDialog(true);
+  };
+
+  const handleConfirmCancelJobCard = async () => {
+    setCancellingJobCard(true);
+    try {
+      await jobCardsSvc.cancelJobCard(id, cancelReason.trim() || undefined);
+      toast.success(`Job card ${id} cancelled`);
+      setShowCancelJobDialog(false);
+      setCancelReason("");
+      await mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel job card");
+    } finally {
+      setCancellingJobCard(false);
+    }
+  };
+
   const refreshInvoiceDetail = useCallback(async (invoiceName: string) => {
     try {
       const detail = await invoicesSvc.getSalesInvoiceDetail(invoiceName);
@@ -513,6 +606,40 @@ export default function JobCardDetailPage() {
       setInvoiceDetail(null);
     }
   }, [jobCard?.invoice, refreshInvoiceDetail]);
+
+  useEffect(() => {
+    if (viewParams.get("cancel") !== "1" || !id) {
+      setCancelReturnReady(false);
+      return;
+    }
+    let cancelled = false;
+    void mutate().finally(() => {
+      if (!cancelled) setCancelReturnReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, viewParams, mutate]);
+
+  useEffect(() => {
+    if (openedCancelAfterDelivery.current) return;
+    if (viewParams.get("cancel") !== "1" || !jobCard || !cancelReturnReady) return;
+    const wf = resolveJobCardWorkflowStatus(jobCard.status, jobCard.docstatus);
+    if (wf === "Cancelled") {
+      openedCancelAfterDelivery.current = true;
+      return;
+    }
+    openedCancelAfterDelivery.current = true;
+    if (wf === "Delivered") {
+      setShowCancelDeliveryFirstDialog(true);
+      return;
+    }
+    if (jobCard.has_active_invoice) {
+      setShowCancelInvoiceFirstDialog(true);
+      return;
+    }
+    setShowCancelJobDialog(true);
+  }, [viewParams, jobCard, cancelReturnReady]);
 
   useEffect(() => {
     if (!jobCard?.assigned_bay || jobCard.warehouse) {
@@ -671,6 +798,9 @@ export default function JobCardDetailPage() {
   const existingAmendment =
     jobCard.already_amended && jobCard.amended_as ? jobCard.amended_as : null;
   const canCreateNewVersion = workflowStatus === "Cancelled";
+  const canCancelThisJobCard =
+    workflowStatus !== "Cancelled" &&
+    (canMutateJobCard || canCancel("job-cards"));
   const mainJobCardName = jobCard.original_job_card || jobCard.amended_from || "";
   const reuse = jobCard.original_stage_reuse;
   const showUseMainApproval =
@@ -1472,6 +1602,7 @@ export default function JobCardDetailPage() {
           <ListRowActions doctype="DMS Job Card" docName={id}>
             {status === "Draft" ||
             workflowStatus === "Cancelled" ||
+            canCancelThisJobCard ||
             (!isInternal && (status === "Completed" || status === "Delivered")) ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1531,6 +1662,15 @@ export default function JobCardDetailPage() {
                     >
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Create Repeat Job
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canCancelThisJobCard ? (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={openCancelJobCardFlow}
+                    >
+                      <Ban className="mr-2 h-4 w-4" />
+                      Cancel Job Card
                     </DropdownMenuItem>
                   ) : null}
                 </DropdownMenuContent>
@@ -1983,6 +2123,27 @@ export default function JobCardDetailPage() {
                 Vehicle Delivery Note
               </Button>
             )}
+            {status === "Delivered" && (
+              <Button
+                variant="outline"
+                onClick={() => void goToLinkedDelivery(false)}
+                disabled={busy}
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                View Delivery
+              </Button>
+            )}
+            {canCancelThisJobCard ? (
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={openCancelJobCardFlow}
+                disabled={busy || cancellingJobCard}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                Cancel Job Card
+              </Button>
+            ) : null}
             {isInternal && jobCard.material_issue && (
               <Button variant="outline" size="sm" asChild>
                 <a
@@ -4012,6 +4173,113 @@ export default function JobCardDetailPage() {
         busy={savingLabourEdit}
         onSave={(payload) => void saveLabourLineEdit(payload)}
       />
+
+      <Dialog
+        open={showCancelDeliveryFirstDialog}
+        onOpenChange={setShowCancelDeliveryFirstDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel delivered job card?</DialogTitle>
+            <DialogDescription>
+              This vehicle has already been delivered. Cancel the delivery first, then come back
+              to cancel this job card.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelDeliveryFirstDialog(false)}
+            >
+              Keep Job Card
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirmCancelDeliveryFirst()}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Continue to Delivery
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showCancelInvoiceFirstDialog}
+        onOpenChange={setShowCancelInvoiceFirstDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel the invoice first?</DialogTitle>
+            <DialogDescription>
+              This job card has invoice {jobCard.invoice || ""}. Cancel that invoice first (or
+              delete it if it is still a draft), then come back to cancel this job card.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelInvoiceFirstDialog(false)}
+            >
+              Keep Job Card
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmCancelInvoiceFirst}>
+              <Ban className="h-4 w-4 mr-2" />
+              Continue to Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showCancelJobDialog}
+        onOpenChange={(open) => {
+          if (!open && !cancellingJobCard) {
+            setShowCancelJobDialog(false);
+            setCancelReason("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Job Card</DialogTitle>
+            <DialogDescription>
+              Cancel {id}? Linked parts stock transfers will be reversed. The job card is not
+              deleted — filter status to Cancelled to find it later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="detail-cancel-reason">Reason (optional)</Label>
+            <Textarea
+              id="detail-cancel-reason"
+              placeholder="Why is this job card being cancelled?"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCancelJobDialog(false);
+                setCancelReason("");
+              }}
+              disabled={cancellingJobCard}
+            >
+              Keep Job Card
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirmCancelJobCard()}
+              disabled={cancellingJobCard}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              {cancellingJobCard ? "Cancelling…" : "Cancel Job Card"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={Boolean(lineToDelete)}

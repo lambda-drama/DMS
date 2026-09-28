@@ -269,8 +269,16 @@ class DMSJobCard(Document):
 	def before_cancel(self):
 		"""Desk or API cancel: keep workflow status in sync with docstatus 2."""
 		self.status = "Cancelled"
+		from dms.api.payment_entries import unlink_payment_entries_from_job_card
+
+		unlink_payment_entries_from_job_card(self.name)
 		if not getattr(self.flags, "skip_cancel_side_effects", False):
 			reverse_job_card_cancel_side_effects(self.name)
+
+	def on_trash(self):
+		from dms.api.payment_entries import unlink_payment_entries_from_job_card
+
+		unlink_payment_entries_from_job_card(self.name)
 
 	def on_cancel(self):
 		prev = None

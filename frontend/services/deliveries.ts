@@ -57,6 +57,34 @@ export async function submitDelivery(name: string): Promise<{ name: string; docs
   });
 }
 
+export async function getDeliveryForJobCard(jobCard: string): Promise<{
+  name: string;
+  job_card: string;
+  status?: string;
+  docstatus?: number;
+} | null> {
+  return apiRequest(`/api/method/${API}.get_delivery_for_job_card`, {
+    method: 'POST',
+    body: JSON.stringify({ job_card: jobCard }),
+  });
+}
+
+export async function cancelDelivery(
+  name: string,
+  reason?: string
+): Promise<{
+  name: string;
+  status: string;
+  docstatus: number;
+  job_card?: string;
+  job_card_status?: string;
+}> {
+  return apiRequest(`/api/method/${API}.cancel_delivery`, {
+    method: 'POST',
+    body: JSON.stringify({ name, reason: reason || null }),
+  });
+}
+
 export interface DeliveryChecklistTemplateOption {
   name: string;
   template_name: string;

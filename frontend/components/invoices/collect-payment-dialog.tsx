@@ -85,11 +85,12 @@ export function CollectPaymentDialog({
       target={target}
       modes={modes}
       loading={loading}
-      onRecord={async (payments: PaymentRowPayload[], remarks: string) =>
+      onRecord={async (payments: PaymentRowPayload[], remarks: string, postingDate: string) =>
         invoicesSvc.collectPayment({
           salesInvoice,
           payments,
           remarks: remarks || undefined,
+          postingDate,
         })
       }
       onPaid={onPaid}

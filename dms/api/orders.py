@@ -14,7 +14,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, fmt_money
+from frappe.utils import add_months, cint, flt, fmt_money, today
 
 from dms.api.spare_part_sales import (
 	_build_spare_part_remarks,
@@ -132,7 +132,9 @@ def _order_builder_kwargs(ctx: dict, data: dict) -> dict:
 		"parts_lines": ctx["parts_lines"],
 		"warehouse": ctx["warehouse"],
 		"currency": data.get("currency") or _company_currency(ctx["company"]),
-		"delivery_date": data.get("delivery_date") or data.get("due_date"),
+		"delivery_date": data.get("delivery_date")
+		or data.get("due_date")
+		or add_months(today(), 1),
 		"transaction_date": data.get("posting_date") or data.get("transaction_date"),
 		"remarks": _build_spare_part_remarks(ctx, data, default_remarks=ORDER_REMARKS_PREFIX),
 		"labour_discount": data.get("labour_discount"),
@@ -163,8 +165,13 @@ def list_dms_orders(
 	frappe.has_permission("Sales Order", "read", throw=True)
 
 	filters = dict(_order_so_filters())
-	if status:
+	status = (status or "").strip()
+	if status and status.lower() != "all":
 		filters["status"] = status
+	else:
+		# Default list: hide cancelled so they stay out of the active queue
+		filters["status"] = ["!=", "Cancelled"]
+		filters["docstatus"] = ["!=", 2]
 	customer = (customer or "").strip()
 	if customer:
 		filters["customer"] = customer
@@ -799,8 +806,9 @@ def record_dms_order_payment(name, data=None):
 			pe = frappe.get_doc(pe)
 
 		pe.set_posting_time = 1
-		if posting_date:
-			pe.posting_date = posting_date
+		pe.posting_date = posting_date or today()
+		if not pe.get("reference_date"):
+			pe.reference_date = pe.posting_date
 
 		mode = (row.get("mode_of_payment") or "").strip()
 		if mode:

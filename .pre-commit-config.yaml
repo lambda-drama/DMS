@@ -1,4 +1,7 @@
-exclude: 'node_modules|.git'
+# `dms/public/frontend/_next` is the committed Next.js build output that
+# `bench build` copies in. It is machine-generated, so no hook should read,
+# reformat or lint it.
+exclude: 'node_modules|.git|dms/public/frontend/_next'
 default_stages: [pre-commit]
 fail_fast: false
 
@@ -64,6 +67,21 @@ repos:
                 dms/templates/includes/.*|
                 dms/public/js/lib/.*
             )$
+
+  # Repo-local checks. These read the files a fresh `bench install-app dms` takes
+  # straight off disk, so a broken JSON is caught at commit time instead of in CI
+  # or on a customer's first install. See scripts/check_doctype_json.py.
+  - repo: local
+    hooks:
+      - id: check-doctype-json
+        name: "Check DocType JSON (fresh-install safety)"
+        entry: python3 scripts/check_doctype_json.py
+        language: system
+        files: '^dms/.+/doctype/.+\.json$'
+        # Validate every DocType in the app whenever one of them changes: the
+        # checks are properties of the whole schema, not of the edited file.
+        pass_filenames: false
+
 
 ci:
     autoupdate_schedule: weekly

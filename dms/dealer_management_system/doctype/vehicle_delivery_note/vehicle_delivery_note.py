@@ -87,6 +87,54 @@ class VehicleDeliveryNote(Document):
 		)
 		log_job_card_status_change(self.job_card, "Delivered", previous_status=prev, when=delivered_at)
 
+	def on_cancel(self):
+		frappe.db.set_value(
+			self.doctype, self.name, "status", "Cancelled", update_modified=False
+		)
+		revert_job_card_after_delivery_cancel(self.job_card, self.name)
+
+
+def get_submitted_delivery_for_job_card(job_card: str) -> str | None:
+	"""Latest submitted Vehicle Delivery Note for this job card, if any."""
+	name = (job_card or "").strip()
+	if not name:
+		return None
+	rows = frappe.get_all(
+		"Vehicle Delivery Note",
+		filters={"job_card": name, "docstatus": 1},
+		pluck="name",
+		order_by="creation desc",
+		limit=1,
+	)
+	return rows[0] if rows else None
+
+
+def revert_job_card_after_delivery_cancel(job_card: str, delivery_name: str | None = None):
+	"""Put a Delivered job card back to Completed so it can be re-delivered or cancelled."""
+	jc = (job_card or "").strip()
+	if not jc or not frappe.db.exists("DMS Job Card", jc):
+		return
+	status = frappe.db.get_value("DMS Job Card", jc, "status")
+	if (status or "").strip() != "Delivered":
+		return
+
+	from dms.dealer_management_system.doctype.dms_job_card.dms_job_card import (
+		log_job_card_status_change,
+	)
+
+	frappe.db.set_value(
+		"DMS Job Card",
+		jc,
+		{"status": "Completed", "delivery_date_time": None},
+		update_modified=True,
+	)
+	note = (
+		_("Vehicle delivery {0} cancelled").format(delivery_name)
+		if delivery_name
+		else _("Vehicle delivery cancelled")
+	)
+	log_job_card_status_change(jc, "Completed", previous_status="Delivered", notes=note)
+
 
 @frappe.whitelist()
 def make_sales_invoice_from_delivery_note(delivery_note):

@@ -1741,6 +1741,11 @@ def clear_job_card_invoice_link_on_cancel(si_name: str, job_card_name: str | Non
 
 def on_sales_invoice_cancel(doc, method=None):
 	"""Desk / API cancel: free the job card so a new invoice can be created."""
+	from dms.api.payment_entries import unlink_payment_entries_from_sales_invoice
+
+	# Unlink receipts first so invoice cancel is not blocked by Payment Entry.
+	# Payments themselves stay submitted.
+	unlink_payment_entries_from_sales_invoice(doc)
 	clear_job_card_invoice_link_on_cancel(
 		doc.name,
 		doc.get("custom_dms_job_card") if hasattr(doc, "get") else None,
@@ -2091,6 +2096,9 @@ def create_sales_invoice_from_dms_job_card(
 		si.ignore_pricing_rule = 1
 
 	si.set_missing_values()
+	if posting_date:
+		si.posting_date = getdate(posting_date)
+		si.set_posting_time = 1
 	# set_missing_values can reset currency from company / price list — re-apply from job card
 	_apply_sales_invoice_currency_from_job_card(si, jc)
 	_apply_dms_selling_price_list_to_sales_invoice(si)
@@ -3408,6 +3416,9 @@ def create_standalone_dms_sales_invoice(
 		si.ignore_pricing_rule = 1
 
 	si.set_missing_values()
+	if posting_date:
+		si.posting_date = getdate(posting_date)
+		si.set_posting_time = 1
 	si.currency = invoice_currency
 	_apply_dms_selling_price_list_to_sales_invoice(si)
 	_apply_sales_invoice_tax_choice(si, apply_taxes, apply_tax_withholding)

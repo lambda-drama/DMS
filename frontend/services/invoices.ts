@@ -186,6 +186,9 @@ export type StandaloneInvoiceGroupDiscount = {
 
 export async function createStandaloneInvoice(data: {
   customer: string;
+  /** Typed on the create form — written to the Customer primary Contact when they differ. */
+  customer_mobile_no?: string;
+  customer_email_id?: string;
   company: string;
   warehouse?: string;
   currency?: string;
@@ -414,6 +417,8 @@ export async function collectPayment(params: {
   referenceNo?: string;
   /** Operator receipt note — saved on Payment Entry.custom_dms_remarks. */
   remarks?: string;
+  /** Payment Entry posting date (defaults to today on the server). */
+  postingDate?: string;
   payments?: Array<{
     mode_of_payment: string;
     amount: number;
@@ -437,6 +442,7 @@ export async function collectPayment(params: {
       reference_no: params.referenceNo || null,
       payments: params.payments || null,
       remarks: params.remarks || null,
+      posting_date: params.postingDate || null,
     }),
   });
 }
