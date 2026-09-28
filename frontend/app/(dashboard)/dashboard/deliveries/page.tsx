@@ -2,7 +2,7 @@
 
 import { formatDate, formatDateTime } from '@/lib/date-format';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { useNavigation } from "@/contexts/navigation-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
@@ -38,10 +38,20 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  ExternalLink,
+  Ban,
 } from "lucide-react";
 import { ListRowActions } from "@/components/list-row-actions";
 import { StarRating } from "@/components/reports/star-rating";
+import { toast } from "sonner";
+import * as deliveriesSvc from "@/services/deliveries";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const docstatusMap: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   0: { label: "Draft", variant: "secondary" },
@@ -53,16 +63,52 @@ export default function DeliveriesPage() {
   const { navigate, viewParams } = useNavigation();
   const [searchQuery, setSearchQuery] = usePersistedFilter("deliveries", "search", "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const autoOpenedCancel = useRef(false);
 
   useEffect(() => {
     const id = viewParams.get("id");
     if (id) setSelectedId(id);
   }, [viewParams]);
-  const { data: deliveries, isLoading, error } = useDeliveries({
+  const { data: deliveries, isLoading, error, mutate } = useDeliveries({
     search: searchQuery || undefined,
   });
 
   const selectedDelivery = deliveries?.find((d) => d.name === selectedId);
+  const returnJobCard = viewParams.get("cancel_job_card") || "";
+  const canCancelSelected = selectedDelivery?.docstatus === 1;
+
+  useEffect(() => {
+    if (autoOpenedCancel.current) return;
+    if (!returnJobCard || !selectedId) return;
+    if (!selectedDelivery) return;
+    if (selectedDelivery.docstatus !== 1) return;
+    autoOpenedCancel.current = true;
+    setShowCancelDialog(true);
+  }, [returnJobCard, selectedId, selectedDelivery]);
+
+  const handleCancelDelivery = async () => {
+    if (!selectedId) return;
+    setCancelling(true);
+    try {
+      const result = await deliveriesSvc.cancelDelivery(selectedId);
+      toast.success(
+        result.job_card
+          ? `Delivery cancelled. Job card ${result.job_card} is back to ${result.job_card_status || "Completed"}.`
+          : "Delivery cancelled"
+      );
+      setShowCancelDialog(false);
+      await mutate();
+      if (returnJobCard) {
+        navigate("job-card-detail", { id: returnJobCard, cancel: "1" });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel delivery");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const stats = {
     total: deliveries?.length || 0,
@@ -222,14 +268,18 @@ export default function DeliveriesPage() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(`/app/vehicle-delivery-note/${delivery.name}`, "_blank")
-                                  }
-                                >
-                                  <ExternalLink className="h-4 w-4 mr-2" />
-                                  Open in Desk
-                                </DropdownMenuItem>
+                                {delivery.docstatus === 1 ? (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => {
+                                      setSelectedId(delivery.name);
+                                      setShowCancelDialog(true);
+                                    }}
+                                  >
+                                    <Ban className="h-4 w-4 mr-2" />
+                                    Cancel Delivery
+                                  </DropdownMenuItem>
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </ListRowActions>
@@ -264,8 +314,17 @@ export default function DeliveriesPage() {
               }
             : undefined
         }
-        onOpenInDesk={() =>
-          window.open(`/app/vehicle-delivery-note/${selectedId}`, "_blank")
+        footer={
+          canCancelSelected ? (
+            <Button
+              variant="destructive"
+              className="w-full sm:w-auto"
+              onClick={() => setShowCancelDialog(true)}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Cancel Delivery
+            </Button>
+          ) : undefined
         }
       >
         {selectedDelivery && (
@@ -340,6 +399,36 @@ export default function DeliveriesPage() {
           </>
         )}
       </DetailSheet>
+
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel this delivery?</DialogTitle>
+            <DialogDescription>
+              {selectedId
+                ? `Cancel ${selectedId}? The linked job card will go back to Completed so you can cancel it or deliver the vehicle again.`
+                : "The linked job card will go back to Completed."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelDialog(false)}
+              disabled={cancelling}
+            >
+              Keep Delivery
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleCancelDelivery()}
+              disabled={cancelling || !selectedId}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              {cancelling ? "Cancelling…" : "Cancel Delivery"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -810,6 +810,7 @@ export interface DMSJobCard {
   delivered_to?: string;
   delivered_to_phone?: string;
   delivery_date_time?: string;
+  vehicle_delivery?: string | null;
   final_odometer?: number;
   customer_signature?: string;
   next_service_due_km?: number;
@@ -1297,6 +1298,7 @@ export interface Delivery {
   submit?: boolean;
   next_service_due_km?: number;
   next_service_due_date?: string;
+  status?: string;
   docstatus?: number;
   creation?: string;
   modified?: string;

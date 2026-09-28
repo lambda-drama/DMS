@@ -63,8 +63,12 @@ export function RecordOrderPaymentDialog({
       title="Record Payment"
       target={target}
       modes={modes}
-      onRecord={async (payments: PaymentRowPayload[], remarks: string) =>
-        ordersSvc.recordDmsOrderPayment(order?.name || '', { payments, remarks })
+      onRecord={async (payments: PaymentRowPayload[], remarks: string, postingDate: string) =>
+        ordersSvc.recordDmsOrderPayment(order?.name || '', {
+          payments,
+          remarks,
+          posting_date: postingDate,
+        })
       }
       onPaid={onPaid}
     />

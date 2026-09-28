@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Package, Receipt, Save, Trash2 } from 'lucide-react';
+import { addCalendarMonthsISO, todayISO } from '@/lib/date-format';
 import { useNavigation } from '@/contexts/navigation-context';
 import { useVehicleServiceItems } from '@/hooks/use-dms';
 import { SearchableSelect } from '@/components/searchable-select';
@@ -92,13 +93,11 @@ function emptyLabour(): LabourRow {
 }
 
 function today() {
-  return new Date().toISOString().split('T')[0];
+  return todayISO();
 }
 
-function defaultDueDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 30);
-  return d.toISOString().split('T')[0];
+function defaultValidTo(from = today()) {
+  return addCalendarMonthsISO(from, 1);
 }
 
 function formatMoney(amount?: number, currency?: string) {
@@ -119,7 +118,7 @@ export default function OrderNewPage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [warehouse, setWarehouse] = useState('');
   const [transactionDate, setTransactionDate] = useState(today());
-  const [deliveryDate, setDeliveryDate] = useState(defaultDueDate());
+  const [deliveryDate, setDeliveryDate] = useState(() => defaultValidTo());
   const [remarks, setRemarks] = useState('');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [applyTaxes, setApplyTaxes] = useState(false);
@@ -347,7 +346,7 @@ export default function OrderNewPage() {
     setCustomerLabel(existing.customer_name || existing.customer || '');
     setWarehouse(existing.warehouse || '');
     setTransactionDate(existing.transaction_date || today());
-    setDeliveryDate(existing.delivery_date || defaultDueDate());
+    setDeliveryDate(existing.delivery_date || defaultValidTo(existing.transaction_date || today()));
     setRemarks(existing.remarks || '');
     setApplyTaxes(
       Boolean(existing.apply_taxes) || Number(existing.total_taxes_and_charges) > 0
@@ -605,14 +604,19 @@ export default function OrderNewPage() {
               <Input
                 type="date"
                 value={transactionDate}
-                onChange={(e) => setTransactionDate(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setTransactionDate(next);
+                  if (!editName) setDeliveryDate(defaultValidTo(next || today()));
+                }}
               />
             </div>
             <div className="space-y-2">
-              <Label>Expected delivery</Label>
+              <Label>Valid To</Label>
               <Input
                 type="date"
                 value={deliveryDate}
+                min={transactionDate || undefined}
                 onChange={(e) => setDeliveryDate(e.target.value)}
               />
             </div>

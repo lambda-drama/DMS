@@ -74,6 +74,54 @@ def _has_field(fieldname: str) -> bool:
 	return bool(fieldname) and _pe_meta().has_field(fieldname)
 
 
+def unlink_payment_entries_from_job_card(job_card_name: str) -> list[str]:
+	"""Drop the job-card link on Payment Entries without cancelling them.
+
+	Frappe blocks cancel/delete of DMS Job Card while ``custom_dms_job_card``
+	still points at it. Receipts stay submitted (as unallocated advances).
+	"""
+	job_card_name = (job_card_name or "").strip()
+	if not job_card_name or not frappe.db.exists("DocType", "Payment Entry"):
+		return []
+	if not _has_field(JOB_CARD_FIELD):
+		return []
+
+	names = frappe.get_all(
+		"Payment Entry",
+		filters={JOB_CARD_FIELD: job_card_name, "docstatus": ["!=", 2]},
+		pluck="name",
+	)
+	for name in names:
+		frappe.db.set_value("Payment Entry", name, JOB_CARD_FIELD, None, update_modified=False)
+	return names
+
+
+def unlink_payment_entries_from_sales_invoice(si) -> None:
+	"""Unallocate Payment Entries from a DMS Sales Invoice without cancelling them."""
+	if not si or not getattr(si, "name", None):
+		return
+	meta = frappe.get_meta("Sales Invoice")
+	is_dms = bool(meta.has_field("custom_dms_job_card") and si.get("custom_dms_job_card"))
+	if not is_dms and meta.has_field("custom_spare_parts") and cint(si.get("custom_spare_parts")):
+		is_dms = True
+	if not is_dms and meta.has_field("custom_is_dms_transaction") and cint(si.get("custom_is_dms_transaction")):
+		is_dms = True
+	if not is_dms and meta.has_field("custom_missing_dms") and cint(si.get("custom_missing_dms")):
+		is_dms = True
+	if not is_dms:
+		return
+	if not frappe.db.exists(
+		"Payment Entry Reference",
+		{"reference_doctype": "Sales Invoice", "reference_name": si.name, "docstatus": ["<", 2]},
+	):
+		return
+	try:
+		from erpnext.accounts.utils import unlink_ref_doc_from_payment_entries
+	except ImportError:
+		return
+	unlink_ref_doc_from_payment_entries(si)
+
+
 def _dms_payment_entry_condition():
 	"""``custom_is_dms = 1``, a DMS operator note, or a DMS Sales Invoice link."""
 	PE = DocType("Payment Entry")

@@ -808,7 +808,7 @@ export function CreateInvoiceDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="invoice-posting-date">Posting date</Label>
+                <Label htmlFor="invoice-posting-date">Posting date *</Label>
                 <Input
                   id="invoice-posting-date"
                   type="date"
@@ -816,6 +816,9 @@ export function CreateInvoiceDialog({
                   onChange={(e) => setPostingDate(e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Editable — this is the invoice date in the accounts books. Defaults to today.
+                </p>
               </div>
               {preview.has_labour ? (
                 <div className="space-y-2">

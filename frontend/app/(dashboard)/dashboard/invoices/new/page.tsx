@@ -19,6 +19,7 @@ import {
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
 import { SearchableSelect } from "@/components/searchable-select";
+import { CustomerContactCard } from "@/components/customer-contact-card";
 import { InvoiceTaxBreakdown } from "@/components/invoices/invoice-tax-breakdown";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ import {
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
+import { todayISO, toISODate } from "@/lib/date-format";
 import type { VINNo } from "@/types/dms";
 
 interface LabourRow {
@@ -178,7 +180,7 @@ function buildQtyOverridesFromRows(parts: PartRow[]): invoicesSvc.QtyOverrides |
 function defaultDueDate() {
   const d = new Date();
   d.setDate(d.getDate() + 30);
-  return d.toISOString().split("T")[0];
+  return toISODate(d);
 }
 
 export default function NewInvoicePage() {
@@ -208,7 +210,9 @@ export default function NewInvoicePage() {
     name: string;
     customer_name: string;
     mobile_no?: string;
+    email_id?: string;
   } | null>(null);
+  const [customerContact, setCustomerContact] = useState({ mobile_no: "", email_id: "" });
   const [isDmsInvoice, setIsDmsInvoice] = useState(false);
   const [vehicleVin, setVehicleVin] = useState("");
   const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
@@ -217,8 +221,8 @@ export default function NewInvoicePage() {
   const [vehicleModel, setVehicleModel] = useState("");
   const [currentOdometer, setCurrentOdometer] = useState(0);
   const [currency, setCurrency] = useState("ETB");
-  const [postingDate, setPostingDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState(defaultDueDate());
+  const [postingDate, setPostingDate] = useState(todayISO);
+  const [dueDate, setDueDate] = useState(defaultDueDate);
   const [remarks, setRemarks] = useState("");
   const [applyTaxes, setApplyTaxes] = useState(false);
   const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
@@ -834,6 +838,8 @@ export default function NewInvoicePage() {
     try {
       await invoicesSvc.createStandaloneInvoice({
         customer,
+        customer_mobile_no: customerContact.mobile_no.trim() || undefined,
+        customer_email_id: customerContact.email_id.trim() || undefined,
         company,
         warehouse: warehouse || undefined,
         currency,
@@ -1011,6 +1017,17 @@ export default function NewInvoicePage() {
                   </p>
                 ) : null}
               </div>
+              {isStandalone && customer ? (
+                <CustomerContactCard
+                  customer={customer}
+                  customerName={customerMeta?.customer_name}
+                  fallback={{
+                    mobile_no: customerMeta?.mobile_no,
+                    email_id: customerMeta?.email_id,
+                  }}
+                  onChange={setCustomerContact}
+                />
+              ) : null}
             </CardContent>
           </Card>
 
@@ -1104,16 +1121,22 @@ export default function NewInvoicePage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Posting date</Label>
+                  <Label htmlFor="invoice_posting_date">Posting date *</Label>
                   <Input
+                    id="invoice_posting_date"
                     type="date"
                     value={postingDate}
                     onChange={(e) => setPostingDate(e.target.value)}
+                    required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Editable — this is the invoice date in the accounts books. Defaults to today.
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Due date</Label>
+                  <Label htmlFor="invoice_due_date">Due date</Label>
                   <Input
+                    id="invoice_due_date"
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}

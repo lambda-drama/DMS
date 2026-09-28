@@ -372,6 +372,12 @@ def get_job_card(name):
 		data["invoice"] = None
 	data["has_active_invoice"] = 1 if active_invoice else 0
 
+	from dms.dealer_management_system.doctype.vehicle_delivery_note.vehicle_delivery_note import (
+		get_submitted_delivery_for_job_card,
+	)
+
+	data["vehicle_delivery"] = get_submitted_delivery_for_job_card(name)
+
 	# Keep Financials → Payment Status aligned with linked invoice (Paid / Partially Paid).
 	payment_status = sync_job_card_payment_status_from_invoice(
 		job_card_name=name, sales_invoice=active_invoice
@@ -1876,7 +1882,17 @@ def cancel_job_card(name, reason=None):
 	if cint(doc.docstatus) == 2:
 		frappe.throw(_("Job card is already cancelled."))
 	if doc.status == "Delivered":
-		frappe.throw(_("Job card is already {0}.").format(doc.status))
+		from dms.dealer_management_system.doctype.vehicle_delivery_note.vehicle_delivery_note import (
+			get_submitted_delivery_for_job_card,
+		)
+
+		delivery = get_submitted_delivery_for_job_card(doc.name)
+		if delivery:
+			frappe.throw(
+				_(
+					"This vehicle has been delivered. Cancel Vehicle Delivery {0} first, then cancel this job card."
+				).format(frappe.bold(delivery))
+			)
 	# status=Cancelled but still submitted: finish with standard cancel below.
 	if doc.status == "Cancelled" and cint(doc.docstatus) != 1:
 		frappe.throw(_("Job card is already {0}.").format(doc.status))
@@ -1884,13 +1900,27 @@ def cancel_job_card(name, reason=None):
 	reason = (reason or "").strip()
 	prev = doc.status
 
-	cancelled_stock = reverse_job_card_cancel_side_effects(doc.name)
-
 	active_inv = get_active_job_card_invoice(doc.name)
-	if active_inv and cint(frappe.db.get_value("Sales Invoice", active_inv, "docstatus")) == 1:
-		frappe.throw(
-			_("Cancel Sales Invoice {0} first, then cancel this job card.").format(frappe.bold(active_inv))
-		)
+	if active_inv:
+		inv_status = cint(frappe.db.get_value("Sales Invoice", active_inv, "docstatus"))
+		if inv_status == 1:
+			frappe.throw(
+				_(
+					"Cancel Sales Invoice {0} first, then cancel this job card."
+				).format(frappe.bold(active_inv))
+			)
+		if inv_status == 0:
+			frappe.throw(
+				_(
+					"Delete draft Sales Invoice {0} first, then cancel this job card."
+				).format(frappe.bold(active_inv))
+			)
+
+	from dms.api.payment_entries import unlink_payment_entries_from_job_card
+
+	unlink_payment_entries_from_job_card(doc.name)
+
+	cancelled_stock = reverse_job_card_cancel_side_effects(doc.name)
 
 	if cint(doc.docstatus) == 1:
 		# Reload after side-effect writes so cancel does not hit a timestamp mismatch.

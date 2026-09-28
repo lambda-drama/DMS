@@ -5,6 +5,7 @@ export type CustomerFieldMeta = {
   name: string;
   customer_name: string;
   mobile_no?: string;
+  email_id?: string;
 };
 
 export function customerMetaFromDefaults(
@@ -66,6 +67,7 @@ export function resolveCustomerFieldChange(
         name: match.name,
         customer_name: match.customer_name,
         mobile_no: match.mobile_no,
+        email_id: match.email_id,
       },
     };
   }

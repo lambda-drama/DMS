@@ -2,7 +2,7 @@
 
 import { formatDate } from '@/lib/date-format';
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { mutate } from "swr";
 import { useNavigation } from "@/contexts/navigation-context";
 import { usePermissions } from "@/contexts/permissions-context";
@@ -168,6 +168,8 @@ export default function InvoicesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const { canCancel, canCreate, canWrite, canDelete } = usePermissions();
+  const returnJobCard = viewParams.get("cancel_job_card") || "";
+  const autoOpenedFromJobCard = useRef(false);
 
   const hasDateFilters = Boolean(postingFrom || postingTo);
 
@@ -228,6 +230,22 @@ export default function InvoicesPage() {
     }
     invoicesSvc.getSalesInvoiceDetail(selectedId).then(setInvoiceDetail).catch(() => setInvoiceDetail(null));
   }, [selectedId]);
+
+  useEffect(() => {
+    if (autoOpenedFromJobCard.current) return;
+    if (!returnJobCard || !selectedId) return;
+    if (!invoiceDetail || invoiceDetail.name !== selectedId) return;
+    autoOpenedFromJobCard.current = true;
+    if (invoiceDetail.docstatus === 1) {
+      setCancelInvoiceId(selectedId);
+      setShowCancelDialog(true);
+    } else if (invoiceDetail.docstatus === 0) {
+      setDeleteInvoiceId(selectedId);
+      setShowDeleteDialog(true);
+    } else if (returnJobCard) {
+      navigate("job-card-detail", { id: returnJobCard, cancel: "1" });
+    }
+  }, [returnJobCard, selectedId, invoiceDetail]);
 
   const canCollectFor = (inv: Pick<SalesInvoiceListItem, "docstatus" | "outstanding_amount">) =>
     inv.docstatus === 1 && (inv.outstanding_amount || 0) > 0;
@@ -368,6 +386,9 @@ export default function InvoicesPage() {
       setShowCancelDialog(false);
       setCancelInvoiceId(null);
       await refreshAfterInvoiceAction(target);
+      if (returnJobCard) {
+        navigate("job-card-detail", { id: returnJobCard, cancel: "1" });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel invoice");
     } finally {
@@ -393,6 +414,9 @@ export default function InvoicesPage() {
         undefined,
         { revalidate: true }
       );
+      if (returnJobCard) {
+        navigate("job-card-detail", { id: returnJobCard, cancel: "1" });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete invoice");
     } finally {
@@ -1055,8 +1079,9 @@ export default function InvoicesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel invoice</AlertDialogTitle>
             <AlertDialogDescription>
-              Cancel <strong>{cancelInvoiceId ?? selectedId}</strong>? This reverses the submitted Sales Invoice
-              in ERPNext, same as cancelling from Desk. This cannot be undone.
+              {returnJobCard
+                ? `Cancel ${cancelInvoiceId ?? selectedId}? After that you will return to job card ${returnJobCard} to finish cancelling it.`
+                : `Cancel ${cancelInvoiceId ?? selectedId}? This reverses the submitted Sales Invoice in ERPNext, same as cancelling from Desk. This cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
