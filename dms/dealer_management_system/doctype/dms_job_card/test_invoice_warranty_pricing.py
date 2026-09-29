@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from frappe.tests import UnitTestCase
 
 from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+	_apply_line_net_to_invoice_pricing,
 	_apply_warranty_as_invoice_discount,
 	_si_item_pricing_fields,
 	_warranty_covered_line_amount,
@@ -98,3 +99,22 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 			resolve_invoice_warranty_application_type(None, "Labour"),
 			"Labour",
 		)
+
+	def test_100_percent_line_discount_keeps_selling_rate(self):
+		pricing = _apply_line_net_to_invoice_pricing(
+			{
+				"include": True,
+				"rate": 0.0,
+				"discount_percentage": 0.0,
+				"amount": 0.0,
+				"is_warranty_covered": False,
+			},
+			3000,
+			0,
+			1,
+		)
+		self.assertEqual(pricing["rate"], 3000)
+		self.assertGreaterEqual(pricing["discount_percentage"], 100)
+		fields = _si_item_pricing_fields(pricing, price_list_rate=3000)
+		self.assertEqual(fields["rate"], 3000)
+		self.assertGreater(fields["rate"], 0)

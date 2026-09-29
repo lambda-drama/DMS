@@ -691,6 +691,38 @@ def resolve_invoice_line_pricing(
 	}
 
 
+def _apply_line_net_to_invoice_pricing(pricing: dict, full_rate: float, net_rate: float, qty: float) -> dict:
+	"""Fold a job-card line discount into invoice pricing without using rate=0.
+
+	A site Server Script rejects Sales Invoice Item rate=0. 100% write-offs (leftover
+	warranty line discounts, complimentary diagnosis, etc.) keep the selling rate and
+	are taken off as an invoice discount — the same path as warranty-covered lines.
+	"""
+	if not pricing.get("include"):
+		return pricing
+
+	full = flt(full_rate)
+	net = flt(net_rate)
+	out = dict(pricing)
+
+	if pricing.get("is_warranty_covered"):
+		if flt(out.get("rate")) <= 0 and full > 0:
+			out["rate"] = full
+			out["discount_percentage"] = 100.0
+			out["amount"] = 0.0
+		return out
+
+	if net <= 0 and full > 0:
+		out["rate"] = full
+		out["discount_percentage"] = 100.0
+		out["amount"] = 0.0
+		return out
+
+	out["rate"] = net
+	out["amount"] = round(flt(qty) * net, 2)
+	return out
+
+
 def _si_item_pricing_fields(pricing: dict, *, price_list_rate=None, discount_mode: str = "") -> dict:
 	"""Selling fields for a Sales Invoice Item.
 
@@ -2926,9 +2958,10 @@ def append_si_items(
 			base_rate = _line_base_rate(base_rate, row.name, overrides)
 			full_rate, net_rate, discount_mode = _line_discount_rates(base_rate, qty, row)
 
-			pricing = resolve_invoice_line_pricing("Labour", net_rate, qty, warranty_application_type)
+			pricing = resolve_invoice_line_pricing("Labour", full_rate, qty, warranty_application_type)
 			if not pricing["include"]:
 				continue
+			pricing = _apply_line_net_to_invoice_pricing(pricing, full_rate, net_rate, qty)
 
 			child = _append_priced_item(
 				item_code,
@@ -2977,9 +3010,10 @@ def append_si_items(
 		base_rate = _line_base_rate(base_rate, part.name, overrides)
 		full_rate, net_rate, discount_mode = _line_discount_rates(base_rate, qty, part)
 
-		pricing = resolve_invoice_line_pricing("Parts", net_rate, qty, warranty_application_type)
+		pricing = resolve_invoice_line_pricing("Parts", full_rate, qty, warranty_application_type)
 		if not pricing["include"]:
 			continue
+		pricing = _apply_line_net_to_invoice_pricing(pricing, full_rate, net_rate, qty)
 
 		row = _append_priced_item(
 			erp_item,
