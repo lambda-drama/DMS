@@ -300,7 +300,12 @@ def normalize_rate_overrides(rate_overrides) -> dict[str, float]:
 
 def _line_base_rate(default_rate: float, source_row: str | None, overrides: dict[str, float]) -> float:
 	if source_row and source_row in overrides:
-		return flt(overrides[source_row])
+		override = flt(overrides[source_row])
+		# Preview used to send the *net* rate after a 100% line discount (0).
+		# That is a write-off, not a selling price of 0 — keep the listed rate.
+		if override <= 0 and flt(default_rate) > 0:
+			return flt(default_rate)
+		return override
 	return flt(default_rate)
 
 
@@ -352,6 +357,12 @@ def _line_invoice_discount(price_list_rate: float, net_rate: float, discount_mod
 		"margin_type": "",
 		"margin_rate_or_amount": 0.0,
 	}
+
+	# Site Server Script: "Rate for item X cannot be zero." A 100% line discount
+	# is a write-off of the selling price, not a selling price of 0.
+	if net <= 0:
+		fields["rate"] = full if full > 0 else 0.0
+		return fields
 
 	unit_discount = flt(full - net)
 	if unit_discount <= 0:
@@ -712,7 +723,7 @@ def _apply_line_net_to_invoice_pricing(pricing: dict, full_rate: float, net_rate
 			out["amount"] = 0.0
 		return out
 
-	if net <= 0 and full > 0:
+	if net <= 0.005 and full > 0:
 		out["rate"] = full
 		out["discount_percentage"] = 100.0
 		out["amount"] = 0.0
@@ -2168,6 +2179,10 @@ def create_sales_invoice_from_dms_job_card(
 	si.run_method("calculate_taxes_and_totals")
 	_apply_warranty_as_invoice_discount(si, line_fields)
 	si.run_method("calculate_taxes_and_totals")
+	# Totals can rewrite line rates; put selling rates back so a 100% discount
+	# never lands as rate=0 (site script rejects that).
+	_reapply_job_card_si_line_rates(si, line_fields)
+	_apply_warranty_as_invoice_discount(si, line_fields)
 
 	si.insert()
 
@@ -2276,13 +2291,14 @@ def _append_preview_line(
 	max_qty: float | None = None,
 	full_rate: float | None = None,
 ) -> None:
-	pricing = resolve_invoice_line_pricing(line_type, base_rate, qty, warranty_application_type)
+	# ``full_rate`` is the line's price before its own discount. ``base_rate`` is the
+	# net after that discount when ``full_rate`` is passed (invoice builders).
+	selling_rate = flt(full_rate) if full_rate is not None else flt(base_rate)
+	net_rate = flt(base_rate)
+	pricing = resolve_invoice_line_pricing(line_type, selling_rate, qty, warranty_application_type)
 	if not pricing["include"]:
 		return
-
-	# ``full_rate`` is the line's price before its own discount; the review screen
-	# strikes it through next to ``rate`` so the discount is visible.
-	full = flt(full_rate) if full_rate is not None else flt(base_rate)
+	pricing = _apply_line_net_to_invoice_pricing(pricing, selling_rate, net_rate, qty)
 
 	lines.append(
 		{
@@ -2293,7 +2309,7 @@ def _append_preview_line(
 			"qty": qty,
 			"rate": pricing["rate"],
 			"amount": pricing["amount"],
-			"base_rate": round(full, 2),
+			"base_rate": round(selling_rate, 2),
 			"discount_percentage": pricing["discount_percentage"],
 			"is_warranty_covered": pricing["is_warranty_covered"],
 			"source_row": source_row,
@@ -2443,12 +2459,19 @@ def _apply_rate_overrides_to_job_card(jc, overrides: dict[str, float]) -> None:
 	changed = False
 	for row in jc.get("labour") or []:
 		if row.name in overrides:
-			row.rate_per_hour = flt(overrides[row.name])
+			new_rate = flt(overrides[row.name])
+			# A 0 override is the net after a 100% line discount, not a new selling price.
+			if new_rate <= 0 and flt(row.rate_per_hour or 0) > 0:
+				continue
+			row.rate_per_hour = new_rate
 			changed = True
 
 	for row in jc.get("parts") or []:
 		if row.name in overrides:
-			row.unit_price = flt(overrides[row.name])
+			new_rate = flt(overrides[row.name])
+			if new_rate <= 0 and flt(row.unit_price or 0) > 0:
+				continue
+			row.unit_price = new_rate
 			changed = True
 
 	if not changed:
@@ -2915,6 +2938,15 @@ def append_si_items(
 		fields = _si_item_pricing_fields(
 			pricing, price_list_rate=price_list_rate, discount_mode=discount_mode
 		)
+		full = flt(price_list_rate) if price_list_rate is not None else flt(pricing.get("rate"))
+		write_off = flt(pricing.get("discount_percentage")) >= 100
+		if flt(fields.get("rate")) <= 0 and full > 0:
+			fields["rate"] = full
+			fields["price_list_rate"] = full
+			fields["rate_with_margin"] = full
+			fields["discount_percentage"] = 0.0
+			fields["discount_amount"] = 0.0
+			write_off = True
 		child = si.append(
 			"items",
 			{
@@ -2926,7 +2958,7 @@ def append_si_items(
 		line_fields.append(
 			{
 				**fields,
-				"warranty_full_discount": flt(pricing.get("discount_percentage")) >= 100,
+				"warranty_full_discount": write_off,
 			}
 		)
 		return child

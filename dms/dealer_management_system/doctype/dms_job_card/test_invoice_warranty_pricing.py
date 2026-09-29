@@ -100,7 +100,14 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 			"Labour",
 		)
 
-	def test_100_percent_line_discount_keeps_selling_rate(self):
+	def test_100_percent_line_discount_does_not_set_rate_zero(self):
+		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+			_line_invoice_discount,
+		)
+
+		fields = _line_invoice_discount(3000, 0, "Percentage")
+		self.assertEqual(fields["rate"], 3000)
+		self.assertGreater(fields["rate"], 0)
 		pricing = _apply_line_net_to_invoice_pricing(
 			{
 				"include": True,
