@@ -1876,7 +1876,7 @@ def cancel_job_card(name, reason=None):
 		frappe.throw(_("Job Card name is required"))
 
 	doc = frappe.get_doc("DMS Job Card", name)
-	if not (doc.has_permission("write") or doc.has_permission("cancel")):
+	if not doc.has_permission("cancel"):
 		frappe.throw(_("Not permitted to cancel this Job Card"))
 
 	if cint(doc.docstatus) == 2:
@@ -1928,8 +1928,6 @@ def cancel_job_card(name, reason=None):
 		_apply_job_card_cancel_reason(doc, reason)
 		doc.status = "Cancelled"
 		doc.flags.cancel_reason = reason or None
-		# Existing DMS cancel was write-based; cancel perm may not be synced on all sites.
-		doc.flags.ignore_permissions = True
 		doc.flags.skip_cancel_side_effects = True
 		doc.cancel()
 	else:

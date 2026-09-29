@@ -372,15 +372,13 @@ def cancel_delivery(name, reason=None):
 		frappe.throw(_("Delivery name is required"))
 
 	doc = frappe.get_doc("Vehicle Delivery Note", name)
-	if not (doc.has_permission("cancel") or doc.has_permission("write")):
-		frappe.throw(_("Not permitted to cancel this Delivery"))
+	doc.check_permission("cancel")
 
 	if cint(doc.docstatus) == 2:
 		frappe.throw(_("Delivery is already cancelled."))
 	if cint(doc.docstatus) != 1:
 		frappe.throw(_("Only submitted deliveries can be cancelled."))
 
-	doc.flags.ignore_permissions = True
 	doc.cancel()
 	frappe.db.commit()
 	doc.reload()

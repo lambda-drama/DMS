@@ -967,7 +967,7 @@ def create_dms_order_invoice(name, data=None):
 	apply_taxes = (
 		bool(cint(data.get("apply_taxes"))) if "apply_taxes" in data else bool(so.get("taxes") or [])
 	)
-	order_withholding, _, _ = read_sales_order_tax_withholding(so)
+	order_withholding = read_sales_order_tax_withholding(so)[0]
 	apply_withholding = (
 		bool(cint(data.get("apply_tax_withholding")))
 		if "apply_tax_withholding" in data

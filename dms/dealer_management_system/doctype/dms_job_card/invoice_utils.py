@@ -38,6 +38,8 @@ from dms.dealer_management_system.utils.company_letter_head import apply_company
 from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
 WARRANTY_APPLICATION_TYPES = frozenset({"All Invoice", "Labour", "Spare Part", "Discount"})
+# Invoice UI sentinel: bill every labour/parts line (do not fall back to the job card).
+NONE_WARRANTY_APPLICATION = "None"
 
 
 def normalize_exclude_rows(exclude_rows) -> set[str]:
@@ -611,7 +613,21 @@ def apply_job_card_part_adjustments(jc, exclude_rows=None, qty_overrides=None) -
 
 def normalize_warranty_application_type(value) -> str:
 	v = (value or "").strip()
+	if v.lower() == NONE_WARRANTY_APPLICATION.lower():
+		return ""
 	return v if v in WARRANTY_APPLICATION_TYPES else ""
+
+
+def resolve_invoice_warranty_application_type(override, stored) -> str:
+	"""Warranty type used when previewing or creating a job-card invoice.
+
+	``override`` ``None`` means the caller did not choose — use ``stored`` on the
+	job card. An explicit empty string or ``None``/``none`` means bill all, even
+	when the card still has All Invoice leftover from a cancelled warranty job.
+	"""
+	if override is None:
+		return normalize_warranty_application_type(stored)
+	return normalize_warranty_application_type(override)
 
 
 def add_full_warranty_item_on_invoice() -> bool:
@@ -1852,7 +1868,7 @@ def _sync_job_card_warranty_for_invoice(
 		jc.warranty_application_type = normalize_warranty_application_type(warranty_application_type) or None
 		changed = True
 
-	wt = normalize_warranty_application_type(warranty_application_type or jc.warranty_application_type)
+	wt = resolve_invoice_warranty_application_type(warranty_application_type, jc.warranty_application_type)
 
 	if labour_discount is not None or parts_discount is not None:
 		if wt != "Discount":
@@ -1900,8 +1916,8 @@ def build_invoice_preview_from_job_card(
 		frappe.throw(_("DMS Job Card not found."))
 
 	jc = frappe.get_doc("DMS Job Card", job_card_name)
-	warranty_type = normalize_warranty_application_type(
-		warranty_application_type if warranty_application_type is not None else jc.warranty_application_type
+	warranty_type = resolve_invoice_warranty_application_type(
+		warranty_application_type, jc.warranty_application_type
 	)
 	lump_discount = flt(discount_amount) if discount_amount is not None else None
 	labour_disc = (
@@ -2841,15 +2857,15 @@ def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -
 def append_si_items(
 	si,
 	jc,
-	warranty_application_type: str = "",
+	warranty_application_type: str | None = None,
 	rate_overrides=None,
 	exclude_rows=None,
 	qty_overrides=None,
 ):
 	"""Prefer Vehicle Labour breakdown; fallback to legacy Job Card Items; warranty-aware rates."""
 
-	warranty_application_type = normalize_warranty_application_type(
-		warranty_application_type or jc.warranty_application_type
+	warranty_application_type = resolve_invoice_warranty_application_type(
+		warranty_application_type, jc.warranty_application_type
 	)
 	overrides = normalize_rate_overrides(rate_overrides)
 	excluded = normalize_exclude_rows(exclude_rows)
