@@ -62,6 +62,16 @@ def get_branches(search=None, company=None, limit=50):
 
 
 @frappe.whitelist()
+def quick_create_branch(branch=None, company=None):
+	"""Create a Branch for the given DMS company from a CRM picker + button."""
+	if frappe.session.user == "Guest":
+		frappe.throw(_("Please log in."), frappe.AuthenticationError)
+	from dms.dealer_management_system.utils.branch_permissions import insert_dms_branch
+
+	return insert_dms_branch(branch, company)
+
+
+@frappe.whitelist()
 def get_brands(search=None, limit=40):
 	"""ERPNext Brand master for CRM link fields."""
 	ensure_crm_read("DMS CRM Lead")

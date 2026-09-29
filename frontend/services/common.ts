@@ -360,6 +360,19 @@ export async function fetchBranches(search?: string, company?: string): Promise<
   });
 }
 
+export async function quickCreateBranch(data: {
+  branch: string;
+  company?: string;
+}): Promise<{ name: string; branch: string; company?: string | null; company_name?: string | null }> {
+  return apiRequest(`/api/method/${API}.quick_create_branch`, {
+    method: 'POST',
+    body: JSON.stringify({
+      branch: data.branch,
+      company: data.company || null,
+    }),
+  });
+}
+
 export async function fetchCurrencies(): Promise<string[]> {
   return apiRequest<string[]>(`/api/method/${API}.get_currencies`, {
     method: 'POST',

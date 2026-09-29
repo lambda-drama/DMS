@@ -44,6 +44,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { PipelinePath } from '@/components/crm/pipeline-path';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { CreateQuotationDialog } from '@/components/crm/create-quotation-dialog';
@@ -1375,13 +1376,15 @@ export default function CrmOpportunityDetailPage() {
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Branch</label>
-            <SearchableSelect
+            <BranchSelect
               options={(branches || []).map((b) => ({
                 value: b.name,
                 label: b.branch || b.name,
               }))}
               value={form.branch}
               onValueChange={(v) => set('branch', v || '')}
+              company={form.company}
+              source="crm"
               placeholder="Branch…"
             />
           </div>

@@ -30,6 +30,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/searchable-select';
 import * as svc from '@/services/users';
+import * as branchSvc from '@/services/branches';
+import * as commonSvc from '@/services/common';
 
 function generatePassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
@@ -50,6 +52,7 @@ function MultiSelectChips({
   onChange,
   placeholder,
   emptyMessage,
+  getLabel,
 }: {
   label: string;
   hint?: string;
@@ -58,8 +61,10 @@ function MultiSelectChips({
   onChange: (next: string[]) => void;
   placeholder: string;
   emptyMessage?: string;
+  getLabel?: (value: string) => string;
 }) {
   const remaining = options.filter((o) => !value.includes(o));
+  const labelOf = (item: string) => getLabel?.(item) || item;
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -73,7 +78,7 @@ function MultiSelectChips({
               key={item}
               className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs"
             >
-              {item}
+              {labelOf(item)}
               <button
                 type="button"
                 className="text-muted-foreground hover:text-foreground"
@@ -87,7 +92,7 @@ function MultiSelectChips({
       </div>
       {remaining.length > 0 ? (
         <SearchableSelect
-          options={remaining.map((o) => ({ value: o, label: o }))}
+          options={remaining.map((o) => ({ value: o, label: labelOf(o) }))}
           value=""
           onValueChange={(v) => {
             if (v && !value.includes(v)) onChange([...value, v]);
@@ -126,6 +131,94 @@ function PasswordInput({
 
 
 
+function UserBranchFields({
+  branches,
+  onChange,
+  available,
+  newBranchName,
+  newBranchCompany,
+  creatingBranch,
+  onNewBranchName,
+  onNewBranchCompany,
+  onCreateBranch,
+}: {
+  branches: string[];
+  onChange: (next: string[]) => void;
+  available: svc.BranchMasterOption[];
+  newBranchName: string;
+  newBranchCompany: string;
+  creatingBranch: boolean;
+  onNewBranchName: (v: string) => void;
+  onNewBranchCompany: (v: string) => void;
+  onCreateBranch: () => Promise<void>;
+}) {
+  const labels = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const b of available) {
+      map[b.name] = b.branch || b.name;
+    }
+    return map;
+  }, [available]);
+  const { data: companies, isLoading: companiesLoading } = useSWR(
+    'dms-companies-for-user-branch',
+    () => commonSvc.fetchCompanies()
+  );
+  const companyOptions = useMemo(
+    () =>
+      (companies || []).map((c) => ({
+        value: c.name,
+        label: c.company_name || c.name,
+      })),
+    [companies]
+  );
+
+  return (
+    <div className="space-y-3 rounded-lg border p-3">
+      <MultiSelectChips
+        label="Branches"
+        options={available.map((b) => b.name)}
+        value={branches}
+        onChange={onChange}
+        getLabel={(v) => labels[v] || v}
+        placeholder="All branches (no restriction)"
+        emptyMessage="No branches yet — create one below"
+        hint="Adds a Frappe User Permission (Allow = Branch). Leave empty so this user can see every branch."
+      />
+      <div className="space-y-2 border-t pt-3">
+        <Label>Create a branch</Label>
+        <Input
+          value={newBranchName}
+          onChange={(e) => onNewBranchName(e.target.value)}
+          placeholder="e.g. Hargeisa Workshop"
+        />
+        <SearchableSelect
+          options={companyOptions}
+          value={newBranchCompany}
+          onValueChange={onNewBranchCompany}
+          isLoading={companiesLoading}
+          placeholder="Company (optional)"
+          emptyMessage="No companies in DMS Settings"
+          portaled
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={creatingBranch || !newBranchName.trim()}
+          onClick={() => void onCreateBranch()}
+        >
+          {creatingBranch ? (
+            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Plus className="mr-1 h-3.5 w-3.5" />
+          )}
+          Create and assign
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function UserFormDialog({
   open,
   onOpenChange,
@@ -150,6 +243,11 @@ function UserFormDialog({
   const [confirm, setConfirm] = useState('');
   const [roles, setRoles] = useState<string[]>([]);
   const [profiles, setProfiles] = useState<string[]>([]);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [availableBranches, setAvailableBranches] = useState<svc.BranchMasterOption[]>([]);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchCompany, setNewBranchCompany] = useState('');
+  const [creatingBranch, setCreatingBranch] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -164,7 +262,11 @@ function UserFormDialog({
     setConfirm('');
     setRoles(user?.roles || []);
     setProfiles(user?.role_profiles || []);
-  }, [open, user]);
+    setBranches(user?.branches || []);
+    setAvailableBranches(bootstrap.branches || []);
+    setNewBranchName('');
+    setNewBranchCompany('');
+  }, [open, user, bootstrap.branches]);
 
   const passwordMismatch = confirm.length > 0 && password !== confirm;
 
@@ -196,6 +298,7 @@ function UserFormDialog({
           user_type: userType,
           roles,
           role_profiles: profiles,
+          branches,
         });
         toast.success('User updated');
       } else {
@@ -210,6 +313,7 @@ function UserFormDialog({
           confirm_password: password ? confirm : undefined,
           roles,
           role_profiles: profiles,
+          branches,
         });
         toast.success(
           password
@@ -366,6 +470,41 @@ function UserFormDialog({
             onChange={setProfiles}
             placeholder="No role profiles selected"
             emptyMessage="No role profiles configured"
+          />
+          <UserBranchFields
+            branches={branches}
+            onChange={setBranches}
+            available={availableBranches}
+            newBranchName={newBranchName}
+            newBranchCompany={newBranchCompany}
+            creatingBranch={creatingBranch}
+            onNewBranchName={setNewBranchName}
+            onNewBranchCompany={setNewBranchCompany}
+            onCreateBranch={async () => {
+              if (!newBranchName.trim()) {
+                toast.error('Branch name is required');
+                return;
+              }
+              setCreatingBranch(true);
+              try {
+                const created = await branchSvc.createBranch({
+                  branch: newBranchName.trim(),
+                  company: newBranchCompany || undefined,
+                });
+                setAvailableBranches((prev) =>
+                  prev.some((b) => b.name === created.name) ? prev : [...prev, created]
+                );
+                setBranches((prev) =>
+                  prev.includes(created.name) ? prev : [...prev, created.name]
+                );
+                setNewBranchName('');
+                toast.success(`Branch ${created.branch} created`);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Failed to create branch');
+              } finally {
+                setCreatingBranch(false);
+              }
+            }}
           />
         </div>
 
@@ -543,8 +682,8 @@ export function UsersManager({ embedded = false }: { embedded?: boolean }) {
             <h1 className="dms-stat-value text-xl tracking-tight">Users</h1>
           )}
           <p className="text-sm text-muted-foreground">
-            Create DMS users, assign roles and set temporary passwords. Dealer Manager, System
-            Manager and Administrator only.
+            Create DMS users, assign roles and branches, and set temporary passwords. Dealer
+            Manager, System Manager and Administrator only.
           </p>
         </div>
         <Button
@@ -587,6 +726,7 @@ export function UsersManager({ embedded = false }: { embedded?: boolean }) {
                     <th className="px-3 py-2 font-medium">User</th>
                     <th className="px-3 py-2 font-medium">Type</th>
                     <th className="px-3 py-2 font-medium">Roles</th>
+                    <th className="px-3 py-2 font-medium">Branches</th>
                     <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 text-right font-medium">Actions</th>
                   </tr>
@@ -614,6 +754,22 @@ export function UsersManager({ embedded = false }: { embedded?: boolean }) {
                             ))}
                             {u.roles.length > 3 ? (
                               <Badge variant="outline">+{u.roles.length - 3}</Badge>
+                            ) : null}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {(u.branches || []).length === 0 ? (
+                          <span className="text-xs text-muted-foreground">All</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {(u.branches || []).slice(0, 3).map((b) => (
+                              <Badge key={b} variant="outline">
+                                {b}
+                              </Badge>
+                            ))}
+                            {(u.branches || []).length > 3 ? (
+                              <Badge variant="outline">+{(u.branches || []).length - 3}</Badge>
                             ) : null}
                           </div>
                         )}

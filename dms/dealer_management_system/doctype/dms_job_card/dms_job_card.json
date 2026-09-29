@@ -39,6 +39,7 @@
   "skip_vehicle_inspection",
   "inspection",
   "service_estimate",
+  "sales_order",
   "warranty_status",
   "warranty_expiry_date",
   "warranty_application_type",
@@ -376,6 +377,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "read_only": 1
+  },
+  {
    "fetch_from": "vehicle_vin.warranty_status",
    "fieldname": "warranty_status",
    "fieldtype": "Read Only",
@@ -418,7 +427,6 @@
   },
   {
    "allow_on_submit": 1,
-   "default": "__user",
    "fieldname": "service_advisor",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -1042,7 +1050,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-25 18:40:45.297310",
+ "modified": "2026-09-30 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Job Card",

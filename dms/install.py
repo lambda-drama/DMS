@@ -31,6 +31,7 @@ def ensure_runtime_custom_fields() -> None:
 		ensure_labour_display_name_field,
 	)
 	from dms.utils.user_password import ensure_force_password_field
+	from dms.dealer_management_system.utils.branch_permissions import ensure_branch_company_field
 
 	for ensure in (
 		ensure_sales_order_dms_order_field,
@@ -39,6 +40,7 @@ def ensure_runtime_custom_fields() -> None:
 		_ensure_quotation_link_field,
 		ensure_labour_display_name_field,
 		ensure_force_password_field,
+		ensure_branch_company_field,
 	):
 		try:
 			ensure()

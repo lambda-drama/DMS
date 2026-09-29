@@ -22,6 +22,7 @@ export type DmsPermissionModule =
   | 'user-permissions'
   | 'advanced-permissions'
   | 'users'
+  | 'branches'
   | 'deliveries'
   | 'customers'
   | 'vehicles'
@@ -90,6 +91,7 @@ export const VIEW_TO_PERMISSION_MODULE: Record<string, DmsPermissionModule> = {
   'user-permissions': 'user-permissions',
   'advanced-permissions': 'advanced-permissions',
   users: 'users',
+  branches: 'branches',
   deliveries: 'deliveries',
   'delivery-new': 'deliveries',
   customers: 'customers',

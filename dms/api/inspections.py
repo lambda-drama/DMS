@@ -71,7 +71,10 @@ def _get_or_create_warning_light(warning_light_value, notes=None):
 
 
 def _resolve_service_advisor(data, required=True):
-	advisor = data.get("service_advisor")
+	advisor = (data.get("service_advisor") or "").strip()
+	# DocType default used to be ``__user`` (session user). That is not a Service Advisor.
+	if advisor in ("__user", frappe.session.user) and not frappe.db.exists("Service Advisor", advisor):
+		advisor = ""
 	if advisor and frappe.db.exists("Service Advisor", advisor):
 		return advisor
 	user = frappe.session.user
@@ -377,6 +380,8 @@ def _apply_inspection_payload(doc, data, as_draft):
 	if "inspector" in data:
 		doc.inspector = data.get("inspector")
 	doc.appointment = data.get("appointment")
+	if doc.meta.has_field("sales_order") and "sales_order" in data:
+		doc.sales_order = (data.get("sales_order") or "").strip() or None
 	# Always persist explicit 0/1 — falsy 0 must not fall back to "present".
 	if "customer_present" in data:
 		doc.customer_present = 1 if cint(data.get("customer_present")) else 0

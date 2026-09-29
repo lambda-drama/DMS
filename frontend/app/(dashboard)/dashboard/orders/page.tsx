@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   Ban,
   CheckCircle2,
+  ClipboardCheck,
   Eye,
   FilePenLine,
   FileText,
@@ -15,6 +16,7 @@ import {
   Search,
   ShoppingCart,
   Trash2,
+  Wrench,
 } from 'lucide-react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { usePermissions } from '@/contexts/permissions-context';
@@ -23,6 +25,8 @@ import { ListRowActions } from '@/components/list-row-actions';
 import { PermittedCreateButton } from '@/components/permitted-create-button';
 import { CreateOrderInvoiceDialog } from '@/components/orders/create-order-invoice-dialog';
 import { RecordOrderPaymentDialog } from '@/components/orders/record-order-payment-dialog';
+import { SelectServiceAdvisorDialog } from '@/components/orders/select-service-advisor-dialog';
+import * as inspectionsSvc from '@/services/inspections';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -79,13 +83,19 @@ export default function OrdersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(viewParams.get('name'));
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<DmsOrderListItem | null>(null);
+  const [advisorOrder, setAdvisorOrder] = useState<
+    ordersSvc.DmsOrderDetail | DmsOrderListItem | null
+  >(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [amending, setAmending] = useState(false);
 
   const canOrder = canCreate('orders');
   const canCollectPayment = canCreate('orders') || canCreate('payment-entries');
   const canRaiseInvoice = canCreate('orders') || canCreate('invoices');
+  const canInspect = canCreate('inspections');
+  const canMakeJobCard = canCreate('job-cards');
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebounced(search.trim()), 250);
@@ -132,7 +142,84 @@ export default function OrdersPage() {
     Boolean(order) && order!.docstatus === 1 && !order!.converted && (order!.balance || 0) > 0.0001;
 
   const canInvoiceFor = (order: DmsOrderListItem | null | undefined) =>
-    Boolean(order) && order!.docstatus === 1 && !order!.converted;
+    Boolean(order) &&
+    order!.docstatus === 1 &&
+    !order!.converted &&
+    !('job_card' in (order || {}) && (order as ordersSvc.DmsOrderDetail).job_card);
+
+  function canWorkshop(order: DmsOrderListItem | null | undefined) {
+    return Boolean(order) && order!.docstatus === 1 && !order!.converted && !isCancelled(order!);
+  }
+
+  function goToOrderInspection(order: ordersSvc.DmsOrderDetail | DmsOrderListItem) {
+    const detail = order as ordersSvc.DmsOrderDetail;
+    if (detail.inspection && detail.inspection_docstatus === 0) {
+      navigate('inspection-new', { id: detail.inspection, order: order.name });
+      return;
+    }
+    if (detail.inspection) {
+      navigate('inspection-detail', { id: detail.inspection });
+      return;
+    }
+    navigate('inspection-new', { order: order.name });
+  }
+
+  async function createJobCardFromOrderWithAdvisor(
+    order: ordersSvc.DmsOrderDetail | DmsOrderListItem,
+    serviceAdvisor?: string
+  ) {
+    setBusy('create job card');
+    try {
+      const created = await ordersSvc.createJobCardFromOrder(order.name, serviceAdvisor);
+      toast.success(
+        created.existing
+          ? 'Opened the existing job card for this order'
+          : 'Draft job card created with the order items and downpayment'
+      );
+      await refresh();
+      setAdvisorOpen(false);
+      setAdvisorOrder(null);
+      if (created.name) {
+        navigate('job-card-new', { id: created.name });
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create a job card from this order');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleCreateJobCard(order: ordersSvc.DmsOrderDetail | DmsOrderListItem) {
+    const detail = order as ordersSvc.DmsOrderDetail;
+    if (detail.job_card) {
+      if ((detail.job_card_status || '').toLowerCase() === 'draft') {
+        navigate('job-card-new', { id: detail.job_card });
+      } else {
+        navigate('job-card-detail', { id: detail.job_card });
+      }
+      return;
+    }
+    setBusy('create job card');
+    try {
+      let advisorName = '';
+      try {
+        const current = await inspectionsSvc.getCurrentServiceAdvisor();
+        advisorName = current?.name || '';
+      } catch {
+        advisorName = '';
+      }
+      if (advisorName) {
+        await createJobCardFromOrderWithAdvisor(order, advisorName);
+        return;
+      }
+      setAdvisorOrder(order);
+      setAdvisorOpen(true);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create a job card from this order');
+    } finally {
+      setBusy(null);
+    }
+  }
 
   function openPayment(order: DmsOrderListItem) {
     setActionTarget(order);
@@ -183,7 +270,8 @@ export default function OrdersPage() {
         <div>
           <h1 className="dms-stat-value text-xl tracking-tight">Orders</h1>
           <p className="text-muted-foreground">
-            Customer orders for parts that are not in stock — take a payment now, invoice later
+            Customer orders for parts and labour — take a downpayment now, then inspect or open a
+            job card when the customer comes in
           </p>
         </div>
         <PermittedCreateButton
@@ -364,6 +452,23 @@ export default function OrdersPage() {
                                       Record Payment
                                     </DropdownMenuItem>
                                   ) : null}
+                                  {canInspect && canWorkshop(row) ? (
+                                    <DropdownMenuItem
+                                      onClick={() => goToOrderInspection(row)}
+                                    >
+                                      <ClipboardCheck className="mr-2 h-4 w-4" />
+                                      Go to Inspection
+                                    </DropdownMenuItem>
+                                  ) : null}
+                                  {canMakeJobCard && canWorkshop(row) ? (
+                                    <DropdownMenuItem
+                                      disabled={busy !== null}
+                                      onClick={() => void handleCreateJobCard(row)}
+                                    >
+                                      <Wrench className="mr-2 h-4 w-4" />
+                                      Create Job Card
+                                    </DropdownMenuItem>
+                                  ) : null}
                                   {canRaiseInvoice && canInvoiceFor(row) ? (
                                     <DropdownMenuItem onClick={() => openInvoice(row)}>
                                       <FileText className="mr-2 h-4 w-4" />
@@ -494,6 +599,30 @@ export default function OrdersPage() {
                       Record Payment
                     </Button>
                   ) : null}
+                  {canInspect && canWorkshop(selected) ? (
+                    <Button
+                      variant="outline"
+                      disabled={busy !== null}
+                      onClick={() => goToOrderInspection(selected)}
+                    >
+                      <ClipboardCheck className="mr-2 h-4 w-4" />
+                      {selected.inspection ? 'Open Inspection' : 'Go to Inspection'}
+                    </Button>
+                  ) : null}
+                  {canMakeJobCard && canWorkshop(selected) ? (
+                    <Button
+                      variant="outline"
+                      disabled={busy !== null}
+                      onClick={() => void handleCreateJobCard(selected)}
+                    >
+                      {busy === 'create job card' ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wrench className="mr-2 h-4 w-4" />
+                      )}
+                      {selected.job_card ? 'Open Job Card' : 'Create Job Card'}
+                    </Button>
+                  ) : null}
                   {canRaiseInvoice && canInvoiceFor(selected) ? (
                     <Button
                       variant={canPayFor(selected) ? 'outline' : 'default'}
@@ -563,6 +692,21 @@ export default function OrdersPage() {
               <DetailRow label="Valid To" value={selected.delivery_date} />
               <DetailRow label="Warehouse" value={selected.warehouse || undefined} />
               <DetailRow label="Status" value={selected.status} />
+              {selected.vehicle_vin ? (
+                <DetailRow
+                  label="Vehicle"
+                  value={selected.vin_number || selected.vehicle_vin}
+                />
+              ) : null}
+              {selected.inspection ? (
+                <DetailRow label="Inspection" value={selected.inspection} />
+              ) : null}
+              {selected.estimate ? (
+                <DetailRow label="Estimate" value={selected.estimate} />
+              ) : null}
+              {selected.job_card ? (
+                <DetailRow label="Job Card" value={selected.job_card} />
+              ) : null}
               {selected.amended_from ? (
                 <DetailRow label="Amended from" value={selected.amended_from} />
               ) : null}
@@ -723,6 +867,20 @@ export default function OrdersPage() {
         }}
         order={actionTarget}
         onCreated={() => void refresh()}
+      />
+
+      <SelectServiceAdvisorDialog
+        open={advisorOpen}
+        onOpenChange={(next) => {
+          setAdvisorOpen(next);
+          if (!next) setAdvisorOrder(null);
+        }}
+        orderName={advisorOrder?.name}
+        saving={busy === 'create job card'}
+        onConfirm={(advisor) => {
+          if (!advisorOrder) return;
+          void createJobCardFromOrderWithAdvisor(advisorOrder, advisor);
+        }}
       />
     </div>
   );

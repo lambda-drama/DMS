@@ -25,6 +25,22 @@ def resolve_vehicle_service_item_to_item_code(vsi_name: str | None) -> str | Non
 	return None
 
 
+def resolve_item_code_to_vehicle_service_item(item_or_vsi: str | None) -> str | None:
+	"""Vehicle Service Item name from a VSI name or the ERP Item stored on the Sales Order."""
+	key = (item_or_vsi or "").strip()
+	if not key or not frappe.db.exists("DocType", "Vehicle Service Item"):
+		return None
+	if frappe.db.exists("Vehicle Service Item", key):
+		return key
+	meta = frappe.get_meta("Vehicle Service Item")
+	for f in meta.fields:
+		if f.fieldtype == "Link" and f.options == "Item":
+			name = frappe.db.get_value("Vehicle Service Item", {f.fieldname: key}, "name")
+			if name:
+				return name
+	return None
+
+
 def spare_record(spare_docname: str) -> dict | None:
 	if not spare_docname or not frappe.db.exists("Spare Part", spare_docname):
 		return None

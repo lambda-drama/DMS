@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { ReportViewer } from '@/components/reports/report-viewer';
 import { SectionDashboardView } from '@/components/reports/section-dashboard';
@@ -157,7 +158,7 @@ export default function ReportsPage() {
   const [sparePartSearch, setSparePartSearch] = useState('');
 
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
-  const { data: branches, isLoading: branchesLoading } = useBranches(branchSearch);
+	const { data: branches, isLoading: branchesLoading } = useBranches(branchSearch, company || undefined);
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
     warehouseSearch,
     company || undefined
@@ -435,6 +436,7 @@ export default function ReportsPage() {
                     onValueChange={(v) => {
                       setCompany(v);
                       setWarehouse('');
+                      setBranch('');
                     }}
                     onSearchChange={setCompanySearch}
                     placeholder="Select company"
@@ -534,7 +536,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Branch</Label>
-                  <SearchableSelect
+                  <BranchSelect
                     options={(branches || []).map((b) => ({
                       value: b.name,
                       label: b.branch || b.name,
@@ -542,6 +544,7 @@ export default function ReportsPage() {
                     value={branch}
                     onValueChange={setBranch}
                     onSearchChange={setBranchSearch}
+                    company={company}
                     placeholder="All branches"
                     isLoading={branchesLoading}
                   />

@@ -103,6 +103,13 @@ def make_dms_job_card_from_inspection(source_name: str) -> str:
 			title=_("Job Card exists"),
 		)
 
+	if inv.get("sales_order"):
+		from dms.api.order_workshop import workshop_links_for_order
+
+		existing_order_jc = workshop_links_for_order(inv.sales_order).get("job_card")
+		if existing_order_jc:
+			return existing_order_jc
+
 	if not inv.customer:
 		frappe.throw(_("Customer is required on the Vehicle Inspection."))
 	if not inv.vin_chassis:
@@ -128,6 +135,8 @@ def make_dms_job_card_from_inspection(source_name: str) -> str:
 			"internal_notes": inv.internal_notes or "",
 		}
 	)
+	if jc.meta.has_field("sales_order") and inv.get("sales_order"):
+		jc.sales_order = inv.sales_order
 
 	if inv.odometer is not None:
 		jc.current_odometer = inv.odometer
@@ -208,5 +217,12 @@ def make_dms_job_card_from_inspection(source_name: str) -> str:
 		)
 
 	jc.insert()
+
+	if inv.get("sales_order"):
+		from dms.api.order_workshop import apply_order_lines_to_job_card, carry_order_onto_job_card
+
+		apply_order_lines_to_job_card(jc, inv.sales_order)
+		jc.save()
+		carry_order_onto_job_card(jc.name, inv.sales_order)
 
 	return jc.name

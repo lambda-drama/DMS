@@ -26,6 +26,7 @@ import {
   Users,
   Wallet,
   Wrench,
+  Building2,
   ArrowDownUp,
   ClipboardList,
   PackageCheck,
@@ -101,6 +102,7 @@ const navigation: NavSection[] = [
       { name: 'Item Prices', view: 'item-prices', icon: Banknote },
       { name: 'Job Card Terms', view: 'job-card-terms', icon: ScrollText },
       { name: 'Sales Invoice Terms', view: 'sales-invoice-tc', icon: FileText },
+      { name: 'Branches', view: 'branches', icon: Building2 },
     ],
   },
   {

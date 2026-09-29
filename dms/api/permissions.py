@@ -24,6 +24,7 @@ DMS_VIEW_DOCTYPES: dict[str, str | None] = {
 	"user-permissions": "DMS CRM User Settings",
 	"advanced-permissions": None,
 	"users": None,
+	"branches": None,
 	"deliveries": "Vehicle Delivery Note",
 	"customers": "Customer",
 	"vehicles": "VIN No",
@@ -191,6 +192,15 @@ def get_dms_ui_permissions():
 		"write": int(management_access),
 		"create": int(management_access),
 		"delete": 0,
+	}
+
+	out["branches"] = {
+		"doctype": "Branch",
+		"visible": management_access,
+		"read": int(management_access),
+		"write": int(management_access),
+		"create": int(management_access),
+		"delete": int(management_access),
 	}
 
 	from dms.dealer_management_system.utils.price_permissions import can_edit_price

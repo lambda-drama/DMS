@@ -115,6 +115,26 @@ def _load_order(name) -> frappe.model.document.Document:
 	return so
 
 
+def _order_item_line_discount(row) -> tuple[float, str, float]:
+	"""Gross unit rate + reconstructed line discount from a Sales Order Item.
+
+	The DMS order screen keeps the listed rate on the line and stores the discount
+	on ERPNext's ``discount_percentage`` / ``discount_amount``. Older orders that
+	baked the discount into ``rate`` have no discount fields and return the rate as-is.
+	"""
+	qty = flt(row.qty) or 1.0
+	price_list = flt(row.get("price_list_rate"))
+	rate = flt(row.rate)
+	pct = flt(row.get("discount_percentage"))
+	unit_disc = flt(row.get("discount_amount"))
+	gross = price_list if price_list > 0 else (rate + unit_disc if unit_disc > 0 else rate)
+	if pct > 0:
+		return gross, "Percentage", pct
+	if unit_disc > 0:
+		return gross, "Amount", round(unit_disc * qty, 2)
+	return gross, "", 0.0
+
+
 def _company_currency(company: str | None) -> str | None:
 	"""Company default currency — keeps order/invoice aligned with the ledger accounts."""
 	company = (company or "").strip()
@@ -294,20 +314,15 @@ def get_dms_order(name):
 		}
 
 	# Labour lines are the Vehicle Service Item rows; everything else is a part.
+	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		resolve_item_code_to_vehicle_service_item,
+	)
+
 	vsi_meta = (
 		frappe.get_meta("Vehicle Service Item")
 		if frappe.db.exists("DocType", "Vehicle Service Item")
 		else None
 	)
-	vsi_item_field = None
-	if vsi_meta:
-		if vsi_meta.has_field("custom_erpnext_item"):
-			vsi_item_field = "custom_erpnext_item"
-		else:
-			for df in vsi_meta.fields:
-				if df.fieldtype == "Link" and df.options == "Item":
-					vsi_item_field = df.fieldname
-					break
 
 	items = []
 	parts = []
@@ -320,11 +335,12 @@ def get_dms_order(name):
 			spare_part = frappe.db.get_value("Spare Part", row.item_code, "name")
 
 		vsi_name = None
-		if not spare_part and vsi_item_field:
-			vsi_name = frappe.db.get_value("Vehicle Service Item", {vsi_item_field: row.item_code}, "name")
+		if not spare_part:
+			vsi_name = resolve_item_code_to_vehicle_service_item(row.item_code)
 
 		# Display Name typed on the order line → Sales Order Item description.
 		description = (row.get("description") or "").strip()
+		gross_rate, discount_type, discount_value = _order_item_line_discount(row)
 
 		items.append(
 			{
@@ -334,9 +350,11 @@ def get_dms_order(name):
 				"description": description,
 				"qty": flt(row.qty),
 				"billed_qty": flt(row.get("billed_qty")),
-				"rate": flt(row.rate),
+				"rate": gross_rate,
 				"amount": flt(row.amount),
 				"warehouse": row.warehouse,
+				"discount_type": discount_type,
+				"discount_value": discount_value,
 			}
 		)
 
@@ -348,9 +366,11 @@ def get_dms_order(name):
 					"item_name": row.item_name,
 					"description": description,
 					"qty": flt(row.qty),
-					"rate": flt(row.rate),
+					"rate": gross_rate,
 					"amount": flt(row.amount),
 					"warehouse": row.warehouse,
+					"discount_type": discount_type,
+					"discount_value": discount_value,
 				}
 			)
 		elif vsi_name:
@@ -363,8 +383,10 @@ def get_dms_order(name):
 					"vehicle_service_item_name": label,
 					"description": description,
 					"hours": flt(row.qty),
-					"rate_per_hour": flt(row.rate),
+					"rate_per_hour": gross_rate,
 					"amount": flt(row.amount),
+					"discount_type": discount_type,
+					"discount_value": discount_value,
 				}
 			)
 		elif not cint(frappe.db.get_value("Item", row.item_code, "is_stock_item")):
@@ -374,8 +396,10 @@ def get_dms_order(name):
 					"vehicle_service_item_name": row.item_name or row.item_code,
 					"description": description,
 					"hours": flt(row.qty),
-					"rate_per_hour": flt(row.rate),
+					"rate_per_hour": gross_rate,
 					"amount": flt(row.amount),
+					"discount_type": discount_type,
+					"discount_value": discount_value,
 				}
 			)
 		else:
@@ -386,9 +410,11 @@ def get_dms_order(name):
 					"item_name": row.item_name,
 					"description": description,
 					"qty": flt(row.qty),
-					"rate": flt(row.rate),
+					"rate": gross_rate,
 					"amount": flt(row.amount),
 					"warehouse": row.warehouse,
+					"discount_type": discount_type,
+					"discount_value": discount_value,
 				}
 			)
 
@@ -456,12 +482,18 @@ def get_dms_order(name):
 	grand_total = flt(so.grand_total)
 
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		get_sales_order_vehicle_vin,
 		read_sales_order_tax_withholding,
 	)
+	from dms.api.order_workshop import workshop_links_for_order
 
 	applies_withholding, withholding_category, withholding_group = read_sales_order_tax_withholding(so)
 
 	amended_as = frappe.db.get_value("Sales Order", {"amended_from": so.name}, "name")
+	workshop = workshop_links_for_order(so.name)
+	vin = get_sales_order_vehicle_vin(so)
+	inspection_name = workshop.get("inspection")
+	job_card_name = workshop.get("job_card")
 
 	return {
 		"name": so.name,
@@ -492,6 +524,21 @@ def get_dms_order(name):
 		"advance_paid": advance_paid,
 		"balance": max(grand_total - advance_paid, 0),
 		"remarks": remarks or None,
+		"vehicle_vin": vin,
+		"vin_number": (
+			frappe.db.get_value("VIN No", vin, "vin_number") or vin if vin else None
+		),
+		"inspection": inspection_name,
+		"inspection_docstatus": (
+			frappe.db.get_value("Vehicle Inspection", inspection_name, "docstatus")
+			if inspection_name
+			else None
+		),
+		"estimate": workshop.get("estimate"),
+		"job_card": job_card_name,
+		"job_card_status": (
+			frappe.db.get_value("DMS Job Card", job_card_name, "status") if job_card_name else None
+		),
 		"items": items,
 		"parts": parts,
 		"labour": labour,

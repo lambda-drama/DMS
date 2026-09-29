@@ -103,6 +103,13 @@ def make_dms_job_card_from_estimate(
 	if existing_jc and frappe.db.exists("DMS Job Card", existing_jc):
 		return existing_jc
 
+	if est.get("sales_order"):
+		from dms.api.order_workshop import workshop_links_for_order
+
+		existing_order_jc = workshop_links_for_order(est.sales_order).get("job_card")
+		if existing_order_jc:
+			return existing_order_jc
+
 	jc = frappe.new_doc("DMS Job Card")
 	jc.update(
 		{
@@ -136,6 +143,13 @@ def make_dms_job_card_from_estimate(
 			"discount_amount": est.discount_amount,
 		}
 	)
+
+	if jc.meta.has_field("sales_order"):
+		jc.sales_order = est.get("sales_order") or (
+			frappe.db.get_value("Vehicle Inspection", est.inspection, "sales_order")
+			if est.inspection
+			else None
+		)
 
 	if est.inspection:
 		odometer = frappe.db.get_value("Vehicle Inspection", est.inspection, "odometer")
@@ -262,6 +276,13 @@ def make_dms_job_card_from_estimate(
 		)
 
 	jc.insert()
+
+	if jc.get("sales_order"):
+		from dms.api.order_workshop import apply_order_lines_to_job_card, carry_order_onto_job_card
+
+		apply_order_lines_to_job_card(jc, jc.sales_order)
+		jc.save()
+		carry_order_onto_job_card(jc.name, jc.sales_order)
 
 	return jc.name
 

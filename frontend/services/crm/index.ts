@@ -154,6 +154,19 @@ export async function fetchCrmBranches(company?: string): Promise<Array<{ name: 
   });
 }
 
+export async function quickCreateCrmBranch(data: {
+  branch: string;
+  company?: string;
+}): Promise<{ name: string; branch: string; company?: string | null; company_name?: string | null }> {
+  return apiRequest('/api/method/dms.crm_api.common.quick_create_branch', {
+    method: 'POST',
+    body: JSON.stringify({
+      branch: data.branch,
+      company: data.company || null,
+    }),
+  });
+}
+
 export async function fetchCrmTerritories(search?: string, isGroup: 0 | 1 | 'all' = 0) {
   return apiRequest<Array<{ name: string; label?: string; parent_territory?: string }>>(
     '/api/method/dms.crm_api.common.get_territories',

@@ -369,7 +369,7 @@ def _line_invoice_discount(price_list_rate: float, net_rate: float, discount_mod
 		return fields
 
 	fields["discount_amount"] = unit_discount
-	if discount_mode == "Percentage" and full:
+	if normalize_job_card_discount_type(discount_mode) == "percentage" and full:
 		pct = flt(unit_discount / full * 100.0, 2)
 		if 0 < pct < 100 and abs(flt(full * pct / 100.0) - unit_discount) < 0.005:
 			fields["discount_percentage"] = pct
@@ -2063,6 +2063,13 @@ def create_sales_invoice_from_dms_job_card(
 
 	assert_single_invoice_allowed(job_card_name)
 
+	if frappe.get_meta("DMS Job Card").has_field("sales_order"):
+		so_name = frappe.db.get_value("DMS Job Card", job_card_name, "sales_order")
+		if so_name:
+			from dms.api.order_workshop import carry_order_onto_job_card
+
+			carry_order_onto_job_card(job_card_name, so_name)
+
 	if frappe.db.get_value("DMS Job Card", job_card_name, "docstatus") != 1:
 		frappe.throw(_("Submit the Job Card before creating a Sales Invoice."))
 
@@ -3194,6 +3201,14 @@ def _standalone_line_discount_amount(
 	return 0.0
 
 
+def _payload_has_line_discount(labour_lines, parts_lines) -> bool:
+	for row in list(labour_lines or []) + list(parts_lines or []):
+		mode, value = _row_line_discount(row)
+		if mode and value > 0:
+			return True
+	return False
+
+
 def _standalone_discounted_unit_rate(
 	qty: float,
 	base_rate: float,
@@ -3201,11 +3216,21 @@ def _standalone_discounted_unit_rate(
 	group_total: float,
 	discount: dict | None,
 ) -> float:
-	"""Net unit rate billed on Sales Invoice Item.rate (matches DMS UI totals)."""
-	if not discount or qty <= 0 or line_amount <= 0:
+	"""Net unit rate billed on Sales Invoice / Sales Order Item.rate.
+
+	``line_amount`` is already net of that row's own line discount, so with no
+	group discount this returns ``line_amount / qty`` (not the gross ``base_rate``).
+	"""
+	qty = flt(qty)
+	if qty <= 0:
 		return flt(base_rate)
+	line_amount = flt(line_amount)
+	if not discount:
+		return flt(line_amount / qty)
+	if line_amount <= 0:
+		return 0.0
 	line_discount = _standalone_line_discount_amount(line_amount, group_total, discount)
-	return flt((flt(line_amount) - line_discount) / qty)
+	return flt((line_amount - line_discount) / qty)
 
 
 def _apply_standalone_stock_warehouse(si_row, erp_item: str, warehouse: str, company: str) -> None:
@@ -3272,7 +3297,11 @@ def create_standalone_dms_sales_invoice(
 
 	# Discounts reduce line rates — that is allowed without Edit Price permission.
 	# Only direct unit-price/rate edits (with no discount) require Edit Price.
-	if not labour_discount and not parts_discount:
+	if (
+		not labour_discount
+		and not parts_discount
+		and not _payload_has_line_discount(labour_lines, parts_lines)
+	):
 		from dms.dealer_management_system.utils.price_permissions import (
 			assert_price_allowed_if_changed,
 		)
@@ -3533,7 +3562,13 @@ def create_standalone_dms_sales_invoice(
 	return si.name
 
 
-def _apply_standalone_line_pricing(si, line_pricing: list[dict], use_dms_discount_field: bool) -> None:
+def _apply_standalone_line_pricing(
+	si,
+	line_pricing: list[dict],
+	use_dms_discount_field: bool,
+	*,
+	allow_zero_rate: bool = False,
+) -> None:
 	"""Write the full price + ERPNext line discount + net rate so the bill shows the discount."""
 	for idx, item in enumerate(si.get("items") or []):
 		if idx >= len(line_pricing):
@@ -3544,16 +3579,32 @@ def _apply_standalone_line_pricing(si, line_pricing: list[dict], use_dms_discoun
 		final = flt(p.get("final_rate"))
 		line_disc = flt(p.get("line_discount"))
 
-		# Full selling price stays on the line; the discount (the line's own discount
-		# plus its share of the group discount) is shown as the line's discount.
-		fields = _line_invoice_discount(base, final, str(p.get("discount_mode") or ""))
-		item.price_list_rate = fields["price_list_rate"]
-		item.discount_percentage = fields["discount_percentage"]
-		item.discount_amount = fields["discount_amount"]
-		item.rate = final
-		item.amount = flt(qty * final)
-		item.net_rate = final
-		item.net_amount = flt(qty * final)
+		# Sales Invoice Item rate=0 is blocked by a site Server Script. Sales Order
+		# keeps a 100% line discount as percentage=100 / rate=0 so the net is zero.
+		if allow_zero_rate and final <= 0 and base > 0:
+			item.price_list_rate = base
+			item.rate_with_margin = base
+			item.discount_percentage = 100.0
+			item.discount_amount = base
+			item.rate = 0.0
+			item.amount = 0.0
+			if hasattr(item, "net_rate"):
+				item.net_rate = 0.0
+			if hasattr(item, "net_amount"):
+				item.net_amount = 0.0
+		else:
+			# Full selling price stays on the line; the discount (the line's own discount
+			# plus its share of the group discount) is shown as the line's discount.
+			fields = _line_invoice_discount(base, final, str(p.get("discount_mode") or ""))
+			item.price_list_rate = fields["price_list_rate"]
+			item.discount_percentage = fields["discount_percentage"]
+			item.discount_amount = fields["discount_amount"]
+			item.rate = fields["rate"]
+			item.amount = flt(qty * fields["rate"])
+			if hasattr(item, "net_rate"):
+				item.net_rate = fields["rate"]
+			if hasattr(item, "net_amount"):
+				item.net_amount = flt(qty * fields["rate"])
 		if use_dms_discount_field:
 			item.custom_dms_discount = line_disc
 
@@ -3606,7 +3657,18 @@ def ensure_sales_order_vehicle_vin_field() -> None:
 	manage Custom Fields, so detail screens never fail with a Custom Field
 	permission error.
 	"""
+	wanted_depends = "eval:doc.custom_spare_parts_proforma || doc.custom_dms_order"
 	if custom_field_exists("Sales Order", "custom_dms_vehicle_vin"):
+		# DMS orders used to hide this field (depends_on was proforma-only).
+		if frappe.has_permission("Custom Field", "write"):
+			cf_name = frappe.db.get_value(
+				"Custom Field",
+				{"dt": "Sales Order", "fieldname": "custom_dms_vehicle_vin"},
+			)
+			if cf_name and frappe.db.get_value("Custom Field", cf_name, "depends_on") != wanted_depends:
+				frappe.db.set_value(
+					"Custom Field", cf_name, "depends_on", wanted_depends, update_modified=False
+				)
 		return
 
 	ensure_custom_fields(
@@ -3618,7 +3680,7 @@ def ensure_sales_order_vehicle_vin_field() -> None:
 					"fieldtype": "Link",
 					"options": "VIN No",
 					"insert_after": "custom_spare_parts_proforma",
-					"depends_on": "eval:doc.custom_spare_parts_proforma",
+					"depends_on": "eval:doc.custom_spare_parts_proforma || doc.custom_dms_order",
 				}
 			]
 		},
@@ -3717,7 +3779,12 @@ def create_standalone_dms_sales_order(
 	# unit-price/rate edits (no discounts) require Edit Price permission.
 	# A dry run is a totals preview, not a save — the permission gate stays on the
 	# real save / insert path so the preview never fails on the operator's rights.
-	if not labour_discount and not parts_discount and not dry_run:
+	if (
+		not labour_discount
+		and not parts_discount
+		and not _payload_has_line_discount(labour_lines, parts_lines)
+		and not dry_run
+	):
 		from dms.dealer_management_system.utils.price_permissions import (
 			assert_price_allowed_if_changed,
 		)
@@ -3835,7 +3902,7 @@ def create_standalone_dms_sales_order(
 	if parts_disc and parts_disc["type"] == "amount" and flt(parts_disc["value"]) > parts_group_total:
 		frappe.throw(_("Parts discount amount cannot exceed parts total ({0}).").format(parts_group_total))
 
-	item_final_rates: list[float] = []
+	line_pricing: list[dict] = []
 
 	for row in labour_lines:
 		qty, base_rate, line_amount, missing_vsi = _standalone_labour_line_amount(row)
@@ -3849,13 +3916,23 @@ def create_standalone_dms_sales_order(
 			continue
 		vsi = (row.get("vehicle_service_item") or "").strip()
 		item_code = resolve_vehicle_service_item_to_item_code(vsi)
+		line_discount = _standalone_line_discount_amount(line_amount, labour_group_total, labour_disc)
 		final_rate = _standalone_discounted_unit_rate(
 			qty, base_rate, line_amount, labour_group_total, labour_disc
 		)
-		item_final_rates.append(final_rate)
+		line_pricing.append(
+			{
+				"base_rate": base_rate,
+				"final_rate": final_rate,
+				"line_discount": line_discount,
+				"qty": qty,
+				"discount_mode": _row_line_discount(row)[0],
+			}
+		)
 		item_row = {
 			"item_code": item_code,
 			"qty": qty,
+			"price_list_rate": base_rate,
 			"rate": final_rate,
 			"delivery_date": so.delivery_date,
 			"description": (row.get("description") or "")[:4096] or None,
@@ -3872,13 +3949,23 @@ def create_standalone_dms_sales_order(
 		erp_item = spare_part_erp_item_code(spare_part)
 		if not erp_item:
 			frappe.throw(_("Spare Part {0} has no linked ERP Item.").format(frappe.bold(spare_part)))
+		line_discount = _standalone_line_discount_amount(line_amount, parts_group_total, parts_disc)
 		final_rate = _standalone_discounted_unit_rate(
 			qty, base_rate, line_amount, parts_group_total, parts_disc
 		)
-		item_final_rates.append(final_rate)
+		line_pricing.append(
+			{
+				"base_rate": base_rate,
+				"final_rate": final_rate,
+				"line_discount": line_discount,
+				"qty": qty,
+				"discount_mode": _row_line_discount(row)[0],
+			}
+		)
 		item_row = {
 			"item_code": erp_item,
 			"qty": qty,
+			"price_list_rate": base_rate,
 			"rate": final_rate,
 			"delivery_date": so.delivery_date,
 			"description": (row.get("description") or "")[:4096] or None,
@@ -3905,14 +3992,9 @@ def create_standalone_dms_sales_order(
 	# Orders show the exact figure — the invoice that follows never rounds either.
 	disable_sales_order_round_off(so)
 
-	for idx, item_row in enumerate(so.get("items") or []):
-		if idx < len(item_final_rates):
-			final_rate = item_final_rates[idx]
-			item_row.rate = final_rate
-			item_row.price_list_rate = final_rate
-			item_row.discount_percentage = 0
-			item_row.discount_amount = 0
-
+	_apply_standalone_line_pricing(so, line_pricing, False, allow_zero_rate=True)
+	so.run_method("calculate_taxes_and_totals")
+	_apply_standalone_line_pricing(so, line_pricing, False, allow_zero_rate=True)
 	so.run_method("calculate_taxes_and_totals")
 	if dry_run:
 		# Preview only — the caller reads totals / tax rows; nothing is written.

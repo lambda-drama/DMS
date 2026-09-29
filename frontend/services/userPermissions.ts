@@ -23,13 +23,48 @@ export type UserPermissionRow = {
   view_compliance?: number;
 };
 
+export type BranchPermissionRow = {
+  name: string;
+  user: string;
+  full_name?: string;
+  branch: string;
+  branch_label?: string;
+  apply_to_all_doctypes?: number;
+};
+
+export type BranchMasterOption = {
+  name: string;
+  branch?: string;
+  company?: string | null;
+  company_name?: string | null;
+};
+
 export async function getUserPermissionSettings(): Promise<{
   permission_rows: UserPermissionRow[];
   whitelisted_users: { user: string; full_name?: string }[];
+  branch_permissions?: BranchPermissionRow[];
+  available_branches?: BranchMasterOption[];
 }> {
   return apiRequest(`/api/method/${API}.get_user_permission_settings`, {
     method: 'POST',
     body: JSON.stringify({}),
+  });
+}
+
+export async function saveBranchUserPermission(data: {
+  user: string;
+  branch: string;
+}): Promise<{ ok: boolean; name: string; user: string; branch: string }> {
+  return apiRequest(`/api/method/${API}.save_branch_user_permission`, {
+    method: 'POST',
+    body: JSON.stringify({ data }),
+  });
+}
+
+export async function deleteBranchUserPermission(name: string): Promise<{ ok: boolean }> {
+  return apiRequest(`/api/method/${API}.delete_branch_user_permission`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
   });
 }
 

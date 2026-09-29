@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { CrmBrandLink } from '@/components/crm/crm-brand-link';
 import { CrmColorLink } from '@/components/crm/crm-color-link';
 import { CrmVehicleModelLink } from '@/components/crm/crm-vehicle-model-link';
@@ -418,10 +419,12 @@ export function LeadFormSections({ form, setForm, options, showStatus, readOnlyM
               </div>
               <div>
                 <FieldLabel>Branch</FieldLabel>
-                <SearchableSelect
+                <BranchSelect
                   options={branchOptions}
                   value={form.branch}
                   onValueChange={(v) => set('branch', v || '')}
+                  company={form.company}
+                  source="crm"
                   placeholder="Select branch…"
                 />
               </div>

@@ -182,6 +182,19 @@ def _user_payload(user: str) -> dict:
 		"creation": str(doc.creation) if doc.creation else None,
 		"roles": roles,
 		"role_profiles": [r.role_profile for r in (doc.role_profiles or []) if r.role_profile],
+		"branches": [
+			row.for_value
+			for row in frappe.get_all(
+				"User Permission",
+				filters={"user": doc.name, "allow": "Branch"},
+				fields=["for_value"],
+				order_by="for_value asc",
+				ignore_permissions=True,
+			)
+			if row.for_value
+		]
+		if frappe.db.exists("DocType", "User Permission")
+		else [],
 		"whitelisted": doc.name in whitelist,
 		"protected": _is_user_protected(doc.name, set(roles)),
 		"must_change_password": password_change_required(doc.name),
@@ -250,6 +263,25 @@ def get_users_bootstrap():
 		):
 			profile_map.setdefault(row.parent, []).append(row.role_profile)
 
+	branch_map: dict[str, list[str]] = {}
+	if user_names and frappe.db.exists("DocType", "User Permission"):
+		for row in frappe.get_all(
+			"User Permission",
+			filters={"user": ["in", user_names], "allow": "Branch"},
+			fields=["user", "for_value"],
+			order_by="for_value asc",
+			ignore_permissions=True,
+		):
+			if row.for_value:
+				branch_map.setdefault(row.user, []).append(row.for_value)
+
+	from dms.api.branches import list_branches as list_branch_masters
+
+	try:
+		available_branches = list_branch_masters(limit=500).get("data") or []
+	except Exception:
+		available_branches = []
+
 	users = []
 	for d in details:
 		roles = role_map.get(d.name, [])
@@ -266,6 +298,7 @@ def get_users_bootstrap():
 				"creation": str(d.creation) if d.creation else None,
 				"roles": roles,
 				"role_profiles": profile_map.get(d.name, []),
+				"branches": branch_map.get(d.name, []),
 				"whitelisted": d.name in whitelist,
 				"protected": _is_user_protected(d.name, set(roles)),
 				"must_change_password": bool(d.get(FORCE_PASSWORD_FIELD))
@@ -281,6 +314,7 @@ def get_users_bootstrap():
 		"assignable_roles": _assignable_roles(),
 		"role_profiles": _configured_role_profiles(),
 		"user_types": list(USER_TYPES),
+		"branches": available_branches,
 	}
 
 
@@ -338,6 +372,10 @@ def create_user(data=None):
 		set_password_change_required(doc.name, True)
 
 	_whitelist_user(doc.name)
+	if data.get("branches") is not None:
+		from dms.dealer_management_system.utils.branch_permissions import set_user_branches
+
+		set_user_branches(doc.name, data.get("branches") or [])
 	frappe.clear_cache(user=doc.name)
 	frappe.db.commit()
 	return _user_payload(doc.name)
@@ -395,6 +433,10 @@ def update_user(data=None):
 
 	doc.flags.ignore_permissions = True
 	doc.save(ignore_permissions=True)
+	if data.get("branches") is not None:
+		from dms.dealer_management_system.utils.branch_permissions import set_user_branches
+
+		set_user_branches(user, data.get("branches") or [])
 	frappe.clear_cache(user=user)
 	frappe.db.commit()
 	return _user_payload(user)
