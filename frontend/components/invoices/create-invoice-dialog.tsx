@@ -48,7 +48,7 @@ import {
 } from '@/lib/invoice-discount';
 import * as invoicesSvc from '@/services/invoices';
 import * as paymentSvc from '@/services/paymentEntries';
-import type { InvoicePreview, WarrantyApplicationType } from '@/types/dms';
+import type { InvoicePreview } from '@/types/dms';
 
 /** SWR key prefix of the shared advance box — invalidated after an advance is applied. */
 const ADVANCES_KEY = 'customer-advances';
@@ -72,6 +72,11 @@ function formatMoney(amount: number, currency?: string) {
 function warrantyFromPreview(preview: InvoicePreview): string {
   const w = preview.warranty_application_type;
   return w ? String(w) : 'none';
+}
+
+/** Explicit bill-all sentinel. Empty/undefined is treated as "keep the job card type". */
+function warrantyTypeForApi(warranty: string): string {
+  return warranty === 'none' ? 'None' : warranty;
 }
 
 function discountModeFromApi(
@@ -152,8 +157,6 @@ export function CreateInvoiceDialog({
       excluded: string[],
       qty: Record<string, number>
     ) => {
-      const warrantyApplicationType =
-        warranty === 'none' ? '' : (warranty as WarrantyApplicationType);
       const labourDiscount =
         warranty === 'Discount'
           ? buildGroupDiscountPayload(labourMode, labourInput)
@@ -165,7 +168,7 @@ export function CreateInvoiceDialog({
       const rateOverrides =
         Object.keys(rates).length > 0 ? rates : undefined;
       return invoicesSvc.getInvoicePreviewFromJobCard(jobCardId, {
-        warrantyApplicationType: warrantyApplicationType || undefined,
+        warrantyApplicationType: warrantyTypeForApi(warranty),
         labourDiscount,
         partsDiscount,
         rateOverrides,
@@ -389,15 +392,13 @@ export function CreateInvoiceDialog({
 
     setSubmitting(true);
     try {
-      const warrantyApplicationType =
-        warrantyType === 'none' ? '' : (warrantyType as WarrantyApplicationType);
       const invoiceName = await invoicesSvc.createInvoiceFromJobCard(jobCardId, {
         dueDate: preview.has_labour ? dueDate : dueDate || undefined,
         postingDate,
         submit: submitInvoice,
         applyTaxes,
         applyTaxWithholding,
-        warrantyApplicationType: warrantyApplicationType || undefined,
+        warrantyApplicationType: warrantyTypeForApi(warrantyType),
         labourDiscount: warrantyType === 'Discount' ? labourDiscount : undefined,
         partsDiscount: warrantyType === 'Discount' ? partsDiscount : undefined,
         rateOverrides:

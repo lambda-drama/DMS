@@ -8,6 +8,7 @@ from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 	_apply_warranty_as_invoice_discount,
 	_si_item_pricing_fields,
 	_warranty_covered_line_amount,
+	resolve_invoice_warranty_application_type,
 )
 
 
@@ -73,3 +74,27 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 		)
 		self.assertEqual(si.additional_discount_percentage, 0)
 		self.assertEqual(si.discount_amount, 800)
+
+	def test_none_override_bills_all_even_if_job_card_is_all_invoice(self):
+		self.assertEqual(
+			resolve_invoice_warranty_application_type("None", "All Invoice"),
+			"",
+		)
+		self.assertEqual(
+			resolve_invoice_warranty_application_type("none", "All Invoice"),
+			"",
+		)
+		self.assertEqual(
+			resolve_invoice_warranty_application_type("", "All Invoice"),
+			"",
+		)
+
+	def test_omitted_warranty_keeps_job_card_all_invoice(self):
+		self.assertEqual(
+			resolve_invoice_warranty_application_type(None, "All Invoice"),
+			"All Invoice",
+		)
+		self.assertEqual(
+			resolve_invoice_warranty_application_type(None, "Labour"),
+			"Labour",
+		)

@@ -5,6 +5,7 @@ import { formatDate, formatDateTime } from '@/lib/date-format';
 import { useState, useEffect, useRef } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { useNavigation } from "@/contexts/navigation-context";
+import { usePermissions } from "@/contexts/permissions-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useDeliveries } from "@/hooks/use-dms";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ const docstatusMap: Record<number, { label: string; variant: "default" | "second
 
 export default function DeliveriesPage() {
   const { navigate, viewParams } = useNavigation();
+  const { canCancel } = usePermissions();
   const [searchQuery, setSearchQuery] = usePersistedFilter("deliveries", "search", "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -77,19 +79,22 @@ export default function DeliveriesPage() {
 
   const selectedDelivery = deliveries?.find((d) => d.name === selectedId);
   const returnJobCard = viewParams.get("cancel_job_card") || "";
-  const canCancelSelected = selectedDelivery?.docstatus === 1;
+  const canCancelSelected = Boolean(
+    canCancel("deliveries") && selectedDelivery?.docstatus === 1
+  );
 
   useEffect(() => {
     if (autoOpenedCancel.current) return;
     if (!returnJobCard || !selectedId) return;
     if (!selectedDelivery) return;
     if (selectedDelivery.docstatus !== 1) return;
+    if (!canCancel("deliveries")) return;
     autoOpenedCancel.current = true;
     setShowCancelDialog(true);
-  }, [returnJobCard, selectedId, selectedDelivery]);
+  }, [returnJobCard, selectedId, selectedDelivery, canCancel]);
 
   const handleCancelDelivery = async () => {
-    if (!selectedId) return;
+    if (!selectedId || !canCancel("deliveries")) return;
     setCancelling(true);
     try {
       const result = await deliveriesSvc.cancelDelivery(selectedId);
@@ -268,7 +273,7 @@ export default function DeliveriesPage() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
-                                {delivery.docstatus === 1 ? (
+                                {canCancel("deliveries") && delivery.docstatus === 1 ? (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={() => {

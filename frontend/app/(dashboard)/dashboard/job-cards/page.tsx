@@ -4,6 +4,7 @@ import { formatDate } from '@/lib/date-format';
 
 import { useState, useEffect } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
+import { usePermissions } from "@/contexts/permissions-context";
 import { PermittedCreateButton } from "@/components/permitted-create-button";
 import { useJobCards, useJobCard } from "@/hooks/use-dms";
 import { DetailSheet } from "@/components/detail-sheet";
@@ -269,6 +270,7 @@ function formatDateRangeLabel(from?: string, to?: string) {
 
 export default function JobCardsPage() {
   const { navigate, viewParams } = useNavigation();
+  const { canCancel } = usePermissions();
   const [searchQuery, setSearchQuery] = usePersistedFilter("job-cards", "search", "");
   const [statusFilter, setStatusFilter] = usePersistedFilter<string>("job-cards", "status", "all");
   const [jobCardTypeFilter, setJobCardTypeFilter] = usePersistedFilter<string>(
@@ -362,7 +364,7 @@ export default function JobCardsPage() {
   const { data: selectedJobCard, isLoading: detailLoading } = useJobCard(selectedId);
 
   const handleConfirmCancel = async () => {
-    if (!cancelTarget) return;
+    if (!cancelTarget || !canCancel("job-cards")) return;
     setCancelling(true);
     try {
       await jobCardsSvc.cancelJobCard(
@@ -382,6 +384,7 @@ export default function JobCardsPage() {
   };
 
   const requestCancelJobCard = (jc: DMSJobCard) => {
+    if (!canCancel("job-cards")) return;
     if (isDeliveredJobCard(jc)) {
       setDeliveredCancelTarget(jc);
       return;
@@ -789,7 +792,7 @@ export default function JobCardsPage() {
                                     New Version
                                   </DropdownMenuItem>
                                 ) : null}
-                                {canCancelJobCard(jc) ? (
+                                {canCancel("job-cards") && canCancelJobCard(jc) ? (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={() => requestCancelJobCard(jc)}
@@ -969,7 +972,7 @@ export default function JobCardsPage() {
                                   New Version
                                 </DropdownMenuItem>
                               ) : null}
-                              {canCancelJobCard(jc) ? (
+                              {canCancel("job-cards") && canCancelJobCard(jc) ? (
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
                                   onClick={() => requestCancelJobCard(jc)}

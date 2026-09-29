@@ -564,6 +564,7 @@ export default function JobCardDetailPage() {
   };
 
   const openCancelJobCardFlow = () => {
+    if (!canCancel("job-cards")) return;
     if (workflowStatus === "Delivered") {
       setShowCancelDeliveryFirstDialog(true);
       return;
@@ -576,6 +577,7 @@ export default function JobCardDetailPage() {
   };
 
   const handleConfirmCancelJobCard = async () => {
+    if (!canCancel("job-cards")) return;
     setCancellingJobCard(true);
     try {
       await jobCardsSvc.cancelJobCard(id, cancelReason.trim() || undefined);
@@ -624,6 +626,10 @@ export default function JobCardDetailPage() {
   useEffect(() => {
     if (openedCancelAfterDelivery.current) return;
     if (viewParams.get("cancel") !== "1" || !jobCard || !cancelReturnReady) return;
+    if (!canCancel("job-cards")) {
+      openedCancelAfterDelivery.current = true;
+      return;
+    }
     const wf = resolveJobCardWorkflowStatus(jobCard.status, jobCard.docstatus);
     if (wf === "Cancelled") {
       openedCancelAfterDelivery.current = true;
@@ -799,8 +805,7 @@ export default function JobCardDetailPage() {
     jobCard.already_amended && jobCard.amended_as ? jobCard.amended_as : null;
   const canCreateNewVersion = workflowStatus === "Cancelled";
   const canCancelThisJobCard =
-    workflowStatus !== "Cancelled" &&
-    (canMutateJobCard || canCancel("job-cards"));
+    workflowStatus !== "Cancelled" && canCancel("job-cards");
   const mainJobCardName = jobCard.original_job_card || jobCard.amended_from || "";
   const reuse = jobCard.original_stage_reuse;
   const showUseMainApproval =
