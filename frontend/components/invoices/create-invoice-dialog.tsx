@@ -263,7 +263,8 @@ export function CreateInvoiceDialog({
           lines: preview.lines.map((line) => ({
             item_code: line.item_code,
             qty: line.qty,
-            rate: line.rate,
+            // Billed unit rate (amount/qty), so a 100% line discount is not taxed.
+            rate: line.qty ? line.amount / line.qty : line.rate,
             description: line.description,
           })),
         })
@@ -638,6 +639,11 @@ export function CreateInvoiceDialog({
                               {line.discount_percentage && line.discount_percentage >= 100
                                 ? 'Warranty (100% disc.)'
                                 : 'Warranty'}
+                            </Badge>
+                          )}
+                          {!line.is_warranty_covered && (line.discount_percentage ?? 0) >= 100 && (
+                            <Badge variant="secondary" className="w-fit text-xs">
+                              100% discount
                             </Badge>
                           )}
                           {line.never_requested && (
