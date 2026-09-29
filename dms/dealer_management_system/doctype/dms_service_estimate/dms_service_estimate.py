@@ -156,10 +156,19 @@ def make_service_estimate_from_inspection(source_name: str) -> str:
 		}
 	)
 
+	if est.meta.has_field("sales_order") and inv.get("sales_order"):
+		est.sales_order = inv.sales_order
+
 	if inv.company:
 		est.currency = frappe.db.get_value("Company", inv.company, "default_currency")
 
 	est.insert()
+
+	if inv.get("sales_order"):
+		from dms.api.order_workshop import apply_order_lines_to_job_card
+
+		apply_order_lines_to_job_card(est, inv.sales_order)
+		est.save()
 
 	return est.name
 

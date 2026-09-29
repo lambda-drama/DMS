@@ -9,6 +9,7 @@
   "section_header",
   "naming_series",
   "appointment",
+  "sales_order",
   "inspection_date",
   "inspection_completed_date",
   "column_break_3",
@@ -98,6 +99,14 @@
    "fieldtype": "Link",
    "label": "Service Appointment",
    "options": "Service Appointment"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "read_only": 1
   },
   {
    "default": "Now",
@@ -533,7 +542,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-23 01:19:01.427204",
+ "modified": "2026-09-30 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Vehicle Inspection",

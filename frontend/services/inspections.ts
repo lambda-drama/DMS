@@ -56,6 +56,7 @@ export async function getCurrentServiceAdvisor(): Promise<{
  */
 export type InspectionFormExtras = {
   as_draft?: boolean | number;
+  sales_order?: string;
   /**
    * Phone / email typed in the customer contact card. The backend writes real
    * changes onto the Customer's primary Contact; blank values are ignored.

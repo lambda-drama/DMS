@@ -75,9 +75,12 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Trash2, Car, User, Wrench, Package, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { GroupDiscountFields } from "@/components/group-discount-fields";
+import { LineDiscountButton } from "@/components/line-discount-button";
 import {
   buildGroupDiscountPayload,
+  discountModeFromBackend,
   groupDiscountAmount,
+  lineDiscountAmount,
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from "@/lib/invoice-discount";
@@ -124,6 +127,8 @@ interface LabourRow {
   estimated_hours: number;
   rate_per_hour: number;
   complaint: string;
+  discount_type: "" | "Percentage" | "Amount";
+  discount_value: number;
 }
 
 interface PartRow {
@@ -133,6 +138,8 @@ interface PartRow {
   quantity_requested: number;
   unit_price: number;
   warehouse?: string;
+  discount_type: "" | "Percentage" | "Amount";
+  discount_value: number;
 }
 
 function emptyJobItem(): JobItemRow {
@@ -154,6 +161,8 @@ function emptyLabourRow(): LabourRow {
     estimated_hours: 0,
     rate_per_hour: 0,
     complaint: "",
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -164,6 +173,8 @@ function emptyPartRow(warehouse?: string): PartRow {
     quantity_requested: 1,
     unit_price: 0,
     warehouse: warehouse || undefined,
+    discount_type: "",
+    discount_value: 0,
   };
 }
 
@@ -527,6 +538,8 @@ export default function NewJobCardPage() {
               display_name: serviceLabel,
               estimated_hours: estHours,
               rate_per_hour: rate || row.rate_per_hour,
+              discount_type: "",
+              discount_value: 0,
             }
           : row
       )
@@ -545,6 +558,8 @@ export default function NewJobCardPage() {
                 item_name: "",
                 bin_location: undefined,
                 unit_price: 0,
+                discount_type: "",
+                discount_value: 0,
               }
             : row
         )
@@ -571,6 +586,8 @@ export default function NewJobCardPage() {
               item_name: part?.item_name || partName,
               bin_location: part?.bin_location,
               unit_price: unitPrice,
+              discount_type: "",
+              discount_value: 0,
             }
           : row
       )
@@ -660,6 +677,8 @@ export default function NewJobCardPage() {
                 estimated_hours: row.estimated_hours,
                 rate_per_hour: row.rate_per_hour,
                 complaint: row.notes || "",
+                discount_type: "",
+                discount_value: 0,
               }))
             : [emptyLabourRow()]
         );
@@ -673,6 +692,8 @@ export default function NewJobCardPage() {
                 quantity_requested: row.quantity_requested,
                 unit_price: row.unit_price,
                 warehouse: warehouse || undefined,
+                discount_type: "",
+                discount_value: 0,
               }))
             : [emptyPartRow(warehouse)]
         );
@@ -918,13 +939,20 @@ export default function NewJobCardPage() {
       .filter((lr) => lr.vehicle_service_item)
       .map((lr) => ({
         vehicle_service_item: lr.vehicle_service_item || "",
-        vehicle_service_item_name: lr.service_name || "",
+        vehicle_service_item_name:
+          lr.service_name ||
+          lr.custom_display_name ||
+          lr.display_name ||
+          lr.vehicle_service_item ||
+          "",
         display_name: lr.custom_display_name || lr.display_name || lr.service_name || "",
         technician: lr.technician || "",
         technician_name: lr.technician_name || "",
         estimated_hours: Number(lr.estimated_hours) || 0,
         rate_per_hour: Number(lr.rate_per_hour ?? lr.rate) || 0,
         complaint: (lr as { complaint?: string }).complaint || "",
+        discount_type: (lr.discount_type as LabourRow["discount_type"]) || "",
+        discount_value: Number(lr.discount_value) || 0,
       }));
     setLabourRows(labour.length ? labour : [emptyLabourRow()]);
 
@@ -937,6 +965,8 @@ export default function NewJobCardPage() {
         quantity_requested: Number(pr.quantity_requested ?? pr.quantity) || 1,
         unit_price: Number(pr.unit_price) || 0,
         warehouse: pr.warehouse || existingDraft.warehouse || undefined,
+        discount_type: (pr.discount_type as PartRow["discount_type"]) || "",
+        discount_value: Number(pr.discount_value) || 0,
       }));
     setPartRows(parts.length ? parts : [emptyPartRow(existingDraft.warehouse || undefined)]);
 
@@ -1051,15 +1081,37 @@ export default function NewJobCardPage() {
     (r.complaint_description || "").trim()
   );
 
-  const labourTotal = filledLabourRows.reduce(
-    (sum, r) => sum + r.estimated_hours * r.rate_per_hour,
-    0
-  );
+  const labourTotal = filledLabourRows.reduce((sum, r) => {
+    const gross = r.estimated_hours * r.rate_per_hour;
+    return (
+      sum +
+      Math.max(
+        gross -
+          lineDiscountAmount(
+            gross,
+            discountModeFromBackend(r.discount_type),
+            r.discount_value
+          ),
+        0
+      )
+    );
+  }, 0);
 
-  const partsTotal = filledPartRows.reduce(
-    (sum, r) => sum + r.quantity_requested * r.unit_price,
-    0
-  );
+  const partsTotal = filledPartRows.reduce((sum, r) => {
+    const gross = r.quantity_requested * r.unit_price;
+    return (
+      sum +
+      Math.max(
+        gross -
+          lineDiscountAmount(
+            gross,
+            discountModeFromBackend(r.discount_type),
+            r.discount_value
+          ),
+        0
+      )
+    );
+  }, 0);
 
   const totalAmount = labourTotal + partsTotal;
 
@@ -1206,6 +1258,7 @@ export default function NewJobCardPage() {
       terms: terms || undefined,
       terms_and_conditions: termsAndConditions || undefined,
       appointment: appointmentId || undefined,
+      sales_order: existingDraft?.sales_order || viewParams.get("order") || undefined,
       skip_vehicle_inspection: skipVehicleInspection ? 1 : 0,
       inspection: skipVehicleInspection ? undefined : inspectionId || undefined,
       as_draft: asDraft ? 1 : 0,
@@ -1224,6 +1277,8 @@ export default function NewJobCardPage() {
         estimated_hours: lr.estimated_hours,
         rate_per_hour: lr.rate_per_hour,
         complaint: lr.complaint || undefined,
+        discount_type: lr.discount_type || undefined,
+        discount_value: lr.discount_value || 0,
       })),
       parts: filledPartRows.map((pr) => ({
         item_code: pr.item_code,
@@ -1231,6 +1286,8 @@ export default function NewJobCardPage() {
         quantity_requested: pr.quantity_requested,
         unit_price: pr.unit_price,
         warehouse: pr.warehouse || warehouse || undefined,
+        discount_type: pr.discount_type || undefined,
+        discount_value: pr.discount_value || 0,
       })),
     } as Partial<DMSJobCard> & { as_draft?: number };
 
@@ -1891,6 +1948,7 @@ export default function NewJobCardPage() {
                       })) || []
                     }
                     value={row.vehicle_service_item}
+                    valueLabel={row.vehicle_service_item_name || row.vehicle_service_item}
                     onValueChange={(val) => handleServiceItemSelect(idx, val)}
                     onSearchChange={setServiceItemSearch}
                     placeholder="Search items..."
@@ -1948,13 +2006,32 @@ export default function NewJobCardPage() {
                   </div>
                   <div className="space-y-1 sm:col-span-2">
                     <Label className="text-xs">{canEditPrice ? "Rate/Hr" : "Rate/Hr (fixed)"}</Label>
-                    <DecimalInput
-                      min={0}
-                      placeholder="0"
-                      value={row.rate_per_hour}
-                      onValueChange={canEditPrice ? (rate_per_hour) => updateLabourRow(idx, { rate_per_hour }) : () => {}}
-                      disabled={!canEditPrice}
-                    />
+                    <div className="flex items-center gap-1">
+                      <DecimalInput
+                        min={0}
+                        placeholder="0"
+                        value={row.rate_per_hour}
+                        onValueChange={canEditPrice ? (rate_per_hour) => updateLabourRow(idx, { rate_per_hour }) : () => {}}
+                        disabled={!canEditPrice}
+                      />
+                      <LineDiscountButton
+                        label={
+                          row.display_name ||
+                          row.vehicle_service_item_name ||
+                          "this service line"
+                        }
+                        lineAmount={(row.estimated_hours || 0) * (row.rate_per_hour || 0)}
+                        discountType={row.discount_type}
+                        discountValue={row.discount_value}
+                        disabled={!row.vehicle_service_item}
+                        onApply={(discount) =>
+                          updateLabourRow(idx, {
+                            discount_type: discount.discount_type,
+                            discount_value: discount.discount_value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end sm:col-span-2">
@@ -2000,6 +2077,7 @@ export default function NewJobCardPage() {
                   <SearchableSelect
                     options={spareParts?.map(sparePartToSelectOption) || []}
                     value={row.item_code}
+                    valueLabel={row.item_name || row.item_code}
                     onValueChange={(val) => handleSparePartSelect(idx, val)}
                     onSearchChange={setSparePartSearch}
                     placeholder="Search parts..."
@@ -2025,13 +2103,28 @@ export default function NewJobCardPage() {
                   </div>
                   <div className="space-y-1 sm:col-span-3">
                     <Label className="text-xs">{canEditPrice ? "Unit Price (editable)" : "Unit Price (fixed)"}</Label>
-                    <DecimalInput
-                      min={0}
-                      placeholder="0"
-                      value={row.unit_price}
-                      onValueChange={canEditPrice ? (unit_price) => updatePartRow(idx, { unit_price }) : () => {}}
-                      disabled={!canEditPrice}
-                    />
+                    <div className="flex items-center gap-1">
+                      <DecimalInput
+                        min={0}
+                        placeholder="0"
+                        value={row.unit_price}
+                        onValueChange={canEditPrice ? (unit_price) => updatePartRow(idx, { unit_price }) : () => {}}
+                        disabled={!canEditPrice}
+                      />
+                      <LineDiscountButton
+                        label={row.item_name || row.item_code || "this part"}
+                        lineAmount={(row.quantity_requested || 0) * (row.unit_price || 0)}
+                        discountType={row.discount_type}
+                        discountValue={row.discount_value}
+                        disabled={!row.item_code}
+                        onApply={(discount) =>
+                          updatePartRow(idx, {
+                            discount_type: discount.discount_type,
+                            discount_value: discount.discount_value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end sm:col-span-2">

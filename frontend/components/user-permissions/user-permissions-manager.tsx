@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Pencil, Trash2, Search, Users, ChevronDown } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Search, Users, ChevronDown, Building2 } from 'lucide-react';
 import * as svc from '@/services/userPermissions';
 
 const SECTION_FIELDS = [
@@ -53,7 +54,7 @@ export function UserPermissionsManager() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="dms-stat-value text-xl tracking-tight">User Permissions</h1>
-          <p className="text-muted-foreground">DMS CRM User Settings — per-user access control</p>
+          <p className="text-muted-foreground">DMS CRM User Settings — per-user access control and branch User Permissions</p>
         </div>
         <Button onClick={() => { setRow(null); setOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Add Permission
@@ -99,6 +100,14 @@ export function UserPermissionsManager() {
               </div>}
         </CardContent>
       </Card>
+      {data ? (
+        <BranchPermissionsCard
+          whitelist={whitelist}
+          rows={data.branch_permissions || []}
+          available={data.available_branches || []}
+          mutate={() => void mutate()}
+        />
+      ) : null}
       {open && <Dialog row={row} whitelist={whitelist} saving={saving} onClose={() => setOpen(false)} onSave={save} />}
     </div>
   );
@@ -214,5 +223,157 @@ function Dialog({ row, whitelist, saving, onClose, onSave }: {
         </div>
       </div>
     </div>
+  );
+}
+
+function BranchPermissionsCard({
+  whitelist,
+  rows,
+  available,
+  mutate,
+}: {
+  whitelist: { user: string; full_name?: string }[];
+  rows: svc.BranchPermissionRow[];
+  available: svc.BranchMasterOption[];
+  mutate: () => void;
+}) {
+  const [user, setUser] = useState('');
+  const [branch, setBranch] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const userOpts = useMemo(
+    () => whitelist.map((u) => ({ value: u.user, label: u.full_name || u.user })),
+    [whitelist]
+  );
+  const branchOpts = useMemo(
+    () =>
+      available.map((b) => ({
+        value: b.name,
+        label: b.company_name ? `${b.branch || b.name} · ${b.company_name}` : b.branch || b.name,
+      })),
+    [available]
+  );
+  const filtered = rows.filter((r) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return `${r.user} ${r.full_name || ''} ${r.branch} ${r.branch_label || ''}`.toLowerCase().includes(q);
+  });
+
+  function add() {
+    if (!user) {
+      toast.error('Select a user');
+      return;
+    }
+    if (!branch) {
+      toast.error('Select a branch');
+      return;
+    }
+    setSaving(true);
+    svc
+      .saveBranchUserPermission({ user, branch })
+      .then(() => {
+        toast.success('Branch permission added');
+        setBranch('');
+        mutate();
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : 'Failed to add branch permission'))
+      .finally(() => setSaving(false));
+  }
+
+  function remove(row: svc.BranchPermissionRow) {
+    svc
+      .deleteBranchUserPermission(row.name)
+      .then(() => {
+        toast.success('Branch permission removed');
+        mutate();
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : 'Failed to delete'));
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-6 space-y-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <Building2 className="h-4 w-4" />
+            Branch Permissions
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Creates a Frappe User Permission with Allow = Branch. Users with no branch permission
+            can see every branch.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>User</Label>
+            <SearchableSelect
+              options={userOpts}
+              value={user}
+              onValueChange={setUser}
+              placeholder="Whitelisted user…"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Branch</Label>
+            <BranchSelect
+              options={branchOpts}
+              value={branch}
+              onValueChange={setBranch}
+              placeholder="Select branch…"
+              emptyMessage="No branches yet"
+              onCreated={(created) => {
+                setBranch(created.name);
+                mutate();
+              }}
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button onClick={add} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            Add branch permission
+          </Button>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search branch permission…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        {filtered.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No branch permissions yet</p>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((r) => (
+              <div key={r.name} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{r.full_name || r.user}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{r.user}</span>
+                  </div>
+                  <Badge variant="secondary" className="mt-1">
+                    {r.branch_label || r.branch}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  onClick={() => void remove(r)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

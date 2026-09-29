@@ -6,13 +6,14 @@ import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Package, Receipt, Save, Trash2 } from 'lucide-react';
 import { addCalendarMonthsISO, todayISO } from '@/lib/date-format';
 import { useNavigation } from '@/contexts/navigation-context';
-import { useVehicleServiceItems } from '@/hooks/use-dms';
+import { useVehicleServiceItems, useVINs } from '@/hooks/use-dms';
 import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { CreateServiceItemDialog } from '@/components/create-service-item-dialog';
 import { CreateSparePartDialog } from '@/components/create-spare-part-dialog';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
+import { LineDiscountButton } from '@/components/line-discount-button';
 import { InvoiceTaxBreakdown } from '@/components/invoices/invoice-tax-breakdown';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,9 @@ import {
 } from '@/components/ui/table';
 import {
   buildGroupDiscountPayload,
+  discountModeFromBackend,
   groupDiscountAmount,
+  lineDiscountAmount,
   parseDiscountValue,
   type InvoiceDiscountMode,
 } from '@/lib/invoice-discount';
@@ -51,6 +54,8 @@ import {
 } from '@/services/common';
 import * as ordersSvc from '@/services/orders';
 import * as sparePartSalesSvc from '@/services/sparePartSales';
+import * as vehiclesSvc from '@/services/vehicles';
+import type { VINNo } from '@/types/dms';
 
 type PartRow = {
   id: string;
@@ -59,6 +64,8 @@ type PartRow = {
   display_name: string;
   qty: string;
   unit_price: string;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
 };
 
 type LabourRow = {
@@ -68,6 +75,8 @@ type LabourRow = {
   display_name: string;
   hours: string;
   rate_per_hour: string;
+  discount_type: '' | 'Percentage' | 'Amount';
+  discount_value: number;
 };
 
 function emptyLine(): PartRow {
@@ -78,6 +87,8 @@ function emptyLine(): PartRow {
     display_name: '',
     qty: '1',
     unit_price: '',
+    discount_type: '',
+    discount_value: 0,
   };
 }
 
@@ -89,7 +100,17 @@ function emptyLabour(): LabourRow {
     display_name: '',
     hours: '1',
     rate_per_hour: '',
+    discount_type: '',
+    discount_value: 0,
   };
+}
+
+function rowLineNet(qty: string | number, rate: string | number, type?: string | null, value?: number | null) {
+  const gross = (Number(qty) || 0) * (Number(rate) || 0);
+  return Math.max(
+    gross - lineDiscountAmount(gross, discountModeFromBackend(type), Number(value) || 0),
+    0
+  );
 }
 
 function today() {
@@ -116,6 +137,9 @@ export default function OrderNewPage() {
   const [customer, setCustomer] = useState('');
   const [customerLabel, setCustomerLabel] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
+  const [vinSearch, setVinSearch] = useState('');
+  const [vehicleVin, setVehicleVin] = useState('');
+  const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
   const [warehouse, setWarehouse] = useState('');
   const [transactionDate, setTransactionDate] = useState(today());
   const [deliveryDate, setDeliveryDate] = useState(() => defaultValidTo());
@@ -151,6 +175,7 @@ export default function OrderNewPage() {
   );
   const { data: serviceItems, isLoading: serviceItemsLoading } =
     useVehicleServiceItems(serviceItemSearch);
+  const { data: vins, isLoading: vinsLoading } = useVINs(undefined, vinSearch);
   const { data: partResults, isLoading: partsLoading } = useSWR(
     ['order-parts', partSearch, warehouse, inStockOnly],
     () =>
@@ -180,6 +205,66 @@ export default function OrderNewPage() {
       { revalidate: true }
     );
   };
+
+  const applyVinToForm = (vin: VINNo) => {
+    setSelectedVin(vin);
+    if (vin.current_customer) {
+      setCustomer(vin.current_customer);
+      setCustomerLabel(vin.customer_name || vin.current_customer);
+    }
+  };
+
+  const handleVinSelect = async (vinName: string) => {
+    setVehicleVin(vinName);
+    if (!vinName) {
+      setSelectedVin(null);
+      return;
+    }
+    const fromList = vins?.find((v) => v.name === vinName);
+    if (fromList) {
+      applyVinToForm(fromList);
+    }
+    try {
+      const full = await vehiclesSvc.getVehicle(vinName);
+      applyVinToForm({
+        name: full.name,
+        vin_number: full.vin_number,
+        plate_number: full.plate_number,
+        model_name: full.model_name,
+        current_customer: full.current_customer,
+        customer_name: full.customer_name,
+      });
+    } catch {
+      if (!fromList) {
+        toast.error('Could not load vehicle details for the selected VIN');
+      }
+    }
+  };
+
+  const vinSelectOptions = useMemo(() => {
+    const mapped =
+      vins?.map((v) => ({
+        value: v.name,
+        label: v.vin_number,
+        description: [v.model_name, v.plate_number, v.customer_name].filter(Boolean).join(' · '),
+      })) || [];
+    if (vehicleVin && selectedVin && !mapped.some((o) => o.value === vehicleVin)) {
+      mapped.unshift({
+        value: vehicleVin,
+        label: selectedVin.vin_number || vehicleVin,
+        description: [selectedVin.model_name, selectedVin.plate_number, selectedVin.customer_name]
+          .filter(Boolean)
+          .join(' · '),
+      });
+    } else if (vehicleVin && !mapped.some((o) => o.value === vehicleVin)) {
+      mapped.unshift({
+        value: vehicleVin,
+        label: existing?.vin_number || vehicleVin,
+        description: '',
+      });
+    }
+    return mapped;
+  }, [vins, vehicleVin, selectedVin, existing?.vin_number]);
 
   const serviceItemOptions = useMemo(
     () =>
@@ -218,13 +303,36 @@ export default function OrderNewPage() {
   const warehouseOptions = defaults?.warehouses || [];
   const currency = existing?.currency || 'ETB';
 
-  const partsTotal = parts.reduce((sum, row) => {
+  const partsGross = parts.reduce((sum, row) => {
     return sum + (Number(row.qty) || 0) * (Number(row.unit_price) || 0);
   }, 0);
 
-  const labourTotal = labourRows.reduce((sum, row) => {
+  const labourGross = labourRows.reduce((sum, row) => {
     return sum + (Number(row.hours) || 0) * (Number(row.rate_per_hour) || 0);
   }, 0);
+
+  const partsLineDiscountTotal = parts.reduce(
+    (sum, row) =>
+      sum +
+      lineDiscountAmount(
+        (Number(row.qty) || 0) * (Number(row.unit_price) || 0),
+        discountModeFromBackend(row.discount_type),
+        row.discount_value
+      ),
+    0
+  );
+  const labourLineDiscountTotal = labourRows.reduce(
+    (sum, row) =>
+      sum +
+      lineDiscountAmount(
+        (Number(row.hours) || 0) * (Number(row.rate_per_hour) || 0),
+        discountModeFromBackend(row.discount_type),
+        row.discount_value
+      ),
+    0
+  );
+  const partsTotal = Math.max(partsGross - partsLineDiscountTotal, 0);
+  const labourTotal = Math.max(labourGross - labourLineDiscountTotal, 0);
 
   const partsDiscountValue = parseDiscountValue(partsDiscountMode, partsDiscountInput);
   const partsDiscountTotal = groupDiscountAmount(partsTotal, partsDiscountMode, partsDiscountValue);
@@ -249,6 +357,8 @@ export default function OrderNewPage() {
           unit_price: Number(row.unit_price || 0),
           // Display name → Sales Order Item description.
           description: row.display_name.trim() || undefined,
+          discount_type: row.discount_type || '',
+          discount_value: row.discount_value || 0,
         })),
       labour: labourRows
         .filter((row) => row.vehicle_service_item && Number(row.hours) > 0)
@@ -258,6 +368,8 @@ export default function OrderNewPage() {
           rate_per_hour: Number(row.rate_per_hour || 0),
           // Display name → Sales Order Item description.
           description: row.display_name.trim() || undefined,
+          discount_type: row.discount_type || '',
+          discount_value: row.discount_value || 0,
         })),
     }),
     [parts, labourRows]
@@ -353,6 +465,15 @@ export default function OrderNewPage() {
     );
     // Withholding is stored on the order and applied when it is invoiced.
     setApplyTaxWithholding(Boolean(existing.apply_tax_withholding));
+    setVehicleVin(existing.vehicle_vin || '');
+    if (existing.vehicle_vin) {
+      setSelectedVin({
+        name: existing.vehicle_vin,
+        vin_number: existing.vin_number || existing.vehicle_vin,
+      });
+    } else {
+      setSelectedVin(null);
+    }
     setParts(
       (existing.parts || []).length
         ? (existing.parts || []).map((row) => ({
@@ -362,6 +483,8 @@ export default function OrderNewPage() {
             display_name: row.description || '',
             qty: String(row.qty ?? 1),
             unit_price: String(row.rate ?? ''),
+            discount_type: (row.discount_type as PartRow['discount_type']) || '',
+            discount_value: Number(row.discount_value) || 0,
           }))
         : [emptyLine()]
     );
@@ -374,6 +497,8 @@ export default function OrderNewPage() {
             display_name: row.description || '',
             hours: String(row.hours ?? 1),
             rate_per_hour: String(row.rate_per_hour ?? ''),
+            discount_type: (row.discount_type as LabourRow['discount_type']) || '',
+            discount_value: Number(row.discount_value) || 0,
           }))
         : [emptyLabour()]
     );
@@ -391,6 +516,8 @@ export default function OrderNewPage() {
                 display_name: '',
                 hours: '1',
                 rate_per_hour: '',
+                discount_type: '',
+                discount_value: 0,
               }
             : row
         )
@@ -433,6 +560,8 @@ export default function OrderNewPage() {
               display_name: serviceLabel,
               hours: String(estHours || 1),
               rate_per_hour: rate ? String(rate) : row.rate_per_hour,
+              discount_type: '',
+              discount_value: 0,
             }
           : row
       )
@@ -444,7 +573,7 @@ export default function OrderNewPage() {
       setParts((prev) =>
         prev.map((row) =>
           row.id === rowId
-            ? { ...row, spare_part: '', item_name: '', display_name: '', unit_price: '' }
+            ? { ...row, spare_part: '', item_name: '', display_name: '', unit_price: '', discount_type: '', discount_value: 0 }
             : row
         )
       );
@@ -500,6 +629,7 @@ export default function OrderNewPage() {
       apply_taxes: applyTaxes,
       // Withholding (TCS) is stored on the order and applied to its invoice.
       apply_tax_withholding: applyTaxWithholding,
+      vehicle_vin: vehicleVin || '',
       submit: asDraft ? 0 : 1,
       parts: payloadParts,
       labour: payloadLabour,
@@ -598,6 +728,22 @@ export default function OrderNewPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Vehicle (VIN)</Label>
+              <SearchableSelect
+                options={vinSelectOptions}
+                value={vehicleVin}
+                onValueChange={(val) => void handleVinSelect(val)}
+                onSearchChange={setVinSearch}
+                placeholder="Search VIN, chassis, or plate (min 3 chars)…"
+                isLoading={vinsLoading}
+                portaled
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional — saved on the order and carried into inspection and the job card.
+                Selecting a VIN fills the registered owner when the vehicle has one.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Order date</Label>
@@ -716,26 +862,55 @@ export default function OrderNewPage() {
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-xs">Rate/hr</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={line.rate_per_hour}
-                      onChange={(e) =>
-                        setLabourRows((prev) =>
-                          prev.map((row) =>
-                            row.id === line.id ? { ...row, rate_per_hour: e.target.value } : row
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={line.rate_per_hour}
+                        onChange={(e) =>
+                          setLabourRows((prev) =>
+                            prev.map((row) =>
+                              row.id === line.id ? { ...row, rate_per_hour: e.target.value } : row
+                            )
                           )
-                        )
-                      }
-                    />
+                        }
+                      />
+                      <LineDiscountButton
+                        label={
+                          line.display_name ||
+                          line.vehicle_service_item_name ||
+                          'this service line'
+                        }
+                        lineAmount={(Number(line.hours) || 0) * (Number(line.rate_per_hour) || 0)}
+                        discountType={line.discount_type}
+                        discountValue={line.discount_value}
+                        disabled={!line.vehicle_service_item}
+                        onApply={(discount) =>
+                          setLabourRows((prev) =>
+                            prev.map((row) =>
+                              row.id === line.id
+                                ? {
+                                    ...row,
+                                    discount_type: discount.discount_type,
+                                    discount_value: discount.discount_value,
+                                  }
+                                : row
+                            )
+                          )
+                        }
+                      />
+                    </div>
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-xs">Amount</Label>
                     <Input
                       readOnly
-                      value={(
-                        (Number(line.hours) || 0) * (Number(line.rate_per_hour) || 0)
+                      value={rowLineNet(
+                        line.hours,
+                        line.rate_per_hour,
+                        line.discount_type,
+                        line.discount_value
                       ).toFixed(2)}
                     />
                   </div>
@@ -826,25 +1001,52 @@ export default function OrderNewPage() {
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-xs">Unit price</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={line.unit_price}
-                      onChange={(e) =>
-                        setParts((prev) =>
-                          prev.map((row) =>
-                            row.id === line.id ? { ...row, unit_price: e.target.value } : row
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={line.unit_price}
+                        onChange={(e) =>
+                          setParts((prev) =>
+                            prev.map((row) =>
+                              row.id === line.id ? { ...row, unit_price: e.target.value } : row
+                            )
                           )
-                        )
-                      }
-                    />
+                        }
+                      />
+                      <LineDiscountButton
+                        label={line.display_name || line.item_name || 'this part'}
+                        lineAmount={(Number(line.qty) || 0) * (Number(line.unit_price) || 0)}
+                        discountType={line.discount_type}
+                        discountValue={line.discount_value}
+                        disabled={!line.spare_part}
+                        onApply={(discount) =>
+                          setParts((prev) =>
+                            prev.map((row) =>
+                              row.id === line.id
+                                ? {
+                                    ...row,
+                                    discount_type: discount.discount_type,
+                                    discount_value: discount.discount_value,
+                                  }
+                                : row
+                            )
+                          )
+                        }
+                      />
+                    </div>
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-xs">Amount</Label>
                     <Input
                       readOnly
-                      value={((Number(line.qty) || 0) * (Number(line.unit_price) || 0)).toFixed(2)}
+                      value={rowLineNet(
+                        line.qty,
+                        line.unit_price,
+                        line.discount_type,
+                        line.discount_value
+                      ).toFixed(2)}
                     />
                   </div>
                   <div className="md:col-span-1 flex justify-end">
@@ -912,8 +1114,16 @@ export default function OrderNewPage() {
             <div className="space-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Labour subtotal</span>
-                <span className="tabular-nums">{formatMoney(labourTotal, currency)}</span>
+                <span className="tabular-nums">{formatMoney(labourGross, currency)}</span>
               </div>
+              {labourLineDiscountTotal > 0 ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Labour line discount</span>
+                  <span className="tabular-nums">
+                    -{formatMoney(labourLineDiscountTotal, currency)}
+                  </span>
+                </div>
+              ) : null}
               {labourDiscountTotal > 0 ? (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Labour discount</span>
@@ -922,8 +1132,16 @@ export default function OrderNewPage() {
               ) : null}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Items subtotal</span>
-                <span className="tabular-nums">{formatMoney(partsTotal, currency)}</span>
+                <span className="tabular-nums">{formatMoney(partsGross, currency)}</span>
               </div>
+              {partsLineDiscountTotal > 0 ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Items line discount</span>
+                  <span className="tabular-nums">
+                    -{formatMoney(partsLineDiscountTotal, currency)}
+                  </span>
+                </div>
+              ) : null}
               {partsDiscountTotal > 0 ? (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Items discount</span>

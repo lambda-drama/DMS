@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { Loader2, Wallet } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -57,6 +58,8 @@ export interface AdvanceReconcileBoxProps {
   /** Checkbox id — must be unique in the page. */
   id: string;
   className?: string;
+  /** When advances exist, tick “apply now” once as the dialog opens. */
+  autoSelect?: boolean;
 }
 
 /**
@@ -74,11 +77,27 @@ export function AdvanceReconcileBox({
   willSubmit,
   id,
   className,
+  autoSelect = false,
 }: AdvanceReconcileBoxProps) {
+  const autoAppliedRef = useRef(false);
   const { data, isLoading } = useSWR(
     enabled && customer ? ['customer-advances', customer, company || ''] : null,
     () => paymentSvc.getCustomerAdvances(customer as string, company || undefined)
   );
+
+  useEffect(() => {
+    if (!enabled) {
+      autoAppliedRef.current = false;
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!autoSelect || autoAppliedRef.current || !willSubmit) return;
+    if ((data?.total_available || 0) > 0.0001) {
+      autoAppliedRef.current = true;
+      onCheckedChange(true);
+    }
+  }, [autoSelect, willSubmit, data?.total_available, onCheckedChange]);
 
   if (!customer) return null;
 

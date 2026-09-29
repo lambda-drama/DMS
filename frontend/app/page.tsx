@@ -53,6 +53,7 @@ const SalesInvoiceTcPage = dynamic(() => import('./(dashboard)/dashboard/sales-i
 const UserPermissionsPage = dynamic(() => import('./(dashboard)/dashboard/user-permissions/page'));
 const AdvancedPermissionsPage = dynamic(() => import('./(dashboard)/dashboard/advanced-permissions/page'));
 const UsersPage = dynamic(() => import('./(dashboard)/dashboard/users/page'));
+const BranchesPage = dynamic(() => import('./(dashboard)/dashboard/branches/page'));
 const CustomersPage = dynamic(() => import('./(dashboard)/dashboard/customers/page'));
 const VehiclesPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/page'));
 const VehicleNewPage = dynamic(() => import('./(dashboard)/dashboard/vehicles/new/page'));
@@ -145,7 +146,7 @@ function LoadingScreen() {
   );
 }
 
-const RESTRICTED_VIEWS = new Set(['dashboard', 'reports', 'settings', 'advanced-permissions', 'users']);
+const RESTRICTED_VIEWS = new Set(['dashboard', 'reports', 'settings', 'advanced-permissions', 'users', 'branches']);
 
 const FALLBACK_VIEWS = [
   'appointments',
@@ -253,6 +254,7 @@ function AppContent() {
       case 'user-permissions':   return <UserPermissionsPage />;
       case 'advanced-permissions': return <AdvancedPermissionsPage />;
       case 'users':              return <UsersPage />;
+      case 'branches':           return <BranchesPage />;
       case 'customers':          return <CustomersPage />;
       case 'vehicles':           return <VehiclesPage />;
       case 'vehicle-new':        return <VehicleNewPage />;

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
   createStandaloneSalesAppointment,
+  fetchCrmBranches,
   fetchSalesAppointmentFormOptions,
   getOpportunity,
   listOpportunities,
@@ -16,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormActionsBar } from '@/components/layout/form-actions-bar';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { CrmFeedback, useCrmFeedback } from '@/components/crm/form-feedback';
 import { Loader2 } from 'lucide-react';
 
@@ -70,10 +72,19 @@ export default function CrmSalesAppointmentNewPage() {
       .catch(() => undefined);
   }, [form.opportunity]);
 
+  const { data: branches } = useSWR(
+    ['crm-appt-branches', form.company],
+    () => fetchCrmBranches(form.company || undefined),
+    { keepPreviousData: true }
+  );
+
   const set = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
   const typeOpts = (options?.appointment_types || []).map((v: string) => ({ value: v, label: v }));
   const companyOpts = (options?.companies || []).map((v: string) => ({ value: v, label: v }));
-  const branchOpts = (options?.branches || []).map((v: string) => ({ value: v, label: v }));
+  const branchOpts = (branches || []).map((b) => ({
+    value: b.name,
+    label: b.branch || b.name,
+  }));
   const userOpts = options?.users || [];
   const dealOpts = useMemo(
     () =>
@@ -185,15 +196,20 @@ export default function CrmSalesAppointmentNewPage() {
             <SearchableSelect
               options={companyOpts}
               value={form.company}
-              onValueChange={(v) => set('company', v)}
+              onValueChange={(v) =>
+                setForm((prev) => ({ ...prev, company: v || '', branch: '' }))
+              }
             />
           </div>
           <div className="space-y-2">
             <label className="block text-xs font-medium text-muted-foreground">Branch</label>
-            <SearchableSelect
+            <BranchSelect
               options={branchOpts}
               value={form.branch}
               onValueChange={(v) => set('branch', v)}
+              company={form.company}
+              source="crm"
+              placeholder="Branch…"
             />
           </div>
           <div className="space-y-2 sm:col-span-2">

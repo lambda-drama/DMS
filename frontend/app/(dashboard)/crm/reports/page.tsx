@@ -28,6 +28,7 @@ import {
 import { PdfPreviewDialog } from '@/components/reports/pdf-preview-dialog';
 import { useBranches, useCompanies, useAutofillSingleCompany } from '@/hooks/use-dms';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { ClearDateFiltersButton } from '@/components/clear-date-filters-button';
 import { FileSpreadsheet, FileText, HelpCircle, Loader2, RefreshCw, Camera } from 'lucide-react';
 import { toast } from 'sonner';
@@ -116,7 +117,7 @@ export default function CrmReportsPage() {
   const [snapshots, setSnapshots] = useState<Record<string, unknown>[]>([]);
 
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
-  const { data: branches, isLoading: branchesLoading } = useBranches(branchSearch);
+	const { data: branches, isLoading: branchesLoading } = useBranches(branchSearch, company || undefined);
   useAutofillSingleCompany(companies, companiesLoading, company, (c) => setCompany(c.name), {
     search: companySearch,
     enabled: true,
@@ -419,7 +420,10 @@ export default function CrmReportsPage() {
                 label: c.company_name || c.name,
               }))}
               value={company}
-              onValueChange={(v) => setCompany(v || '')}
+              onValueChange={(v) => {
+                setCompany(v || '');
+                setBranch('');
+              }}
               onSearchChange={setCompanySearch}
               placeholder="All companies"
               isLoading={companiesLoading}
@@ -427,7 +431,7 @@ export default function CrmReportsPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Branch</Label>
-            <SearchableSelect
+            <BranchSelect
               options={(branches || []).map((b) => ({
                 value: b.name,
                 label: (b as { branch?: string; branch_name?: string }).branch_name ||
@@ -437,6 +441,7 @@ export default function CrmReportsPage() {
               value={branch}
               onValueChange={(v) => setBranch(v || '')}
               onSearchChange={setBranchSearch}
+              company={company}
               placeholder="All branches"
               isLoading={branchesLoading}
             />

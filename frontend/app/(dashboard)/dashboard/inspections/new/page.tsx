@@ -77,6 +77,8 @@ import type {
 } from '@/types/dms';
 import * as vehiclesSvc from '@/services/vehicles';
 import { htmlToPlainText } from '@/lib/plain-text';
+import useSWR from 'swr';
+import * as ordersSvc from '@/services/orders';
 
 const fuelLevels: FuelLevel[] = ['Empty', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8', 'Full'];
 
@@ -274,10 +276,12 @@ const steps = [
 export default function NewInspectionPage() {
   const { navigate, viewParams } = useNavigation();
   const appointmentId = viewParams.get('appointment');
+  const orderId = viewParams.get('order') || '';
   const resumeId = viewParams.get('id') || '';
   const [draftName, setDraftName] = useState(resumeId);
   const [hydratedId, setHydratedId] = useState('');
   const [draftLoading, setDraftLoading] = useState(Boolean(resumeId));
+  const [linkedSalesOrder, setLinkedSalesOrder] = useState(orderId);
 
   useEffect(() => {
     if (resumeId && resumeId !== draftName) {
@@ -355,6 +359,11 @@ export default function NewInspectionPage() {
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { data: linkedAppointment } = useAppointment(appointmentId);
+  const { data: linkedOrder } = useSWR(
+    orderId && !resumeId ? ['dms-order-inspection', orderId] : null,
+    () => ordersSvc.getDmsOrder(orderId)
+  );
+  const lastAppliedOrderRef = useRef<string | null>(null);
   const { data: advisors } = useServiceAdvisors();
   const { trigger: createInspection } = useCreateInspection();
   const [customerPresent, setCustomerPresent] = useState(true);
@@ -539,6 +548,61 @@ export default function NewInspectionPage() {
   }, [appointmentId, linkedAppointment, resumeId]);
 
   useEffect(() => {
+    if (resumeId || appointmentId) return;
+    if (!orderId || !linkedOrder) {
+      if (!orderId) lastAppliedOrderRef.current = null;
+      return;
+    }
+    if (linkedOrder.inspection && linkedOrder.inspection_docstatus === 0) {
+      navigate('inspection-new', { id: linkedOrder.inspection, order: orderId });
+      return;
+    }
+    if (linkedOrder.inspection) {
+      navigate('inspection-detail', { id: linkedOrder.inspection });
+      return;
+    }
+    if (lastAppliedOrderRef.current === orderId) return;
+    lastAppliedOrderRef.current = orderId;
+    setLinkedSalesOrder(orderId);
+
+    if (linkedOrder.company) {
+      setCompany(linkedOrder.company);
+    }
+    if (linkedOrder.customer) {
+      setSelectedCustomer(linkedOrder.customer);
+      setSelectedCustomerMeta({
+        name: linkedOrder.customer,
+        customer_name: linkedOrder.customer_name || linkedOrder.customer,
+      });
+    }
+
+    const complaintBits = [
+      (linkedOrder.remarks || '').trim(),
+      ...(linkedOrder.labour || []).map(
+        (line) => (line.description || line.vehicle_service_item_name || '').trim()
+      ),
+    ].filter(Boolean);
+    if (complaintBits.length) {
+      setComplaints(
+        complaintBits.map((text) => ({
+          text,
+          category: DEFAULT_SYMPTOM_CATEGORY,
+          severity: DEFAULT_COMPLAINT_SEVERITY,
+        }))
+      );
+    }
+    const noteBits = complaintBits.join('\n');
+    if (noteBits) {
+      setServiceAdvisorNotes(noteBits);
+    }
+
+    if (linkedOrder.vehicle_vin) {
+      void handleVinSelect(linkedOrder.vehicle_vin);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per linked order
+  }, [appointmentId, linkedOrder, orderId, resumeId]);
+
+  useEffect(() => {
     if (!resumeId) {
       setDraftLoading(false);
       return;
@@ -559,6 +623,7 @@ export default function NewInspectionPage() {
           return;
         }
         setDraftName(insp.name);
+        if (insp.sales_order) setLinkedSalesOrder(insp.sales_order);
         if (insp.company) setCompany(insp.company);
         if (insp.service_advisor) setServiceAdvisor(insp.service_advisor);
         if (insp.customer) {
@@ -716,6 +781,7 @@ export default function NewInspectionPage() {
   const goToNewVehicle = () => {
     const params: Record<string, string> = { returnTo: 'inspection-new' };
     if (appointmentId) params.appointment = appointmentId;
+    if (orderId) params.order = orderId;
     if (draftName) params.draft = draftName;
     navigate('vehicle-new', params);
   };
@@ -853,6 +919,7 @@ export default function NewInspectionPage() {
       exterior_photos: firstExteriorViewPhoto(),
       exterior_view_photos: exteriorViewPhotos,
       appointment: appointmentId || undefined,
+      sales_order: linkedSalesOrder || orderId || undefined,
       company,
       customer_present: customerPresent ? 1 : 0,
       received_from_name: customerPresent ? '' : (receivedFromName || ''),
@@ -1032,6 +1099,17 @@ export default function NewInspectionPage() {
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Customer and vehicle information will be pre-filled.
+                  </p>
+                </div>
+              )}
+              {(orderId || linkedSalesOrder) && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-sm font-medium text-primary">
+                    Linked to Order: {linkedSalesOrder || orderId}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Customer, vehicle, and ordered labour or parts will carry onto the estimate
+                    and job card. Pick the VIN if the order does not already have one.
                   </p>
                 </div>
               )}

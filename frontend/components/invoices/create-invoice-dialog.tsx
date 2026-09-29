@@ -884,6 +884,7 @@ export function CreateInvoiceDialog({
               checked={reconcileAdvances}
               onCheckedChange={setReconcileAdvances}
               willSubmit={submitInvoice}
+              autoSelect
             />
 
             <div className="space-y-1">

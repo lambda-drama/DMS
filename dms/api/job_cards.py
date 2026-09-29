@@ -354,6 +354,10 @@ def get_job_card(name):
 	_attach_original_stage_reuse(data, doc=doc)
 	_attach_job_card_people_names(data)
 
+	for row in data.get("labour") or []:
+		if row.get("vehicle_service_item") and not (row.get("service_name") or "").strip():
+			row["service_name"] = _labour_service_name(row["vehicle_service_item"])
+
 	# Keep Job Card.invoice in sync with any active SI linked via custom_dms_job_card
 	# (otherwise UI still shows Create Sales Invoice while create API correctly blocks).
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
@@ -377,6 +381,11 @@ def get_job_card(name):
 	)
 
 	data["vehicle_delivery"] = get_submitted_delivery_for_job_card(name)
+
+	if (data.get("sales_order") or "").strip():
+		from dms.api.order_workshop import carry_order_onto_job_card
+
+		carry_order_onto_job_card(name, data.get("sales_order"))
 
 	# Keep Financials → Payment Status aligned with linked invoice (Paid / Partially Paid).
 	payment_status = sync_job_card_payment_status_from_invoice(
@@ -691,6 +700,7 @@ def _labour_service_name(vehicle_service_item: str) -> str:
 def _append_labour_line_payload(doc, line, default_complaint=None):
 	"""Append one Vehicle Labour Item row from a dict payload."""
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
+		resolve_item_code_to_vehicle_service_item,
 		vehicle_service_item_estimated_hours,
 		vehicle_service_item_labour_rate,
 	)
@@ -698,7 +708,7 @@ def _append_labour_line_payload(doc, line, default_complaint=None):
 	if isinstance(line, str):
 		return None
 
-	vsi = (line.get("vehicle_service_item") or "").strip()
+	vsi = resolve_item_code_to_vehicle_service_item(line.get("vehicle_service_item")) or ""
 	if not vsi:
 		return None
 	if not frappe.db.exists("Vehicle Service Item", vsi):
@@ -1036,6 +1046,12 @@ def create_job_card(data):
 	else:
 		customer = resolve_dms_customer(data.get("customer"))
 
+	from dms.api.inspections import _resolve_service_advisor
+
+	# Link is Service Advisor, not User. Never stamp session.user (e.g. Administrator)
+	# into this field — that raises "Could not find Service Advisor: Administrator".
+	service_advisor = _resolve_service_advisor(data, required=not as_draft)
+
 	doc_payload = {
 		"doctype": "DMS Job Card",
 		"job_card_type": data.get("job_card_type"),
@@ -1047,7 +1063,7 @@ def create_job_card(data):
 		"license_plate": data.get("license_plate"),
 		"current_odometer": data.get("current_odometer"),
 		"priority": data.get("priority", "Normal"),
-		"service_advisor": data.get("service_advisor"),
+		"service_advisor": service_advisor,
 		"lead_technician": data.get("lead_technician"),
 		"assigned_bay": data.get("assigned_bay"),
 		"workshop": data.get("workshop"),
@@ -1067,10 +1083,17 @@ def create_job_card(data):
 		"schedule_start_time": data.get("schedule_start_time"),
 		"schedule_end_time": data.get("schedule_end_time"),
 	}
+	if frappe.get_meta("DMS Job Card").has_field("sales_order"):
+		doc_payload["sales_order"] = (data.get("sales_order") or "").strip() or None
 	if as_draft:
 		doc_payload["status"] = "Draft"
 
 	doc = frappe.get_doc(doc_payload)
+	# Field default used to be ``__user`` (session user). Clear that if it is not a
+	# real Service Advisor, then apply the resolved advisor (may be empty on drafts).
+	if doc.service_advisor and not frappe.db.exists("Service Advisor", doc.service_advisor):
+		doc.service_advisor = None
+	doc.service_advisor = service_advisor
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
 		apply_discount_fields_from_payload,
@@ -1119,21 +1142,7 @@ def create_job_card(data):
 	if data.get("parts"):
 		job_warehouse = (data.get("warehouse") or "").strip() or None
 		for part in data["parts"]:
-			part_warehouse = (part.get("warehouse") or "").strip() or job_warehouse
-			part_code = part.get("item_code")
-			bin_location = (part.get("bin_location") or "").strip()
-			if not bin_location and part_code:
-				bin_location = frappe.db.get_value("Spare Part", part_code, "bin_location") or ""
-			doc.append(
-				"parts",
-				{
-					"item_code": part_code,
-					"quantity_requested": part.get("quantity_requested", 1),
-					"unit_price": part.get("unit_price"),
-					"bin_location": bin_location,
-					"warehouse": part_warehouse,
-				},
-			)
+			_append_part_line_payload(doc, part, default_warehouse=job_warehouse)
 
 	if data.get("assigned_bay"):
 		_sync_workshop_warehouse_from_bay(doc, data.get("assigned_bay"))
@@ -1150,6 +1159,11 @@ def create_job_card(data):
 		doc.flags.ignore_mandatory = True
 
 	doc.insert()
+
+	if (data.get("sales_order") or "").strip():
+		from dms.api.order_workshop import carry_order_onto_job_card
+
+		carry_order_onto_job_card(doc.name, data.get("sales_order"))
 
 	# Persist UI odometer even if DocType fetch_from still overwrites on insert
 	# (before migrate picks up fetch_if_empty).
@@ -1317,23 +1331,7 @@ def update_job_card(name, data):
 			doc.set("parts", [])
 			job_warehouse = (data.get("warehouse") or doc.warehouse or "").strip() or None
 			for part in data.get("parts") or []:
-				part_warehouse = (part.get("warehouse") or "").strip() or job_warehouse
-				part_code = part.get("item_code")
-				if not part_code:
-					continue
-				bin_location = (part.get("bin_location") or "").strip()
-				if not bin_location:
-					bin_location = frappe.db.get_value("Spare Part", part_code, "bin_location") or ""
-				doc.append(
-					"parts",
-					{
-						"item_code": part_code,
-						"quantity_requested": part.get("quantity_requested", 1),
-						"unit_price": part.get("unit_price"),
-						"bin_location": bin_location,
-						"warehouse": part_warehouse,
-					},
-				)
+				_append_part_line_payload(doc, part, default_warehouse=job_warehouse)
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_internal import (
 		is_internal_job_card,

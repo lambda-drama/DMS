@@ -337,6 +337,7 @@ export interface VehicleInspection {
   company?: string;
   company_name?: string;
   appointment?: string;
+  sales_order?: string;
   job_card?: string;
   service_estimate?: string;
   inspection_date: string;
@@ -498,6 +499,7 @@ export interface DMSServiceEstimate {
   currency?: string;
   inspection?: string;
   appointment?: string;
+  sales_order?: string;
   assigned_bay?: string;
   job_card?: string;
   diagnostic_invoice?: string;
@@ -704,6 +706,7 @@ export interface DMSJobCard {
   skip_vehicle_inspection?: boolean | number;
   inspection: string;
   service_estimate?: string;
+  sales_order?: string;
   warranty_status?: string;
   warranty_expiry_date?: string;
   warranty_application_type?: WarrantyApplicationType;

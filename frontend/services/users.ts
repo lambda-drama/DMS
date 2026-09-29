@@ -17,6 +17,14 @@ export type DmsUserRow = {
   whitelisted?: boolean;
   protected?: boolean;
   must_change_password?: boolean;
+  branches?: string[];
+};
+
+export type BranchMasterOption = {
+  name: string;
+  branch?: string;
+  company?: string | null;
+  company_name?: string | null;
 };
 
 export type UsersBootstrap = {
@@ -26,6 +34,7 @@ export type UsersBootstrap = {
   assignable_roles: string[];
   role_profiles: string[];
   user_types: string[];
+  branches?: BranchMasterOption[];
 };
 
 export type DmsUserInput = {
@@ -39,6 +48,7 @@ export type DmsUserInput = {
   confirm_password?: string;
   roles?: string[];
   role_profiles?: string[];
+  branches?: string[];
 };
 
 export type PasswordStatus = {
@@ -68,6 +78,7 @@ export async function updateUser(data: {
   user_type?: string;
   roles?: string[];
   role_profiles?: string[];
+  branches?: string[];
 }): Promise<DmsUserRow> {
   return apiRequest(`/api/method/${API}.update_user`, {
     method: 'POST',

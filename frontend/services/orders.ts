@@ -49,6 +49,8 @@ export type DmsOrderItem = {
   rate?: number;
   amount?: number;
   warehouse?: string;
+  discount_type?: string;
+  discount_value?: number;
 };
 
 export type DmsOrderLabour = {
@@ -59,6 +61,8 @@ export type DmsOrderLabour = {
   hours?: number;
   rate_per_hour?: number;
   amount?: number;
+  discount_type?: string;
+  discount_value?: number;
 };
 
 export type DmsOrderPayment = {
@@ -93,6 +97,13 @@ export type DmsOrderDetail = DmsOrderListItem & {
   labour: DmsOrderLabour[];
   payments: DmsOrderPayment[];
   sales_invoices: string[];
+  vehicle_vin?: string | null;
+  vin_number?: string | null;
+  inspection?: string | null;
+  inspection_docstatus?: number | null;
+  estimate?: string | null;
+  job_card?: string | null;
+  job_card_status?: string | null;
 };
 
 export type DmsOrderPartLine = {
@@ -101,6 +112,8 @@ export type DmsOrderPartLine = {
   unit_price?: number | string;
   /** Display Name typed on the order line → Sales Order Item description. */
   description?: string;
+  discount_type?: '' | 'Percentage' | 'Amount';
+  discount_value?: number;
 };
 
 export type DmsOrderLabourLine = {
@@ -109,6 +122,8 @@ export type DmsOrderLabourLine = {
   rate_per_hour?: number | string;
   /** Display Name typed on the order line → Sales Order Item description. */
   description?: string;
+  discount_type?: '' | 'Percentage' | 'Amount';
+  discount_value?: number;
 };
 
 export type DmsOrderInput = {
@@ -127,6 +142,8 @@ export type DmsOrderInput = {
    * Withholding Category. Stored on the order and applied to its Sales Invoice.
    */
   apply_tax_withholding?: boolean;
+  /** VIN No link — stored on Sales Order.custom_dms_vehicle_vin. */
+  vehicle_vin?: string;
   labour_discount?: StandaloneInvoiceGroupDiscount;
   parts_discount?: StandaloneInvoiceGroupDiscount;
   submit?: number;
@@ -227,6 +244,19 @@ export async function updateDmsOrder(data: DmsOrderInput): Promise<DmsOrderSaveR
   return apiRequest(`/api/method/${API}.update_dms_order`, {
     method: 'POST',
     body: JSON.stringify({ data }),
+  });
+}
+
+export async function createJobCardFromOrder(
+  name: string,
+  serviceAdvisor?: string
+): Promise<{ name: string; sales_order?: string; existing?: number }> {
+  return apiRequest(`/api/method/dms.api.order_workshop.create_job_card_from_order`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      service_advisor: serviceAdvisor || null,
+    }),
   });
 }
 

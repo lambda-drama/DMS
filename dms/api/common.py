@@ -769,10 +769,20 @@ def get_companies(search=None, limit=20):
 
 @frappe.whitelist()
 def get_branches(search=None, company=None, limit=50):
-	"""Branches for the operating DMS company (Branch.company), with user permission scoping."""
+	"""Branches whose company is listed on DMS Settings, with user permission scoping."""
 	from dms.dealer_management_system.utils.branch_permissions import get_dms_branches
 
 	return get_dms_branches(search=search, company=company, limit=limit)
+
+
+@frappe.whitelist()
+def quick_create_branch(branch=None, company=None):
+	"""Create a Branch for the given DMS company from a picker + button."""
+	if frappe.session.user == "Guest":
+		frappe.throw(_("Please log in."), frappe.AuthenticationError)
+	from dms.dealer_management_system.utils.branch_permissions import insert_dms_branch
+
+	return insert_dms_branch(branch, company)
 
 
 @frappe.whitelist()

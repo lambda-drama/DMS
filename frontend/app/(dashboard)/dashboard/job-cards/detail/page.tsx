@@ -61,6 +61,7 @@ import {
   Truck,
   DollarSign,
   CreditCard,
+  ShoppingCart,
   Play,
   Pause,
   ChevronRight,
@@ -2682,6 +2683,18 @@ export default function JobCardDetailPage() {
                     Inspection {jobCard.inspection}
                   </Button>
                 )}
+                {jobCard.sales_order && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => navigate("orders", { name: jobCard.sales_order! })}
+                  >
+                    <ShoppingCart className="mr-1 h-4 w-4" />
+                    Order {jobCard.sales_order}
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {jobCard.job_items && jobCard.job_items.length > 0 ? (
@@ -3534,7 +3547,10 @@ export default function JobCardDetailPage() {
                 Payment
               </CardTitle>
               <CardDescription>
-                Customer advances (downpayments) and invoice settlement for this job card.
+                Customer advances (downpayments) and invoice settlement for this job card
+                {jobCard.sales_order
+                  ? `, including any downpayment taken on order ${jobCard.sales_order}.`
+                  : '.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
