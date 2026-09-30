@@ -19,7 +19,7 @@ from frappe.utils import cint, flt, today
 
 from dms.api.invoices import (
 	_dms_sales_invoice_condition,
-	list_modes_of_payment,  # noqa: F401  (re-exported for the UI)
+	list_modes_of_payment,
 )
 from dms.api.utils import get_dms_companies, parse_filter_date
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
@@ -61,7 +61,7 @@ _LIST_FIELDS = (
 
 def _ensure_erpnext():
 	try:
-		import erpnext  # noqa: F401
+		import erpnext
 	except ImportError:
 		frappe.throw(_("ERPNext must be installed for Payment Entry."))
 

@@ -180,10 +180,8 @@ def get_daily_wip_report(filters=None):
 	_apply_vin_numbers(rows)
 
 	jc_names = [r.name for r in rows]
-	status_entered = _latest_status_entered_map(jc_names)
 	parts_map = _parts_summary_by_job(jc_names)
 	now = now_datetime()
-	today = getdate(nowdate())
 
 	overdue = 0
 	by_status = {}

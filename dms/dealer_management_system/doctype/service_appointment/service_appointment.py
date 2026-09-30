@@ -33,7 +33,7 @@ def get_vehicle_customers(doctype, txt, searchfield, start, page_len, filters):
     """ % (",".join(["%s"] * len(vehicle_groups)), "%s")
 
 	# Prepare parameters
-	params = vehicle_groups + [f"%{txt}%"]
+	params = [*vehicle_groups, f"%{txt}%"]
 
 	# Add status filter (optional)
 	# query += " AND c.disabled = 0"
@@ -78,7 +78,7 @@ def get_vehicle_items(doctype, txt, searchfield, start, page_len, filters):
         LIMIT {start}, {page_len}
     """
 
-	params = vehicle_groups + [f"%{txt}%"]
+	params = [*vehicle_groups, f"%{txt}%"]
 
 	results = frappe.db.sql(query, params)
 
@@ -143,7 +143,7 @@ def get_vehicle_vins(doctype, txt, searchfield, start, page_len, filters):
             ORDER BY v.vin_number ASC
             LIMIT {start}, {page_len}
         """
-		params = vehicle_groups + [f"%{txt}%", f"%{txt}%", f"%{txt}%"]
+		params = [*vehicle_groups, f"%{txt}%", f"%{txt}%", f"%{txt}%"]
 
 	results = frappe.db.sql(query, params)
 

@@ -54,7 +54,7 @@ def normalize_exclude_rows(exclude_rows) -> set[str]:
 			return set()
 		try:
 			exclude_rows = json.loads(raw)
-		except (json.JSONDecodeError, TypeError, ValueError):
+		except json.JSONDecodeError, TypeError, ValueError:
 			exclude_rows = [raw]
 	if isinstance(exclude_rows, dict):
 		exclude_rows = list(exclude_rows.values())
@@ -196,7 +196,7 @@ def normalize_qty_overrides(qty_overrides) -> dict[str, float]:
 			return {}
 		try:
 			qty_overrides = json.loads(raw)
-		except (json.JSONDecodeError, TypeError, ValueError):
+		except json.JSONDecodeError, TypeError, ValueError:
 			return {}
 	if isinstance(qty_overrides, dict):
 		items = qty_overrides.items()
@@ -869,7 +869,7 @@ def invoice_estimated_total(
 
 def _ensure_erpnext():
 	try:
-		import erpnext  # noqa: F401
+		import erpnext
 	except ImportError:
 		frappe.throw(_("ERPNext must be installed to create Sales Invoices from a Job Card."))
 
@@ -2538,7 +2538,7 @@ def _apply_line_discounts_to_job_card(jc, line_discounts) -> bool:
 
 		try:
 			line_discounts = json.loads(line_discounts)
-		except (json.JSONDecodeError, TypeError, ValueError):
+		except json.JSONDecodeError, TypeError, ValueError:
 			return False
 	if not isinstance(line_discounts, dict):
 		return False
@@ -2772,7 +2772,7 @@ def _apply_group_discount_dict_to_si_items(items, discount: dict | None) -> None
 	final_rates: list[float] = []
 	dms_discounts: list[float] = []
 
-	for row, gross in zip(items, line_gross):
+	for row, gross in zip(items, line_gross, strict=True):
 		if gross <= 0:
 			final_rates.append(flt(row.rate))
 			dms_discounts.append(0.0)
@@ -2919,7 +2919,7 @@ def _apply_distributed_amount_discount_to_si_items(si, discount_amount: float) -
 	final_rates: list[float] = []
 	dms_discounts: list[float] = []
 
-	for row, gross in zip(items, line_gross):
+	for row, gross in zip(items, line_gross, strict=True):
 		if gross <= 0:
 			final_rates.append(flt(row.rate))
 			dms_discounts.append(0.0)

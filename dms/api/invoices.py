@@ -15,7 +15,7 @@ from dms.dealer_management_system.utils.branch_permissions import apply_branch_f
 
 def _ensure_erpnext():
 	try:
-		import erpnext  # noqa: F401
+		import erpnext
 	except ImportError:
 		frappe.throw(_("ERPNext must be installed for Sales Invoice and Payment Entry."))
 

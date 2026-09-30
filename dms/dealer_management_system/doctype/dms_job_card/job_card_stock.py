@@ -170,7 +170,7 @@ def transfer_job_card_parts_to_wip(jc) -> str | None:
 
 def _ensure_erpnext():
 	try:
-		import erpnext  # noqa: F401
+		import erpnext
 	except ImportError:
 		frappe.throw(_("ERPNext must be installed for stock transfers."))
 

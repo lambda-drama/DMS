@@ -1,10 +1,12 @@
 # Copyright (c) 2026, Mania and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, flt, now_datetime
+from frappe.utils import add_to_date, cint, flt, get_datetime, now_datetime, time_diff_in_hours
 
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	apply_vehicle_labour_row_pricing,
@@ -571,12 +573,6 @@ dms/dealer_management_system/doctype/dms_job_card/dms_job_card.py
 The key pattern: frappe.db.set_value() for scalar fields on the parent,
 and direct frappe.db operations for child table rows.
 """
-
-import json
-
-import frappe
-from frappe import _
-from frappe.utils import add_to_date, flt, get_datetime, now_datetime, time_diff_in_hours
 
 
 def _time_log_has_active_end(end_time) -> bool:

@@ -647,7 +647,7 @@ def _cell_number(value) -> float:
 		return 0.0
 	try:
 		return flt(value)
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		return 0.0
 
 

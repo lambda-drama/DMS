@@ -1420,8 +1420,6 @@ def merge_customers(master: str, duplicate: str, field_overrides=None, confirm_d
 	master_vins = set()
 	dup_vins = set()
 	if frappe.db.exists("DocType", "VIN No"):
-		vin_filters_m = {"customer": master}
-		vin_filters_d = {"customer": duplicate}
 		# field may be customer or owner depending on schema
 		meta = frappe.get_meta("VIN No")
 		cust_field = (

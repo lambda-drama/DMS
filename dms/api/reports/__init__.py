@@ -6,11 +6,11 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
-from dms.api.reports.advisor import get_appointment_conversion_report  # noqa: F401
+from dms.api.reports.advisor import get_appointment_conversion_report
 from dms.api.reports.catalog import _report_catalog
 
 # Re-export helpers used by other modules (e.g. dashboard.py)
-from dms.api.reports.common import (  # noqa: F401
+from dms.api.reports.common import (
 	OPEN_JOB_CARD_STATUSES,
 	_apply_link_display_names,
 	_apply_vin_numbers,
@@ -19,11 +19,11 @@ from dms.api.reports.common import (  # noqa: F401
 	_report_filters_response,
 	_vin_link_filter_value,
 )
-from dms.api.reports.executive import get_service_revenue_report  # noqa: F401
-from dms.api.reports.parts import get_parts_fill_rate_report  # noqa: F401
-from dms.api.reports.qc import get_qc_failure_report  # noqa: F401
-from dms.api.reports.warranty import get_warranty_report  # noqa: F401
-from dms.api.reports.workshop import get_daily_wip_report  # noqa: F401
+from dms.api.reports.executive import get_service_revenue_report
+from dms.api.reports.parts import get_parts_fill_rate_report
+from dms.api.reports.qc import get_qc_failure_report
+from dms.api.reports.warranty import get_warranty_report
+from dms.api.reports.workshop import get_daily_wip_report
 from dms.dealer_management_system.utils.crm_user_settings import (
 	can_view_dms_report_section,
 	get_allowed_dms_report_sections,

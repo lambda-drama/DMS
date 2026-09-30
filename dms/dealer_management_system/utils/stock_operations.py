@@ -115,7 +115,7 @@ def resolve_dms_purchase_supplier(company: str | None = None, supplier: str | No
 
 def _ensure_erpnext():
 	try:
-		import erpnext  # noqa: F401
+		import erpnext
 	except ImportError:
 		frappe.throw(_("ERPNext must be installed for stock operations."))
 
@@ -873,7 +873,7 @@ def get_dms_item_stock_balance(
 			try:
 				qty = flt(get_stock_balance(item_code, wh, as_on_date))
 			except Exception as e:
-				frappe.log_error(f"Error getting stock balance for {item_code} in {wh}: {str(e)}")
+				frappe.log_error(f"Error getting stock balance for {item_code} in {wh}: {e!s}")
 				qty = _bin_stock_balance(item_code, wh)
 		else:
 			qty = _bin_stock_balance(item_code, wh)

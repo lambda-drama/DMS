@@ -282,7 +282,7 @@ def _quick_create_vehicle_service_type(values):
 	if est not in (None, ""):
 		try:
 			doc["default_estimated_hours"] = float(est)
-		except (TypeError, ValueError):
+		except TypeError, ValueError:
 			pass
 	return doc
 

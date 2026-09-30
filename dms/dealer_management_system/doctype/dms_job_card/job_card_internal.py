@@ -158,7 +158,7 @@ def create_material_issue_for_job_card(jc) -> str | None:
 		return None
 
 	try:
-		import erpnext  # noqa: F401
+		import erpnext
 	except ImportError:
 		frappe.throw(_("ERPNext must be installed for material issue."))
 

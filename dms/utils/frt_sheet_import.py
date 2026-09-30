@@ -599,7 +599,7 @@ def _looks_numeric(value) -> bool:
 	try:
 		float(value)
 		return True
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		return False
 
 

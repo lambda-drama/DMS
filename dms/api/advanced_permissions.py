@@ -458,7 +458,7 @@ def add_role_to_profile(role_profile: str | None = None, role: str | None = None
 	doc = frappe.get_doc("Role Profile", role_profile)
 	existing = [r.role for r in (doc.get("roles") or []) if getattr(r, "role", None)]
 	if role not in existing:
-		_save_role_profile_roles(doc, existing + [role])
+		_save_role_profile_roles(doc, [*existing, role])
 	return _role_profile_payload(role_profile)
 
 
