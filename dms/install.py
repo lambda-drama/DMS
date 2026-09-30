@@ -30,7 +30,10 @@ def ensure_runtime_custom_fields() -> None:
 	from dms.dealer_management_system.doctype.vehicle_labour_item.vehicle_labour_item import (
 		ensure_labour_display_name_field,
 	)
-	from dms.dealer_management_system.utils.branch_permissions import ensure_branch_company_field
+	from dms.dealer_management_system.utils.branch_permissions import (
+		ensure_branch_company_field,
+		ensure_document_branch_fields,
+	)
 	from dms.utils.user_password import ensure_force_password_field
 
 	for ensure in (
@@ -41,6 +44,7 @@ def ensure_runtime_custom_fields() -> None:
 		ensure_labour_display_name_field,
 		ensure_force_password_field,
 		ensure_branch_company_field,
+		ensure_document_branch_fields,
 	):
 		try:
 			ensure()

@@ -360,6 +360,25 @@ export async function fetchBranches(search?: string, company?: string): Promise<
   });
 }
 
+/**
+ * Default Branch for new DMS documents plus the branches the user may pick.
+ *
+ * `default_branch` comes from the user's Branch User Permission, else from the
+ * Company's branch on DMS Settings → Company Defaults. It is empty when the user
+ * has to choose; `branches` is always scoped to the DMS company.
+ */
+export interface BranchDefaults {
+  default_branch: string | null;
+  branches: BranchOption[];
+}
+
+export async function fetchBranchDefaults(company?: string): Promise<BranchDefaults> {
+  return apiRequest<BranchDefaults>(`/api/method/${API}.get_branch_default`, {
+    method: 'POST',
+    body: JSON.stringify({ company: company || null }),
+  });
+}
+
 export async function quickCreateBranch(data: {
   branch: string;
   company?: string;

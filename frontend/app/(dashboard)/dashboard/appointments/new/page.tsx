@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import * as commonSvc from '@/services/common';
 import { useNavigation } from '@/contexts/navigation-context';
 import { format } from 'date-fns';
@@ -46,10 +46,13 @@ import {
   useCompanies,
   useAutofillSingleCompany,
   useAutofillDefaultCustomer,
+  useAutofillBranch,
+  useBranchField,
   useDmsCustomerDefaults,
   useAppointment,
 } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { WarrantyStatusBanner } from '@/components/warranty-status-banner';
 import * as vehiclesSvc from '@/services/vehicles';
 import * as appointmentsSvc from '@/services/appointments';
@@ -122,11 +125,13 @@ export default function NewAppointmentPage() {
     special_instructions: '',
     vehicle_arrival_status: 'Drop-off',
     company: '',
+    branch: '',
   });
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [vinSearch, setVinSearch] = useState('');
   const [companySearch, setCompanySearch] = useState('');
+  const [branchSearch, setBranchSearch] = useState('');
   const [customerContact, setCustomerContact] = useState({
     mobile_no: '',
     email_id: '',
@@ -159,6 +164,18 @@ export default function NewAppointmentPage() {
     (c) => setForm((prev) => ({ ...prev, company: c.name })),
     { search: companySearch }
   );
+
+  // Branch is mandatory on DMS appointments: the picker is scoped to the company
+  // and prefilled with the caller's branch (User Permission) or the company default.
+  const handleBranchAutofill = useCallback((branch: string) => {
+    setForm((prev) => ({ ...prev, branch }));
+  }, []);
+  const {
+    branches: branchOptions,
+    isLoading: branchesLoading,
+    defaultBranch,
+  } = useBranchField({ company: form.company, search: branchSearch });
+  useAutofillBranch(defaultBranch, form.branch, handleBranchAutofill, { enabled: !isEdit });
 
   useAutofillDefaultCustomer(
     form.customer,
@@ -263,6 +280,7 @@ export default function NewAppointmentPage() {
       special_instructions: existing.special_instructions || '',
       vehicle_arrival_status: (existing.vehicle_arrival_status as VehicleArrivalStatus) || 'Drop-off',
       company: existing.company || '',
+      branch: existing.branch || '',
     });
     setSelectedServices(
       (existing.service_type_requested || [])
@@ -428,6 +446,10 @@ export default function NewAppointmentPage() {
     }
 
     if (!asDraft) {
+      if (!form.branch) {
+        toast.error('Please select a branch');
+        return;
+      }
       if (!form.vin_chassis) {
         toast.error('Please select a vehicle');
         return;
@@ -465,6 +487,7 @@ export default function NewAppointmentPage() {
         booking_source: form.booking_source,
         priority: form.priority,
         company: form.company,
+        branch: form.branch || undefined,
         appointment_date_time: form.appointment_date_time,
         promised_delivery_date_time: form.promised_delivery_date_time || undefined,
         estimated_duration_hours: form.estimated_duration_hours,
@@ -620,26 +643,55 @@ export default function NewAppointmentPage() {
             <CardDescription>Basic appointment information</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="company">
-                Company <span className="text-destructive">*</span>
-              </Label>
-              <SearchableSelect
-                value={form.company}
-                onValueChange={(val) => setForm((prev) => ({ ...prev, company: val }))}
-                onSearchChange={setCompanySearch}
-                placeholder="Search companies (from DMS Settings)..."
-                isLoading={companiesLoading}
-                options={(companies || []).map((c) => ({
-                  value: c.name,
-                  label: c.company_name || c.name,
-                }))}
-              />
-              {companies && companies.length === 0 && !companiesLoading ? (
+            <div className="grid grid-cols-1 gap-6 sm:col-span-2 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="company">
+                  Company <span className="text-destructive">*</span>
+                </Label>
+                <SearchableSelect
+                  value={form.company}
+                  onValueChange={(val) =>
+                    // A branch belongs to one company — clear it so it is re-picked.
+                    setForm((prev) => ({ ...prev, company: val, branch: '' }))
+                  }
+                  onSearchChange={setCompanySearch}
+                  placeholder="Search companies (from DMS Settings)..."
+                  isLoading={companiesLoading}
+                  options={(companies || []).map((c) => ({
+                    value: c.name,
+                    label: c.company_name || c.name,
+                  }))}
+                />
+                {companies && companies.length === 0 && !companiesLoading ? (
+                  <p className="text-xs text-muted-foreground">
+                    No companies available. Add companies under DMS Settings → Company (table).
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="branch">
+                  Branch <span className="text-destructive">*</span>
+                </Label>
+                <BranchSelect
+                  value={form.branch}
+                  onValueChange={(val) => setForm((prev) => ({ ...prev, branch: val }))}
+                  company={form.company}
+                  options={branchOptions.map((b) => ({
+                    value: b.name,
+                    label: b.branch || b.name,
+                  }))}
+                  onSearchChange={setBranchSearch}
+                  placeholder={
+                    branchesLoading ? 'Loading…' : 'Search branches (scoped to the company)…'
+                  }
+                  emptyMessage="No branches for this company"
+                  isLoading={branchesLoading}
+                />
                 <p className="text-xs text-muted-foreground">
-                  No companies available. Add companies under DMS Settings → Company (table).
+                  Required to confirm. Defaults to your branch; related documents stay on it.
                 </p>
-              ) : null}
+              </div>
             </div>
 
             <div className="space-y-2">

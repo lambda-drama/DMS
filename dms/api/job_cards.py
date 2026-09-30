@@ -8,6 +8,24 @@ from dms.api.utils import (
 	enrich_vin_listing_fields,
 	resolve_dms_customer,
 )
+from dms.dealer_management_system.utils.branch_permissions import (
+	resolve_document_branch,
+)
+
+
+def _job_card_source_branch(data: dict) -> str | None:
+	"""Branch carried from the inspection / appointment a job card is built from."""
+	for doctype, key in (
+		("Vehicle Inspection", "inspection"),
+		("Service Appointment", "appointment"),
+	):
+		source = (data.get(key) or "").strip()
+		if not source:
+			continue
+		branch = frappe.db.get_value(doctype, source, "branch")
+		if branch:
+			return branch
+	return None
 
 
 def _resolve_job_card_currency(currency=None, company=None) -> str:
@@ -1036,6 +1054,16 @@ def create_job_card(data):
 	company = (data.get("company") or "").strip() or None
 	currency = _resolve_job_card_currency(data.get("currency"), company)
 
+	# Branch is mandatory. It flows Appointment → Inspection → Job Card; when the
+	# job card is started directly it falls back to the caller's default branch.
+	# Drafts stay permissive so a half-filled card can be parked.
+	branch = resolve_document_branch(
+		data.get("branch"),
+		company=company,
+		fallback=_job_card_source_branch(data),
+		required=not as_draft,
+	)
+
 	posting_date = data.get("posting_date") or None
 
 	if as_draft and not data.get("customer") and not data.get("vehicle_vin"):
@@ -1057,6 +1085,7 @@ def create_job_card(data):
 		"job_card_type": data.get("job_card_type"),
 		"posting_date": posting_date,
 		"company": company,
+		"branch": branch,
 		"currency": currency,
 		"customer": customer,
 		"vehicle_vin": data.get("vehicle_vin"),
@@ -1217,6 +1246,7 @@ def update_job_card(name, data):
 
 	updatable_fields = [
 		"posting_date",
+		"branch",
 		"priority",
 		"service_advisor",
 		"lead_technician",
@@ -1246,6 +1276,16 @@ def update_job_card(name, data):
 	for field in updatable_fields:
 		if field in data:
 			doc.set(field, data[field])
+
+	if "branch" in data:
+		# Re-validated after the company may have changed; a job card always needs
+		# a branch (the carried one is used when the caller clears the value).
+		as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
+		doc.branch = resolve_document_branch(
+			doc.branch or _job_card_source_branch(data),
+			company=doc.company or data.get("company") or None,
+			required=not as_draft,
+		)
 
 	from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import (
 		apply_discount_fields_from_payload,

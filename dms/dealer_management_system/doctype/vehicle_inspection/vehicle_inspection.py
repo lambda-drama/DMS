@@ -8,6 +8,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, now_datetime  # ← Fixed import
 
+from dms.dealer_management_system.utils.branch_permissions import resolve_document_branch
+
 _APPOINTMENT_PRIORITY_TO_JOB_CARD = {
 	"Normal": "Normal",
 	"VIP": "VIP",
@@ -133,6 +135,15 @@ def make_dms_job_card_from_inspection(source_name: str) -> str:
 			"service_advisor": inv.service_advisor,
 			"service_advisor_notes": inv.service_advisor_notes or "",
 			"internal_notes": inv.internal_notes or "",
+			"company": inv.company,
+			# Branch is mandatory on the job card. It flows from the inspection,
+			# falling back to the company / caller default branch so inspections
+			# raised before branches existed still produce a valid job card.
+			"branch": resolve_document_branch(
+				inv.get("branch"),
+				company=inv.company,
+				required=True,
+			),
 		}
 	)
 	if jc.meta.has_field("sales_order") and inv.get("sales_order"):

@@ -350,6 +350,17 @@ def carry_order_onto_job_card(job_card_name: str, sales_order: str | None) -> No
 		current = frappe.db.get_value("DMS Job Card", job_card_name, "sales_order")
 		if not current:
 			frappe.db.set_value("DMS Job Card", job_card_name, "sales_order", so, update_modified=False)
+
+	# The order's branch follows onto the job card it starts (never overwriting a
+	# branch already carried from an inspection / appointment).
+	if frappe.get_meta("Sales Order").has_field("branch"):
+		order_branch = frappe.db.get_value("Sales Order", so, "branch")
+		if order_branch and frappe.get_meta("DMS Job Card").has_field("branch"):
+			if not frappe.db.get_value("DMS Job Card", job_card_name, "branch"):
+				frappe.db.set_value(
+					"DMS Job Card", job_card_name, "branch", order_branch, update_modified=False
+				)
+
 	link_order_advances_to_job_card(so, job_card_name)
 
 	# Drafts created from an order before line discounts were copied: fill them in

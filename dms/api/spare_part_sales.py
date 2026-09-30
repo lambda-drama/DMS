@@ -7,11 +7,17 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from dms.api.utils import apply_date_range, get_dms_default_customer, resolve_dms_customer
+from dms.api.utils import (
+	add_branch_filter,
+	apply_date_range,
+	get_dms_default_customer,
+	resolve_dms_customer,
+)
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	spare_part_default_selling_price,
 	spare_part_erp_item_code,
 )
+from dms.dealer_management_system.utils.branch_permissions import resolve_document_branch
 from dms.dealer_management_system.utils.stock_operations import (
 	get_default_dms_company,
 	get_dms_allowed_warehouses,
@@ -170,6 +176,9 @@ def create_spare_part_sale(data):
 	name = create_standalone_dms_sales_invoice(
 		customer=ctx["customer"],
 		company=ctx["company"],
+		branch=resolve_document_branch(
+			data.get("branch"), company=ctx["company"], required=not cint(data.get("as_draft"))
+		),
 		labour_lines=[],
 		parts_lines=ctx["parts_lines"],
 		warehouse=ctx["warehouse"],
@@ -323,6 +332,8 @@ def list_spare_part_proformas(
 	frappe.has_permission("Sales Order", "read", throw=True)
 
 	filters = dict(_proforma_so_filters())
+	# Branch row-level isolation (proformas are Sales Orders too).
+	filters = add_branch_filter(filters, doctype="Sales Order")
 	# Include cancelled so Amend is available from the list.
 	if status:
 		filters["status"] = status
@@ -347,24 +358,28 @@ def list_spare_part_proformas(
 		)
 	)
 
+	proforma_fields = [
+		"name",
+		"customer",
+		"customer_name",
+		"company",
+		"transaction_date",
+		"delivery_date",
+		"grand_total",
+		"currency",
+		"status",
+		"docstatus",
+		"per_billed",
+		"modified",
+	]
+	if frappe.get_meta("Sales Order").has_field("branch"):
+		proforma_fields.append("branch")
+
 	rows = frappe.get_all(
 		"Sales Order",
 		filters=filters,
 		or_filters=or_filters,
-		fields=[
-			"name",
-			"customer",
-			"customer_name",
-			"company",
-			"transaction_date",
-			"delivery_date",
-			"grand_total",
-			"currency",
-			"status",
-			"docstatus",
-			"per_billed",
-			"modified",
-		],
+		fields=proforma_fields,
 		order_by="modified desc",
 		limit=int(limit),
 		start=int(offset),
@@ -539,6 +554,7 @@ def get_spare_part_proforma(name):
 		"customer": so.customer,
 		"customer_name": so.customer_name,
 		"company": so.company,
+		"branch": so.get("branch") if so.meta.has_field("branch") else None,
 		"warehouse": warehouse,
 		"transaction_date": so.transaction_date,
 		"delivery_date": so.delivery_date,
@@ -680,6 +696,9 @@ def create_spare_part_proforma(data):
 	name = create_standalone_dms_sales_order(
 		customer=ctx["customer"],
 		company=ctx["company"],
+		branch=resolve_document_branch(
+			data.get("branch"), company=ctx["company"], required=not cint(data.get("as_draft"))
+		),
 		labour_lines=ctx.get("labour_lines") or [],
 		parts_lines=ctx["parts_lines"],
 		warehouse=ctx["warehouse"],
@@ -733,6 +752,11 @@ def update_spare_part_proforma(data):
 		name=name,
 		customer=ctx["customer"],
 		company=ctx["company"],
+		branch=resolve_document_branch(
+			data.get("branch") or so.get("branch"),
+			company=ctx["company"],
+			required=not cint(data.get("as_draft")),
+		),
 		labour_lines=ctx.get("labour_lines") or [],
 		parts_lines=ctx["parts_lines"],
 		warehouse=ctx["warehouse"],

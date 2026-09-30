@@ -11,6 +11,10 @@ from dms.api.utils import (
 	get_dms_companies,
 	resolve_dms_customer,
 )
+from dms.dealer_management_system.utils.branch_permissions import (
+	resolve_document_branch,
+	validate_document_branch,
+)
 from dms.dealer_management_system.utils.document_links import enrich_appointment_row
 
 _TERMINAL_STATUSES = frozenset(
@@ -308,6 +312,15 @@ def create_appointment(data):
 		if company not in allowed:
 			frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
 
+	# Branch is mandatory on every appointment; it defaults to the caller's branch
+	# from their User Permissions / DMS Company Defaults. Drafts may omit it so a
+	# half-filled appointment can be parked, but confirming requires a branch.
+	branch = resolve_document_branch(
+		data.get("branch"),
+		company=company or None,
+		required=not as_draft,
+	)
+
 	if not as_draft:
 		if not data.get("customer"):
 			frappe.throw(_("Customer is required"))
@@ -322,6 +335,7 @@ def create_appointment(data):
 		"booking_reference": data.get("booking_reference") or None,
 		"appointment_date_time": data.get("appointment_date_time"),
 		"company": company or None,
+		"branch": branch,
 		"estimated_duration_hours": data.get("estimated_duration_hours"),
 		"priority": data.get("priority", "Normal"),
 		"customer": resolve_dms_customer(data.get("customer")) if data.get("customer") else None,
@@ -429,6 +443,7 @@ def update_appointment(name, data):
 		"appointment_date_time",
 		"promised_delivery_date_time",
 		"company",
+		"branch",
 		"estimated_duration_hours",
 		"priority",
 		"customer_complaint_summary",
@@ -472,6 +487,18 @@ def update_appointment(name, data):
 			if company not in allowed:
 				frappe.throw(_("Company must be one of the companies selected in DMS Settings."))
 
+	if "branch" in data:
+		# Re-resolve after any company change so a branch of the previous company
+		# can never survive the edit. Only validated when the caller sends the key,
+		# so non-DMS callers that never set a branch keep working.
+		as_draft = cint(data.get("as_draft") or data.get("save_as_draft"))
+		branch = (doc.branch or "").strip() or (data.get("branch") or "").strip()
+		doc.branch = resolve_document_branch(
+			branch,
+			company=doc.company or None,
+			required=not as_draft and cint(doc.docstatus) != 1,
+		)
+
 	if "service_type_requested" in data:
 		doc.set("service_type_requested", [])
 		for svc in data.get("service_type_requested") or []:
@@ -513,6 +540,13 @@ def confirm_appointment(name):
 		frappe.throw(_("Cannot confirm a {0} appointment").format(doc.status))
 
 	doc.check_permission("submit")
+	# A branch must be set before the appointment becomes the source of record for
+	# the downstream inspection / job card (drafts may be parked without one).
+	doc.branch = validate_document_branch(
+		doc.branch or resolve_document_branch(None, company=doc.company or None),
+		company=doc.company or None,
+		required=True,
+	)
 	_apply_confirm_status(doc)
 	doc.customer_confirmed = "Confirmed"
 	doc.confirmation_sent = 1

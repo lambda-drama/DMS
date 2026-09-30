@@ -2161,6 +2161,7 @@ def create_sales_invoice_from_dms_job_card(
 	si = frappe.new_doc("Sales Invoice")
 	si.custom_invoice_no = _generate_invoice_no(jc.company)
 	si.company = jc.company
+	set_document_branch(si, jc.branch)
 	si.customer = jc.customer
 	si.posting_date = getdate(posting_date) if posting_date else getdate(today())
 	si.set_posting_time = 1
@@ -3313,6 +3314,7 @@ def create_standalone_dms_sales_invoice(
 	current_odometer=None,
 	apply_taxes: bool = False,
 	apply_tax_withholding=None,
+	branch: str | None = None,
 ) -> str:
 	"""Create a Sales Invoice from DMS UI labour + parts (no job card)."""
 	_ensure_erpnext()
@@ -3390,6 +3392,7 @@ def create_standalone_dms_sales_invoice(
 	si.posting_date = getdate(posting_date) if posting_date else getdate(today())
 	si.set_posting_time = 1
 	si.due_date = getdate(due_date) if due_date else si.posting_date
+	set_document_branch(si, branch)
 
 	invoice_remarks = (remarks or "").strip()
 	try:
@@ -3735,6 +3738,20 @@ def ensure_sales_order_vehicle_vin_field() -> None:
 	)
 
 
+def set_document_branch(doc, branch: str | None) -> None:
+	"""Stamp the DMS ``Branch`` on a Sales Order / Sales Invoice / Job Card.
+
+	Branch is a custom field on the ERPNext doctypes, so this is a no-op when the
+	field is missing (standalone ERPNext setups) or no branch was resolved.
+	"""
+	branch = (branch or "").strip()
+	if not branch:
+		return
+	if not doc.meta.has_field("branch"):
+		return
+	doc.branch = branch
+
+
 def set_sales_order_vehicle_vin(so, vehicle_vin: str | None) -> None:
 	ensure_sales_order_vehicle_vin_field()
 	if frappe.get_meta("Sales Order").has_field("custom_dms_vehicle_vin"):
@@ -3789,6 +3806,7 @@ def create_standalone_dms_sales_order(
 	apply_taxes: bool | None = None,
 	apply_tax_withholding: bool | None = None,
 	dry_run: bool = False,
+	branch: str | None = None,
 ) -> "str | frappe.model.document.Document":
 	"""Create or update a Sales Order for DMS proforma (labour and/or spare parts).
 
@@ -3892,6 +3910,7 @@ def create_standalone_dms_sales_order(
 			so.remarks = remarks
 	mark_sales_order_as_spare_part_proforma(so)
 	set_sales_order_vehicle_vin(so, vehicle_vin)
+	set_document_branch(so, branch)
 
 	order_currency = (currency or so.currency or "ETB").strip() or "ETB"
 	if not frappe.db.exists("Currency", order_currency):
@@ -4075,6 +4094,7 @@ def update_standalone_dms_sales_order(
 	vehicle_vin: str | None = None,
 	apply_taxes: bool | None = None,
 	apply_tax_withholding: bool | None = None,
+	branch: str | None = None,
 ) -> str:
 	"""Update a draft DMS proforma Sales Order (same payload as create)."""
 	return create_standalone_dms_sales_order(
@@ -4094,4 +4114,5 @@ def update_standalone_dms_sales_order(
 		vehicle_vin=vehicle_vin,
 		apply_taxes=apply_taxes,
 		apply_tax_withholding=apply_tax_withholding,
+		branch=branch,
 	)

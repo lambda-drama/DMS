@@ -77,6 +77,8 @@ export async function searchSparePartsForSale(options?: {
 export async function createSparePartSale(data: {
   customer?: string;
   company: string;
+  /** Mandatory branch — defaults to the user's branch, scoped to the company. */
+  branch?: string;
   warehouse: string;
   parts: SparePartSaleLine[];
   currency?: string;
@@ -109,6 +111,8 @@ export interface SparePartProformaListItem {
   customer: string;
   customer_name?: string;
   company?: string;
+  /** Branch the proforma was raised in (row-level isolation for branch users). */
+  branch?: string;
   transaction_date?: string;
   delivery_date?: string;
   grand_total?: number;
@@ -186,6 +190,8 @@ export async function getSparePartProforma(name: string): Promise<SparePartProfo
 export async function createSparePartProforma(data: {
   customer?: string;
   company: string;
+  /** Mandatory branch — defaults to the user's branch, scoped to the company. */
+  branch?: string;
   warehouse?: string;
   labour?: ProformaLabourLine[];
   parts?: SparePartSaleLine[];
@@ -218,6 +224,8 @@ export async function updateSparePartProforma(data: {
   name: string;
   customer?: string;
   company: string;
+  /** Kept in sync with the company; never silently cleared. */
+  branch?: string;
   warehouse?: string;
   labour?: ProformaLabourLine[];
   parts?: SparePartSaleLine[];

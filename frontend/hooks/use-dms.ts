@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 import * as appointmentsSvc from '@/services/appointments';
@@ -495,6 +495,62 @@ export function useBranches(search?: string, company?: string) {
     () => commonSvc.fetchBranches(search, company),
     { dedupingInterval: 30000 }
   );
+}
+
+/**
+ * Branch picker for DMS forms: the company-scoped branch list (searchable) plus
+ * the signed-in user's default branch from their Branch User Permission / the
+ * Company's branch in DMS Settings.
+ */
+export function useBranchField(options?: {
+  company?: string;
+  search?: string;
+  enabled?: boolean;
+}) {
+  const company = options?.company || '';
+  const search = (options?.search || '').trim();
+  const enabled = options?.enabled ?? true;
+
+  // Full list (company default) when the picker is idle; live search while typing.
+  const { data: branchDefaults, isLoading: defaultsLoading } = useSWR(
+    enabled && !search ? ['branch-defaults', company] : null,
+    () => commonSvc.fetchBranchDefaults(company || undefined),
+    { dedupingInterval: 30000 }
+  );
+  const { data: searched, isLoading: searchLoading } = useSWR(
+    enabled && search ? ['branches', search, company] : null,
+    () => commonSvc.fetchBranches(search, company || undefined),
+    { dedupingInterval: 30000 }
+  );
+
+  const branches = useMemo(
+    () => (search ? searched || [] : branchDefaults?.branches || []),
+    [search, searched, branchDefaults]
+  );
+
+  return {
+    branches,
+    isLoading: search ? searchLoading : defaultsLoading,
+    defaultBranch: branchDefaults?.default_branch || '',
+  };
+}
+
+/** Auto-select the user's default branch while the field is still empty. */
+export function useAutofillBranch(
+  defaultBranch: string | undefined,
+  currentValue: string,
+  onAutofill: (branch: string) => void,
+  options?: { enabled?: boolean }
+) {
+  const enabled = options?.enabled ?? true;
+
+  useEffect(() => {
+    if (!enabled) return;
+    if (currentValue) return;
+    if (!defaultBranch) return;
+
+    onAutofill(defaultBranch);
+  }, [defaultBranch, currentValue, onAutofill, enabled]);
 }
 
 /** Auto-select company when exactly one is available and the field is still empty. */

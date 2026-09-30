@@ -24,6 +24,7 @@ from dms.dealer_management_system.doctype.dms_service_estimate.estimate_utils im
 	get_default_vat_rate,
 	make_dms_job_card_from_estimate,
 )
+from dms.dealer_management_system.utils.branch_permissions import get_user_default_branch
 from dms.dealer_management_system.utils.document_links import linked_job_card_for_estimate
 
 
@@ -148,6 +149,7 @@ def make_service_estimate_from_inspection(source_name: str) -> str:
 			"license_plate": inv.license_plate,
 			"service_advisor": inv.service_advisor,
 			"company": inv.company,
+			"branch": inv.branch or get_user_default_branch(inv.company),
 			"service_advisor_notes": inv.service_advisor_notes or "",
 			"internal_notes": inv.internal_notes or "",
 			"diagnostic_fee": get_default_diagnostic_fee(),

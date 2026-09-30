@@ -181,6 +181,8 @@ export interface ServiceAppointment {
   booking_reference?: string;
   appointment_date_time: string;
   company?: string;
+  /** Mandatory on DMS: defaults to the user's branch, scoped to the company. */
+  branch?: string;
   promised_delivery_date_time?: string;
   estimated_duration_hours?: number;
   priority: Priority;
@@ -336,6 +338,8 @@ export interface VehicleInspection {
   naming_series?: string;
   company?: string;
   company_name?: string;
+  /** Carried from the appointment / order; required before the inspection is submitted. */
+  branch?: string;
   appointment?: string;
   sales_order?: string;
   job_card?: string;
@@ -500,6 +504,8 @@ export interface DMSServiceEstimate {
   inspection?: string;
   appointment?: string;
   sales_order?: string;
+  /** Inherited from the inspection / job card; scoped to the company. */
+  branch?: string;
   assigned_bay?: string;
   job_card?: string;
   diagnostic_invoice?: string;
@@ -687,6 +693,8 @@ export interface DMSJobCard {
   status: JobCardStatus;
   posting_date: string;
   company?: string;
+  /** Mandatory on DMS: carried from the inspection / order / appointment. */
+  branch?: string;
   /** Billing currency for costing and sales invoice (default ETB). */
   currency?: string;
   opened_date_time: string;
@@ -1359,6 +1367,8 @@ export interface SalesInvoiceListItem {
   outstanding_amount: number;
   status: string;
   currency?: string;
+  /** Branch the invoice was raised in (row-level isolation for branch users). */
+  branch?: string;
   docstatus?: 0 | 1 | 2;
   creation?: string;
   modified?: string;
@@ -1421,6 +1431,8 @@ export interface InvoicePreview {
 
 export interface SalesInvoiceDetail extends SalesInvoiceListItem {
   company?: string;
+  /** Branch the invoice was raised in — carried from the job card / order. */
+  branch?: string;
   remarks?: string;
   net_total?: number;
   total_taxes_and_charges?: number;

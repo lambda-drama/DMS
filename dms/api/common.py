@@ -775,6 +775,42 @@ def get_branches(search=None, company=None, limit=50):
 
 
 @frappe.whitelist()
+def get_branch_default(company=None):
+	"""Default Branch plus selectable branches for new DMS documents.
+
+	``default_branch`` is the branch the user is restricted to (Frappe User
+	Permission), else the Company's branch from DMS Settings → Company Defaults —
+	``None`` when the user has to choose. ``branches`` is always scoped to the
+	DMS Settings company and the caller's User Permissions.
+	"""
+	from dms.dealer_management_system.utils.branch_permissions import (
+		get_dms_branches,
+		get_user_default_branch,
+	)
+
+	company = (company or "").strip() or None
+	default_branch = get_user_default_branch(company=company)
+	branches = get_dms_branches(company=company, limit=500)
+
+	if default_branch and not any(row.get("name") == default_branch for row in branches):
+		company_field = None
+		from dms.dealer_management_system.utils.branch_permissions import get_branch_company_field
+
+		company_field = get_branch_company_field()
+		row = {
+			"name": default_branch,
+			"branch": frappe.db.get_value("Branch", default_branch, "branch") or default_branch,
+		}
+		if company_field:
+			row[company_field] = frappe.db.get_value("Branch", default_branch, company_field)
+		if company:
+			row["company_name"] = frappe.db.get_value("Company", company, "company_name") or company
+		branches.insert(0, row)
+
+	return {"default_branch": default_branch, "branches": branches}
+
+
+@frappe.whitelist()
 def quick_create_branch(branch=None, company=None):
 	"""Create a Branch for the given DMS company from a picker + button."""
 	if frappe.session.user == "Guest":

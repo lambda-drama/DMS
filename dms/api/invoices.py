@@ -10,7 +10,11 @@ from dms.api.utils import (
 	parse_filter_date,
 	resolve_dms_customer,
 )
-from dms.dealer_management_system.utils.branch_permissions import apply_branch_filter_to_qb
+from dms.dealer_management_system.utils.branch_permissions import (
+	apply_branch_filter_to_qb,
+	resolve_document_branch,
+	validate_document_branch,
+)
 
 
 def _ensure_erpnext():
@@ -330,9 +334,18 @@ def create_standalone_invoice(data):
 	customer = resolve_dms_customer(data.get("customer"))
 	_sync_customer_contact_from_invoice_payload(customer, data)
 
+	# Branch is mandatory on the standalone invoice screen; it defaults to the
+	# caller's branch (User Permissions → DMS Company Defaults).
+	branch = resolve_document_branch(
+		data.get("branch"),
+		company=data.get("company"),
+		required=not cint(data.get("as_draft") or data.get("save_as_draft")),
+	)
+
 	name = create_standalone_dms_sales_invoice(
 		customer=customer,
 		company=data.get("company"),
+		branch=branch,
 		labour_lines=data.get("labour") or data.get("labour_lines") or [],
 		parts_lines=data.get("parts") or data.get("parts_lines") or [],
 		warehouse=data.get("warehouse"),
@@ -360,6 +373,7 @@ def create_standalone_invoice(data):
 		"docstatus": si.docstatus,
 		"customer": si.customer,
 		"customer_name": si.customer_name,
+		"branch": si.get("branch") if si.meta.has_field("branch") else None,
 		"grand_total": flt(si.grand_total),
 	}
 
@@ -984,6 +998,15 @@ def update_draft_sales_invoice(data):
 		frappe.throw(_("Only draft invoices can be updated."))
 
 	si.check_permission("write")
+
+	if "branch" in data and si.meta.has_field("branch"):
+		# A branch is always required on a DMS invoice; clearing the field keeps the
+		# stored value so an edit can never silently drop the branch.
+		si.branch = validate_document_branch(
+			(data.get("branch") or "").strip() or si.get("branch"),
+			company=si.company or data.get("company"),
+			required=True,
+		)
 
 	if "remarks" in data:
 		si.remarks = data.get("remarks") or ""

@@ -7,6 +7,8 @@ import {
   useCompanies,
   useAutofillSingleCompany,
   useAutofillDefaultCustomer,
+  useAutofillBranch,
+  useBranchField,
   useDmsCustomerDefaults,
   useCustomers,
   useJobCard,
@@ -18,6 +20,7 @@ import {
 } from "@/hooks/use-dms";
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from "@/lib/customer-default";
 import { LinkWithCreate } from "@/components/link-with-create";
+import { BranchSelect } from "@/components/branches/branch-select";
 import { SearchableSelect } from "@/components/searchable-select";
 import { CustomerContactCard } from "@/components/customer-contact-card";
 import { InvoiceTaxBreakdown } from "@/components/invoices/invoice-tax-breakdown";
@@ -240,6 +243,8 @@ export default function NewInvoicePage() {
   const { data: dmsCustomerDefaults } = useDmsCustomerDefaults();
   const { data: companies, isLoading: companiesLoading } = useCompanies(companySearch);
   const [company, setCompany] = useState("");
+  const [branch, setBranch] = useState("");
+  const [branchSearch, setBranchSearch] = useState("");
   const [warehouse, setWarehouse] = useState("");
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses(
     warehouseSearch,
@@ -291,6 +296,16 @@ export default function NewInvoicePage() {
     { enabled: !jobCardId }
   );
 
+  // Branch is mandatory on the invoice and defaults to the caller's branch or the
+  // company default (DMS Settings). Options are scoped to the invoice's company.
+  const handleBranchAutofill = useCallback((value: string) => setBranch(value), []);
+  const {
+    branches: branchOptions,
+    isLoading: branchesLoading,
+    defaultBranch,
+  } = useBranchField({ company: company || "", search: branchSearch });
+  useAutofillBranch(defaultBranch, branch, handleBranchAutofill, { enabled: !jobCardId });
+
   const applyPartsWarehouseDefault = useCallback(async (co: string) => {
     if (!co || jobCardId) return;
     try {
@@ -318,6 +333,8 @@ export default function NewInvoicePage() {
       });
     }
     if (jobCard.company) setCompany(jobCard.company);
+    // The invoice raised from a job card always keeps the card's branch.
+    if (jobCard.branch) setBranch(jobCard.branch);
     const labour: LabourRow[] = (jobCard.labour || []).map((sl) => ({
       source_row: sl.name,
       vehicle_service_item: sl.vehicle_service_item || "",
@@ -796,6 +813,10 @@ export default function NewInvoicePage() {
       toast.error("Select a company");
       return;
     }
+    if (!branch && shouldSubmit) {
+      toast.error("Select a branch");
+      return;
+    }
     if (filledLabourRows.length === 0 && filledPartRows.length === 0) {
       toast.error(
         asDraft
@@ -841,6 +862,7 @@ export default function NewInvoicePage() {
         customer_mobile_no: customerContact.mobile_no.trim() || undefined,
         customer_email_id: customerContact.email_id.trim() || undefined,
         company,
+        branch: branch || undefined,
         warehouse: warehouse || undefined,
         currency,
         posting_date: postingDate,
@@ -1070,6 +1092,9 @@ export default function NewInvoicePage() {
                     setCompany(val);
                     setWarehouse("");
                     setWarehouseSearch("");
+                    // Branch is company-scoped — re-resolve it for the new company.
+                    setBranch("");
+                    setBranchSearch("");
                     if (val) void applyPartsWarehouseDefault(val);
                   }}
                   onSearchChange={setCompanySearch}
@@ -1078,6 +1103,27 @@ export default function NewInvoicePage() {
                   disabled={Boolean(jobCardId)}
                 />
               </div>
+              {!jobCardId && (
+                <div className="space-y-2">
+                  <Label>Branch *</Label>
+                  <BranchSelect
+                    value={branch}
+                    onValueChange={setBranch}
+                    company={company || undefined}
+                    options={branchOptions.map((b) => ({
+                      value: b.name,
+                      label: b.branch || b.name,
+                    }))}
+                    onSearchChange={setBranchSearch}
+                    placeholder={branchesLoading ? "Loading…" : "Select branch…"}
+                    emptyMessage="No branches for this company"
+                    isLoading={branchesLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Defaults to your branch — used for row-level isolation on invoice lists.
+                  </p>
+                </div>
+              )}
               {!jobCardId && (
                 <div className="space-y-2">
                   <Label>Currency *</Label>

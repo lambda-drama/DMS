@@ -247,10 +247,12 @@ def get_allowed_branches(user: str | None = None) -> list[str] | None:
 	if not branch_perms:
 		return None
 
-	allowed = []
+	allowed: list[str] = []
 	for perm in branch_perms:
 		docname = perm.get("doc") if isinstance(perm, dict) else getattr(perm, "doc", None)
-		if docname:
+		# Frappe returns one entry per User Permission row, so a branch granted
+		# twice would otherwise show up twice in every IN filter.
+		if docname and docname not in allowed:
 			allowed.append(docname)
 	return allowed or None
 
@@ -425,3 +427,165 @@ def assert_branch_access(branch: str | None, user: str | None = None) -> None:
 			_("You do not have permission to access branch {0}.").format(frappe.bold(branch)),
 			frappe.PermissionError,
 		)
+
+
+def get_company_branch(company: str | None = None) -> str | None:
+	"""Branch recorded against a company on DMS Settings → Company Defaults."""
+	from dms.dealer_management_system.utils.stock_operations import get_default_dms_company
+
+	company = (company or "").strip() or (get_default_dms_company() or "")
+	if not company:
+		return None
+	if not frappe.db.exists("DocType", "DMS Company Defaults"):
+		return None
+
+	branch = frappe.db.get_value(
+		"DMS Company Defaults",
+		{"parent": "DMS Settings", "parenttype": "DMS Settings", "company": company},
+		"branch",
+	)
+	return (branch or "").strip() or None
+
+
+def branch_matches_company(branch: str, company: str | None) -> bool:
+	"""True when ``branch`` belongs to ``company`` (or has no company at all)."""
+	company = (company or "").strip()
+	if not company:
+		return True
+	company_field = get_branch_company_field()
+	if not company_field:
+		# No company link on Branch: fall back to the company's default branch.
+		return get_company_branch(company) in (None, branch)
+
+	branch_company = (frappe.db.get_value("Branch", branch, company_field) or "").strip()
+	return not branch_company or branch_company == company
+
+
+def get_user_default_branch(company: str | None = None, user: str | None = None) -> str | None:
+	"""Branch pre-filled on new DMS documents for ``user``.
+
+	1. A Branch the user is restricted to through a Frappe User Permission
+	   (the user's own branch wins when the company default is not allowed).
+	2. Otherwise the Company's branch from DMS Settings → Company Defaults.
+
+	Returns ``None`` when neither applies, so the UI must ask the user to pick.
+	"""
+	company = (company or "").strip() or None
+	user = user or frappe.session.user
+
+	allowed = get_allowed_branches(user)
+	if allowed:
+		candidates = sorted(
+			branch
+			for branch in allowed
+			if branch and frappe.db.exists("Branch", branch) and branch_matches_company(branch, company)
+		)
+		if not candidates:
+			return None
+		company_branch = get_company_branch(company)
+		if company_branch in candidates:
+			return company_branch
+		return candidates[0]
+
+	company_branch = get_company_branch(company)
+	if company_branch and frappe.db.exists("Branch", company_branch):
+		if branch_matches_company(company_branch, company):
+			return company_branch
+	return None
+
+
+def validate_document_branch(
+	branch: str | None,
+	company: str | None = None,
+	user: str | None = None,
+	required: bool = False,
+) -> str | None:
+	"""Normalise and validate the Branch chosen on a DMS document.
+
+	Raises when ``required`` and no branch is set, when the branch is unknown,
+	when it belongs to a different company, or when the user may not use it.
+	"""
+	branch = (branch or "").strip()
+	if not branch:
+		if required:
+			frappe.throw(_("Branch is required. Select the branch for this document."))
+		return None
+
+	if not frappe.db.exists("Branch", branch):
+		frappe.throw(_("Branch {0} does not exist.").format(frappe.bold(branch)))
+
+	if not branch_matches_company(branch, company):
+		company_field = get_branch_company_field()
+		branch_company = frappe.db.get_value("Branch", branch, company_field) if company_field else None
+		frappe.throw(
+			_("Branch {0} belongs to {1}, not {2}. Select a branch of the chosen company.").format(
+				frappe.bold(branch), frappe.bold(branch_company), frappe.bold(company)
+			),
+			frappe.PermissionError,
+		)
+
+	assert_branch_access(branch, user)
+	return branch
+
+
+def resolve_document_branch(
+	requested: str | None,
+	company: str | None = None,
+	user: str | None = None,
+	fallback: str | None = None,
+	required: bool = False,
+) -> str | None:
+	"""Branch for a DMS document.
+
+	Precedence: the value sent by the caller → ``fallback`` (the branch carried
+	from the source document, e.g. Appointment → Inspection → Job Card) → the
+	caller's default branch from their User Permissions / Company Defaults.
+
+	Raises when ``required`` and nothing resolves.
+	"""
+	branch = (requested or "").strip() or (fallback or "").strip()
+	if not branch:
+		branch = get_user_default_branch(company, user) or ""
+	return validate_document_branch(branch, company=company, user=user, required=required)
+
+
+# Branch is mandatory on the DMS screens for these ERPNext documents, so DMS owns
+# the ``branch`` Link field on them (created as a Custom Field on migrate).
+DOCUMENT_BRANCH_FIELDS = {
+	"Sales Order": "company",
+	"Sales Invoice": "company",
+}
+
+
+def ensure_document_branch_fields() -> None:
+	"""Create the mandatory DMS ``Branch`` field on Sales Order / Sales Invoice.
+
+	Sites that already ship their own ``branch`` field on these doctypes keep it —
+	DMS only manages a Custom Field it created itself.
+	"""
+	from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
+
+	custom_fields = {}
+	for doctype, insert_after in DOCUMENT_BRANCH_FIELDS.items():
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		meta = frappe.get_meta(doctype)
+		if meta.has_field("branch") and not custom_field_exists(doctype, "branch"):
+			# Standard or locally patched field: leave the definition alone.
+			continue
+		custom_fields[doctype] = [
+			{
+				"fieldname": "branch",
+				"label": "Branch",
+				"fieldtype": "Link",
+				"options": "Branch",
+				"insert_after": insert_after if meta.has_field(insert_after) else "",
+				"reqd": 1,
+				"in_standard_filter": 1,
+			}
+		]
+
+	if not custom_fields:
+		return
+	ensure_custom_fields(custom_fields)
+	frappe.clear_cache()

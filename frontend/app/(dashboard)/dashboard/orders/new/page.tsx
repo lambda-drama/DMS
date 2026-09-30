@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Package, Receipt, Save, Trash2 } from 'lucide-react';
 import { addCalendarMonthsISO, todayISO } from '@/lib/date-format';
 import { useNavigation } from '@/contexts/navigation-context';
-import { useVehicleServiceItems, useVINs } from '@/hooks/use-dms';
+import { useAutofillBranch, useBranchField, useVehicleServiceItems, useVINs } from '@/hooks/use-dms';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { CreateServiceItemDialog } from '@/components/create-service-item-dialog';
 import { CreateSparePartDialog } from '@/components/create-spare-part-dialog';
@@ -141,6 +142,8 @@ export default function OrderNewPage() {
   const [vehicleVin, setVehicleVin] = useState('');
   const [selectedVin, setSelectedVin] = useState<VINNo | null>(null);
   const [warehouse, setWarehouse] = useState('');
+  const [branch, setBranch] = useState('');
+  const [branchSearch, setBranchSearch] = useState('');
   const [transactionDate, setTransactionDate] = useState(today());
   const [deliveryDate, setDeliveryDate] = useState(() => defaultValidTo());
   const [remarks, setRemarks] = useState('');
@@ -166,6 +169,16 @@ export default function OrderNewPage() {
   const { data: defaults } = useSWR('spare-part-sales-defaults', () =>
     sparePartSalesSvc.fetchSparePartSalesDefaults()
   );
+
+  // Branch is mandatory on the order and defaults to the caller's branch or the
+  // company default (DMS Settings). Options are scoped to the DMS company.
+  const handleBranchAutofill = useCallback((value: string) => setBranch(value), []);
+  const {
+    branches: branchOptions,
+    isLoading: branchesLoading,
+    defaultBranch,
+  } = useBranchField({ company: defaults?.company || '', search: branchSearch });
+  useAutofillBranch(defaultBranch, branch, handleBranchAutofill, { enabled: !editName });
   const { data: existing } = useSWR(editName ? ['dms-order', editName] : null, () =>
     ordersSvc.getDmsOrder(editName)
   );
@@ -460,6 +473,7 @@ export default function OrderNewPage() {
     setTransactionDate(existing.transaction_date || today());
     setDeliveryDate(existing.delivery_date || defaultValidTo(existing.transaction_date || today()));
     setRemarks(existing.remarks || '');
+    if (existing.branch) setBranch(existing.branch);
     setApplyTaxes(
       Boolean(existing.apply_taxes) || Number(existing.total_taxes_and_charges) > 0
     );
@@ -616,11 +630,16 @@ export default function OrderNewPage() {
       toast.error('Select a warehouse for spare parts');
       return;
     }
+    if (!asDraft && !branch) {
+      toast.error('Select a branch');
+      return;
+    }
 
     const payload = {
       name: editName || undefined,
       customer: customer || undefined,
       company: defaults?.company,
+      branch: branch || undefined,
       warehouse: warehouse || undefined,
       transaction_date: transactionDate,
       delivery_date: deliveryDate,
@@ -713,6 +732,28 @@ export default function OrderNewPage() {
                   portaled
                 />
               </LinkWithCreate>
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Branch <span className="text-destructive">*</span>
+              </Label>
+              <BranchSelect
+                value={branch}
+                onValueChange={setBranch}
+                company={defaults?.company}
+                options={branchOptions.map((b) => ({
+                  value: b.name,
+                  label: b.branch || b.name,
+                }))}
+                onSearchChange={setBranchSearch}
+                placeholder={branchesLoading ? 'Loading…' : 'Select branch…'}
+                emptyMessage="No branches for this company"
+                isLoading={branchesLoading}
+                portaled
+              />
+              <p className="text-xs text-muted-foreground">
+                Carried onto the inspection, job card and the invoice raised from this order.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Warehouse</Label>

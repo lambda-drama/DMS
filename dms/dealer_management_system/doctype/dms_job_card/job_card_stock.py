@@ -347,6 +347,10 @@ def _clone_issued_parts_request(source_pr, target_jc, part_map, new_stock_entry:
 	pr.customer = target_jc.customer
 	pr.vehicle_vin = target_jc.vehicle_vin
 	pr.license_plate = target_jc.license_plate
+	if pr.meta.has_field("branch"):
+		# The recreated request stays in the job card's branch so branch-scoped
+		# users keep seeing it in their row-level filtered list.
+		pr.branch = getattr(target_jc, "branch", None) or getattr(source_pr, "branch", None)
 	pr.requested_by = source_pr.requested_by or target_jc.lead_technician
 	pr.posting_date = today()
 	src_status = (source_pr.status or "").strip()

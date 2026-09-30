@@ -17,6 +17,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
 )
+from dms.dealer_management_system.utils.branch_permissions import get_user_default_branch
 
 
 def _stock_available(spare_part: str, warehouse: str | None) -> float:
@@ -378,6 +379,10 @@ def create_parts_request_from_job_card(job_card: str, part_row_names=None, reque
 	pr = frappe.new_doc("DMS Parts Request")
 	pr.job_card = jc.name
 	pr.company = jc.company
+	if pr.meta.has_field("branch"):
+		# The request lives in the job card's branch (falling back to the
+		# technician's own branch when the job card has none yet).
+		pr.branch = getattr(jc, "branch", None) or get_user_default_branch(jc.company)
 	pr.customer = jc.customer
 	pr.vehicle_vin = jc.vehicle_vin
 	pr.license_plate = jc.license_plate
