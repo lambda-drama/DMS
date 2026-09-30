@@ -152,9 +152,7 @@ def _order_builder_kwargs(ctx: dict, data: dict) -> dict:
 		"parts_lines": ctx["parts_lines"],
 		"warehouse": ctx["warehouse"],
 		"currency": data.get("currency") or _company_currency(ctx["company"]),
-		"delivery_date": data.get("delivery_date")
-		or data.get("due_date")
-		or add_months(today(), 1),
+		"delivery_date": data.get("delivery_date") or data.get("due_date") or add_months(today(), 1),
 		"transaction_date": data.get("posting_date") or data.get("transaction_date"),
 		"remarks": _build_spare_part_remarks(ctx, data, default_remarks=ORDER_REMARKS_PREFIX),
 		"labour_discount": data.get("labour_discount"),
@@ -481,11 +479,11 @@ def get_dms_order(name):
 	advance_paid = flt(so.get("advance_paid"))
 	grand_total = flt(so.grand_total)
 
+	from dms.api.order_workshop import workshop_links_for_order
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		get_sales_order_vehicle_vin,
 		read_sales_order_tax_withholding,
 	)
-	from dms.api.order_workshop import workshop_links_for_order
 
 	applies_withholding, withholding_category, withholding_group = read_sales_order_tax_withholding(so)
 
@@ -525,9 +523,7 @@ def get_dms_order(name):
 		"balance": max(grand_total - advance_paid, 0),
 		"remarks": remarks or None,
 		"vehicle_vin": vin,
-		"vin_number": (
-			frappe.db.get_value("VIN No", vin, "vin_number") or vin if vin else None
-		),
+		"vin_number": (frappe.db.get_value("VIN No", vin, "vin_number") or vin if vin else None),
 		"inspection": inspection_name,
 		"inspection_docstatus": (
 			frappe.db.get_value("Vehicle Inspection", inspection_name, "docstatus")

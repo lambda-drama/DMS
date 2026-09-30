@@ -59,9 +59,7 @@ def _set_company(doc, company: str | None) -> None:
 	if company:
 		dms_companies = get_dms_companies()
 		if dms_companies and company not in dms_companies:
-			frappe.throw(
-				_("Company {0} is not in DMS Settings.").format(frappe.bold(company))
-			)
+			frappe.throw(_("Company {0} is not in DMS Settings.").format(frappe.bold(company)))
 		if not frappe.db.exists("Company", company):
 			frappe.throw(_("Company {0} does not exist.").format(frappe.bold(company)))
 	doc.set(company_field, company)

@@ -22,11 +22,13 @@ class _Row:
 
 
 class TestInvoiceWarrantyPricing(UnitTestCase):
-	def test_warranty_line_keeps_selling_rate(self):
+	def test_warranty_line_keeps_listed_price_as_free_item(self):
 		fields = _si_item_pricing_fields({"rate": 2000, "discount_percentage": 100})
 		self.assertEqual(fields["price_list_rate"], 2000)
-		self.assertEqual(fields["rate"], 2000)
-		self.assertEqual(fields["discount_percentage"], 0)
+		self.assertEqual(fields["rate"], 0)
+		self.assertEqual(fields["discount_percentage"], 100)
+		self.assertEqual(fields["discount_amount"], 2000)
+		self.assertEqual(fields["is_free_item"], 1)
 
 	def test_billable_line_keeps_full_rate(self):
 		fields = _si_item_pricing_fields({"rate": 500, "discount_percentage": 0})
@@ -34,8 +36,8 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 		self.assertEqual(fields["rate"], 500)
 		self.assertEqual(fields["discount_percentage"], 0)
 
-	def test_all_invoice_uses_100_percent_invoice_discount(self):
-		labour = _Row(qty=0.5, rate=2000)
+	def test_all_invoice_free_line_needs_no_document_discount(self):
+		labour = _Row(qty=0.5, rate=0)
 		si = SimpleNamespace(
 			items=[labour],
 			additional_discount_percentage=0,
@@ -45,17 +47,15 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 		line_fields = [
 			{
 				**_si_item_pricing_fields({"rate": 2000, "discount_percentage": 100}),
-				"warranty_full_discount": True,
+				"warranty_full_discount": False,
 			}
 		]
 		covered, total = _warranty_covered_line_amount(si, line_fields)
-		self.assertEqual(covered, 1000)
-		self.assertEqual(total, 1000)
+		self.assertEqual(covered, 0)
+		self.assertEqual(total, 0)
 		_apply_warranty_as_invoice_discount(si, line_fields)
-		self.assertEqual(si.additional_discount_percentage, 100)
+		self.assertEqual(si.additional_discount_percentage, 0)
 		self.assertEqual(si.discount_amount, 0)
-		self.assertEqual(si.apply_discount_on, "Grand Total")
-		self.assertEqual(labour.rate, 2000)
 
 	def test_labour_warranty_discounts_only_covered_amount(self):
 		labour = _Row(qty=1, rate=800)
@@ -100,14 +100,16 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 			"Labour",
 		)
 
-	def test_100_percent_line_discount_does_not_set_rate_zero(self):
+	def test_100_percent_line_discount_bills_zero(self):
 		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 			_line_invoice_discount,
 		)
 
 		fields = _line_invoice_discount(3000, 0, "Percentage")
-		self.assertEqual(fields["rate"], 3000)
-		self.assertGreater(fields["rate"], 0)
+		self.assertEqual(fields["rate"], 0)
+		self.assertEqual(fields["discount_percentage"], 100)
+		self.assertEqual(fields["discount_amount"], 3000)
+		self.assertEqual(fields["is_free_item"], 1)
 		pricing = _apply_line_net_to_invoice_pricing(
 			{
 				"include": True,
@@ -120,8 +122,10 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 			0,
 			1,
 		)
-		self.assertEqual(pricing["rate"], 3000)
+		self.assertEqual(pricing["amount"], 0)
 		self.assertGreaterEqual(pricing["discount_percentage"], 100)
-		fields = _si_item_pricing_fields(pricing, price_list_rate=3000)
-		self.assertEqual(fields["rate"], 3000)
-		self.assertGreater(fields["rate"], 0)
+		fields = _si_item_pricing_fields(pricing, price_list_rate=3000, discount_mode="percentage")
+		self.assertEqual(fields["price_list_rate"], 3000)
+		self.assertEqual(fields["rate"], 0)
+		self.assertEqual(fields["discount_percentage"], 100)
+		self.assertEqual(fields["is_free_item"], 1)

@@ -356,12 +356,18 @@ def _line_invoice_discount(price_list_rate: float, net_rate: float, discount_mod
 		"rate": net,
 		"margin_type": "",
 		"margin_rate_or_amount": 0.0,
+		"is_free_item": 0,
 	}
 
-	# Site Server Script: "Rate for item X cannot be zero." A 100% line discount
-	# is a write-off of the selling price, not a selling price of 0.
+	# 100% line write-off: keep the listed price, take the whole amount off as a
+	# line discount, and mark the row free so ERPNext (and the site script that
+	# rejects rate=0) still accepts the invoice.
 	if net <= 0:
-		fields["rate"] = full if full > 0 else 0.0
+		if full > 0:
+			fields["rate"] = 0.0
+			fields["discount_percentage"] = 100.0
+			fields["discount_amount"] = full
+			fields["is_free_item"] = 1
 		return fields
 
 	unit_discount = flt(full - net)
@@ -371,8 +377,11 @@ def _line_invoice_discount(price_list_rate: float, net_rate: float, discount_mod
 	fields["discount_amount"] = unit_discount
 	if normalize_job_card_discount_type(discount_mode) == "percentage" and full:
 		pct = flt(unit_discount / full * 100.0, 2)
-		if 0 < pct < 100 and abs(flt(full * pct / 100.0) - unit_discount) < 0.005:
+		if 0 < pct <= 100 and abs(flt(full * pct / 100.0) - unit_discount) < 0.005:
 			fields["discount_percentage"] = pct
+			if pct >= 100:
+				fields["rate"] = 0.0
+				fields["is_free_item"] = 1
 	return fields
 
 
@@ -737,15 +746,18 @@ def _apply_line_net_to_invoice_pricing(pricing: dict, full_rate: float, net_rate
 def _si_item_pricing_fields(pricing: dict, *, price_list_rate=None, discount_mode: str = "") -> dict:
 	"""Selling fields for a Sales Invoice Item.
 
-	Warranty is not stored as a 0 net rate: a site Server Script rejects rate=0.
-	Covered lines keep the full selling rate; the write-off is an invoice discount.
-
-	``price_list_rate`` (when given) is the line's full selling price before its own
-	discount, so the discount shows on the invoice instead of being baked into the
-	rate.
+	``price_list_rate`` is the line's full selling price before its own discount.
+	A 100% line / warranty write-off is posted as a free item (rate 0, 100%
+	discount) so the billed amount is 0.
 	"""
 	net = flt(pricing.get("rate"))
 	full = flt(price_list_rate) if price_list_rate is not None else net
+	if flt(pricing.get("discount_percentage")) >= 100 or (
+		"amount" in pricing and flt(pricing.get("amount")) <= 0.005 and full > 0 and net > 0
+	):
+		net = 0.0
+		if not discount_mode:
+			discount_mode = "percentage"
 	return _line_invoice_discount(full, net, discount_mode)
 
 
@@ -757,13 +769,29 @@ _SI_ITEM_RATE_FIELDS = (
 	"rate",
 	"margin_type",
 	"margin_rate_or_amount",
+	"is_free_item",
 )
 
 
 def _apply_si_item_pricing_fields(row, fields: dict) -> None:
 	for key in _SI_ITEM_RATE_FIELDS:
-		if key in fields:
-			row.set(key, fields[key])
+		if key not in fields:
+			continue
+		if key == "is_free_item" and not getattr(row, "meta", None):
+			setattr(row, key, fields[key])
+			continue
+		if key == "is_free_item" and hasattr(row, "meta") and not row.meta.has_field("is_free_item"):
+			continue
+		row.set(key, fields[key])
+	if flt(fields.get("rate")) <= 0:
+		if hasattr(row, "set"):
+			row.set("amount", 0.0)
+		else:
+			row.amount = 0.0
+		if hasattr(row, "net_rate"):
+			row.net_rate = 0.0
+		if hasattr(row, "net_amount"):
+			row.net_amount = 0.0
 
 
 def _reapply_job_card_si_line_rates(si, line_fields: list[dict]) -> None:
@@ -2945,23 +2973,27 @@ def append_si_items(
 		fields = _si_item_pricing_fields(
 			pricing, price_list_rate=price_list_rate, discount_mode=discount_mode
 		)
-		full = flt(price_list_rate) if price_list_rate is not None else flt(pricing.get("rate"))
-		write_off = flt(pricing.get("discount_percentage")) >= 100
-		if flt(fields.get("rate")) <= 0 and full > 0:
-			fields["rate"] = full
-			fields["price_list_rate"] = full
-			fields["rate_with_margin"] = full
-			fields["discount_percentage"] = 0.0
-			fields["discount_amount"] = 0.0
-			write_off = True
+		# Invoice-level warranty write-off is only a fallback when the line still
+		# carries a selling rate (legacy). Free 100% lines already net to 0.
+		write_off = bool(
+			pricing.get("is_warranty_covered")
+			and flt(pricing.get("discount_percentage")) >= 100
+			and flt(fields.get("rate")) > 0
+		)
 		child = si.append(
 			"items",
 			{
 				"item_code": item_code,
 				"qty": qty,
-				**fields,
+				**{key: fields[key] for key in _SI_ITEM_RATE_FIELDS if key in fields},
 			},
 		)
+		if flt(fields.get("rate")) <= 0:
+			child.amount = 0.0
+			if hasattr(child, "net_rate"):
+				child.net_rate = 0.0
+			if hasattr(child, "net_amount"):
+				child.net_amount = 0.0
 		line_fields.append(
 			{
 				**fields,
@@ -3588,6 +3620,8 @@ def _apply_standalone_line_pricing(
 			item.discount_amount = base
 			item.rate = 0.0
 			item.amount = 0.0
+			if hasattr(item, "is_free_item"):
+				item.is_free_item = 1
 			if hasattr(item, "net_rate"):
 				item.net_rate = 0.0
 			if hasattr(item, "net_amount"):
@@ -3601,6 +3635,8 @@ def _apply_standalone_line_pricing(
 			item.discount_amount = fields["discount_amount"]
 			item.rate = fields["rate"]
 			item.amount = flt(qty * fields["rate"])
+			if hasattr(item, "is_free_item"):
+				item.is_free_item = cint(fields.get("is_free_item"))
 			if hasattr(item, "net_rate"):
 				item.net_rate = fields["rate"]
 			if hasattr(item, "net_amount"):

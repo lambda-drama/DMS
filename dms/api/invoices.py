@@ -462,6 +462,8 @@ def get_sales_invoice_detail(sales_invoice):
 			"qty": flt(row.qty),
 			"rate": flt(row.rate),
 			"amount": flt(row.amount),
+			"discount_percentage": flt(row.get("discount_percentage")),
+			"discount_amount": flt(row.get("discount_amount")),
 			"returned_qty": returned_qty,
 			"returnable_qty": max(flt(row.qty) - returned_qty, 0.0),
 		}

@@ -85,9 +85,7 @@ def apply_order_lines_to_job_card(doc, sales_order: str) -> None:
 		if label:
 			notes_bits.append(label)
 
-	existing_parts = {
-		(row.item_code or "").strip() for row in (doc.get("parts") or []) if row.item_code
-	}
+	existing_parts = {(row.item_code or "").strip() for row in (doc.get("parts") or []) if row.item_code}
 	warehouse = (detail.get("warehouse") or getattr(doc, "warehouse", None) or "").strip() or None
 	for line in detail.get("parts") or []:
 		part = (line.get("spare_part") or line.get("item_code") or "").strip()
@@ -118,9 +116,9 @@ def apply_order_lines_to_job_card(doc, sales_order: str) -> None:
 		existing_parts.add(part)
 
 	if doc.meta.has_field("job_items") and not doc.get("job_items"):
-		summary = "\n".join(bit for bit in notes_bits if bit).strip() or _("Work from Sales Order {0}").format(
-			sales_order
-		)
+		summary = "\n".join(bit for bit in notes_bits if bit).strip() or _(
+			"Work from Sales Order {0}"
+		).format(sales_order)
 		doc.append(
 			"job_items",
 			{
