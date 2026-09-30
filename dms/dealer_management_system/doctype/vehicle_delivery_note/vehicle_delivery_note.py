@@ -88,9 +88,7 @@ class VehicleDeliveryNote(Document):
 		log_job_card_status_change(self.job_card, "Delivered", previous_status=prev, when=delivered_at)
 
 	def on_cancel(self):
-		frappe.db.set_value(
-			self.doctype, self.name, "status", "Cancelled", update_modified=False
-		)
+		frappe.db.set_value(self.doctype, self.name, "status", "Cancelled", update_modified=False)
 		revert_job_card_after_delivery_cancel(self.job_card, self.name)
 
 

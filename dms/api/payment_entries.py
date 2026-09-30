@@ -104,7 +104,11 @@ def unlink_payment_entries_from_sales_invoice(si) -> None:
 	is_dms = bool(meta.has_field("custom_dms_job_card") and si.get("custom_dms_job_card"))
 	if not is_dms and meta.has_field("custom_spare_parts") and cint(si.get("custom_spare_parts")):
 		is_dms = True
-	if not is_dms and meta.has_field("custom_is_dms_transaction") and cint(si.get("custom_is_dms_transaction")):
+	if (
+		not is_dms
+		and meta.has_field("custom_is_dms_transaction")
+		and cint(si.get("custom_is_dms_transaction"))
+	):
 		is_dms = True
 	if not is_dms and meta.has_field("custom_missing_dms") and cint(si.get("custom_missing_dms")):
 		is_dms = True

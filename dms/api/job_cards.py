@@ -1903,15 +1903,15 @@ def cancel_job_card(name, reason=None):
 		inv_status = cint(frappe.db.get_value("Sales Invoice", active_inv, "docstatus"))
 		if inv_status == 1:
 			frappe.throw(
-				_(
-					"Cancel Sales Invoice {0} first, then cancel this job card."
-				).format(frappe.bold(active_inv))
+				_("Cancel Sales Invoice {0} first, then cancel this job card.").format(
+					frappe.bold(active_inv)
+				)
 			)
 		if inv_status == 0:
 			frappe.throw(
-				_(
-					"Delete draft Sales Invoice {0} first, then cancel this job card."
-				).format(frappe.bold(active_inv))
+				_("Delete draft Sales Invoice {0} first, then cancel this job card.").format(
+					frappe.bold(active_inv)
+				)
 			)
 
 	from dms.api.payment_entries import unlink_payment_entries_from_job_card
