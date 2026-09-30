@@ -68,27 +68,30 @@ def list_spare_parts(search=None, include_discontinued=0, limit=50, offset=0):
 			["spare_part_item", "like", q],
 		]
 
-	fields = ["name"] + _meta_fields(
-		"Spare Part",
-		[
-			"spare_part_item",
-			"item_code",
-			"item_name",
-			"oem_part_number",
-			"manufacturer_part_number",
-			"part_category",
-			"part_type",
-			"bin_location",
-			"selling_price",
-			"wholesale_price",
-			"markup_percentage",
-			"minimum_stock_level",
-			"reorder_quantity",
-			"discontinued",
-			"barcode",
-			"internal_notes",
-		],
-	)
+	fields = [
+		"name",
+		*_meta_fields(
+			"Spare Part",
+			[
+				"spare_part_item",
+				"item_code",
+				"item_name",
+				"oem_part_number",
+				"manufacturer_part_number",
+				"part_category",
+				"part_type",
+				"bin_location",
+				"selling_price",
+				"wholesale_price",
+				"markup_percentage",
+				"minimum_stock_level",
+				"reorder_quantity",
+				"discontinued",
+				"barcode",
+				"internal_notes",
+			],
+		),
+	]
 
 	rows = frappe.get_all(
 		"Spare Part",
@@ -101,7 +104,6 @@ def list_spare_parts(search=None, include_discontinued=0, limit=50, offset=0):
 	)
 	total = _count("Spare Part", filters=filters or None, or_filters=or_filters)
 
-	names = [r["name"] for r in rows]
 	item_names = [
 		r.get("spare_part_item") or r.get("item_code")
 		for r in rows
@@ -649,27 +651,6 @@ def list_vehicle_service_items(search=None, vehicle_model=None, limit=50, offset
 	total = _count("Vehicle Service Item", filters=filters or None, or_filters=or_filters)
 
 	item_codes = [r.get("custom_erpnext_item") for r in rows if r.get("custom_erpnext_item")]
-	item_map: dict[str, dict] = {}
-	if item_codes:
-		item_map = {
-			it["name"]: it
-			for it in frappe.get_all(
-				"Item",
-				filters={"name": ["in", item_codes]},
-				fields=[
-					"name",
-					"item_code",
-					"item_name",
-					"item_group",
-					"stock_uom",
-					"description",
-					"standard_rate",
-					"valuation_rate",
-					"disabled",
-				],
-				limit=len(item_codes),
-			)
-		}
 
 	price_map: dict[str, dict] = {}
 	if item_codes:
@@ -801,7 +782,9 @@ def _insert_vehicle_service_item_docs(data: dict, require_model_code: bool = Fal
 	elif cint(combine_with_model):
 		combiner = combine_service_code
 	else:
-		combiner = lambda entered, _model: (entered or "").strip().upper()
+
+		def combiner(entered, _model):
+			return (entered or "").strip().upper()
 
 	specs = _service_item_create_specs(
 		vehicle_models, entered_code, combiner, require_model_code=require_model_code
@@ -855,7 +838,7 @@ def _normalize_vehicle_models(data: dict) -> list[str]:
 	if isinstance(raw, str):
 		try:
 			raw = json.loads(raw)
-		except (TypeError, ValueError):
+		except TypeError, ValueError:
 			raw = [part.strip() for part in raw.split(",") if part.strip()]
 	if not isinstance(raw, (list, tuple)):
 		raw = [raw]
@@ -1475,7 +1458,7 @@ def _package_vehicle_models(data: dict) -> list[dict]:
 	if isinstance(raw, str):
 		try:
 			raw = json.loads(raw)
-		except (TypeError, ValueError):
+		except TypeError, ValueError:
 			raw = [raw]
 
 	models: list[dict] = []
@@ -1500,7 +1483,7 @@ def _package_labour_rows(data: dict) -> tuple[list[dict], float]:
 	if isinstance(raw, str):
 		try:
 			raw = json.loads(raw)
-		except (TypeError, ValueError):
+		except TypeError, ValueError:
 			raw = []
 
 	rows: list[dict] = []
@@ -1544,7 +1527,7 @@ def _package_part_rows(data: dict) -> list[dict]:
 	if isinstance(raw, str):
 		try:
 			raw = json.loads(raw)
-		except (TypeError, ValueError):
+		except TypeError, ValueError:
 			raw = []
 
 	rows: list[dict] = []

@@ -101,14 +101,12 @@ def _estimate_average_daily_km(vin_row, settings) -> float:
 	last_updated = vin_row.get("odometer_last_updated")
 	delivery = vin_row.get("delivery_date")
 	base_date = None
-	base_odo = 0.0
 	if last_updated and current:
 		# Prefer short-window estimate only when we have a prior snapshot isn't stored;
 		# fall back to delivery → now.
 		pass
 	if delivery and current:
 		base_date = getdate(delivery)
-		base_odo = 0.0
 	if base_date:
 		days = max((getdate(today()) - base_date).days, 1)
 		avg = current / days

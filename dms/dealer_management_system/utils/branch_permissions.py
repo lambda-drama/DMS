@@ -392,7 +392,7 @@ def add_branch_filter(
 	if frappe.get_system_settings("apply_strict_user_permissions"):
 		filters[branch_field] = ["in", allowed]
 	else:
-		filters[branch_field] = ["in", allowed + [""]]
+		filters[branch_field] = ["in", [*allowed, ""]]
 	return filters
 
 

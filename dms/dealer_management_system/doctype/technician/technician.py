@@ -140,8 +140,6 @@ class Technician(Document):
 
 		# Calculate hours worked
 		if self.clock_in_time:
-			in_time = self.clock_in_time
-			out_time = self.clock_out_time
 			# Simple calculation - in production use proper time diff
 			frappe.msgprint(_("{0} has clocked out at {1}").format(self.full_name, self.clock_out_time))
 

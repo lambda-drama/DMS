@@ -211,7 +211,7 @@ def calculate_lead_score(lead) -> dict:
 		+ relationship * weights["relationship"]
 	) / total_w
 	risk_drag = (risk * weights["risk"]) / total_w
-	score = max(0, min(100, int(round(positive - risk_drag))))
+	score = max(0, min(100, round(positive - risk_drag)))
 
 	if score >= thresholds["hot"]:
 		band = "Hot"

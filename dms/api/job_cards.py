@@ -2161,7 +2161,7 @@ def _copy_child_table(target, source, table_field, extra_skip=None):
 	for row in rows:
 		payload = {}
 		for fieldname in copyable:
-			payload[fieldname] = row.get(fieldname) if isinstance(row, dict) else row.get(fieldname)
+			payload[fieldname] = row.get(fieldname)
 		target.append(table_field, payload)
 
 
@@ -2225,7 +2225,7 @@ def _original_has_repair(source) -> bool:
 	logs = source.get("time_logs") or []
 	has_logs = False
 	for row in logs:
-		start = row.get("start_time") if isinstance(row, dict) else row.get("start_time")
+		start = row.get("start_time")
 		if start:
 			has_logs = True
 			break
@@ -2243,7 +2243,7 @@ def _original_has_road_test(source) -> bool:
 	if result in ("Pass", "Fail"):
 		return True
 	for row in source.get("road_test_results") or []:
-		value = row.get("result") if isinstance(row, dict) else row.get("result")
+		value = row.get("result")
 		if value:
 			return True
 	return False
@@ -2254,7 +2254,7 @@ def _original_has_qc(source) -> bool:
 	if result in ("Pass", "Fail"):
 		return True
 	for row in source.get("qc_results") or []:
-		value = row.get("result") if isinstance(row, dict) else row.get("result")
+		value = row.get("result")
 		if value:
 			return True
 	return False

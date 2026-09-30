@@ -232,7 +232,7 @@ def _lead_source(filters=None):
 		)
 
 	source_summary = []
-	for src, b in sorted(by_source.items(), key=lambda x: -x[1]["value"]):
+	for _src, b in sorted(by_source.items(), key=lambda x: -x[1]["value"]):
 		source_summary.append(
 			{
 				"label": b["label"],

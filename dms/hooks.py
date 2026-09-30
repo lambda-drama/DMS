@@ -387,6 +387,6 @@ scheduler_events = {
 # ---------------------------------------------------------------------------
 # CRM (parallel module) — fixtures / events live in dms.crm_hooks only
 # ---------------------------------------------------------------------------
-from dms.crm_hooks import apply_crm_hooks  # noqa: E402
+from dms.crm_hooks import apply_crm_hooks
 
 apply_crm_hooks(globals())

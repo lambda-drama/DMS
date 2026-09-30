@@ -569,7 +569,6 @@ class VINNo(Document):
 		for rule in model.service_intervals:
 			if rule.is_default:
 				default_km = rule.interval_km
-				default_months = rule.interval_months
 
 			# Check if conditions match
 			if rule.condition == "Fleet Vehicle" and self.is_fleet_vehicle:

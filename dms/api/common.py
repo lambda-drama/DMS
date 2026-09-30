@@ -230,7 +230,6 @@ def debug_spare_part_stock(spare_part_name):
 		resolve_spare_part_erp_item_code,
 	)
 
-	spare_part = frappe.get_doc("Spare Part", spare_part_name)
 	company = get_default_dms_company()
 	erp_item = resolve_spare_part_erp_item_code(spare_part_name)
 
@@ -256,7 +255,7 @@ def debug_spare_part_stock(spare_part_name):
 					result["stock_by_warehouse"][wh_name] = float(qty)
 					result["total_stock"] += float(qty)
 				except Exception as e:
-					result["stock_by_warehouse"][wh_name] = f"Error: {str(e)}"
+					result["stock_by_warehouse"][wh_name] = f"Error: {e!s}"
 
 		result["calculated_total"] = get_dms_item_stock_balance(erp_item, None, company)
 
