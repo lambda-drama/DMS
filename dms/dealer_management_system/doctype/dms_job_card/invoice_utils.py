@@ -359,15 +359,16 @@ def _line_invoice_discount(price_list_rate: float, net_rate: float, discount_mod
 		"is_free_item": 0,
 	}
 
-	# 100% line write-off: keep the listed price, take the whole amount off as a
-	# line discount, and mark the row free so ERPNext (and the site script that
-	# rejects rate=0) still accepts the invoice.
+	# 100% line write-off: keep the listed selling rate. A site Server Script
+	# (Before Submit) rejects Sales Invoice Item rate=0, and ERPNext's
+	# calculate_item_rate also turns a 100% line discount into rate=0. The net
+	# is taken off later as an invoice-level additional discount.
 	if net <= 0:
 		if full > 0:
-			fields["rate"] = 0.0
+			fields["rate"] = full
 			fields["discount_percentage"] = 100.0
 			fields["discount_amount"] = full
-			fields["is_free_item"] = 1
+			fields["is_free_item"] = 0
 		return fields
 
 	unit_discount = flt(full - net)
@@ -380,8 +381,8 @@ def _line_invoice_discount(price_list_rate: float, net_rate: float, discount_mod
 		if 0 < pct <= 100 and abs(flt(full * pct / 100.0) - unit_discount) < 0.005:
 			fields["discount_percentage"] = pct
 			if pct >= 100:
-				fields["rate"] = 0.0
-				fields["is_free_item"] = 1
+				fields["rate"] = full
+				fields["is_free_item"] = 0
 	return fields
 
 
@@ -747,13 +748,13 @@ def _si_item_pricing_fields(pricing: dict, *, price_list_rate=None, discount_mod
 	"""Selling fields for a Sales Invoice Item.
 
 	``price_list_rate`` is the line's full selling price before its own discount.
-	A 100% line / warranty write-off is posted as a free item (rate 0, 100%
-	discount) so the billed amount is 0.
+	A 100% line / warranty write-off keeps that listed rate (site script forbids
+	rate=0); the billed net is taken off as an invoice-level additional discount.
 	"""
 	net = flt(pricing.get("rate"))
 	full = flt(price_list_rate) if price_list_rate is not None else net
 	if flt(pricing.get("discount_percentage")) >= 100 or (
-		"amount" in pricing and flt(pricing.get("amount")) <= 0.005 and full > 0 and net > 0
+		"amount" in pricing and flt(pricing.get("amount")) <= 0.005 and full > 0
 	):
 		net = 0.0
 		if not discount_mode:
@@ -814,7 +815,7 @@ def _warranty_covered_line_amount(si, line_fields: list[dict]) -> tuple[float, f
 
 
 def _apply_warranty_as_invoice_discount(si, line_fields: list[dict]) -> None:
-	"""Take warranty off the invoice total so line rates stay non-zero."""
+	"""Take 100% write-offs off the invoice total so line rates stay non-zero."""
 	covered, total = _warranty_covered_line_amount(si, line_fields)
 	if covered <= 0 or total <= 0:
 		return
@@ -830,6 +831,14 @@ def _apply_warranty_as_invoice_discount(si, line_fields: list[dict]) -> None:
 		if hasattr(si, "additional_discount_percentage"):
 			si.additional_discount_percentage = 0
 		si.discount_amount = round(covered, 2)
+
+
+def _standalone_writeoff_line_fields(line_pricing: list[dict]) -> list[dict]:
+	"""Invoice-level write-off flags for 100% standalone line discounts."""
+	return [
+		{"warranty_full_discount": flt(p.get("final_rate")) <= 0.005 and flt(p.get("base_rate")) > 0}
+		for p in line_pricing
+	]
 
 
 def invoice_rate_for_line(line_type: str, base_rate: float, warranty_application_type: str) -> float:
@@ -2201,8 +2210,9 @@ def create_sales_invoice_from_dms_job_card(
 	apply_company_letter_head(si, jc.company)
 	disable_sales_invoice_round_off(si)
 
-	# Keep selling rates on the lines (site script forbids rate=0). Warranty is
-	# applied as an invoice-level discount after loyalty so it wins.
+	# Keep selling rates on the lines (site script forbids rate=0). 100% line
+	# write-offs and warranty are applied as an invoice-level discount after
+	# loyalty so they win.
 	_reapply_job_card_si_line_rates(si, line_fields)
 
 	_apply_job_card_discounts_to_si(si, jc, warranty_type)
@@ -2214,8 +2224,8 @@ def create_sales_invoice_from_dms_job_card(
 	si.run_method("calculate_taxes_and_totals")
 	_apply_warranty_as_invoice_discount(si, line_fields)
 	si.run_method("calculate_taxes_and_totals")
-	# Totals can rewrite line rates; put selling rates back so a 100% discount
-	# never lands as rate=0 (site script rejects that).
+	# Totals can rewrite line rates; put listed selling rates back so a 100%
+	# discount never lands as rate=0 (site script rejects that on submit).
 	_reapply_job_card_si_line_rates(si, line_fields)
 	_apply_warranty_as_invoice_discount(si, line_fields)
 
@@ -2973,13 +2983,10 @@ def append_si_items(
 		fields = _si_item_pricing_fields(
 			pricing, price_list_rate=price_list_rate, discount_mode=discount_mode
 		)
-		# Invoice-level warranty write-off is only a fallback when the line still
-		# carries a selling rate (legacy). Free 100% lines already net to 0.
-		write_off = bool(
-			pricing.get("is_warranty_covered")
-			and flt(pricing.get("discount_percentage")) >= 100
-			and flt(fields.get("rate")) > 0
-		)
+		# 100% line / warranty write-off: listed rate stays on the item (site
+		# script forbids rate=0). Invoice-level additional discount takes the net
+		# to zero after totals.
+		write_off = bool(flt(fields.get("rate")) > 0 and flt(fields.get("discount_percentage")) >= 100)
 		child = si.append(
 			"items",
 			{
@@ -3577,7 +3584,11 @@ def create_standalone_dms_sales_invoice(
 	si.run_method("calculate_taxes_and_totals")
 	# calculate_item_values may reset rate from rate_with_margin; re-apply net pricing.
 	_apply_standalone_line_pricing(si, line_pricing, use_dms_discount_field)
+	writeoff_fields = _standalone_writeoff_line_fields(line_pricing)
+	_apply_warranty_as_invoice_discount(si, writeoff_fields)
 	si.run_method("calculate_taxes_and_totals")
+	_apply_standalone_line_pricing(si, line_pricing, use_dms_discount_field)
+	_apply_warranty_as_invoice_discount(si, writeoff_fields)
 
 	si.insert()
 
@@ -3611,8 +3622,8 @@ def _apply_standalone_line_pricing(
 		final = flt(p.get("final_rate"))
 		line_disc = flt(p.get("line_discount"))
 
-		# Sales Invoice Item rate=0 is blocked by a site Server Script. Sales Order
-		# keeps a 100% line discount as percentage=100 / rate=0 so the net is zero.
+		# Sales Invoice Item rate=0 is blocked on submit. Sales Order may keep a
+		# 100% line discount as percentage=100 / rate=0 so the net is zero.
 		if allow_zero_rate and final <= 0 and base > 0:
 			item.price_list_rate = base
 			item.rate_with_margin = base
@@ -3627,8 +3638,8 @@ def _apply_standalone_line_pricing(
 			if hasattr(item, "net_amount"):
 				item.net_amount = 0.0
 		else:
-			# Full selling price stays on the line; the discount (the line's own discount
-			# plus its share of the group discount) is shown as the line's discount.
+			# Full selling price stays on the line; 100% nets keep that rate and
+			# are written off as an invoice-level additional discount.
 			fields = _line_invoice_discount(base, final, str(p.get("discount_mode") or ""))
 			item.price_list_rate = fields["price_list_rate"]
 			item.discount_percentage = fields["discount_percentage"]
