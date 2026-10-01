@@ -53,6 +53,7 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 		self.assertEqual(covered, 2000)
 		self.assertEqual(total, 2000)
 		_apply_warranty_as_invoice_discount(si, line_fields)
+		self.assertEqual(si.apply_discount_on, "Net Total")
 		self.assertEqual(si.additional_discount_percentage, 100)
 		self.assertEqual(si.discount_amount, 0)
 
@@ -72,6 +73,7 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 				{"warranty_full_discount": False},
 			],
 		)
+		self.assertEqual(si.apply_discount_on, "Net Total")
 		self.assertEqual(si.additional_discount_percentage, 0)
 		self.assertEqual(si.discount_amount, 800)
 
