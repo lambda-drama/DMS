@@ -815,13 +815,17 @@ def _warranty_covered_line_amount(si, line_fields: list[dict]) -> tuple[float, f
 
 
 def _apply_warranty_as_invoice_discount(si, line_fields: list[dict]) -> None:
-	"""Take 100% write-offs off the invoice total so line rates stay non-zero."""
+	"""Take 100% write-offs off Net Total so line rates stay non-zero.
+
+	Applied on Net Total (not Grand Total) so tax is calculated after the
+	discount, matching a 100% line write-off.
+	"""
 	covered, total = _warranty_covered_line_amount(si, line_fields)
 	if covered <= 0 or total <= 0:
 		return
 
 	if hasattr(si, "apply_discount_on"):
-		si.apply_discount_on = "Grand Total"
+		si.apply_discount_on = "Net Total"
 
 	if abs(covered - total) < 0.005:
 		if hasattr(si, "additional_discount_percentage"):
