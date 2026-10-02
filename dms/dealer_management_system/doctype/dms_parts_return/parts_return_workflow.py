@@ -13,6 +13,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
 )
+from dms.dealer_management_system.utils.branch_permissions import get_user_default_branch
 
 
 def _returnable_qty(part) -> float:
@@ -40,6 +41,9 @@ def create_parts_return_from_job_card(job_card: str, items=None, raised_by=None,
 	doc = frappe.new_doc("DMS Parts Return")
 	doc.job_card = jc.name
 	doc.company = jc.company
+	if doc.meta.has_field("branch"):
+		# Always the job card's branch (never a different one).
+		doc.branch = jc.branch or get_user_default_branch(jc.company)
 	doc.customer = jc.customer
 	doc.vehicle_vin = jc.vehicle_vin
 	doc.license_plate = jc.license_plate

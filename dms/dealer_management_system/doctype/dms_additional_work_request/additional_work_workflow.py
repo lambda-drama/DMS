@@ -6,6 +6,8 @@ import frappe
 from frappe import _
 from frappe.utils import today
 
+from dms.dealer_management_system.utils.branch_permissions import get_user_default_branch
+
 
 @frappe.whitelist()
 def create_additional_work_request(
@@ -25,6 +27,9 @@ def create_additional_work_request(
 	doc.description = description
 	doc.reason = reason
 	doc.status = "Pending Customer Approval"
+	if doc.meta.has_field("branch"):
+		# Always the job card's branch (never a different one).
+		doc.branch = jc.branch or get_user_default_branch(jc.company)
 	doc.insert(ignore_permissions=True)
 
 	if jc.status == "Repair In Progress":
@@ -59,6 +64,8 @@ def create_supplementary_estimate_from_awr(awr_name: str):
 	est.license_plate = jc.license_plate
 	est.service_advisor = jc.service_advisor
 	est.company = jc.company
+	# Supplementary estimate inherits the job card's branch (never a different one).
+	est.branch = jc.branch or get_user_default_branch(jc.company)
 	est.currency = jc.currency
 	est.posting_date = today()
 	est.diagnostic_fee = 0

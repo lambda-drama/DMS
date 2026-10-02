@@ -150,11 +150,13 @@
    "options": "Company"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "branch",
    "fieldtype": "Link",
    "in_standard_filter": 1,
    "label": "Branch",
-   "options": "Branch"
+   "options": "Branch",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_appointment",
@@ -625,7 +627,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-12 18:11:29.248564",
+ "modified": "2026-10-02 13:32:51.206362",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "Service Appointment",

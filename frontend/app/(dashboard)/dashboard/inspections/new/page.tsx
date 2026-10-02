@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigation } from '@/contexts/navigation-context';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/searchable-select';
@@ -32,9 +32,12 @@ import {
   useAppointment,
   useAutofillSingleCompany,
   useAutofillDefaultCustomer,
+  useAutofillBranch,
+  useBranchField,
   useDmsCustomerDefaults,
 } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { Button } from '@/components/ui/button';
 import { AddLineButton } from '@/components/ui/add-line-button';
 import { Input } from '@/components/ui/input';
@@ -300,6 +303,8 @@ export default function NewInspectionPage() {
   const [vinSearch, setVinSearch] = useState("");
   const [companySearch, setCompanySearch] = useState("");
   const [company, setCompany] = useState("");
+  const [branchSearch, setBranchSearch] = useState("");
+  const [branch, setBranch] = useState("");
 
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState('');
@@ -429,6 +434,19 @@ export default function NewInspectionPage() {
     { search: companySearch, enabled: !linkedAppointment?.company }
   );
 
+  // Branch is mandatory on the inspection and defaults to the caller's branch or
+  // the company default (DMS Settings). The appointment / order branch wins when
+  // the inspection is started from one of them.
+  const handleBranchAutofill = useCallback((value: string) => setBranch(value), []);
+  const {
+    branches: branchOptions,
+    isLoading: branchesLoading,
+    defaultBranch,
+  } = useBranchField({ company, search: branchSearch });
+  useAutofillBranch(defaultBranch, branch, handleBranchAutofill, {
+    enabled: !draftName && !resumeId,
+  });
+
   useAutofillDefaultCustomer(selectedCustomer, (d) => {
     setSelectedCustomer(d.default_customer!);
     setSelectedCustomerMeta({
@@ -499,6 +517,11 @@ export default function NewInspectionPage() {
     if (linkedAppointment.company) {
       setCompany(linkedAppointment.company);
     }
+    if (linkedAppointment.branch) {
+      // Keep the inspection in the appointment's branch so downstream documents
+      // (job card, estimate, order, invoice) stay in the same branch.
+      setBranch(linkedAppointment.branch);
+    }
 
     const advisor =
       linkedAppointment.assigned_service_advisor || linkedAppointment.preferred_advisor;
@@ -568,6 +591,10 @@ export default function NewInspectionPage() {
     if (linkedOrder.company) {
       setCompany(linkedOrder.company);
     }
+    if (linkedOrder.branch) {
+      // The sales order's branch flows onto the inspection it spawns.
+      setBranch(linkedOrder.branch);
+    }
     if (linkedOrder.customer) {
       setSelectedCustomer(linkedOrder.customer);
       setSelectedCustomerMeta({
@@ -625,6 +652,7 @@ export default function NewInspectionPage() {
         setDraftName(insp.name);
         if (insp.sales_order) setLinkedSalesOrder(insp.sales_order);
         if (insp.company) setCompany(insp.company);
+        if (insp.branch) setBranch(insp.branch);
         if (insp.service_advisor) setServiceAdvisor(insp.service_advisor);
         if (insp.customer) {
           setSelectedCustomer(insp.customer);
@@ -921,6 +949,7 @@ export default function NewInspectionPage() {
       appointment: appointmentId || undefined,
       sales_order: linkedSalesOrder || orderId || undefined,
       company,
+      branch: branch || undefined,
       customer_present: customerPresent ? 1 : 0,
       received_from_name: customerPresent ? '' : (receivedFromName || ''),
       received_from_phone: customerPresent
@@ -1003,6 +1032,10 @@ export default function NewInspectionPage() {
     }
     if (!company) {
       toast.error('Please select a company');
+      return;
+    }
+    if (!branch) {
+      toast.error('Please select a branch');
       return;
     }
     if (selectedWarnings.length === 0) {
@@ -1115,24 +1148,53 @@ export default function NewInspectionPage() {
               )}
 
               <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <RequiredLabel>Company</RequiredLabel>
-                  <SearchableSelect
-                    value={company}
-                    onValueChange={setCompany}
-                    onSearchChange={setCompanySearch}
-                    placeholder="Search companies (from DMS Settings)..."
-                    isLoading={companiesLoading}
-                    options={(companies || []).map((c) => ({
-                      value: c.name,
-                      label: c.company_name || c.name,
-                    }))}
-                  />
-                  {companies && companies.length === 0 && !companiesLoading ? (
+                <div className="grid grid-cols-1 gap-6 sm:col-span-2 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <RequiredLabel>Company</RequiredLabel>
+                    <SearchableSelect
+                      value={company}
+                      onValueChange={(val) => {
+                        setCompany(val);
+                        // A branch belongs to one company — clear it so it is re-picked.
+                        setBranch('');
+                        setBranchSearch('');
+                      }}
+                      onSearchChange={setCompanySearch}
+                      placeholder="Search companies (from DMS Settings)..."
+                      isLoading={companiesLoading}
+                      options={(companies || []).map((c) => ({
+                        value: c.name,
+                        label: c.company_name || c.name,
+                      }))}
+                    />
+                    {companies && companies.length === 0 && !companiesLoading ? (
+                      <p className="text-xs text-muted-foreground">
+                        No companies available. Add companies under DMS Settings → Company (table).
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <RequiredLabel>Branch</RequiredLabel>
+                    <BranchSelect
+                      value={branch}
+                      onValueChange={setBranch}
+                      company={company}
+                      options={branchOptions.map((b) => ({
+                        value: b.name,
+                        label: b.branch || b.name,
+                      }))}
+                      onSearchChange={setBranchSearch}
+                      placeholder={
+                        branchesLoading ? 'Loading…' : 'Search branches (scoped to the company)…'
+                      }
+                      emptyMessage="No branches for this company"
+                      isLoading={branchesLoading}
+                    />
                     <p className="text-xs text-muted-foreground">
-                      No companies available. Add companies under DMS Settings → Company (table).
+                      From the appointment or order when available; otherwise your branch.
                     </p>
-                  ) : null}
+                  </div>
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">

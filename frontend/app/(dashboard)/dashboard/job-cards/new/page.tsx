@@ -18,6 +18,8 @@ import {
   useCompanies,
   useAutofillSingleCompany,
   useAutofillDefaultCustomer,
+  useAutofillBranch,
+  useBranchField,
   useDmsCustomerDefaults,
   useCurrencies,
   useServicePackagesForVin,
@@ -28,6 +30,7 @@ import { LinkWithCreate } from "@/components/link-with-create";
 import { CustomerContactCard } from "@/components/customer-contact-card";
 import { VehicleCreateDialog } from "@/components/vehicles/vehicle-create-dialog";
 import { SearchableSelect } from "@/components/searchable-select";
+import { BranchSelect } from "@/components/branches/branch-select";
 import { FormActionsBar } from "@/components/layout/form-actions-bar";
 import {
   fetchSparePartPrice,
@@ -204,6 +207,8 @@ export default function NewJobCardPage() {
   const [warehouseSearch, setWarehouseSearch] = useState("");
   const [companySearch, setCompanySearch] = useState("");
   const [company, setCompany] = useState("");
+  const [branchSearch, setBranchSearch] = useState("");
+  const [branch, setBranch] = useState("");
   const [currency, setCurrency] = useState("ETB");
   const [warehouse, setWarehouse] = useState("");
   const [customer, setCustomer] = useState("");
@@ -253,6 +258,18 @@ export default function NewJobCardPage() {
     },
     { search: companySearch }
   );
+
+  // Branch is mandatory on the job card; it is carried over from the inspection /
+  // appointment / order when present, else the caller's branch or company default.
+  const handleBranchAutofill = useCallback((value: string) => setBranch(value), []);
+  const {
+    branches: branchOptions,
+    isLoading: branchesLoading,
+    defaultBranch,
+  } = useBranchField({ company, search: branchSearch });
+  useAutofillBranch(defaultBranch, branch, handleBranchAutofill, {
+    enabled: !draftName && !resumeId,
+  });
 
   // Main form state
   const [jobCardType, setJobCardType] = useState<string>("");
@@ -751,6 +768,11 @@ export default function NewJobCardPage() {
         }
       }
 
+      if (insp.branch) {
+        // The job card continues in the inspection's branch.
+        setBranch(insp.branch);
+      }
+
       if (insp.service_advisor) {
         setServiceAdvisor(insp.service_advisor);
       }
@@ -879,6 +901,7 @@ export default function NewJobCardPage() {
         : ""
     );
     setCompany(existingDraft.company || "");
+    if (existingDraft.branch) setBranch(existingDraft.branch);
     setCurrency(existingDraft.currency || "ETB");
     setWarehouse(existingDraft.warehouse || "");
     setWorkshop(existingDraft.workshop || "");
@@ -1160,6 +1183,10 @@ export default function NewJobCardPage() {
       toast.error("Please select a customer");
       return;
     }
+    if (!asDraft && !branch) {
+      toast.error("Please select a branch");
+      return;
+    }
     if (!asDraft && !vehicleVin) {
       toast.error("Please select a vehicle VIN");
       return;
@@ -1243,6 +1270,7 @@ export default function NewJobCardPage() {
       workshop: workshop || undefined,
       warehouse: warehouse || undefined,
       company: company || undefined,
+      branch: branch || undefined,
       currency: currency || "ETB",
       posting_date: postingDate || undefined,
       warranty_application_type: (warrantyApplicationType && warrantyApplicationType !== "none") ? warrantyApplicationType : undefined,
@@ -1709,6 +1737,9 @@ export default function NewJobCardPage() {
                     setCompany(val);
                     setWarehouse("");
                     setWarehouseSearch("");
+                    // A branch belongs to one company — clear it so it is re-picked.
+                    setBranch("");
+                    setBranchSearch("");
                     const match = companies?.find((c) => c.name === val);
                     if (match?.default_currency) {
                       setCurrency(match.default_currency);
@@ -1722,6 +1753,27 @@ export default function NewJobCardPage() {
                     label: c.company_name || c.name,
                   }))}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="branch">Branch *</Label>
+                <BranchSelect
+                  value={branch}
+                  onValueChange={setBranch}
+                  company={company}
+                  options={branchOptions.map((b) => ({
+                    value: b.name,
+                    label: b.branch || b.name,
+                  }))}
+                  onSearchChange={setBranchSearch}
+                  placeholder={branchesLoading ? "Loading…" : "Select branch..."}
+                  emptyMessage="No branches for this company"
+                  isLoading={branchesLoading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Carried from the inspection, appointment or order when available. Required to
+                  create the job card.
+                </p>
               </div>
 
               <div className="space-y-2">

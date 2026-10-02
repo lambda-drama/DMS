@@ -21,7 +21,10 @@ from dms.api.spare_part_sales import (
 	_stock_available,
 	_validate_spare_part_lines,
 )
-from dms.api.utils import apply_date_range, resolve_dms_customer
+from dms.api.utils import add_branch_filter, apply_date_range, resolve_dms_customer
+from dms.dealer_management_system.utils.branch_permissions import (
+	resolve_document_branch,
+)
 from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
 
 ORDER_REMARKS_PREFIX = "DMS Order"
@@ -161,6 +164,8 @@ def _order_builder_kwargs(ctx: dict, data: dict) -> dict:
 		# Include VAT toggle — tri-state so a payload without the key (older clients)
 		# keeps ERPNext's default tax handling.
 		"apply_taxes": (bool(cint(data.get("apply_taxes"))) if "apply_taxes" in data else None),
+		# Branch resolved by the caller (mandatory on the DMS order screen).
+		"branch": (data.get("branch") or "").strip() or None,
 		# Tax withholding (TCS) is an invoice-side deduction: the order only records
 		# the intent, which the invoice conversion applies.
 		"apply_tax_withholding": (
@@ -183,6 +188,9 @@ def list_dms_orders(
 	frappe.has_permission("Sales Order", "read", throw=True)
 
 	filters = dict(_order_so_filters())
+	# Branch row-level isolation: a user restricted to branches only sees orders
+	# raised in those branches.
+	filters = add_branch_filter(filters, doctype="Sales Order")
 	status = (status or "").strip()
 	if status and status.lower() != "all":
 		filters["status"] = status
@@ -638,6 +646,13 @@ def create_dms_order(data=None):
 
 	# No stock gate while ordering: the invoice step is where stock is checked.
 	ctx = _validate_spare_part_lines(data, check_stock=False)
+	# Branch is mandatory; a directly-created order falls back to the caller's
+	# default branch (User Permissions → DMS Company Defaults).
+	data["branch"] = resolve_document_branch(
+		data.get("branch"),
+		company=ctx.get("company"),
+		required=not cint(data.get("as_draft") or data.get("save_as_draft")),
+	)
 	name = create_standalone_dms_sales_order(
 		submit=False,
 		**_order_builder_kwargs(ctx, data),
@@ -670,6 +685,14 @@ def update_dms_order(data=None):
 	)
 
 	ctx = _validate_spare_part_lines(data, check_stock=False)
+	# The order always keeps a branch; when the caller clears the field the value
+	# already on the Sales Order wins (never blanked by an edit).
+	existing_branch = so.get("branch") if so.meta.has_field("branch") else None
+	data["branch"] = resolve_document_branch(
+		data.get("branch") or existing_branch,
+		company=ctx.get("company"),
+		required=not cint(data.get("as_draft") or data.get("save_as_draft")),
+	)
 	updated = update_standalone_dms_sales_order(
 		name=name,
 		submit=False,
@@ -979,6 +1002,7 @@ def create_dms_order_invoice(name, data=None):
 		disable_sales_invoice_round_off,
 		mark_sales_invoice_as_dms_ui_transaction,
 		read_sales_order_tax_withholding,
+		set_document_branch,
 	)
 	from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 
@@ -986,6 +1010,9 @@ def create_dms_order_invoice(name, data=None):
 	if frappe.get_meta("Sales Invoice").has_field("custom_invoice_no"):
 		si.custom_invoice_no = _generate_invoice_no(so.company)
 	mark_sales_invoice_as_dms_ui_transaction(si)
+	# The order's branch follows through to the invoice it raises.
+	if so.meta.has_field("branch"):
+		set_document_branch(si, so.get("branch"))
 
 	if data.get("posting_date"):
 		si.posting_date = data["posting_date"]

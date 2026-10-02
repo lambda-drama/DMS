@@ -13,6 +13,8 @@ export type DmsOrderListItem = {
   customer?: string;
   customer_name?: string;
   company?: string;
+  /** Branch the order was raised in (row-level isolation for branch users). */
+  branch?: string;
   transaction_date?: string;
   delivery_date?: string;
   net_total?: number;
@@ -130,6 +132,8 @@ export type DmsOrderInput = {
   name?: string;
   customer?: string;
   company?: string;
+  /** Mandatory branch — defaults to the user's branch, scoped to the company. */
+  branch?: string;
   warehouse?: string;
   currency?: string;
   transaction_date?: string;

@@ -6,6 +6,8 @@ import { useNavigation } from '@/contexts/navigation-context';
 import {
   useAutofillSingleCompany,
   useAutofillDefaultCustomer,
+  useAutofillBranch,
+  useBranchField,
   useDmsCustomerDefaults,
   useCompanies,
   useCustomers,
@@ -13,6 +15,7 @@ import {
   useVehicleModels,
 } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { SearchableSelect } from '@/components/searchable-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
@@ -78,6 +81,8 @@ export default function SparePartSalesPage() {
 
   const [company, setCompany] = useState('');
   const [companySearch, setCompanySearch] = useState('');
+  const [branch, setBranch] = useState('');
+  const [branchSearch, setBranchSearch] = useState('');
   const [defaults, setDefaults] = useState<sparePartSalesSvc.SparePartSalesDefaults | null>(null);
   const [defaultsLoading, setDefaultsLoading] = useState(true);
   const [warehouse, setWarehouse] = useState('');
@@ -118,6 +123,15 @@ export default function SparePartSalesPage() {
     vehicleModelSearch,
     vehicleBrand || undefined
   );
+  // Branch is mandatory on the counter sale; options are scoped to the DMS company.
+  const branchCompany = company || defaults?.company || '';
+  const {
+    branches: branchOptions,
+    isLoading: branchesLoading,
+    defaultBranch,
+  } = useBranchField({ company: branchCompany, search: branchSearch });
+
+  useAutofillBranch(defaultBranch, branch, setBranch);
 
   const vehicleModelOptions = useMemo(() => {
     const mapped =
@@ -341,6 +355,10 @@ export default function SparePartSalesPage() {
 
   const handleSubmit = async () => {
     if (!canCreate('spare-part-sales')) return;
+    if (!branch) {
+      toast.error('Select a branch');
+      return;
+    }
     if (!warehouse) {
       toast.error('Select a warehouse');
       return;
@@ -364,6 +382,7 @@ export default function SparePartSalesPage() {
       const result = await sparePartSalesSvc.createSparePartSale({
         customer: customer || undefined,
         company: company || defaults?.company || '',
+        branch: branch || undefined,
         warehouse,
         parts: payloadLines,
         posting_date: postingDate,
@@ -417,9 +436,33 @@ export default function SparePartSalesPage() {
               <SearchableSelect
                 options={companyOptions}
                 value={company || defaults?.company || ''}
-                onValueChange={setCompany}
+                onValueChange={(next) => {
+                  setCompany(next);
+                  // A branch belongs to one company — clear it so it is re-picked.
+                  setBranch('');
+                  setBranchSearch('');
+                }}
                 placeholder={defaultsLoading ? 'Loading…' : 'Company'}
                 disabled={defaultsLoading || companyOptions.length <= 1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Branch <span className="text-destructive">*</span>
+              </Label>
+              <BranchSelect
+                value={branch}
+                onValueChange={setBranch}
+                company={branchCompany}
+                options={branchOptions.map((b) => ({
+                  value: b.name,
+                  label: b.branch || b.name,
+                }))}
+                onSearchChange={setBranchSearch}
+                placeholder={branchesLoading ? 'Loading…' : 'Select branch…'}
+                emptyMessage="No branches for this company"
+                isLoading={branchesLoading}
+                allowCreate={false}
               />
             </div>
             <div className="space-y-2">

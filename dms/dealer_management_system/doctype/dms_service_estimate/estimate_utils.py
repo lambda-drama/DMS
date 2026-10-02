@@ -15,6 +15,7 @@ from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 	_generate_invoice_no,
 	disable_sales_invoice_round_off,
 	normalize_warranty_application_type,
+	set_document_branch,
 )
 from dms.dealer_management_system.doctype.vehicle_inspection.vehicle_inspection import (
 	_APPOINTMENT_PRIORITY_TO_JOB_CARD,
@@ -123,6 +124,7 @@ def make_dms_job_card_from_estimate(
 			"license_plate": est.license_plate,
 			"service_advisor": est.service_advisor,
 			"company": est.company,
+			"branch": est.branch,
 			"currency": est.currency,
 			"service_advisor_notes": est.service_advisor_notes or "",
 			"internal_notes": est.internal_notes or "",
@@ -428,6 +430,7 @@ def create_diagnostic_invoice_from_estimate(estimate_name: str, submit: bool = T
 	si = frappe.new_doc("Sales Invoice")
 	si.custom_invoice_no = _generate_invoice_no(est.company)
 	si.company = est.company
+	set_document_branch(si, est.branch)
 	si.customer = est.customer
 	si.posting_date = today()
 	si.due_date = si.posting_date

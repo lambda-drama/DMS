@@ -190,6 +190,11 @@ export async function createStandaloneInvoice(data: {
   customer_mobile_no?: string;
   customer_email_id?: string;
   company: string;
+  /**
+   * Mandatory branch — defaults to the user's branch, scoped to the company.
+   * Omitted when the invoice is raised from a job card (the card's branch wins).
+   */
+  branch?: string;
   warehouse?: string;
   currency?: string;
   labour?: StandaloneInvoiceLabourLine[];

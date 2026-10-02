@@ -10,6 +10,7 @@ from dms.api.utils import (
 	get_dms_companies,
 	resolve_dms_customer,
 )
+from dms.dealer_management_system.utils.branch_permissions import resolve_document_branch
 from dms.dealer_management_system.utils.document_links import enrich_inspection_row
 
 # Frontend warning-light labels → Vehicle Warning Light.select option
@@ -307,6 +308,26 @@ def _validate_inspection_company(data, as_draft):
 	return company
 
 
+def _inspection_source_branch(data: dict) -> str | None:
+	"""Branch carried from the appointment an inspection was started from."""
+	appointment = (data.get("appointment") or "").strip()
+	if not appointment:
+		return None
+	return frappe.db.get_value("Service Appointment", appointment, "branch")
+
+
+def _resolve_inspection_branch(data: dict, company, doc, as_draft: bool) -> str | None:
+	"""Branch for the inspection: sent value → existing / appointment branch →
+	the caller's default branch. Mandatory on submit; drafts may be parked.
+	"""
+	return resolve_document_branch(
+		data.get("branch"),
+		company=(company or "").strip() or None,
+		fallback=(getattr(doc, "branch", None) or "").strip() or _inspection_source_branch(data),
+		required=not as_draft,
+	)
+
+
 def _normalize_received_from_phone(phone):
 	"""Store as E.164 (+251…) so Phone validation passes before/after migrate."""
 	raw = (phone or "").strip()
@@ -401,6 +422,7 @@ def _apply_inspection_payload(doc, data, as_draft):
 	doc.customer_signature = data.get("customer_signature")
 	doc.advisor_signature = data.get("advisor_signature")
 	doc.company = company or None
+	doc.branch = _resolve_inspection_branch(data, company, doc, as_draft)
 
 	if "battery_voltage" in data:
 		doc.battery_voltage = data.get("battery_voltage")

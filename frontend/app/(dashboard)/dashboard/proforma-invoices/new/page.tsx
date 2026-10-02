@@ -6,6 +6,8 @@ import { useNavigation } from '@/contexts/navigation-context';
 import {
   useAutofillSingleCompany,
   useAutofillDefaultCustomer,
+  useAutofillBranch,
+  useBranchField,
   useDmsCustomerDefaults,
   useCompanies,
   useCustomers,
@@ -15,6 +17,7 @@ import {
 } from '@/hooks/use-dms';
 import { buildCustomerSelectOptions, resolveCustomerFieldChange } from '@/lib/customer-default';
 import { SearchableSelect } from '@/components/searchable-select';
+import { BranchSelect } from '@/components/branches/branch-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
 import { CreateServiceItemDialog } from '@/components/create-service-item-dialog';
@@ -109,6 +112,8 @@ export default function ProformaInvoiceNewPage() {
 
   const [company, setCompany] = useState('');
   const [companySearch, setCompanySearch] = useState('');
+  const [branch, setBranch] = useState('');
+  const [branchSearch, setBranchSearch] = useState('');
   const [defaults, setDefaults] = useState<sparePartSalesSvc.SparePartSalesDefaults | null>(null);
   const [defaultsLoading, setDefaultsLoading] = useState(true);
   const [warehouse, setWarehouse] = useState('');
@@ -254,6 +259,19 @@ export default function ProformaInvoiceNewPage() {
     { search: companySearch }
   );
 
+  // Branch is mandatory on the proforma (Sales Order) and defaults to the caller's
+  // branch or the company default. Options are scoped to the DMS company.
+  const branchCompany = company || defaults?.company || '';
+  const handleBranchAutofill = useCallback((value: string) => setBranch(value), []);
+  const {
+    branches: branchOptions,
+    isLoading: branchesLoading,
+    defaultBranch,
+  } = useBranchField({ company: branchCompany, search: branchSearch });
+  useAutofillBranch(defaultBranch, branch, handleBranchAutofill, {
+    enabled: !resumeId && !draftName,
+  });
+
   useAutofillDefaultCustomer(
     customer,
     (d) => {
@@ -296,6 +314,15 @@ export default function ProformaInvoiceNewPage() {
     setCustomerMeta(next.meta);
   };
 
+  // Branch is company-scoped: switching the company clears the branch so it is
+  // re-resolved against the new company.
+  const handleCompanyChange = (next: string) => {
+    if (next === company) return;
+    setCompany(next);
+    setBranch('');
+    setBranchSearch('');
+  };
+
   const applyVinToForm = (vin: VINNo & { brand?: string; brand_label?: string }) => {
     setSelectedVin(vin);
     setVehicleBrand(vin.brand || '');
@@ -334,6 +361,7 @@ export default function ProformaInvoiceNewPage() {
 
         setDraftName(detail.name);
         setCompany(detail.company || '');
+        if (detail.branch) setBranch(detail.branch);
         if (detail.warehouse) setWarehouse(detail.warehouse);
         if (detail.transaction_date) {
           setPostingDate(String(detail.transaction_date).slice(0, 10));
@@ -663,9 +691,15 @@ export default function ProformaInvoiceNewPage() {
       return;
     }
 
+    if (!asDraft && !branch) {
+      toast.error('Select a branch');
+      return;
+    }
+
     const payload = {
       customer: customer || undefined,
       company: company || defaults?.company || '',
+      branch: branch || undefined,
       warehouse: warehouse || undefined,
       labour: payloadLabour.length ? payloadLabour : undefined,
       parts: payloadParts.length ? payloadParts : undefined,
@@ -761,10 +795,31 @@ export default function ProformaInvoiceNewPage() {
               <SearchableSelect
                 options={companyOptions}
                 value={company || defaults?.company || ''}
-                onValueChange={setCompany}
+                onValueChange={handleCompanyChange}
                 placeholder={defaultsLoading ? 'Loading…' : 'Company'}
                 disabled={defaultsLoading || companyOptions.length <= 1}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Branch <span className="text-destructive">*</span>
+              </Label>
+              <BranchSelect
+                value={branch}
+                onValueChange={setBranch}
+                company={branchCompany}
+                options={branchOptions.map((b) => ({
+                  value: b.name,
+                  label: b.branch || b.name,
+                }))}
+                onSearchChange={setBranchSearch}
+                placeholder={branchesLoading ? 'Loading…' : 'Select branch…'}
+                emptyMessage="No branches for this company"
+                isLoading={branchesLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Defaults to your branch — the invoice raised from this proforma keeps it.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Customer</Label>
