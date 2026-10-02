@@ -506,3 +506,40 @@ def backfill_vin_model_links_action(dry_run=0):
 	from dms.utils.vin_model_backfill import backfill_vin_model_links
 
 	return backfill_vin_model_links(dry_run=cint(dry_run))
+
+
+def _ensure_settings_action_permission() -> None:
+	"""System Manager, or anyone who can write DMS Settings, may run settings actions."""
+	if "System Manager" in frappe.get_roles() or frappe.has_permission("DMS Settings", "write"):
+		return
+	frappe.throw(_("Not permitted to run DMS Settings actions."), frappe.PermissionError)
+
+
+@frappe.whitelist()
+def get_branch_backfill_preview():
+	"""Count DMS records whose Branch is empty — used by the Actions button."""
+	_ensure_settings_action_permission()
+
+	from dms.utils.branch_backfill import preview_branch_backfill
+
+	return preview_branch_backfill()
+
+
+@frappe.whitelist()
+def queue_branch_backfill():
+	"""Queue the background Branch backfill from DMS Settings → Company Defaults."""
+	_ensure_settings_action_permission()
+
+	from dms.utils.branch_backfill import queue_branch_backfill as _queue_branch_backfill
+
+	return _queue_branch_backfill()
+
+
+@frappe.whitelist()
+def get_branch_backfill_status(job_id=None):
+	"""Poll the background Branch backfill started from DMS Settings."""
+	_ensure_settings_action_permission()
+
+	from dms.utils.branch_backfill import get_branch_backfill_status as _get_branch_backfill_status
+
+	return _get_branch_backfill_status(job_id)

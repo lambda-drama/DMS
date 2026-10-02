@@ -34,6 +34,14 @@ frappe.ui.form.on("DMS Settings", {
 		);
 
 		frm.add_custom_button(
+			__("Set Missing Branches from Company Defaults"),
+			() => {
+				set_missing_branches(frm);
+			},
+			__("Actions")
+		);
+
+		frm.add_custom_button(
 			__("Import FRT Labour Sheet"),
 			() => {
 				open_frt_import_modal(frm);
@@ -859,5 +867,147 @@ function restore_cancelled_parts_requests(frm) {
 				});
 			});
 		},
+	});
+}
+
+const BRANCH_BACKFILL_METHODS = {
+	preview:
+		"dms.dealer_management_system.doctype.dms_settings.dms_settings.get_branch_backfill_preview",
+	queue: "dms.dealer_management_system.doctype.dms_settings.dms_settings.queue_branch_backfill",
+	status: "dms.dealer_management_system.doctype.dms_settings.dms_settings.get_branch_backfill_status",
+};
+
+function set_missing_branches(frm) {
+	frappe.call({
+		method: BRANCH_BACKFILL_METHODS.preview,
+		freeze: true,
+		freeze_message: __("Checking records with no Branch…"),
+		callback(r) {
+			const preview = r.message;
+			if (!preview) {
+				return;
+			}
+
+			if (!preview.default_branch) {
+				frappe.msgprint({
+					title: __("Company Defaults Incomplete"),
+					message: __(
+						"Set the Branch on DMS Settings → Company Defaults first, then run this action again."
+					),
+					indicator: "red",
+				});
+				return;
+			}
+
+			if (!preview.total) {
+				frappe.msgprint({
+					title: __("Nothing to Update"),
+					message: __("Every DMS record already has a Branch."),
+					indicator: "blue",
+				});
+				return;
+			}
+
+			let msg = __(
+				"Set the Branch from DMS Settings → Company Defaults on {0} record(s) that have none?",
+				[preview.total]
+			);
+			msg += "<br><br>";
+			msg += __(
+				"This runs in the background and only updates records with an empty Branch."
+			);
+			if (preview.doctypes?.length) {
+				msg += "<br><br>" + __("Records without a Branch:") + "<br>";
+				preview.doctypes.forEach((row) => {
+					msg += `- ${row.doctype}: ${row.missing}<br>`;
+				});
+			}
+
+			frappe.confirm(msg, () => {
+				frappe.call({
+					method: BRANCH_BACKFILL_METHODS.queue,
+					callback(res) {
+						const job = res.message;
+						if (!job || !job.job_id) {
+							return;
+						}
+						frappe.show_alert({
+							message: __("Branch backfill started in the background…"),
+							indicator: "blue",
+						});
+						poll_branch_backfill(job.job_id);
+					},
+				});
+			});
+		},
+	});
+}
+
+function poll_branch_backfill(job_id) {
+	let attempts = 0;
+	const max_attempts = 60;
+
+	const poll = () => {
+		attempts += 1;
+		frappe.call({
+			method: BRANCH_BACKFILL_METHODS.status,
+			args: { job_id },
+			callback(r) {
+				const state = r.message || {};
+				if (state.status === "finished") {
+					show_branch_backfill_summary(state.result);
+					return;
+				}
+				if (state.status === "failed") {
+					frappe.msgprint({
+						title: __("Branch Backfill Failed"),
+						message: frappe.utils.escape_html(state.error || ""),
+						indicator: "red",
+					});
+					return;
+				}
+				if (attempts < max_attempts) {
+					setTimeout(poll, 3000);
+				} else {
+					frappe.show_alert({
+						message: __(
+							"Branch backfill is still running — open this page again to see the result."
+						),
+						indicator: "orange",
+					});
+				}
+			},
+		});
+	};
+
+	setTimeout(poll, 2000);
+}
+
+function show_branch_backfill_summary(summary) {
+	if (!summary) {
+		return;
+	}
+
+	let msg = __("Updated: {0}", [summary.total_updated || 0]);
+	msg += "<br>" + __("Default Branch: {0}", [summary.default_branch || "-"]);
+	if (summary.total_skipped) {
+		msg += "<br>";
+		msg += __("Skipped (company not in Company Defaults): {0}", [summary.total_skipped]);
+	}
+	if (summary.doctypes?.length) {
+		msg += "<br><br>";
+		summary.doctypes.forEach((row) => {
+			msg += `- ${row.doctype}: ` + __("{0} updated", [row.updated]);
+			if (row.skipped) {
+				msg += ", " + __("{0} skipped", [row.skipped]);
+			}
+			msg += "<br>";
+		});
+	}
+
+	frappe.msgprint({
+		title: __("Branch Backfill Completed"),
+		message: msg,
+		indicator: summary.total_skipped ? "orange" : "green",
 	});
 }

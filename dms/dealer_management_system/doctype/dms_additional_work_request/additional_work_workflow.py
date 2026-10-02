@@ -27,6 +27,9 @@ def create_additional_work_request(
 	doc.description = description
 	doc.reason = reason
 	doc.status = "Pending Customer Approval"
+	if doc.meta.has_field("branch"):
+		# Always the job card's branch (never a different one).
+		doc.branch = jc.branch or get_user_default_branch(jc.company)
 	doc.insert(ignore_permissions=True)
 
 	if jc.status == "Repair In Progress":
