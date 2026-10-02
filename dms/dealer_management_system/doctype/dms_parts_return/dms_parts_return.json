@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "naming_series:",
- "creation": "2026-06-12 12:00:00.000000",
+ "creation": "2026-06-12 12:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -20,6 +20,7 @@
   "column_break_vehicle",
   "company",
   "raised_by",
+  "branch",
   "section_items",
   "items",
   "section_notes",
@@ -135,11 +136,21 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fetch_from": "job_card.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-12 12:00:00.000000",
+ "modified": "2026-10-02 14:01:15.493431",
  "modified_by": "Administrator",
  "module": "Dealer Management System",
  "name": "DMS Parts Return",
@@ -171,13 +182,26 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [
-  {"color": "Gray", "title": "Draft"},
-  {"color": "Orange", "title": "Submitted"},
-  {"color": "Blue", "title": "Approved"},
-  {"color": "Green", "title": "Completed"}
+  {
+   "color": "Gray",
+   "title": "Draft"
+  },
+  {
+   "color": "Orange",
+   "title": "Submitted"
+  },
+  {
+   "color": "Blue",
+   "title": "Approved"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
+  }
  ],
  "track_changes": 1
 }
