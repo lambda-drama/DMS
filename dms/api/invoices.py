@@ -534,6 +534,7 @@ def get_sales_invoice_detail(sales_invoice):
 	# each carrying the operator note from the payment dialog.
 	result["payments"] = _linked_payments_for_invoice(name)
 	result["payment_total"] = sum(flt(row["allocated_amount"]) for row in result["payments"])
+	result["branch"] = _sales_invoice_branch(si)
 	return result
 
 
@@ -1198,27 +1199,154 @@ def update_job_card_prices_from_invoice(sales_invoice):
 	}
 
 
+MOP_ACCOUNT_BRANCH_FIELD = "custom_branch"
+
+
+def _norm_branch(value) -> str:
+	return (value or "").strip()
+
+
+def _document_branch(doctype: str, name: str | None) -> str:
+	name = (name or "").strip()
+	if not name or not frappe.db.exists(doctype, name):
+		return ""
+	if not frappe.get_meta(doctype).has_field("branch"):
+		return ""
+	return _norm_branch(frappe.db.get_value(doctype, name, "branch"))
+
+
+def _sales_invoice_branch(si) -> str | None:
+	"""Invoice branch, falling back to the linked job card when the invoice is blank."""
+	branch = _norm_branch(si.get("branch")) if si.meta.has_field("branch") else ""
+	if branch:
+		return branch
+	job_card = ""
+	if si.meta.has_field("custom_dms_job_card"):
+		job_card = (si.get("custom_dms_job_card") or "").strip()
+	return _document_branch("DMS Job Card", job_card) or None
+
+
+def _mop_account_has_branch() -> bool:
+	return frappe.get_meta("Mode of Payment Account").has_field(MOP_ACCOUNT_BRANCH_FIELD)
+
+
+def list_mode_of_payment_account_rows(company: str) -> list[dict]:
+	fields = ["parent", "default_account", "company"]
+	if _mop_account_has_branch():
+		fields.append(MOP_ACCOUNT_BRANCH_FIELD)
+	return frappe.get_all(
+		"Mode of Payment Account",
+		filters={"parenttype": "Mode of Payment", "company": company},
+		fields=fields,
+	)
+
+
+def _mop_row_branch(row) -> str:
+	return _norm_branch(row.get(MOP_ACCOUNT_BRANCH_FIELD))
+
+
+def _mop_row_matches_branch(row, branch: str) -> bool:
+	"""Company-wide (no branch) rows are valid everywhere; tagged rows only on that branch."""
+	if not branch:
+		return True
+	row_branch = _mop_row_branch(row)
+	return (not row_branch) or row_branch == branch
+
+
+def pick_mode_of_payment_account(mode: str, company: str, branch: str | None = None) -> str | None:
+	"""Bank/cash account for this mode at this company (and branch when set).
+
+	Prefers the account row tagged with ``branch``. A company row with no branch
+	is the fallback, so a mode with no branch restriction stays available everywhere.
+	"""
+	mode = (mode or "").strip()
+	company = (company or "").strip()
+	branch = _norm_branch(branch)
+	if not mode or not company:
+		return None
+
+	matching = []
+	for row in list_mode_of_payment_account_rows(company):
+		if (row.parent or "").strip() != mode:
+			continue
+		if not _mop_row_matches_branch(row, branch):
+			continue
+		if not (row.default_account or "").strip():
+			continue
+		matching.append(row)
+	if not matching:
+		return None
+	if branch:
+		for row in matching:
+			if _mop_row_branch(row) == branch:
+				return (row.default_account or "").strip()
+	for row in matching:
+		if not _mop_row_branch(row):
+			return (row.default_account or "").strip()
+	return (matching[0].default_account or "").strip()
+
+
+def apply_mode_of_payment_account(pe, branch: str | None = None) -> str | None:
+	"""Set paid_to / paid_from from Mode of Payment Account, scoped by branch."""
+	from erpnext.accounts.doctype.payment_entry.payment_entry import get_bank_cash_account
+
+	branch = _norm_branch(branch)
+	mode = (pe.mode_of_payment or "").strip()
+	company = (pe.company or "").strip()
+	account = pick_mode_of_payment_account(mode, company, branch) if mode and company else None
+
+	if not account and mode and company and branch:
+		rows = list_mode_of_payment_account_rows(company)
+		if rows and any((row.parent or "").strip() == mode for row in rows):
+			frappe.throw(
+				_("Mode of Payment {0} is not available for branch {1}.").format(
+					frappe.bold(mode), frappe.bold(branch)
+				)
+			)
+
+	if not account:
+		try:
+			account = (get_bank_cash_account(pe, None) or {}).get("account")
+		except Exception:
+			account = None
+
+	account = (account or "").strip() or None
+	if account:
+		if pe.payment_type == "Pay":
+			pe.paid_from = account
+		else:
+			pe.paid_to = account
+	return account
+
+
 @frappe.whitelist()
-def list_modes_of_payment(company=None):
+def list_modes_of_payment(company=None, branch=None):
 	_ensure_erpnext()
 
 	company = (company or "").strip() or None
+	branch = _norm_branch(branch)
 	filters = {"enabled": 1}
 	account_by_mode: dict[str, str] = {}
 
 	if company:
-		account_rows = frappe.get_all(
-			"Mode of Payment Account",
-			filters={"parenttype": "Mode of Payment", "company": company},
-			fields=["parent", "default_account"],
-		)
+		account_rows = list_mode_of_payment_account_rows(company)
+		had_company_rows = bool(account_rows)
 		for row in account_rows:
+			if not _mop_row_matches_branch(row, branch):
+				continue
 			parent = (row.parent or "").strip()
 			account = (row.default_account or "").strip()
-			if parent and account and parent not in account_by_mode:
+			if not parent or not account:
+				continue
+			# Prefer the branch-tagged account over a company-wide row.
+			existing = account_by_mode.get(parent)
+			if not existing or (branch and _mop_row_branch(row) == branch):
 				account_by_mode[parent] = account
 		if account_by_mode:
 			filters["name"] = ["in", list(account_by_mode.keys())]
+		elif had_company_rows:
+			# This company has modes, but none are valid for the current branch.
+			return []
 
 	modes = frappe.get_all(
 		"Mode of Payment",
@@ -1226,7 +1354,7 @@ def list_modes_of_payment(company=None):
 		fields=["name", "type"],
 		order_by="name asc",
 	)
-	if company and not modes:
+	if company and not modes and not account_by_mode:
 		modes = frappe.get_all(
 			"Mode of Payment",
 			filters={"enabled": 1},
@@ -1367,10 +1495,7 @@ def collect_payment(
 			# last PE so excess stays unallocated on that entry.
 			payment_specs[-1]["paid_amount"] = flt(payment_specs[-1]["paid_amount"]) + requested
 
-	from erpnext.accounts.doctype.payment_entry.payment_entry import (
-		get_bank_cash_account,
-		get_payment_entry,
-	)
+	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 
 	created: list[str] = []
 	paid_total = 0.0
@@ -1381,6 +1506,7 @@ def collect_payment(
 		if frappe.get_meta("Sales Invoice").has_field("custom_dms_job_card")
 		else ""
 	)
+	si_branch = _sales_invoice_branch(si)
 
 	for spec in payment_specs:
 		si.reload()
@@ -1405,17 +1531,7 @@ def collect_payment(
 		if spec.get("reference_no"):
 			pe.reference_no = spec["reference_no"]
 
-		# Point paid_to / paid_from at the account for this mode of payment.
-		try:
-			bank = get_bank_cash_account(pe, None)
-			account = (bank or {}).get("account")
-			if account:
-				if pe.payment_type == "Receive":
-					pe.paid_to = account
-				elif pe.payment_type == "Pay":
-					pe.paid_from = account
-		except Exception:
-			pass
+		apply_mode_of_payment_account(pe, si_branch)
 
 		pe.paid_amount = paid_amount
 		pe.received_amount = paid_amount

@@ -610,6 +610,8 @@ def _advance_request(data) -> dict:
 	"""
 	import json
 
+	from dms.api.invoices import _document_branch, _norm_branch
+
 	if isinstance(data, str):
 		data = json.loads(data) if data else {}
 	data = data or {}
@@ -619,6 +621,11 @@ def _advance_request(data) -> dict:
 	job_card = (data.get("job_card") or "").strip() or None
 	service_estimate = (data.get("service_estimate") or "").strip() or None
 	amended_from = (data.get("amended_from") or "").strip() or None
+	branch = _norm_branch(data.get("branch"))
+	if not branch and job_card:
+		branch = _document_branch("DMS Job Card", job_card)
+	if not branch and service_estimate:
+		branch = _document_branch("DMS Service Estimate", service_estimate)
 
 	if not customer:
 		frappe.throw(_("Customer is required."))
@@ -651,6 +658,7 @@ def _advance_request(data) -> dict:
 		"job_card": job_card,
 		"service_estimate": service_estimate,
 		"amended_from": amended_from,
+		"branch": branch or None,
 		"rows": rows,
 	}
 
@@ -721,7 +729,7 @@ def _advance_payment_rows(data) -> list[dict]:
 
 def _make_advance_doc(request: dict, row: dict):
 	"""Build one unallocated customer-advance Payment Entry for a payment row."""
-	from erpnext.accounts.doctype.payment_entry.payment_entry import get_bank_cash_account
+	from dms.api.invoices import apply_mode_of_payment_account
 
 	data = request["data"]
 	amount = flt(row.get("amount"))
@@ -765,15 +773,13 @@ def _make_advance_doc(request: dict, row: dict):
 
 	# The party side (paid_from on a Receive) is resolved by ERPNext from the
 	# customer's receivable / advance account; only the bank/cash side is needed.
-	bank = get_bank_cash_account(pe, None)
-	account = (bank or {}).get("account")
+	account = apply_mode_of_payment_account(pe, request.get("branch"))
 	if not account:
 		frappe.throw(
 			_(
 				"No Bank/Cash account is configured for mode of payment {0}. Set it on the Company or Mode of Payment."
 			).format(frappe.bold(pe.mode_of_payment or _("(default)")))
 		)
-	pe.paid_to = account
 
 	pe.set(DMS_FLAG_FIELD, 1)
 	if request["job_card"] and _has_field(JOB_CARD_FIELD):

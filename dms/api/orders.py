@@ -257,6 +257,8 @@ def list_dms_orders(
 		list_fields.append(f"{SALES_ORDER_WITHHOLDING_CATEGORY} as tax_withholding_category")
 	if has_withholding_group:
 		list_fields.append(f"{SALES_ORDER_WITHHOLDING_GROUP} as tax_withholding_group")
+	if so_meta.has_field("branch"):
+		list_fields.append("branch")
 
 	rows = frappe.get_all(
 		"Sales Order",
@@ -507,6 +509,7 @@ def get_dms_order(name):
 		"customer": so.customer,
 		"customer_name": so.customer_name,
 		"company": so.company,
+		"branch": so.get("branch") if so.meta.has_field("branch") else None,
 		"warehouse": warehouse or None,
 		"transaction_date": so.transaction_date,
 		"delivery_date": so.delivery_date,
@@ -834,16 +837,15 @@ def record_dms_order_payment(name, data=None):
 	if flt(so.per_billed) >= 100:
 		frappe.throw(_("This order is fully invoiced — collect against the invoice instead."))
 
+	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+
+	from dms.api.invoices import apply_mode_of_payment_account
 	from dms.api.payment_entries import DMS_FLAG_FIELD, _advance_payment_rows
 
 	# Same payload as invoice collection: `payments` rows (one per mode of payment) or
 	# the legacy single amount / mode args.
 	rows = _advance_payment_rows(data)
-
-	from erpnext.accounts.doctype.payment_entry.payment_entry import (
-		get_bank_cash_account,
-		get_payment_entry,
-	)
+	order_branch = (so.get("branch") or "").strip() if so.meta.has_field("branch") else ""
 
 	pe_meta = frappe.get_meta("Payment Entry")
 	posting_date = data.get("posting_date")
@@ -883,12 +885,7 @@ def record_dms_order_payment(name, data=None):
 			pe.reference_no = row["reference_no"]
 
 		# Point paid_to at the account configured for this mode of payment.
-		try:
-			account = (get_bank_cash_account(pe, None) or {}).get("account")
-			if account and pe.payment_type == "Receive":
-				pe.paid_to = account
-		except Exception:
-			pass
+		apply_mode_of_payment_account(pe, order_branch)
 
 		pe.paid_amount = row_amount
 		pe.received_amount = row_amount

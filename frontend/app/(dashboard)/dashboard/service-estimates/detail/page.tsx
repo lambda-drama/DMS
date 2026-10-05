@@ -2005,6 +2005,7 @@ export default function ServiceEstimateDetailPage() {
         customer={estimate.customer}
         customerName={estimate.customer_name}
         company={estimate.company}
+        branch={estimate.branch}
         serviceEstimate={estimate.name}
       />
     </div>
