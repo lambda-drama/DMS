@@ -56,6 +56,8 @@ export interface CreateAdvancePaymentDialogProps {
   customerName?: string;
   /** Company of the source document; falls back to the first DMS company. */
   company?: string;
+  /** Branch of the job card / estimate / invoice — restricts modes of payment. */
+  branch?: string;
   jobCard?: string;
   serviceEstimate?: string;
   defaultAmount?: number;
@@ -78,6 +80,7 @@ export function CreateAdvancePaymentDialog({
   customer: customerProp,
   customerName: customerNameProp,
   company: companyProp,
+  branch: branchProp,
   jobCard,
   serviceEstimate,
   defaultAmount,
@@ -149,13 +152,13 @@ export function CreateAdvancePaymentDialog({
     amendRemarks,
   ]);
 
-  // Load modes of payment for the chosen company.
+  // Load modes of payment for the chosen company (and branch, when the source has one).
   useEffect(() => {
     if (!open || !company) return;
     let cancelled = false;
     setModesLoading(true);
     invoicesSvc
-      .listModesOfPayment(company)
+      .listModesOfPayment(company, branchProp)
       .then((paymentModes) => {
         if (cancelled) return;
         setModes(paymentModes);
@@ -175,7 +178,7 @@ export function CreateAdvancePaymentDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, company]);
+  }, [open, company, branchProp]);
 
   const updateRow = (id: string, patch: Partial<AdvanceRow>) => {
     setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));

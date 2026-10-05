@@ -35,7 +35,7 @@ export function RecordOrderPaymentDialog({
     if (!open || !order) return;
     setModes([]);
     invoicesSvc
-      .listModesOfPayment(order.company)
+      .listModesOfPayment(order.company, order.branch)
       .then((rows) => setModes(rows || []))
       .catch(() => setModes([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on open/order only

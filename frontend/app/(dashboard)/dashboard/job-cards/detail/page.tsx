@@ -4352,6 +4352,7 @@ export default function JobCardDetailPage() {
         customer={jobCard.customer}
         customerName={jobCard.customer_name}
         company={jobCard.company}
+        branch={jobCard.branch}
         jobCard={jobCard.name}
         onCreated={() => {
           void loadCustomerAdvances();

@@ -72,6 +72,7 @@ fixtures = [
 					"Payment Entry-custom_dms_job_card",
 					"Payment Entry-custom_dms_service_estimate",
 					"Payment Entry-custom_dms_remarks",
+					"Mode of Payment Account-custom_branch",
 				],
 			]
 		],
@@ -137,6 +138,7 @@ fixtures = [
 doctype_js = {
 	"Item Group": "public/js/item_group.js",
 	"Serial No": "public/js/serial_no.js",
+	"Mode of Payment": "public/js/mode_of_payment.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

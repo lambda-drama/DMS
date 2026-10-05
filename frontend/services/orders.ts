@@ -188,6 +188,7 @@ export type DmsOrderPaymentSource = Pick<
   | 'customer'
   | 'customer_name'
   | 'company'
+  | 'branch'
   | 'currency'
   | 'grand_total'
   | 'advance_paid'

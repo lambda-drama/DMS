@@ -296,10 +296,13 @@ export async function getSalesInvoiceDetail(
   );
 }
 
-export async function listModesOfPayment(company?: string): Promise<ModeOfPayment[]> {
+export async function listModesOfPayment(
+  company?: string,
+  branch?: string
+): Promise<ModeOfPayment[]> {
   return apiRequest<ModeOfPayment[]>(`/api/method/${API}.list_modes_of_payment`, {
     method: 'POST',
-    body: JSON.stringify({ company: company || null }),
+    body: JSON.stringify({ company: company || null, branch: branch || null }),
   });
 }
 

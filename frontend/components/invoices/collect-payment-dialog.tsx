@@ -45,7 +45,7 @@ export function CollectPaymentDialog({
       .then(async (inv) => {
         if (cancelled) return;
         setInvoice(inv);
-        const paymentModes = await invoicesSvc.listModesOfPayment(inv.company);
+        const paymentModes = await invoicesSvc.listModesOfPayment(inv.company, inv.branch);
         if (!cancelled) setModes(paymentModes);
       })
       .catch((err: Error) => {
