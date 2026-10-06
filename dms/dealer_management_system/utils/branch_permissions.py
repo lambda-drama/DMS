@@ -549,8 +549,9 @@ def resolve_document_branch(
 	return validate_document_branch(branch, company=company, user=user, required=required)
 
 
-# Branch is mandatory on the DMS screens for these ERPNext documents, so DMS owns
-# the ``branch`` Link field on them (created as a Custom Field on migrate).
+# Branch is required on the DMS UI for these ERPNext documents, so DMS owns a
+# ``branch`` Link field on them (Custom Field on migrate). The field must stay
+# optional on Desk — non-DMS companies save Sales Orders / Invoices without it.
 DOCUMENT_BRANCH_FIELDS = {
 	"Sales Order": "company",
 	"Sales Invoice": "company",
@@ -558,20 +559,24 @@ DOCUMENT_BRANCH_FIELDS = {
 
 
 def ensure_document_branch_fields() -> None:
-	"""Create the mandatory DMS ``Branch`` field on Sales Order / Sales Invoice.
+	"""Create the DMS ``Branch`` field on Sales Order / Sales Invoice.
 
 	Sites that already ship their own ``branch`` field on these doctypes keep it —
 	DMS only manages a Custom Field it created itself.
+
+	Never mark the field mandatory at DocType / Desk level. Non-DMS companies share
+	these doctypes and would be blocked. The DMS UI and its APIs still require
+	branch via ``resolve_document_branch(..., required=True)``.
 	"""
-	from dms.utils.custom_fields import custom_field_exists, ensure_custom_fields
+	from dms.utils.custom_fields import ensure_custom_fields
 
 	custom_fields = {}
 	for doctype, insert_after in DOCUMENT_BRANCH_FIELDS.items():
 		if not frappe.db.exists("DocType", doctype):
 			continue
 		meta = frappe.get_meta(doctype)
-		if meta.has_field("branch") and not custom_field_exists(doctype, "branch"):
-			# Standard or locally patched field: leave the definition alone.
+		if meta.has_field("branch"):
+			# Already present (DMS custom field or local). Leave Desk reqd as-is.
 			continue
 		custom_fields[doctype] = [
 			{
@@ -580,7 +585,7 @@ def ensure_document_branch_fields() -> None:
 				"fieldtype": "Link",
 				"options": "Branch",
 				"insert_after": insert_after if meta.has_field(insert_after) else "",
-				"reqd": 1,
+				"reqd": 0,
 				"in_standard_filter": 1,
 			}
 		]
