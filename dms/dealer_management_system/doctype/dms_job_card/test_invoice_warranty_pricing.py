@@ -5,7 +5,11 @@ from frappe.tests import UnitTestCase
 from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 	_apply_line_net_to_invoice_pricing,
 	_apply_warranty_as_invoice_discount,
+	_line_invoice_discount,
+	_parse_line_discounts_payload,
+	_reapply_job_card_si_line_rates,
 	_si_item_pricing_fields,
+	_sync_line_fields_after_group_discount,
 	_warranty_covered_line_amount,
 	resolve_invoice_warranty_application_type,
 )
@@ -17,6 +21,9 @@ class _Doc:
 
 	def get(self, key, default=None):
 		return getattr(self, key, default)
+
+	def set(self, key, value):
+		setattr(self, key, value)
 
 
 class TestInvoiceWarrantyPricing(UnitTestCase):
@@ -102,10 +109,6 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 		)
 
 	def test_100_percent_line_discount_bills_zero(self):
-		from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
-			_line_invoice_discount,
-		)
-
 		fields = _line_invoice_discount(3000, 0, "Percentage")
 		self.assertEqual(fields["rate"], 3000)
 		self.assertEqual(fields["discount_percentage"], 100)
@@ -130,3 +133,62 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 		self.assertEqual(fields["rate"], 3000)
 		self.assertEqual(fields["discount_percentage"], 100)
 		self.assertEqual(fields["is_free_item"], 0)
+
+	def test_group_discount_survives_rate_reapply(self):
+		"""Create-invoice labour/parts discount must not be wiped after totals."""
+		full = _line_invoice_discount(1000, 1000, "")
+		line_fields = [{**full, "warranty_full_discount": False}]
+		item = _Doc(
+			qty=1,
+			rate=800,
+			price_list_rate=1000,
+			rate_with_margin=1000,
+			discount_percentage=0,
+			discount_amount=200,
+			margin_type="",
+			margin_rate_or_amount=0,
+			is_free_item=0,
+		)
+		si = _Doc(items=[item])
+		_sync_line_fields_after_group_discount(si, line_fields)
+		item.rate = 1000
+		item.discount_amount = 0
+		_reapply_job_card_si_line_rates(si, line_fields)
+		self.assertEqual(item.rate, 800)
+		self.assertEqual(item.discount_amount, 200)
+		self.assertEqual(item.price_list_rate, 1000)
+
+	def test_100_percent_group_discount_becomes_invoice_writeoff(self):
+		full = _line_invoice_discount(1000, 1000, "")
+		line_fields = [{**full, "warranty_full_discount": False}]
+		item = _Doc(
+			qty=1,
+			rate=0,
+			price_list_rate=1000,
+			rate_with_margin=1000,
+			discount_percentage=0,
+			discount_amount=1000,
+			margin_type="",
+			margin_rate_or_amount=0,
+			is_free_item=0,
+		)
+		si = _Doc(
+			items=[item],
+			additional_discount_percentage=0,
+			discount_amount=0,
+			apply_discount_on="Net Total",
+		)
+		_sync_line_fields_after_group_discount(si, line_fields)
+		self.assertTrue(line_fields[0]["warranty_full_discount"])
+		_reapply_job_card_si_line_rates(si, line_fields)
+		self.assertEqual(item.rate, 1000)
+		_apply_warranty_as_invoice_discount(si, line_fields)
+		self.assertEqual(si.additional_discount_percentage, 100)
+
+	def test_parse_line_discounts_json_string(self):
+		parsed = _parse_line_discounts_payload(
+			'{"row-1": {"discount_type": "Percentage", "discount_value": 10}}'
+		)
+		self.assertEqual(parsed["row-1"]["discount_value"], 10)
+		self.assertIsNone(_parse_line_discounts_payload("not-json"))
+		self.assertIsNone(_parse_line_discounts_payload(None))

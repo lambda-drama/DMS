@@ -3,6 +3,7 @@
 
 """Draft Sales Invoice from DMS Job Card (requires ERPNext)."""
 
+import json
 from datetime import datetime
 
 import frappe
@@ -54,7 +55,7 @@ def normalize_exclude_rows(exclude_rows) -> set[str]:
 			return set()
 		try:
 			exclude_rows = json.loads(raw)
-		except json.JSONDecodeError, TypeError, ValueError:
+		except (json.JSONDecodeError, TypeError, ValueError):
 			exclude_rows = [raw]
 	if isinstance(exclude_rows, dict):
 		exclude_rows = list(exclude_rows.values())
@@ -196,7 +197,7 @@ def normalize_qty_overrides(qty_overrides) -> dict[str, float]:
 			return {}
 		try:
 			qty_overrides = json.loads(raw)
-		except json.JSONDecodeError, TypeError, ValueError:
+		except (json.JSONDecodeError, TypeError, ValueError):
 			return {}
 	if isinstance(qty_overrides, dict):
 		items = qty_overrides.items()
@@ -801,6 +802,33 @@ def _reapply_job_card_si_line_rates(si, line_fields: list[dict]) -> None:
 		if idx >= len(line_fields):
 			break
 		_apply_si_item_pricing_fields(row, line_fields[idx])
+
+
+def _sync_line_fields_after_group_discount(si, line_fields: list[dict]) -> None:
+	"""Keep reapply snapshots in sync after labour / parts group discounts.
+
+	``append_si_items`` snapshots listed rates *before* the create-invoice dialog's
+	labour/parts discount is folded in. Totals later call
+	``_reapply_job_card_si_line_rates``, which would restore those full rates and
+	drop the discount the UI already showed — copy the discounted item pricing
+	into ``line_fields`` so the last reapply keeps it.
+
+	A 100% group write-off is stored the same way as warranty (listed rate on the
+	line, ``warranty_full_discount``) so a site script never sees rate=0.
+	"""
+	for idx, row in enumerate(si.get("items") or []):
+		if idx >= len(line_fields):
+			break
+		snapshot = line_fields[idx]
+		if snapshot.get("warranty_full_discount"):
+			continue
+		full = flt(row.price_list_rate) or flt(snapshot.get("price_list_rate")) or flt(row.rate)
+		net = flt(row.rate)
+		fields = _line_invoice_discount(full, net, "")
+		write_off = bool(flt(fields.get("rate")) > 0 and flt(fields.get("discount_percentage")) >= 100)
+		snapshot.update(fields)
+		if write_off:
+			snapshot["warranty_full_discount"] = True
 
 
 def _warranty_covered_line_amount(si, line_fields: list[dict]) -> tuple[float, float]:
@@ -2221,6 +2249,11 @@ def create_sales_invoice_from_dms_job_card(
 	_reapply_job_card_si_line_rates(si, line_fields)
 
 	_apply_job_card_discounts_to_si(si, jc, warranty_type)
+	# Labour/parts discounts from the create-invoice dialog are applied above
+	# *after* line_fields was built — snapshot them so the post-totals reapply
+	# does not put full selling rates back.
+	_sync_line_fields_after_group_discount(si, line_fields)
+	_reapply_job_card_si_line_rates(si, line_fields)
 	_apply_loyalty_service_discount_to_si(si, jc.customer)
 	_apply_warranty_as_invoice_discount(si, line_fields)
 
@@ -2534,6 +2567,20 @@ def _apply_rate_overrides_to_job_card(jc, overrides: dict[str, float]) -> None:
 	frappe.db.commit()
 
 
+def _parse_line_discounts_payload(line_discounts) -> dict | None:
+	"""Accept a dict or a JSON string of per-line discounts from the invoice UI."""
+	if not line_discounts:
+		return None
+	if isinstance(line_discounts, str):
+		try:
+			line_discounts = json.loads(line_discounts)
+		except (json.JSONDecodeError, TypeError, ValueError):
+			return None
+	if not isinstance(line_discounts, dict):
+		return None
+	return line_discounts
+
+
 def _apply_line_discounts_to_job_card(jc, line_discounts) -> bool:
 	"""Persist per-line discounts chosen on the invoice screen onto the job card.
 
@@ -2546,21 +2593,18 @@ def _apply_line_discounts_to_job_card(jc, line_discounts) -> bool:
 		apply_line_discount_from_payload,
 	)
 
+	line_discounts = _parse_line_discounts_payload(line_discounts)
 	if not line_discounts:
-		return False
-	if isinstance(line_discounts, str):
-		import json
-
-		try:
-			line_discounts = json.loads(line_discounts)
-		except json.JSONDecodeError, TypeError, ValueError:
-			return False
-	if not isinstance(line_discounts, dict):
 		return False
 
 	changed = False
 	for row in list(jc.get("labour") or []) + list(jc.get("parts") or []):
 		payload = line_discounts.get(row.name)
+		if isinstance(payload, str):
+			try:
+				payload = json.loads(payload)
+			except (json.JSONDecodeError, TypeError, ValueError):
+				continue
 		if not isinstance(payload, dict):
 			continue
 		apply_line_discount_from_payload(row, payload)
