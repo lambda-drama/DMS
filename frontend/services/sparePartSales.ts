@@ -2,7 +2,7 @@
  * Spare part counter sales — dms.api.spare_part_sales
  */
 import { apiRequest } from './apiClient';
-import type { StandaloneInvoiceGroupDiscount } from './invoices';
+import type { InvoiceTaxPreview, StandaloneInvoiceGroupDiscount } from './invoices';
 import type { DmsWarehouseOption } from './stockOperations';
 
 const API = 'dms.api.spare_part_sales';
@@ -131,6 +131,8 @@ export interface SparePartProformaDetail extends SparePartProformaListItem {
   remarks?: string;
   warehouse?: string;
   vehicle_vin?: string;
+  apply_taxes?: number | boolean;
+  apply_tax_withholding?: number | boolean;
   items?: Array<{
     spare_part?: string;
     item_code?: string;
@@ -205,6 +207,8 @@ export async function createSparePartProforma(data: {
   vehicle_vin?: string;
   vehicle_brand?: string;
   vehicle_model?: string;
+  apply_taxes?: boolean;
+  apply_tax_withholding?: boolean;
 }): Promise<{
   name: string;
   sales_order: string;
@@ -239,6 +243,8 @@ export async function updateSparePartProforma(data: {
   vehicle_vin?: string;
   vehicle_brand?: string;
   vehicle_model?: string;
+  apply_taxes?: boolean;
+  apply_tax_withholding?: boolean;
 }): Promise<{
   name: string;
   sales_order: string;
@@ -302,5 +308,46 @@ export async function amendSparePartProforma(name: string): Promise<SparePartPro
   return apiRequest(`/api/method/${API}.amend_spare_part_proforma`, {
     method: 'POST',
     body: JSON.stringify({ name }),
+  });
+}
+
+export type ProformaTaxPreview = InvoiceTaxPreview & {
+  order_net_total?: number;
+  order_total_taxes_and_charges?: number;
+  order_grand_total?: number;
+};
+
+export async function getSparePartProformaTaxPreview(params: {
+  customer?: string | null;
+  company?: string | null;
+  warehouse?: string | null;
+  currency?: string | null;
+  posting_date?: string | null;
+  due_date?: string | null;
+  apply_taxes?: boolean | number;
+  apply_tax_withholding?: boolean | number;
+  parts?: SparePartSaleLine[];
+  labour?: ProformaLabourLine[];
+  labour_discount?: StandaloneInvoiceGroupDiscount | null;
+  parts_discount?: StandaloneInvoiceGroupDiscount | null;
+}): Promise<ProformaTaxPreview> {
+  return apiRequest<ProformaTaxPreview>(`/api/method/${API}.get_spare_part_proforma_tax_preview`, {
+    method: 'POST',
+    body: JSON.stringify({
+      data: {
+        customer: params.customer || null,
+        company: params.company || null,
+        warehouse: params.warehouse || null,
+        currency: params.currency || null,
+        posting_date: params.posting_date || null,
+        due_date: params.due_date || null,
+        apply_taxes: params.apply_taxes ? 1 : 0,
+        apply_tax_withholding: params.apply_tax_withholding ? 1 : 0,
+        parts: params.parts?.length ? params.parts : null,
+        labour: params.labour?.length ? params.labour : null,
+        labour_discount: params.labour_discount || null,
+        parts_discount: params.parts_discount || null,
+      },
+    }),
   });
 }

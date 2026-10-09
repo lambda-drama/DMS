@@ -26,6 +26,15 @@ from dms.dealer_management_system.utils.stock_operations import (
 )
 
 
+def _proforma_tax_flags(data) -> tuple[bool, bool]:
+	"""Include VAT / TCS as ticked on the form — never inherit the customer's defaults.
+
+	``apply_taxes=None`` used to leave ERPNext's party tax template in place, which
+	is often the customer's withholding category rather than DMS Settings VAT.
+	"""
+	return bool(cint(data.get("apply_taxes"))), bool(cint(data.get("apply_tax_withholding")))
+
+
 def _stock_available(spare_part: str, warehouse: str | None) -> float:
 	from dms.dealer_management_system.utils.stock_operations import (
 		get_dms_item_stock_balance,
@@ -522,6 +531,7 @@ def get_spare_part_proforma(name):
 	user_remarks = (raw_remarks or "").strip()
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		get_sales_order_vehicle_vin,
+		read_sales_order_tax_withholding,
 	)
 
 	vehicle_vin = get_sales_order_vehicle_vin(so)
@@ -560,6 +570,8 @@ def get_spare_part_proforma(name):
 		"delivery_date": so.delivery_date,
 		"grand_total": flt(so.grand_total),
 		"currency": so.currency,
+		"apply_taxes": 1 if (so.get("taxes") or []) else 0,
+		"apply_tax_withholding": 1 if read_sales_order_tax_withholding(so)[0] else 0,
 		"status": so.status,
 		"docstatus": so.docstatus,
 		"per_billed": flt(so.per_billed),
@@ -574,6 +586,54 @@ def get_spare_part_proforma(name):
 		"parts": parts,
 		"sales_invoices": invoice_names,
 	}
+
+
+@frappe.whitelist()
+def get_spare_part_proforma_tax_preview(data):
+	"""VAT the proforma will carry plus the TCS its Sales Invoice will withhold."""
+	if isinstance(data, str):
+		data = json.loads(data)
+	data = data or {}
+	frappe.has_permission("Sales Order", "create", throw=True)
+
+	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
+		_blank_tax_preview,
+		build_order_tax_preview,
+	)
+
+	apply_taxes, apply_tax_withholding = _proforma_tax_flags(data)
+	customer = resolve_dms_customer(data.get("customer"))
+
+	try:
+		ctx = _validate_spare_part_lines(data, check_stock=False)
+	except Exception as exc:
+		from frappe.utils.messages import clear_messages
+
+		clear_messages()
+		empty = _blank_tax_preview(
+			(data.get("company") or "").strip() or get_default_dms_company(),
+			customer,
+			data.get("currency"),
+		)
+		empty["message"] = str(exc) or _("Could not preview taxes for this proforma.")
+		return empty
+
+	return build_order_tax_preview(
+		customer=ctx["customer"],
+		company=ctx["company"],
+		labour_lines=ctx.get("labour_lines") or [],
+		parts_lines=ctx["parts_lines"],
+		warehouse=ctx["warehouse"],
+		currency=data.get("currency") or frappe.db.get_value("Company", ctx["company"], "default_currency"),
+		delivery_date=data.get("due_date") or data.get("delivery_date"),
+		transaction_date=data.get("posting_date") or data.get("transaction_date"),
+		remarks=None,
+		labour_discount=data.get("labour_discount"),
+		parts_discount=data.get("parts_discount"),
+		vehicle_vin=ctx.get("vin"),
+		apply_taxes=apply_taxes,
+		apply_tax_withholding=apply_tax_withholding,
+	)
 
 
 @frappe.whitelist()
@@ -710,6 +770,8 @@ def create_spare_part_proforma(data):
 		labour_discount=data.get("labour_discount"),
 		parts_discount=data.get("parts_discount"),
 		vehicle_vin=ctx.get("vin"),
+		apply_taxes=_proforma_tax_flags(data)[0],
+		apply_tax_withholding=_proforma_tax_flags(data)[1],
 	)
 
 	so = frappe.get_doc("Sales Order", name)
@@ -768,6 +830,8 @@ def update_spare_part_proforma(data):
 		labour_discount=data.get("labour_discount"),
 		parts_discount=data.get("parts_discount"),
 		vehicle_vin=ctx.get("vin"),
+		apply_taxes=_proforma_tax_flags(data)[0],
+		apply_tax_withholding=_proforma_tax_flags(data)[1],
 	)
 
 	so = frappe.get_doc("Sales Order", updated_name)
@@ -838,9 +902,11 @@ def convert_proforma_to_sales_invoice(name, data=None):
 	from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 		_apply_dms_selling_price_list_to_sales_invoice,
 		_apply_dms_settings_dimensions_to_sales_invoice,
+		_apply_sales_invoice_tax_choice,
 		_generate_invoice_no,
 		disable_sales_invoice_round_off,
 		mark_sales_invoice_as_dms_ui_transaction,
+		read_sales_order_tax_withholding,
 	)
 	from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
 
@@ -865,6 +931,20 @@ def convert_proforma_to_sales_invoice(name, data=None):
 	_apply_dms_settings_dimensions_to_sales_invoice(si, so.company)
 	apply_company_letter_head(si, so.company)
 	disable_sales_invoice_round_off(si)
+
+	# `set_missing_values()` copies the customer's tax / withholding setup.
+	# Honour the proforma's VAT vs TCS choice (DMS Settings templates), not the
+	# customer's default withholding category.
+	apply_taxes = (
+		bool(cint(data.get("apply_taxes"))) if "apply_taxes" in data else bool(so.get("taxes") or [])
+	)
+	apply_withholding = (
+		bool(cint(data.get("apply_tax_withholding")))
+		if "apply_tax_withholding" in data
+		else read_sales_order_tax_withholding(so)[0]
+	)
+	_apply_sales_invoice_tax_choice(si, apply_taxes, apply_withholding)
+
 	si.run_method("calculate_taxes_and_totals")
 	si.insert()
 	submit = cint(data.get("submit", 1))
