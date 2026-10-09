@@ -8,6 +8,7 @@ from dms.dealer_management_system.doctype.dms_job_card.invoice_utils import (
 	_line_invoice_discount,
 	_parse_line_discounts_payload,
 	_reapply_job_card_si_line_rates,
+	_selling_doc_currency,
 	_si_item_pricing_fields,
 	_sync_line_fields_after_group_discount,
 	_warranty_covered_line_amount,
@@ -184,6 +185,10 @@ class TestInvoiceWarrantyPricing(UnitTestCase):
 		self.assertEqual(item.rate, 1000)
 		_apply_warranty_as_invoice_discount(si, line_fields)
 		self.assertEqual(si.additional_discount_percentage, 100)
+
+	def test_selling_doc_currency_keeps_explicit_payload(self):
+		self.assertEqual(_selling_doc_currency("USD", None, "ETB"), "USD")
+		self.assertEqual(_selling_doc_currency("  ETB  ", None), "ETB")
 
 	def test_parse_line_discounts_json_string(self):
 		parsed = _parse_line_discounts_payload(
