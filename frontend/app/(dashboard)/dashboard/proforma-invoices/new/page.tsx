@@ -20,6 +20,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { BranchSelect } from '@/components/branches/branch-select';
 import { LinkWithCreate } from '@/components/link-with-create';
 import { GroupDiscountFields } from '@/components/group-discount-fields';
+import { InvoiceTaxBreakdown } from '@/components/invoices/invoice-tax-breakdown';
 import { CreateServiceItemDialog } from '@/components/create-service-item-dialog';
 import { CreateSparePartDialog } from '@/components/create-spare-part-dialog';
 import { Button } from '@/components/ui/button';
@@ -152,6 +153,10 @@ export default function ProformaInvoiceNewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [partsDiscountMode, setPartsDiscountMode] = useState<InvoiceDiscountMode>('none');
   const [partsDiscountInput, setPartsDiscountInput] = useState('');
+  const [applyTaxes, setApplyTaxes] = useState(false);
+  const [applyTaxWithholding, setApplyTaxWithholding] = useState(false);
+  const [taxPreview, setTaxPreview] = useState<sparePartSalesSvc.ProformaTaxPreview | null>(null);
+  const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
 
   const canSave = canCreate('proforma-invoices') || canWrite('proforma-invoices');
 
@@ -401,6 +406,8 @@ export default function ProformaInvoiceNewPage() {
         setLabourDiscountInput('');
         setPartsDiscountMode('none');
         setPartsDiscountInput('');
+        setApplyTaxes(Boolean(detail.apply_taxes));
+        setApplyTaxWithholding(Boolean(detail.apply_tax_withholding));
 
         if (detail.vehicle_vin) {
           setVehicleVin(detail.vehicle_vin);
@@ -655,6 +662,91 @@ export default function ProformaInvoiceNewPage() {
   );
   const grandTotal = labourTotal - labourDiscountTotal + partsTotal - partsDiscountTotal;
 
+  const taxLines = useMemo(
+    () => ({
+      parts: lines
+        .filter((l) => l.spare_part && Number(l.qty) > 0)
+        .map((l) => ({
+          spare_part: l.spare_part,
+          qty: Number(l.qty),
+          unit_price: Number(l.unit_price || 0),
+        })),
+      labour: labourRows
+        .filter((l) => l.vehicle_service_item && Number(l.hours) > 0)
+        .map((l) => ({
+          vehicle_service_item: l.vehicle_service_item,
+          hours: Number(l.hours),
+          rate_per_hour: Number(l.rate_per_hour || 0),
+        })),
+    }),
+    [lines, labourRows]
+  );
+
+  const labourDiscountPayload = useMemo(
+    () => buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
+    [labourDiscountMode, labourDiscountInput]
+  );
+  const partsDiscountPayload = useMemo(
+    () => buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
+    [partsDiscountMode, partsDiscountInput]
+  );
+
+  useEffect(() => {
+    const ready =
+      Boolean(customer) &&
+      (taxLines.parts.length > 0 || taxLines.labour.length > 0) &&
+      (taxLines.parts.length === 0 || Boolean(warehouse));
+    if (!ready || (!applyTaxes && !applyTaxWithholding)) {
+      setTaxPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setTaxPreviewLoading(true);
+      sparePartSalesSvc
+        .getSparePartProformaTaxPreview({
+          customer,
+          company: company || defaults?.company,
+          warehouse: warehouse || undefined,
+          posting_date: postingDate,
+          due_date: dueDate,
+          apply_taxes: applyTaxes,
+          apply_tax_withholding: applyTaxWithholding,
+          parts: taxLines.parts,
+          labour: taxLines.labour,
+          labour_discount: labourDiscountPayload || null,
+          parts_discount: partsDiscountPayload || null,
+        })
+        .then((data) => {
+          if (!cancelled) setTaxPreview(data);
+        })
+        .catch(() => {
+          if (!cancelled) setTaxPreview(null);
+        })
+        .finally(() => {
+          if (!cancelled) setTaxPreviewLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    customer,
+    company,
+    warehouse,
+    postingDate,
+    dueDate,
+    applyTaxes,
+    applyTaxWithholding,
+    defaults?.company,
+    taxLines,
+    labourDiscountPayload,
+    partsDiscountPayload,
+  ]);
+
   const saveProforma = async (mode: 'draft' | 'create') => {
     if (!canSave) return;
 
@@ -709,6 +801,8 @@ export default function ProformaInvoiceNewPage() {
       submit: shouldSubmit,
       labour_discount: buildGroupDiscountPayload(labourDiscountMode, labourDiscountInput),
       parts_discount: buildGroupDiscountPayload(partsDiscountMode, partsDiscountInput),
+      apply_taxes: applyTaxes,
+      apply_tax_withholding: applyTaxWithholding,
       vehicle_vin: vehicleVin || undefined,
       vehicle_brand: vehicleBrand || undefined,
       vehicle_model: vehicleModel || undefined,
@@ -738,6 +832,9 @@ export default function ProformaInvoiceNewPage() {
         setLabourDiscountInput('');
         setPartsDiscountMode('none');
         setPartsDiscountInput('');
+        setApplyTaxes(false);
+        setApplyTaxWithholding(false);
+        setTaxPreview(null);
         setRemarks('');
         setVehicleVin('');
         setSelectedVin(null);
@@ -902,10 +999,7 @@ export default function ProformaInvoiceNewPage() {
               <Label>Due date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:col-span-2 lg:col-span-4">
               <Checkbox
                 id="in-stock-only"
                 checked={inStockOnly}
@@ -914,6 +1008,39 @@ export default function ProformaInvoiceNewPage() {
               <Label htmlFor="in-stock-only" className="text-sm font-normal cursor-pointer">
                 Show only parts in stock at selected warehouse
               </Label>
+            </div>
+            <div className="space-y-1 md:col-span-2 lg:col-span-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="proforma-apply-taxes"
+                  checked={applyTaxes}
+                  onCheckedChange={(value) => setApplyTaxes(Boolean(value))}
+                />
+                <Label htmlFor="proforma-apply-taxes" className="cursor-pointer font-normal">
+                  Include VAT
+                </Label>
+              </div>
+              <p className="pl-6 text-xs text-muted-foreground">
+                Uses the Default Taxes and Charges Template from DMS Settings. Leave unchecked to
+                create the proforma without VAT.
+              </p>
+            </div>
+            <div className="space-y-1 md:col-span-2 lg:col-span-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="proforma-apply-tax-withholding"
+                  checked={applyTaxWithholding}
+                  onCheckedChange={(value) => setApplyTaxWithholding(Boolean(value))}
+                />
+                <Label htmlFor="proforma-apply-tax-withholding" className="cursor-pointer font-normal">
+                  Include tax withholding (TCS)
+                </Label>
+              </div>
+              <p className="pl-6 text-xs text-muted-foreground">
+                Stored on the proforma and applied when it is converted to a sales invoice —
+                ERPNext withholds tax only on sales invoices. Uses the Default Tax Withholding
+                Category from DMS Settings.
+              </p>
             </div>
           </div>
 
@@ -1131,7 +1258,34 @@ export default function ProformaInvoiceNewPage() {
                   : ''}
               </span>
             </div>
-            <p className="text-xl font-semibold">Total: {grandTotal.toFixed(2)}</p>
+            {applyTaxes || applyTaxWithholding ? (
+              <div className="sm:min-w-[16rem] space-y-2">
+                <InvoiceTaxBreakdown
+                  subtotal={grandTotal}
+                  currency={taxPreview?.currency}
+                  applyTaxes={applyTaxes}
+                  applyTaxWithholding={applyTaxWithholding}
+                  preview={taxPreview}
+                  isLoading={taxPreviewLoading}
+                  totalOverride={taxPreview ? taxPreview.order_grand_total : null}
+                  totalLabel={applyTaxes ? 'Proforma total (incl. VAT)' : 'Proforma total'}
+                />
+                {applyTaxes ? (
+                  <p className="text-xs text-muted-foreground">
+                    VAT is applied from the DMS Settings Default Taxes and Charges Template and
+                    added to the grand total when the proforma is saved.
+                  </p>
+                ) : null}
+                {applyTaxWithholding ? (
+                  <p className="text-xs text-muted-foreground">
+                    TCS is withheld on the invoice, not on the proforma — the total above is not
+                    reduced by it.
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-xl font-semibold">Total: {grandTotal.toFixed(2)}</p>
+            )}
           </div>
 
           <FormActionsBar>
