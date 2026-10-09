@@ -938,29 +938,80 @@ def _apply_sales_invoice_currency_from_job_card(si, jc):
 		si.currency = cur
 
 
-def _apply_dms_selling_price_list_to_sales_invoice(si) -> None:
-	"""Force DMS Settings Default Price List (override Selling Settings / customer GL lists)."""
+def _company_default_currency(company: str | None) -> str | None:
+	company = (company or "").strip()
+	if not company:
+		return None
+	return (frappe.db.get_value("Company", company, "default_currency") or "").strip() or None
+
+
+def _selling_doc_currency(currency, company, fallback: str | None = None) -> str:
+	"""Document currency: explicit payload, else the company ledger currency.
+
+	Do not inherit the customer's default currency — many customers are stored as
+	USD while DMS selling is in the company / DMS Settings price-list currency.
+	"""
+	cur = (currency or "").strip()
+	if cur:
+		return cur
+	company_cur = _company_default_currency(company)
+	if company_cur:
+		return company_cur
+	cur = (fallback or "").strip()
+	if cur:
+		return cur
+	return "ETB"
+
+
+def _apply_dms_selling_price_list(doc) -> None:
+	"""Force DMS Settings Default Price List (override Selling Settings / customer lists)."""
 	from dms.dealer_management_system.utils.stock_operations import (
 		_dms_settings_configured_price_list,
 		get_dms_default_selling_price_list,
 	)
 
-	if not si.meta.has_field("selling_price_list"):
+	if not doc.meta.has_field("selling_price_list"):
 		return
 
 	price_list = get_dms_default_selling_price_list() or _dms_settings_configured_price_list()
 	if not price_list:
 		return
 
-	si.selling_price_list = price_list
+	doc.selling_price_list = price_list
 	pl_currency = (frappe.db.get_value("Price List", price_list, "currency") or "").strip()
-	if pl_currency and si.meta.has_field("price_list_currency"):
-		si.price_list_currency = pl_currency
+	if pl_currency and doc.meta.has_field("price_list_currency"):
+		doc.price_list_currency = pl_currency
 
-	inv_currency = (si.currency or "").strip()
-	if si.meta.has_field("plc_conversion_rate") and pl_currency and inv_currency:
-		if pl_currency == inv_currency:
-			si.plc_conversion_rate = 1.0
+	doc_currency = (doc.currency or "").strip()
+	if doc.meta.has_field("plc_conversion_rate") and pl_currency and doc_currency:
+		if pl_currency == doc_currency:
+			doc.plc_conversion_rate = 1.0
+
+	if doc.meta.has_field("conversion_rate"):
+		company_cur = _company_default_currency(getattr(doc, "company", None))
+		if company_cur and doc_currency == company_cur:
+			doc.conversion_rate = 1.0
+
+
+def _apply_dms_selling_price_list_to_sales_invoice(si) -> None:
+	"""Force DMS Settings Default Price List (override Selling Settings / customer GL lists)."""
+	_apply_dms_selling_price_list(si)
+
+
+def _guard_sales_order_selling_defaults(so, currency: str) -> None:
+	"""Keep DMS price list + company currency after ERPNext refreshes party details.
+
+	``AccountsController.validate`` calls ``set_missing_values(for_validate=True)``,
+	which would otherwise copy the customer's price list (often USD Standard Selling).
+	"""
+	original_set_missing_values = so.set_missing_values
+
+	def guarded_set_missing_values(for_validate=False):
+		original_set_missing_values(for_validate)
+		so.currency = currency
+		_apply_dms_selling_price_list(so)
+
+	so.set_missing_values = guarded_set_missing_values
 
 
 def _apply_dms_settings_dimensions_to_sales_invoice(si, company: str):
@@ -3960,10 +4011,11 @@ def create_standalone_dms_sales_order(
 	set_sales_order_vehicle_vin(so, vehicle_vin)
 	set_document_branch(so, branch)
 
-	order_currency = (currency or so.currency or "ETB").strip() or "ETB"
+	order_currency = _selling_doc_currency(currency, company)
 	if not frappe.db.exists("Currency", order_currency):
 		frappe.throw(_("Currency {0} is not defined in ERPNext.").format(frappe.bold(order_currency)))
 	so.currency = order_currency
+	_apply_dms_selling_price_list(so)
 
 	labour_disc = _normalize_standalone_discount(labour_discount)
 	parts_disc = _normalize_standalone_discount(parts_discount)
@@ -4095,6 +4147,10 @@ def create_standalone_dms_sales_order(
 
 	so.set_missing_values()
 	so.currency = order_currency
+	_apply_dms_selling_price_list(so)
+	# Validate re-runs set_missing_values and would restore the customer's
+	# USD / Selling Settings price list without this guard.
+	_guard_sales_order_selling_defaults(so, order_currency)
 	# Order VAT choice: DMS Settings template, or no taxes at all. Callers that do
 	# not send a choice keep ERPNext's default behaviour (company tax template).
 	if apply_taxes is not None:
