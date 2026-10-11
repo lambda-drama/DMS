@@ -16,6 +16,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_dms_company_defaults_row,
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
+	stamp_immediate_stock_entry,
 )
 from dms.dealer_management_system.utils.branch_permissions import get_user_default_branch
 
@@ -605,8 +606,9 @@ def _create_issue_stock_entry(pr, jc, source_wh: str, wip_wh: str) -> str:
 	se.stock_entry_type = "Material Transfer"
 	se.purpose = "Material Transfer"
 	se.company = jc.company
-	se.posting_date = pr.posting_date or today()
-	se.set_posting_time = 1
+	# Post at the issue clock, not the request date at 00:00:00 — otherwise a
+	# same-day Sales Invoice cannot see qty in WIP.
+	stamp_immediate_stock_entry(se)
 	se.remarks = _("Parts issue {0} for Job Card {1}").format(pr.name, jc.name)
 
 	defaults_row = get_dms_company_defaults_row(jc.company)

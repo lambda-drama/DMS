@@ -15,6 +15,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_dms_company_defaults_row,
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
+	stamp_immediate_stock_entry,
 )
 
 INTERNAL_JOB_CARD_TYPE = "Internal"
@@ -168,8 +169,7 @@ def create_material_issue_for_job_card(jc) -> str | None:
 	se.stock_entry_type = "Material Issue"
 	se.purpose = "Material Issue"
 	se.company = jc.company
-	se.posting_date = jc.posting_date or frappe.utils.today()
-	se.set_posting_time = 1
+	stamp_immediate_stock_entry(se)
 	se.remarks = _("Internal job card {0} — consume parts from work in progress").format(jc.name)
 
 	defaults_row = get_dms_company_defaults_row(jc.company)

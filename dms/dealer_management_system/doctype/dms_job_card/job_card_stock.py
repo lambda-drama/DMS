@@ -5,9 +5,11 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import frappe
 from frappe import _
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, nowtime, today
 
 from dms.dealer_management_system.doctype.dms_job_card.job_card_costing import (
 	part_issue_qty,
@@ -48,6 +50,75 @@ def resolve_workshop_warehouse(jc) -> str | None:
 			return wh
 
 	return None
+
+
+def stamp_immediate_stock_entry(se, posting_date=None) -> None:
+	"""Post a workshop stock move at the current clock, never as an in-transit transfer.
+
+	Parts-issue Material Transfers must land in WIP immediately. Fetching
+	``add_to_transit`` from Stock Entry Type, or posting at 00:00:00 on the
+	source document date, leaves WIP empty as-of the Sales Invoice datetime.
+	"""
+	se.set_posting_time = 1
+	se.posting_date = getdate(posting_date) if posting_date else getdate(today())
+	if se.meta.has_field("posting_time"):
+		se.posting_time = nowtime()
+	if se.meta.has_field("add_to_transit"):
+		se.add_to_transit = 0
+	if se.meta.has_field("from_bom"):
+		se.from_bom = 0
+
+
+def combine_posting_datetime(posting_date, posting_time):
+	"""Date + time used by ERPNext stock-as-of checks; missing time is midnight."""
+	if not posting_date:
+		return None
+	time_str = str(posting_time or "00:00:00")
+	try:
+		return get_datetime(f"{getdate(posting_date)} {time_str}")
+	except Exception:
+		return get_datetime(posting_date)
+
+
+def resolve_invoice_posting_after_stock(
+	posting_date,
+	posting_time,
+	latest_stock_dt=None,
+	now=None,
+):
+	"""Return ``(date, time)`` so the invoice is strictly after the latest parts transfer.
+
+	ERPNext checks WIP qty as of the invoice posting datetime, not Bin.actual_qty.
+	A same-day invoice at 00:00:00 cannot see a 00:44 transfer into WIP.
+	"""
+	now = now or now_datetime()
+	date = getdate(posting_date) if posting_date else getdate(now)
+	time_value = posting_time or now.strftime("%H:%M:%S.%f")
+	invoice_dt = combine_posting_datetime(date, time_value) or now
+	if latest_stock_dt and invoice_dt <= latest_stock_dt:
+		target = latest_stock_dt + timedelta(seconds=1)
+		if now > target:
+			target = now
+		return getdate(target), target.strftime("%H:%M:%S.%f")
+	return date, time_value
+
+
+def get_latest_job_card_stock_posting_datetime(job_card: str):
+	"""Latest submitted Stock Entry datetime linked to this job card, or None."""
+	names = _collect_job_card_stock_entry_names(job_card)
+	if not names:
+		return None
+	rows = frappe.get_all(
+		"Stock Entry",
+		filters={"name": ["in", names], "docstatus": 1},
+		fields=["posting_date", "posting_time"],
+	)
+	latest = None
+	for row in rows:
+		dt = combine_posting_datetime(row.get("posting_date"), row.get("posting_time"))
+		if dt and (latest is None or dt > latest):
+			latest = dt
+	return latest
 
 
 def _stock_lines_for_job_card(jc) -> list[dict]:
@@ -109,10 +180,7 @@ def transfer_job_card_parts_to_wip(jc) -> str | None:
 	se.stock_entry_type = "Material Transfer"
 	se.purpose = "Material Transfer"
 	se.company = jc.company
-	se.posting_date = jc.posting_date or frappe.utils.today()
-	se.set_posting_time = 1
-	se.from_bom = 0
-	se.add_to_transit = 0
+	stamp_immediate_stock_entry(se)
 	se.remarks = _("DMS Job Card {0} — parts to work in progress").format(jc.name)
 
 	defaults_row = get_dms_company_defaults_row(jc.company)
