@@ -12,6 +12,7 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
 	get_dms_company_defaults_row,
 	get_wip_warehouse,
 	resolve_workshop_warehouse,
+	stamp_immediate_stock_entry,
 )
 from dms.dealer_management_system.utils.branch_permissions import get_user_default_branch
 
@@ -158,8 +159,7 @@ def _create_return_stock_entry(doc, jc, source_wh: str, target_wh: str) -> str:
 	se.stock_entry_type = "Material Transfer"
 	se.purpose = "Material Transfer"
 	se.company = jc.company
-	se.posting_date = doc.posting_date or today()
-	se.set_posting_time = 1
+	stamp_immediate_stock_entry(se)
 	se.remarks = _("Parts return {0} for Job Card {1}").format(doc.name, jc.name)
 
 	defaults_row = get_dms_company_defaults_row(jc.company)

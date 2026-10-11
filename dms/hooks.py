@@ -313,9 +313,9 @@ scheduler_events = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "dms.event.get_events"
-# }
+override_whitelisted_methods = {
+	"erpnext.accounts.utils.get_children": "dms.overrides.account_tree.get_children",
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
@@ -335,12 +335,12 @@ scheduler_events = {
 
 # Request Events
 # ----------------
-# before_request = ["dms.utils.before_request"]
+before_request = ["dms.overrides.account_tree.install_get_children_company_guard"]
 # after_request = ["dms.utils.after_request"]
 
 # Job Events
 # ----------
-# before_job = ["dms.utils.before_job"]
+before_job = ["dms.overrides.account_tree.install_get_children_company_guard"]
 # after_job = ["dms.utils.after_job"]
 
 # User Data Protection
@@ -392,3 +392,10 @@ scheduler_events = {
 from dms.crm_hooks import apply_crm_hooks
 
 apply_crm_hooks(globals())
+
+try:
+	from dms.overrides.account_tree import install_get_children_company_guard
+
+	install_get_children_company_guard()
+except Exception:
+	pass

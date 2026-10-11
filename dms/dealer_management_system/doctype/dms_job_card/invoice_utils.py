@@ -32,7 +32,9 @@ from dms.dealer_management_system.doctype.dms_job_card.job_card_discount import 
 	parse_discount_payload,
 )
 from dms.dealer_management_system.doctype.dms_job_card.job_card_stock import (
+	get_latest_job_card_stock_posting_datetime,
 	get_wip_warehouse,
+	resolve_invoice_posting_after_stock,
 	resolve_workshop_warehouse,
 )
 from dms.dealer_management_system.utils.company_letter_head import apply_company_letter_head
@@ -1823,6 +1825,45 @@ def _apply_stock_item_warehouse(si_row, erp_item: str, part, jc):
 	si_row.warehouse = warehouse
 
 
+def _apply_sales_invoice_posting_datetime(si, posting_date=None, latest_stock_dt=None) -> None:
+	"""Keep Edit Posting Date on, with a clock time after related WIP transfers.
+
+	``set_posting_time=1`` without ``posting_time`` posts at 00:00:00. ERPNext then
+	checks WIP as of midnight, so a same-day parts-issue transfer is invisible.
+	"""
+	date, time_value = resolve_invoice_posting_after_stock(
+		posting_date or si.posting_date,
+		getattr(si, "posting_time", None),
+		latest_stock_dt=latest_stock_dt,
+	)
+	si.posting_date = date
+	si.set_posting_time = 1
+	if si.meta.has_field("posting_time"):
+		si.posting_time = time_value
+
+
+def _configure_job_card_invoice_stock(si, jc) -> None:
+	"""Consume invoiced spare parts from WIP; stamp branch on stock rows."""
+	wip_wh = get_wip_warehouse(getattr(jc, "company", None))
+	branch = (getattr(si, "branch", None) or getattr(jc, "branch", None) or "").strip()
+	item_meta = frappe.get_meta("Sales Invoice Item")
+	has_stock = False
+	for row in si.get("items") or []:
+		item_code = (row.get("item_code") or "").strip()
+		if not item_code:
+			continue
+		if not cint(frappe.get_cached_value("Item", item_code, "is_stock_item")):
+			continue
+		warehouse = wip_wh or (row.get("warehouse") or "").strip() or resolve_workshop_warehouse(jc)
+		if warehouse:
+			row.warehouse = warehouse
+		if branch and item_meta.has_field("branch") and not (row.get("branch") or "").strip():
+			row.branch = branch
+		if (row.get("warehouse") or "").strip():
+			has_stock = True
+	si.update_stock = 1 if has_stock else 0
+
+
 def _allow_zero_valuation_rate_when_missing(si) -> None:
 	"""
 	Enable Allow Zero Valuation Rate on stock items with no usable valuation
@@ -2246,8 +2287,7 @@ def create_sales_invoice_from_dms_job_card(
 	si.company = jc.company
 	set_document_branch(si, jc.branch)
 	si.customer = jc.customer
-	si.posting_date = getdate(posting_date) if posting_date else getdate(today())
-	si.set_posting_time = 1
+	_apply_sales_invoice_posting_datetime(si, posting_date)
 	si.due_date = getdate(due_date) if due_date else si.posting_date
 	si.remarks = _("DMS Job Card: {0}").format(jc.name)
 	_set_sales_invoice_job_card_link(si, jc.name)
@@ -2283,14 +2323,20 @@ def create_sales_invoice_from_dms_job_card(
 		si.ignore_pricing_rule = 1
 
 	si.set_missing_values()
-	if posting_date:
-		si.posting_date = getdate(posting_date)
-		si.set_posting_time = 1
+	# set_missing_values can blank company / currency; Account and Cost Center
+	# tree lookups require a company string.
+	si.company = jc.company
 	# set_missing_values can reset currency from company / price list — re-apply from job card
 	_apply_sales_invoice_currency_from_job_card(si, jc)
 	_apply_dms_selling_price_list_to_sales_invoice(si)
 	_apply_sales_invoice_tax_choice(si, apply_taxes, apply_tax_withholding)
 	_apply_dms_settings_dimensions_to_sales_invoice(si, jc.company)
+	_configure_job_card_invoice_stock(si, jc)
+	_apply_sales_invoice_posting_datetime(
+		si,
+		posting_date,
+		latest_stock_dt=get_latest_job_card_stock_posting_datetime(jc.name),
+	)
 	apply_company_letter_head(si, jc.company)
 	disable_sales_invoice_round_off(si)
 
@@ -3668,6 +3714,7 @@ def create_standalone_dms_sales_invoice(
 		si.ignore_pricing_rule = 1
 
 	si.set_missing_values()
+	si.company = company
 	if posting_date:
 		si.posting_date = getdate(posting_date)
 		si.set_posting_time = 1
