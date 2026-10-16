@@ -47,8 +47,8 @@ interface LineDiscountButtonProps {
 }
 
 /**
- * Compact per-line discount control: a small icon button that opens a modal, so
- * labour / parts tables keep their width. Supports a percentage or a fixed amount.
+ * Compact per-line discount control: a % button that opens a modal, plus a W
+ * button that applies a 100% discount in one click. Used on labour and parts lines.
  */
 export function LineDiscountButton({
   label,
@@ -70,6 +70,9 @@ export function LineDiscountButton({
   }, [open, discountType, discountValue]);
 
   const badge = lineDiscountBadge(discountType, discountValue);
+  const isFullPercent =
+    discountModeFromBackend(discountType) === 'percentage' &&
+    Number(discountValue || 0) >= 100;
   const previewAmount = lineDiscountAmount(lineAmount, mode, parseFloat(raw) || 0);
   const money = (n: number) =>
     n.toLocaleString(undefined, { minimumFractionDigits: 2 });
@@ -79,25 +82,49 @@ export function LineDiscountButton({
     setOpen(false);
   };
 
+  const applyFullDiscount = () => {
+    if (isFullPercent) return;
+    return onApply({ discount_type: 'Percentage', discount_value: 100 });
+  };
+
   return (
     <>
-      <Button
-        type="button"
-        variant={badge ? 'secondary' : 'ghost'}
-        size={badge ? 'sm' : 'icon'}
-        className={cn('h-8 gap-1 px-2 text-xs', !badge && 'w-8 px-0')}
-        disabled={disabled || busy}
-        aria-label="Line discount"
-        title={badge ? `Line discount ${badge}` : 'Add line discount'}
-        onClick={() => setOpen(true)}
-      >
-        {busy ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Percent className="h-4 w-4" />
-        )}
-        {badge && !busy ? <span>{badge}</span> : null}
-      </Button>
+      <span className="inline-flex shrink-0 items-center gap-0.5">
+        <Button
+          type="button"
+          variant={badge ? 'secondary' : 'ghost'}
+          size={badge ? 'sm' : 'icon'}
+          className={cn('h-8 gap-1 px-2 text-xs', !badge && 'w-8 px-0')}
+          disabled={disabled || busy}
+          aria-label="Line discount"
+          title={badge ? `Line discount ${badge}` : 'Add line discount'}
+          onClick={() => setOpen(true)}
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Percent className="h-4 w-4" />
+          )}
+          {badge && !busy ? <span>{badge}</span> : null}
+        </Button>
+        <Button
+          type="button"
+          variant={isFullPercent ? 'secondary' : 'ghost'}
+          size="icon"
+          className={cn(
+            'h-8 w-8 px-0 text-xs font-semibold',
+            isFullPercent && 'bg-[#2E7D32]/15 text-[#2E7D32] hover:bg-[#2E7D32]/20'
+          )}
+          disabled={disabled || busy}
+          aria-label="Apply 100% discount"
+          title={
+            isFullPercent ? '100% discount applied' : 'Apply 100% line discount'
+          }
+          onClick={() => void applyFullDiscount()}
+        >
+          W
+        </Button>
+      </span>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
