@@ -10,7 +10,7 @@ Settings, then Global Defaults, and pass a string.
 from __future__ import annotations
 
 import frappe
-from frappe.utils import cint
+from frappe.utils import cint, sbool
 
 
 def _company_from_dms_settings() -> str | None:
@@ -67,6 +67,14 @@ def coerce_company(company) -> str:
 	return ""
 
 
+def _as_bool(value) -> bool:
+	"""Desk tree calls send ``"true"`` / ``"false"`` as form strings, not JSON booleans."""
+	parsed = sbool(value)
+	if isinstance(parsed, bool):
+		return parsed
+	return bool(cint(parsed))
+
+
 def _gl_entry_company(gl_entry) -> str | None:
 	company = getattr(gl_entry, "company", None)
 	if company:
@@ -92,8 +100,8 @@ def get_children(
 		doctype,
 		parent or "",
 		coerce_company(company),
-		is_root=bool(cint(is_root)),
-		include_disabled=bool(cint(include_disabled)),
+		is_root=_as_bool(is_root),
+		include_disabled=_as_bool(include_disabled),
 	)
 
 
