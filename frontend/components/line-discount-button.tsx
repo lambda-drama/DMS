@@ -48,7 +48,7 @@ interface LineDiscountButtonProps {
 
 /**
  * Compact per-line discount control: a % button that opens a modal, plus a W
- * button that applies a 100% discount in one click. Used on labour and parts lines.
+ * button that toggles a 100% warranty discount. Used on labour and parts lines.
  */
 export function LineDiscountButton({
   label,
@@ -83,7 +83,9 @@ export function LineDiscountButton({
   };
 
   const applyFullDiscount = () => {
-    if (isFullPercent) return;
+    if (isFullPercent) {
+      return onApply({ discount_type: '', discount_value: 0 });
+    }
     return onApply({ discount_type: 'Percentage', discount_value: 100 });
   };
 
@@ -116,9 +118,10 @@ export function LineDiscountButton({
             isFullPercent && 'bg-[#2E7D32]/15 text-[#2E7D32] hover:bg-[#2E7D32]/20'
           )}
           disabled={disabled || busy}
-          aria-label="Apply 100% discount"
+          aria-pressed={isFullPercent}
+          aria-label={isFullPercent ? 'Remove 100% discount' : 'Apply 100% discount'}
           title={
-            isFullPercent ? '100% discount applied' : 'Apply 100% line discount'
+            isFullPercent ? 'Remove 100% warranty discount' : 'Apply 100% warranty discount'
           }
           onClick={() => void applyFullDiscount()}
         >
